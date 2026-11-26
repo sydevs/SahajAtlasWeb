@@ -9,20 +9,34 @@ import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { Spinner } from '@/components/atoms/Spinner'
-import { CENTERED_BODY, FallbackPanel, ListToolbar } from '@/components/molecules'
+import { CENTERED_BODY, FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
+import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
+import { useIsWideWidget } from '@/config/responsive'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
-import { baseStackEntry, nearestKnownRegion, resolveStack, submitTitleKey } from '@/lib/shape'
-import { BackButton, NavHeader } from '@/views/nav'
+import {
+  baseStackEntry,
+  isoCountryCode,
+  nearestKnownRegion,
+  resolveStack,
+  submitTitleKey,
+} from '@/lib/shape'
+import {
+  LOADING_BODY_CLIP,
+  SkeletonBody,
+  SkeletonField,
+  skeletonShape,
+} from '@/components/organisms/Skeleton/Skeleton'
+import { BackButton, NavHeader, NavRow } from '@/views/nav'
 import {
   CalendarButton,
   ExpandSheetButton,
   FilterButton,
-  SearchButton,
   SearchField,
+  useDrawerControl,
 } from '@/views/shared'
 
 /**
@@ -41,6 +55,13 @@ const leadsWithGeocoder = (
   // code after that return reads `entry.slug`/`entry.id`. So it must narrow away `undefined`
   // and the search variant, exactly as the inline check it replaced did.
 ): entry is undefined | Extract<StackEntry, { kind: 'search' }> => !entry || entry.kind === 'search'
+
+/**
+ * Whether this route's view puts a search field under its title — a place page. The chrome
+ * mirrors that band, so nothing moves when the view arrives, and the body reads the same
+ * answer so it never draws a second field under it.
+ */
+const hasFieldBand = (entry: StackEntry | undefined) => entry?.kind === 'region'
 
 // What a DRAWER adds around the shared fallback body — the chrome that survives when
 // a view cannot render, and the routing knowledge only a drawer has. What the body
@@ -61,29 +82,6 @@ const leadsWithGeocoder = (
 //
 // Split out of `views/shared.tsx` (issue #89), which had grown to hold the drawer
 // controls, the search field, the geolocation suggestion, AND all of this.
-
-/**
- * A disabled stand-in for the geocoder: the same box, none of the machinery. Matches
- * the inert `<input>` `MapSearch` already falls back to when the Geocoder itself
- * fails, so the loading header takes the right shape and the right height without
- * mounting a custom element that is about to be thrown away.
- */
-function SearchFieldSkeleton() {
-  const { t } = useTranslation()
-
-  return (
-    <div className="min-w-0 flex-1">
-      <input
-        disabled
-        readOnly
-        className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
-        placeholder={t('search.chrome.placeholder', { defaultValue: 'Search for events near…' })}
-        type="search"
-        value=""
-      />
-    </div>
-  )
-}
 
 /**
  * The header a drawer keeps when its view cannot render — while loading, or after it
@@ -108,23 +106,22 @@ function SearchFieldSkeleton() {
  * language switch re-renders this in place.
  */
 export function DrawerChrome({
-  interactive = true,
+  loading = false,
   notFound = false,
 }: {
-  interactive?: boolean
+  /**
+   * The view is on its way, not broken: placeholders stand where its title and field will be,
+   * and the field is drawn rather than mounted.
+   */
+  loading?: boolean
   /** The page failed because the place doesn't exist, so nothing can be scoped to it. */
   notFound?: boolean
 }) {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { locale, regionNames: countryNames } = useLocale()
   const { hasMap } = useWidgetMode()
+  const { collapsed } = useDrawerControl()
   const location = useLocation()
-  // This is cache-only (`enabled: false`), not merely non-suspending. It renders on EVERY
-  // loading and error state, so a fetch here would re-issue a read on exactly the failures
-  // where the backend is already the problem. A miss costs the title, never the frame. Both go
-  // through the shared factories, so the keys cannot drift from the ones the loaders write. A
-  // cache-only read under a divergent key does not error. It silently misses.
-  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
   const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
 
   // The same peel DrawerStack applies: a trailing `filters` over a `calendar` is a
@@ -132,26 +129,19 @@ export function DrawerChrome({
   // calendar. Without this, a calendar that fails underneath an open filter overlay
   // titles itself "Filters".
   const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
-  // The region tree is the whole global list, and this re-renders on every location
-  // and drawer-control change, so this does not re-scan it for a name that only
-  // moves with the slug.
-  const regionSlug = entry?.kind === 'region' ? entry.slug : undefined
-  const regionName = useMemo(
-    () =>
-      regionSlug === undefined
-        ? undefined
-        : (regions?.find((node) => node.slug === regionSlug)?.name ?? undefined),
-    [regions, regionSlug],
-  )
+  const region = useCachedRegion(entry?.kind === 'region' ? entry.slug : undefined)
+  // RegionView's own heading for a country, which needs no region tree, so a deep link names the
+  // country at once. Not for a place that doesn't exist: any two letters name some "region".
+  const countryCode = notFound ? undefined : isoCountryCode(region.slug)
+  const regionName = (countryCode && countryNames.of(countryCode)) || region.node?.name || undefined
 
   const title = (() => {
+    if (entry?.kind === 'region') return regionName
+    if (entry?.kind === 'event') return titles?.get(entry.id)
+
     switch (entry?.kind) {
-      case 'region':
-        return regionName
       case 'online':
         return t('online.title', { defaultValue: 'Online Classes' })
-      case 'event':
-        return titles?.get(entry.id)
       case 'search':
         return t('search.chrome.title', { defaultValue: 'Search' })
       case 'calendar':
@@ -159,9 +149,7 @@ export function DrawerChrome({
       case 'filters':
         return t('filters.chrome.title', { defaultValue: 'Filters' })
       case 'register':
-        return t('registration.form.title', {
-          defaultValue: 'Register for Meditation',
-        })
+        return t('registration.form.title', { defaultValue: 'Register for Meditation' })
       case 'share':
         return t('share.title', { defaultValue: 'Share Meditation' })
       case 'add':
@@ -178,64 +166,125 @@ export function DrawerChrome({
   // it needs disabling: on an `offline` search the field is the most useful thing on
   // screen, since a new URL remounts the boundary and may well succeed.
   if (leadsWithGeocoder(entry)) {
+    // A LOADING chrome gets the field's shape, not a working field. `SearchField` mounts a
+    // Mapbox Geocoder — a shadow-DOM custom element bound to the live map — which the view
+    // arriving a moment later would tear down and build again. An ERROR chrome keeps the real
+    // field. There it is the escape hatch.
+    const field = loading ? <SkeletonField /> : <SearchField />
+
+    // CountriesView's header.
+    if (!entry) {
+      return (
+        <DrawerHeader>
+          {field}
+          {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+        </DrawerHeader>
+      )
+    }
+
+    // SearchView's header and toolbar.
     return (
       <>
         <DrawerHeader>
-          {/* A LOADING chrome gets the field's shape, not a working field. `SearchField` mounts
-              a Mapbox Geocoder — a shadow-DOM custom element bound to the live map. This
-              fallback is freshly mounted per path inside DrawerStack's keyed view layer, so on
-              a cold start it would instantiate one while the map is still initialising, then
-              tear it down again the moment CountriesView mounts its own. An ERROR chrome keeps
-              the real field. There it is the escape hatch. */}
           <BackButton iconOnly />
-          {interactive ? <SearchField /> : <SearchFieldSkeleton />}
+          {field}
           <ExpandSheetButton />
         </DrawerHeader>
         <DrawerToolbar>
           <ListToolbar>
             <FilterButton />
+            <SortMenu />
           </ListToolbar>
         </DrawerToolbar>
       </>
     )
   }
 
+  // A class loading takes EventView's own header, so the title lands where the real one will.
+  if (loading && entry.kind === 'event') {
+    return <EventHeader nav={<NavRow />} title={title} />
+  }
+
   // The view's own header, so nothing moves when the view arrives. No title when nothing
-  // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none.
-  return (
+  // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none. A
+  // place still loading draws its title's line instead, outside any heading.
+  const header = (
     <NavHeader
       actions={
         <>
-          {/* A region's own header offers these three, and all still work — they navigate
-              rather than read. The calendar and the filters are scoped to the region whose page
-              failed, which is exactly where a viewer wanted to be. Not for a place that doesn't
-              exist: there is nothing to scope them to, and the message's own way out is the
-              only one that leads anywhere. */}
+          {/* Both still work — they navigate rather than read — and are scoped to the region
+              whose page failed, which is exactly where a viewer wanted to be. Not for a place
+              that doesn't exist: there is nothing to scope them to. */}
           {entry.kind === 'region' && !notFound && (
             <>
               <CalendarButton regionSlug={entry.slug} />
-              <SearchButton />
               <FilterButton iconOnly />
             </>
           )}
-          {entry.kind === 'online' && <SearchButton />}
           {entry.kind === 'calendar' && <FilterButton iconOnly />}
         </>
       }
       close={entry.kind === 'filters'}
+      pendingTitle={loading && entry.kind === 'region' && !title}
       title={title}
     />
   )
-}
 
-// The Suspense fallback for a view whose data is still loading — the shared chrome
-// (so the drawer keeps its identity and its way back) over a spinner.
-// `interactive={false}`: see `SearchFieldSkeleton`.
-export function DrawerLoading() {
+  if (!hasFieldBand(entry)) return header
+
+  // A place's search box, under its title. A dead place link keeps the band too: a search needs
+  // nothing from the place.
   return (
     <>
-      <DrawerChrome interactive={false} />
-      <DrawerLoadingBody />
+      {header}
+      <DrawerToolbar field>{loading ? <SkeletonField /> : <SearchField />}</DrawerToolbar>
+    </>
+  )
+}
+
+/**
+ * A region from the cached tree, by slug. Cache-only (`enabled: false`), not merely
+ * non-suspending: the chrome renders on EVERY loading and error state, so a fetch here would
+ * re-issue a read on exactly the failures where the backend is already the problem. A miss costs
+ * the title, never the frame. The factory keeps the key the loaders write: a cache-only read
+ * under a divergent key does not error, it silently misses. The tree is the whole global list,
+ * so the scan is memoized on the slug.
+ */
+function useCachedRegion(slug: string | undefined) {
+  const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
+  const node = useMemo(
+    () => (slug === undefined ? undefined : regions?.find((region) => region.slug === slug)),
+    [regions, slug],
+  )
+
+  return { slug, node }
+}
+
+/**
+ * The Suspense fallback for a view whose data is still loading: the view's own header (its way
+ * back and its controls work), over the body the boot panel drew (`SkeletonBody`), so nothing
+ * changes as one hands over to the other. A view with nothing worth drawing ahead of it waits
+ * on the spinner.
+ */
+export function DrawerLoading() {
+  const { hasMap } = useWidgetMode()
+  const isWide = useIsWideWidget()
+  const location = useLocation()
+  const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
+  const region = useCachedRegion(entry?.kind === 'region' ? entry.slug : undefined)
+  const shape = skeletonShape(entry, region.node?.level)
+
+  return (
+    <>
+      <DrawerChrome loading />
+      {shape ? (
+        <DrawerBody className={LOADING_BODY_CLIP}>
+          {/* The phone sheet pins Register to its foot once the class arrives. */}
+          <SkeletonBody body={shape.body} cta={!hasMap || isWide} />
+        </DrawerBody>
+      ) : (
+        <DrawerLoadingBody />
+      )}
     </>
   )
 }
@@ -335,11 +384,11 @@ export function ErrorPanel({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <FallbackPanel
       align={fallbackAlign(entry?.kind)}
-      // The root and search chromes already lead with a geocoder, and a dead link
-      // asks for one — so without this check the screen would draw two: the
-      // header's and the body's. This uses the same predicate the chrome uses, so
+      // The root and search chromes lead with a geocoder, and a place's chrome has one under
+      // its title, while a dead link asks for one — so without this check the screen would
+      // draw two: the chrome's and the body's. These are the predicates the chrome uses, so
       // they cannot disagree about which routes those are.
-      hasSearchChrome={leadsWithGeocoder(entry)}
+      hasSearchChrome={leadsWithGeocoder(entry) || hasFieldBand(entry)}
       kind={kind === 'not-found' ? notFoundKind(entry?.kind) : kind}
       // The thrown developer string is not the headline. It is untranslated text written for
       // a developer, rendered to a viewer inside someone else's page. It survives as report

@@ -68,7 +68,6 @@ const WIDGET_TABS = [
   'registration',
   'submit',
   'share',
-  'compact',
 ]
 
 const strip = (node) => {

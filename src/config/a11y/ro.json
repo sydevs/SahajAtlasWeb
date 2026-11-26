@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Se încarcă…",
+    "finding_classes": "Căutăm cursuri…",
     "settings": "Setări"
   },
   "event": {
@@ -21,6 +22,7 @@
   },
   "share": {
     "copy_link": "Copiază linkul",
-    "share_on": "Distribuie pe %{platform}"
+    "share_on": "Distribuie pe %{platform}",
+    "qr_code": "Cod QR pentru %{title}"
   }
 }

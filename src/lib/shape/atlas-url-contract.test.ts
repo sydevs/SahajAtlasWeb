@@ -20,11 +20,15 @@ import { ROUTE_PARAM, pathHrefFor, routeFromParam, routeFromPathname } from '@/l
  * opened its default view. That was caught by hand during a review. This is the gate that catches
  * the next one.
  *
- * ⚠ **The refusal cases are deliberately not exercised here.** Eight of the twenty-one have
- * `expected: null`, which means "SahajCloud must refuse to emit a URL" — a constraint on the
- * builder, with no URL for a parser to be handed. Asserting anything about them from this side
- * would be testing our own fake. Their COUNT is pinned instead, so the file cannot quietly lose
- * cases and still look fully covered.
+ * ⚠ **Percent-encoded and raw spellings are one route.** The URLs in the contract carry a native
+ * slug percent-encoded (`encodeURI`), while `webPath` carries it raw. A parser decodes each segment
+ * before matching, so both cases below expect the raw `webPath` back from the encoded URL.
+ *
+ * ⚠ **The refusal cases are deliberately not exercised here.** Some cases have `expected: null`,
+ * which means "SahajCloud must refuse to emit a URL" — a constraint on the builder, with no URL
+ * for a parser to be handed. Asserting anything about them from this side would be testing our
+ * own fake. Their COUNT is pinned instead, so the file cannot quietly lose cases and still look
+ * fully covered.
  */
 
 type Case = {
@@ -45,7 +49,21 @@ describe('the shared atlas-url-contract fixture', () => {
   it('is the version this repo was written against', () => {
     // A bump means SahajCloud changed the shape of a canonical URL. That is not a merge conflict to
     // resolve — it is a behaviour change to read before re-pinning.
-    expect(contract.version).toBe(1)
+    expect(contract.version).toBe(2)
+  })
+
+  it('describes a slug as Unicode letters, so it must compile with the `u` flag', () => {
+    // Version 2: a slug keeps its native letters, lowercased. Without `u`, `\p{Ll}` is a literal
+    // `p{Ll}` and the pattern silently matches nothing it should.
+    const slug = new RegExp(contract.slugPattern, 'u')
+
+    expect(slug.test('/bg/софия')).toBe(true)
+    expect(slug.test('/de/trier/universität-trier/1998')).toBe(true)
+    expect(slug.test('/am/երևան')).toBe(true)
+    expect(slug.test('/Bg/софия')).toBe(false)
+    expect(slug.test('/bg/%D1%81')).toBe(false)
+
+    for (const { webPath } of emitted) expect(webPath).toMatch(slug)
   })
 
   it('agrees with us about the parameter name', () => {
@@ -53,7 +71,7 @@ describe('the shared atlas-url-contract fixture', () => {
   })
 
   it('still carries every case', () => {
-    expect(emitted).toHaveLength(13)
+    expect(emitted).toHaveLength(15)
     expect(refused).toHaveLength(8)
   })
 })

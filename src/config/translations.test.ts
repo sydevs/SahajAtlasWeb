@@ -241,6 +241,7 @@ const RETIRING_KEYS: Record<string, string> = {
   'calendar.previous': 'sydevs/SahajCloud#1246',
   'common.chrome.explore': 'sydevs/SahajCloud#1246',
   'common.chrome.loading': 'sydevs/SahajCloud#1246',
+  'common.errors.captcha_blocked': 'sydevs/SahajCloud#1278',
   'common.settings.title': 'sydevs/SahajCloud#1246',
   'event.actions.pause_slideshow': 'sydevs/SahajCloud#1246',
   'event.actions.view_photo': 'sydevs/SahajCloud#1246',

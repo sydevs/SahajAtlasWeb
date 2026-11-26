@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Завантаження…",
+    "finding_classes": "Шукаємо заняття…",
     "settings": "Налаштування"
   },
   "event": {
@@ -21,6 +22,7 @@
   },
   "share": {
     "copy_link": "Копіювати посилання",
-    "share_on": "Поділитися: %{platform}"
+    "share_on": "Поділитися: %{platform}",
+    "qr_code": "QR-код для %{title}"
   }
 }

@@ -35,7 +35,7 @@ paths:
 - **Screen-reader strings are this repo's** (`src/config/a11y/`). A string that is only ever
   spoken lives in `<locale>.json`, mounted at `<group>.a11y.<key>`, machine-translated by whoever
   adds it; translators never see it. English is mounted into the boot resource
-  (`config/i18n.ts`); every other locale's file is a lazy chunk, mounted onto its SahajCloud
+  (`config/i18n-options.ts`); every other locale's file is a lazy chunk, mounted onto its SahajCloud
   bundle inside `translationsQuery`, so the cache, the warm-up and `applyLocale` hold one tree. A
   key a file lacks falls back to English through `fallbackLng`. A string that is both seen and
   spoken stays in SahajCloud.
@@ -106,7 +106,7 @@ paths:
 
 ## zustand stores (`src/config/store.ts`)
 
-Nine stores, each the single source of truth for its own slice:
+Ten stores, each the single source of truth for its own slice:
 
 - **`useViewState`** — map camera (`zoom` / `latitude` / `longitude`), current
   `selection`, and `boundary`. Read it with a **`useShallow`** selector on the
@@ -187,6 +187,10 @@ Nine stores, each the single source of truth for its own slice:
   provider renders `DrawerStack`, so a context would have to flow the wrong way, and
   the drawer must not import the map's hooks. It carries `null` wherever there is no
   bottom sheet, and the camera falls back to the open snap's height.
+- **`useMapControls`** — whether the map's control column (find-me, settings, the credits)
+  is hidden. `DrawerStack` sets it at the phone sheet's near-full stop, which covers all of the
+  column but a sliver of its top. A store for `useSheetCover`'s reason: whatever covers the map
+  decides, `Mapbox/MapControls` draws the column, and neither renders the other's context.
 - **`useBrowsedCountry`** — the ISO code of the last country page shown, which scopes
   the place search's suggestions. ⚠ **This is the one slice that looks like it belongs
   in the URL and does not.** The URL holds what a link must reproduce for whoever opens
@@ -309,8 +313,9 @@ two axes separate — an inner fallback must never re-throw to escalate.
 - **Fallbacks render their own chrome.** `DrawerChrome` rebuilds the header from
   the URL plus already-cached data (the region tree for a name, the titles
   sliver for an event), so both a loading and an error state keep the drawer's
-  identity and its Back button. A **loading** chrome sets `interactive={false}`,
-  which swaps the geocoder for an inert shape — mounting a real Mapbox search
+  identity and its Back button. A **loading** chrome (`loading`) draws the view's
+  own header with placeholders where its data goes, and swaps the geocoder for
+  an inert shape — mounting a real Mapbox search
   element in a freshly-mounted fallback would instantiate and tear one down on
   every cold start. The **error** chrome keeps the live field, since there it is
   the escape hatch. Below a view's own header, use `DrawerLoadingBody` /

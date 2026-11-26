@@ -118,6 +118,10 @@ describe('isCanonicalPath', () => {
   it('does not throw on a malformed percent escape', () => {
     expect(isCanonicalPath('/foo%', '/foo%')).toBe(true)
   })
+
+  it('costs a malformed escape its own segment, not the whole path', () => {
+    expect(isCanonicalPath('/belgium/li%C3%A8ge/bad%', '/belgium/liège/bad%')).toBe(true)
+  })
 })
 
 describe('resolvePath', () => {

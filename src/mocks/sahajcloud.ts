@@ -1,11 +1,11 @@
-// SahajCloud's responses as they cross the wire, for the browser lane (`tests/browser/`), which
-// answers every SahajCloud request from here.
+// SahajCloud's responses as they cross the wire, for the browser lane (`tests/browser/`) and Ladle
+// (`.ladle/backend.ts`), which both answer every SahajCloud request from here.
 //
 // ⚠ **Wire shape, not view-model shape.** The mocks beside this file are what a fetcher RETURNS;
 // these are what it PARSES: dates as ISO strings, regions as one flat tree linked by `parent`, the
 // feed as a FeatureCollection carrying Payload's pagination members, relationships populated only
 // as far as each fetcher's `select` asks, and Payload's own envelopes around all of it. A fixture
-// in view-model shape skips the parse the lane exists to exercise. `wire.test.ts` runs every
+// in view-model shape skips the parse the lane exists to exercise. `sahajcloud.test.ts` runs every
 // fixture through the real fetchers, against `answerSahajCloud`, so neither can drift from the
 // contract the app reads.
 import type { RegionNode } from '@/types'
@@ -19,13 +19,13 @@ import { CLIENT_PAGE_LIMIT } from '@/config/api/paginate'
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
 
 /** What a fixture is once it has been through `JSON.stringify` — the only form the wire carries. */
-const toJson = (value: unknown): Json => JSON.parse(JSON.stringify(value))
+export const toJson = (value: unknown): Json => JSON.parse(JSON.stringify(value))
 
 /** Payload stamps every document it serves. One instant, so a fixture never depends on the clock. */
 const STAMP = '2026-01-01T00:00:00.000Z'
 
 /** The key `clients/me` recognises. Any other answers as Payload does a stranger: `{ user: null }`. */
-export const WIRE_API_KEY = 'browser-lane-key'
+export const SAHAJCLOUD_API_KEY = 'browser-lane-key'
 
 // ── The region tree ─────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ const nodeById = new Map(mockRegionNodes.map((node) => [node.id, node]))
 const regionNode = (id: number): RegionNode => {
   const node = nodeById.get(id)
 
-  if (!node) throw new Error(`wire fixtures: no region ${id} in the tree`)
+  if (!node) throw new Error(`SahajCloud fixtures: no region ${id} in the tree`)
 
   return node
 }
@@ -48,18 +48,22 @@ const regionPath = (id: number): string => {
   return `${parent == null ? '' : regionPath(parent)}/${slug}`
 }
 
-const regionNodes = mockRegionNodes.map((node) => ({
+export const regionNodes = mockRegionNodes.map((node) => ({
   ...node,
   webPath: regionPath(node.id),
   webUrl: null,
 }))
 
 /** A region as `REGION_POPULATE` selects it onto an event: no route, no parent. */
-const regionRef = (id: number) => {
-  const { slug, name, level, subtitle } = regionNode(id)
+export const regionRefOf = ({ id, slug, name, level, subtitle }: RegionNode) => ({
+  id,
+  slug,
+  name,
+  level,
+  subtitle,
+})
 
-  return { id, slug, name, level, subtitle }
-}
+const regionRef = (id: number) => regionRefOf(regionNode(id))
 
 // ── The feed and the events behind it ───────────────────────────────────────────
 
@@ -107,21 +111,21 @@ const eventDocs: Record<string, Json> = Object.fromEntries(
   ]),
 )
 
-const wireEventFeature = features.find(({ properties }) => properties.id === mockEvent.id)
+const eventFeature = features.find(({ properties }) => properties.id === mockEvent.id)
 
-if (!wireEventFeature) throw new Error(`wire fixtures: no feed feature for event ${mockEvent.id}`)
+if (!eventFeature) throw new Error(`SahajCloud fixtures: no feed feature for event ${mockEvent.id}`)
 
 /** The event every scenario that opens one opens: the located class, under its city. */
-export const WIRE_EVENT = {
+export const SAHAJCLOUD_EVENT = {
   id: mockEvent.id,
   title: title(mockEvent.id),
-  path: wireEventFeature.properties.webPath,
+  path: eventFeature.properties.webPath,
 }
 
 // ── Payload's envelopes ─────────────────────────────────────────────────────────
 
 /** One page holding every row, which each wholesale read here fits in (`paginate.ts`). */
-const onePage = (totalDocs: number) => ({
+export const onePage = (totalDocs: number) => ({
   totalDocs,
   limit: CLIENT_PAGE_LIMIT,
   totalPages: 1,
@@ -133,9 +137,9 @@ const onePage = (totalDocs: number) => ({
   nextPage: null,
 })
 
-const paginated = (docs: unknown[]) => toJson({ docs, ...onePage(docs.length) })
+export const paginated = (docs: unknown[]) => toJson({ docs, ...onePage(docs.length) })
 
-export const wire = {
+export const sahajCloud = {
   /** `GET /api/clients/me`. Payload's `me` adds `collection` and `_strategy` to the user row. */
   clientMe: toJson({
     user: {
@@ -187,42 +191,40 @@ export const wire = {
 
 // ── The router ──────────────────────────────────────────────────────────────────
 
-export type WireAnswer = { status: number; json: Json }
-
 /**
  * SahajCloud's answer to one request, by method and path under `/api`, or `undefined` for a
  * request these fixtures do not model — which the browser lane fails a test for, rather than
- * inventing a reply the app could misread as data.
+ * inventing a reply the app could misread as data. `fixtures` swaps in a bigger set of the same
+ * shape, as Ladle's demo atlas does (`sahajcloud-demo.ts`).
  */
-export function answerSahajCloud(request: {
-  method: string
-  url: URL
-  authorization?: string | null
-}): WireAnswer | undefined {
+export function answerSahajCloud(
+  request: { method: string; url: URL; authorization?: string | null },
+  fixtures: typeof sahajCloud = sahajCloud,
+): { status: number; json: Json } | undefined {
   const { method, url } = request
   const path = url.pathname.replace(/^\/api(?=\/)/, '')
   const ok = (json: Json, status = 200) => ({ status, json })
 
   if (method === 'GET') {
     if (path === '/clients/me') {
-      return request.authorization === `clients API-Key ${WIRE_API_KEY}`
-        ? ok(wire.clientMe)
+      return request.authorization === `clients API-Key ${SAHAJCLOUD_API_KEY}`
+        ? ok(fixtures.clientMe)
         : ok({ user: null })
     }
-    if (path === '/globals/sy-atlas-config') return ok(wire.atlasConfig)
-    if (path === '/globals/sy-atlas-translations') return ok(wire.translations)
-    if (path === '/regions') return ok(wire.regions)
-    if (path === '/events/geojson') return ok(wire.feed)
-    if (path === '/events') return ok(wire.eventTitles)
+    if (path === '/globals/sy-atlas-config') return ok(fixtures.atlasConfig)
+    if (path === '/globals/sy-atlas-translations') return ok(fixtures.translations)
+    if (path === '/regions') return ok(fixtures.regions)
+    if (path === '/events/geojson') return ok(fixtures.feed)
+    if (path === '/events') return ok(fixtures.eventTitles)
 
     const id = /^\/events\/(\d+)$/.exec(path)?.[1]
 
-    if (id) return wire.events[id] ? ok(wire.events[id]) : ok(wire.notFound, 404)
+    if (id) return fixtures.events[id] ? ok(fixtures.events[id]) : ok(fixtures.notFound, 404)
   }
 
   if (method === 'POST') {
-    if (path === '/user-submissions') return ok(wire.submissionCreated, 201)
-    if (path === '/clients/report') return ok(wire.embedReport)
+    if (path === '/user-submissions') return ok(fixtures.submissionCreated, 201)
+    if (path === '/clients/report') return ok(fixtures.embedReport)
   }
 
   return undefined

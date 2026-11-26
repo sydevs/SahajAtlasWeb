@@ -6,30 +6,38 @@ import { readRepoSource as read } from '@/test-support/repo-source'
 // getting that wrong is silent: a control in the corner the drawer takes renders perfectly, behind
 // a panel, and no gate in this repo looks at a corner name.
 //
-// Two literals pick the corners — `logoPosition` on the map, `position` on the control — and
-// mapbox reads each once, at construction. They name different corners on purpose, so each is
-// pinned on its own.
+// Two literals pick the corners — `logoPosition` on the map, `position` on the control column that
+// carries the attribution — and mapbox reads each once, at construction. They name different
+// corners on purpose, so each is pinned on its own.
 //
-// This reads the file rather than rendering `Map.tsx`: mapbox reads these literals only when it
+// This reads the files rather than rendering them: mapbox reads these literals only when it
 // constructs a map, which takes a WebGL context the node lane does not have.
 const MAP = 'src/components/organisms/Mapbox/Map.tsx'
+const CONTROLS = 'src/components/organisms/Mapbox/MapControls.tsx'
+const LOCATE = 'src/components/organisms/Mapbox/use-locate.ts'
+const STYLES = 'src/styles/globals.css'
+const MAPBOX_STYLES = 'node_modules/mapbox-gl/dist/mapbox-gl.css'
 // Where the bottom sheet's snap ladder lives, whose lowest stop rules out both bottom corners for
 // the attribution.
 const STACK = 'src/views/DrawerStack/DrawerStack.tsx'
 
 const cornerIn = (source: string, prop: string) =>
-  source.match(new RegExp(`${prop}="((?:top|bottom)-(?:left|right))"`))?.[1]
+  source.match(new RegExp(`${prop}(?:="|: ')((?:top|bottom)-(?:left|right))['"]`))?.[1]
 
 describe('the Mapbox wordmark and attribution corners', () => {
   const map = read(MAP)
-  const control = map.match(/<AttributionControl\b[^>]*>/)?.[0] ?? ''
+  const controls = read(CONTROLS)
 
   it('renders exactly one attribution, and it is the one this app places', () => {
     // Mapbox adds its own at a position no prop can change, so both halves matter: declining it
-    // and rendering the control. Dropping either leaves no attribution or two of them.
+    // and rendering the column that carries it. Dropping either leaves no attribution or two.
     expect(map).toContain('attributionControl={false}')
-    expect(map.match(/<AttributionControl\b/g)).toHaveLength(1)
-    expect(control).toContain('compact')
+    expect(map).not.toMatch(/<AttributionControl\b/)
+    expect(map.match(/<MapControls\b/g)).toHaveLength(1)
+    expect(controls.match(/new mapLib\.AttributionControl\(/g)).toHaveLength(1)
+    expect(controls).toContain('compact: true')
+    // Created but never added to the map, so the column is what puts it on screen.
+    expect(controls).toMatch(/prepend\(this\.attribution\.onAdd\(map\)\)/)
   })
 
   it('puts the attribution in the one corner no drawer covers', () => {
@@ -39,10 +47,9 @@ describe('the Mapbox wordmark and attribution corners', () => {
     expect(read(STACK), "the bottom sheet's lowest stop").toMatch(
       /const SNAP_POINTS = \[PEEK_SNAP,/,
     )
-    // The remaining side is the cog's: it takes the inline start in both layouts, so the
-    // attribution takes the other. Physical, and paired with the drawer's deferred RTL flip
-    // (`atoms/Drawer`'s `TODO(rtl, #52 WS8)`) — under RTL the cog's `start-3` is this corner.
-    expect(cornerIn(control, 'position')).toBe('top-right')
+    // The side panel takes the left in a wide layout, so this is the right. Physical, and paired
+    // with the drawer's deferred RTL flip (`atoms/Drawer`'s `TODO(rtl, #52 WS8)`).
+    expect(cornerIn(controls, 'position')).toBe('top-right')
   })
 
   it('keeps the wordmark out of the corner the side panel covers', () => {
@@ -50,6 +57,27 @@ describe('the Mapbox wordmark and attribution corners', () => {
     // embed — the half of #324 that hid the wordmark there. The narrow sheet covers this corner
     // too, which #330's review accepted rather than buy the measurement back for.
     expect(cornerIn(map, 'logoPosition')).toBe('bottom-right')
+  })
+
+  it('seats the credits beside the column through class names mapbox-gl still renders', () => {
+    // A mapbox-gl upgrade that renamed these would bring back Mapbox's corner margin and float
+    // inside the column, and drop the touch tap area, without a sound. Mapbox's own sheet is what
+    // says whether a name is still rendered, so each must be in both.
+    const ours = read(STYLES)
+    const theirs = read(MAPBOX_STYLES)
+
+    for (const name of [
+      'mapboxgl-ctrl-attrib',
+      'mapboxgl-compact',
+      'mapboxgl-ctrl-attrib-button',
+    ]) {
+      const selector = new RegExp(`\\.${name}(?![\\w-])`)
+
+      expect(theirs, `mapbox-gl's own .${name}`).toMatch(selector)
+      expect(ours, `globals.css targets .${name}`).toMatch(
+        new RegExp(`\\.sy-map-controls [^{]*\\.${name}(?![\\w-])`),
+      )
+    }
   })
 })
 
@@ -65,6 +93,15 @@ describe('a refused location request', () => {
     expect(control, 'the GeolocateControl element').toMatch(/onError=\{/)
   })
 
+  it("is asked for by the column's button, with Mapbox's own hidden", () => {
+    // Mapbox's button left visible would be a second find-me in the corner.
+    expect(control, 'the GeolocateControl element').toContain('showButton={false}')
+    expect(control).toContain('ref={locate.geolocateRef}')
+    expect(read(LOCATE)).toMatch(
+      /const control = geolocateRef\.current[\s\S]*?control\.trigger\(\)/,
+    )
+  })
+
   it('opens a dialog that is a sibling of the map, not part of its subtree', () => {
     // react-map-gl reconciles its children as map controls and sources; inside `<ReactMapGL>` the
     // dialog would be reparented into mapbox's own container.
@@ -77,7 +114,7 @@ describe('a refused location request', () => {
   it('hands focus back to the locate control on close', () => {
     // Radix returns focus to a `Dialog.Trigger`, and this dialog has none.
     expect(map.split('</ReactMapGL>')[1]).toMatch(
-      /onCloseAutoFocus=\{[\s\S]*?mapboxgl-ctrl-geolocate/,
+      /onCloseAutoFocus=\{[\s\S]*?locate\.buttonRef\.current\?\.focus\(\)/,
     )
   })
 })

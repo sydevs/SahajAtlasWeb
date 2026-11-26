@@ -45,7 +45,6 @@ export const WIDGET_TRANSLATION_TABS = [
   'registration',
   'submit',
   'share',
-  'compact',
 ] as const
 
 /** These never reach i18next: Payload's own document metadata, and the two non-widget groups. */

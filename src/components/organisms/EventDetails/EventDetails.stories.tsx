@@ -26,7 +26,7 @@ export default { title: 'Organisms' } satisfies StoryDefault
 function Panel({ event }: { event: Event }) {
   return (
     <div className="max-w-md border border-divider">
-      <EventHeader event={event} />
+      <EventHeader title={event.title} />
       <EventDetails basePath={`/demo/${event.id}`} event={event} />
     </div>
   )
@@ -118,7 +118,7 @@ export const Default: Story = () => (
           </div>
         </div>
         <div className="border border-divider">
-          <EventHeader event={mockEvent} />
+          <EventHeader title={mockEvent.title} />
           <EventDetails basePath="/demo/101" ctaInline={false} event={mockEvent} />
         </div>
       </div>
@@ -129,7 +129,7 @@ export const Default: Story = () => (
       title="Slots"
     >
       <div className="w-[352px] border border-divider">
-        <EventHeader event={mockEvent} />
+        <EventHeader title={mockEvent.title} />
         <EventDetails
           actions={<p className="text-sm text-gray-11">Nothing here can be acted on yet.</p>}
           basePath="/add"

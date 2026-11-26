@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Betöltés…",
+    "finding_classes": "Foglalkozások keresése…",
     "settings": "Beállítások"
   },
   "event": {
@@ -21,6 +22,7 @@
   },
   "share": {
     "copy_link": "Hivatkozás másolása",
-    "share_on": "Megosztás: %{platform}"
+    "share_on": "Megosztás: %{platform}",
+    "qr_code": "QR-kód: %{title}"
   }
 }

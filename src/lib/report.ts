@@ -52,8 +52,7 @@ export function errorMessage(error: unknown): string | undefined {
  * for a dropped connection. Asking a viewer to report their own offline state
  * wastes everyone's time.
  */
-export type ErrorKind =
-  'offline' | 'server' | 'not-found' | 'config' | 'captcha-blocked' | 'unknown'
+export type ErrorKind = 'offline' | 'server' | 'not-found' | 'config' | 'unknown'
 
 /**
  * Throws a failure that already knows its own kind.
@@ -78,7 +77,6 @@ const ERROR_KINDS: Record<ErrorKind, true> = {
   server: true,
   'not-found': true,
   config: true,
-  'captcha-blocked': true,
   unknown: true,
 }
 
@@ -187,10 +185,6 @@ const LOG_PREFIX = 'sahaj-atlas'
  * The remaining kinds are ones a maintainer can act on. **`server`** means
  * SahajCloud is down, or a CORS/CSP block is being reported as one. **`config`** means
  * a customer's API key is wrong or expired, so their embed is dead on arrival.
- * **`captcha-blocked`** means the challenge would not load — a host outside the
- * allowlist, or a CSP refusing its frame. `ERROR_POLICY` still withholds the viewer's
- * report button there, and that is a different question: their form is Turnstile-gated,
- * while this event rides the Sentry DSN's own transport, which the gate never touches.
  * **`unknown`** is ours: a render crash, a schema drift, or a refused link.
  *
  * Each row here is one line to flip, on purpose. If a 404 spike ever turns out to be
@@ -202,7 +196,6 @@ const REPORTED_KINDS: Record<ErrorKind, boolean> = {
   'not-found': false,
   server: true,
   config: true,
-  'captcha-blocked': true,
   unknown: true,
 }
 

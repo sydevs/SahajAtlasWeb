@@ -47,6 +47,7 @@ import {
   isOnline,
   isUnverified,
   isoCountryCode,
+  listsPlaces,
   matchesFilters,
   parentOf,
   partitionUnder,
@@ -569,7 +570,7 @@ const getRegion = async (slug: string, filters?: EventFilters): Promise<Region> 
   const visible = visibleFeatures(events, regions, filters)
   const eventCount = countUnder(visible, node.id)
   const path = regionRoute(node)
-  const isParent = node.level === 'country' || node.level === 'region'
+  const isParent = listsPlaces(node.level)
   const bounds = boundsUnder(events, node.id)
 
   // Parent regions split their located events across child regions.
@@ -876,7 +877,6 @@ export const TRANSLATION_SELECT = {
   registration: true,
   submit: true,
   share: true,
-  compact: true,
 } as const
 
 // This drops Payload's own document metadata before the bundle reaches i18next.

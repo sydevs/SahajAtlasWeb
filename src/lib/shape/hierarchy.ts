@@ -1,4 +1,5 @@
 import type { BBox, Position } from 'geojson'
+import type { RegionLevel } from '@/types'
 
 import { boundsOfPoints } from '@/lib/geo'
 
@@ -43,6 +44,11 @@ export type RegionIndex<T extends RegionTreeNode> = {
 /**
  * Builds the id + slug lookup maps for a region tree in one pass. Slugs are
  * globally unique across levels, so `bySlug` is unambiguous.
+ *
+ * `bySlug` answers to both spellings of a slug. A lookup off a URL arrives NFC, through
+ * `safeDecode`; `ancestorSlugs` hands a node's own raw slug back, and `getRegion` looks
+ * that up here in turn. SahajCloud generates NFC slugs, so the two keys are the same one
+ * for every slug it has ever generated, and this only bites for one typed by hand in NFD.
  */
 export const indexRegions = <T extends RegionTreeNode>(nodes: readonly T[]): RegionIndex<T> => {
   const byId = new Map<number, T>()
@@ -51,6 +57,7 @@ export const indexRegions = <T extends RegionTreeNode>(nodes: readonly T[]): Reg
   for (const node of nodes) {
     byId.set(node.id, node)
     bySlug.set(node.slug, node)
+    bySlug.set(node.slug.normalize('NFC'), node)
   }
 
   return { byId, bySlug }
@@ -63,6 +70,21 @@ export const indexRegions = <T extends RegionTreeNode>(nodes: readonly T[]): Reg
  */
 export const childrenOf = <T extends RegionTreeNode>(index: RegionIndex<T>, id: number): T[] =>
   [...index.byId.values()].filter((node) => node.parent === id)
+
+/**
+ * Whether a region's page lists the places under it, as a country's or a region's does, rather
+ * than its own classes, as a city's or a venue's does.
+ */
+export const listsPlaces = (level: RegionLevel): boolean =>
+  level === 'country' || level === 'region'
+
+/**
+ * `listsPlaces` for a page whose level may not be known yet (a deep link before the region tree
+ * arrives). The route then guesses: nothing three levels down lists places. Wrong for a city
+ * directly under its country (`/cz/prague`), which shows place rows a moment before its classes.
+ */
+export const guessListsPlaces = (path: string, level: RegionLevel | undefined): boolean =>
+  level ? listsPlaces(level) : path.split('/').filter(Boolean).length < 3
 
 /**
  * A region's full ancestry ids, self-inclusive (self → parent → … → country),

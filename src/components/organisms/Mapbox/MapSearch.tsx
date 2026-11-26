@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { repairGeocoderDom } from './geocoder-dom'
 import { controlTheme } from './themes'
 
+import { RESULTS_BAND } from '@/components/atoms/Drawer'
 import { clientQuery } from '@/config/api'
 import { useBrowsedCountry } from '@/config/store'
 import atlasAuth from '@/config/api/auth'
@@ -88,6 +89,9 @@ const LOCAL_BIAS_MIN_ZOOM = 3
 const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
   zoom !== undefined && zoom >= LOCAL_BIAS_MIN_ZOOM && center ? center : 'ip'
 
+// Long enough to span a typing pause, short enough to answer a finished query promptly.
+const NOT_FOUND_SETTLE_MS = 300
+
 /**
  * The geocoder field. It renders the text it is given and reports what was picked. Where that text
  * lives is its owner's question — `SearchField` follows `?q`, the add-a-class Where step keeps it
@@ -125,7 +129,18 @@ export function MapSearch({
   const [released, setReleased] = React.useState<ReleasedScope>()
   const scope = searchCountryScope(country, value, released)
   const [foundNothing, setFoundNothing] = React.useState(false)
+  // Declared only once typing has settled on that answer: each keystroke's response would
+  // otherwise toggle it on and off under the field.
+  const [settledNothing, setSettledNothing] = React.useState(false)
   const field = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    if (!foundNothing) return setSettledNothing(false)
+
+    const timer = setTimeout(() => setSettledNothing(true), NOT_FOUND_SETTLE_MS)
+
+    return () => clearTimeout(timer)
+  }, [foundNothing])
 
   React.useEffect(() => {
     const node = field.current
@@ -133,6 +148,39 @@ export function MapSearch({
     if (!node) return undefined
 
     return repairGeocoderDom(node)
+  }, [])
+
+  // The suggestion list opens under the field and runs to the end of the band hosting it, past
+  // any control after the field (the start page's Filters) but never past the band. Measured,
+  // because the field need not start the band: SearchView's Back comes first.
+  React.useLayoutEffect(() => {
+    const node = field.current
+
+    if (!node || typeof ResizeObserver === 'undefined') return undefined
+
+    const band = node.closest<HTMLElement>(`.${RESULTS_BAND}`)
+    const size = () => {
+      const own = node.getBoundingClientRect()
+      let width = own.width
+
+      if (band) {
+        const box = band.getBoundingClientRect()
+        const style = getComputedStyle(band)
+
+        width =
+          style.direction === 'rtl'
+            ? own.right - box.left - parseFloat(style.paddingLeft)
+            : box.right - parseFloat(style.paddingRight) - own.left
+      }
+      // The list sits 1px inside the field's border on each side.
+      node.style.setProperty('--sy-results-w', `${width - 2}px`)
+    }
+    const observer = new ResizeObserver(size)
+
+    observer.observe(node)
+    if (band) observer.observe(band)
+
+    return () => observer.disconnect()
   }, [])
 
   const onSuggest = (response: GeocodingResponse) => {
@@ -172,13 +220,15 @@ export function MapSearch({
       // ⚠ The min-height is the 44px tap floor reaching the geocoder's OWN input (#432), the
       // same way `field-size` reaches it: that element is the library's, so a class cannot be
       // put on it, and an `<input>` renders no `::after` for `touch-target` to use.
-      className="[&_input]:field-size [&_input]:pointer-coarse:min-h-11 [&_input:placeholder-shown]:!pe-3"
+      // ⚠ Literal px, never a spacing step: the geocoder declares its own `--spacing` (0.75em),
+      // which every step inside it multiplies, so `min-h-11` drew a 132px field on touch.
+      className="relative [&_input]:field-size [&_input]:pointer-coarse:min-h-[44px] [&_input:placeholder-shown]:!pe-[12px]"
     >
       <GeocoderBoundary
         fallback={
           <input
             aria-label={fieldLabel}
-            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11 pointer-coarse:min-h-11"
+            className="w-full rounded-lg border border-divider bg-gray-2 px-3 py-2 field-size text-foreground placeholder:text-gray-11"
             placeholder={fieldLabel}
             type="search"
             value={value}
@@ -206,17 +256,25 @@ export function MapSearch({
           placeholder={fieldLabel}
           theme={controlTheme}
           value={value}
-          onChange={onChange}
+          onChange={(text: string) => {
+            onChange(text)
+            // Pending until this text's own answer arrives.
+            setFoundNothing(false)
+          }}
           onRetrieve={onSelect}
           onSuggest={onSuggest}
         />
       </GeocoderBoundary>
-      {/* Without this a place that doesn't exist left the list as it was, with no answer at all. */}
-      {foundNothing && value.trim() && (
-        <p className="pt-2 text-sm text-gray-11" role="status">
-          {t('common.errors.not_found_region')}
-        </p>
-      )}
+      {/* Without this a place that doesn't exist left the list as it was, with no answer at all.
+          It takes the suggestion list's place and look (`.Results` in themes.ts, 10px below the
+          field), so it overlays rather than pushing the panel. The region stays mounted, so a
+          screen reader announces the text when it arrives. */}
+      <p
+        className="absolute inset-x-0 top-[calc(100%+10px)] z-10 rounded-lg bg-background px-4 py-3 text-sm text-gray-11 shadow-[0_0_0_1px_hsl(var(--background)),0_8px_24px_rgb(0_0_0/0.16)] empty:hidden"
+        role="status"
+      >
+        {settledNothing && value.trim() ? t('common.errors.not_found_region') : null}
+      </p>
     </div>
   )
 }

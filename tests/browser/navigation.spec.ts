@@ -1,4 +1,4 @@
-import { WIRE_EVENT } from '../../src/mocks/wire'
+import { SAHAJCLOUD_EVENT } from '../../src/mocks/sahajcloud'
 import en from '../../src/config/translations.en.json' with { type: 'json' }
 
 import { atlasRoute, copy, expect, hostPage, test, widget } from './fixtures'
@@ -8,12 +8,12 @@ import { atlasRoute, copy, expect, hostPage, test, widget } from './fixtures'
 // visitor came, and with none — a deep link — it climbs, never taking the host page back.
 
 /**
- * The drill-down through the wire fixtures' tree. Cambridgeshire holds one class, so its row opens
- * that class directly, under the place's own address.
+ * The drill-down through the SahajCloud fixtures' tree. Cambridgeshire holds one class, so its
+ * row opens that class directly, under the place's own address.
  */
 const PATH = [
   { link: /United Kingdom/, route: '/gb', title: 'United Kingdom' },
-  { link: /^Cambridgeshire \d+$/, route: WIRE_EVENT.path, title: WIRE_EVENT.title },
+  { link: /^Cambridgeshire \d+$/, route: SAHAJCLOUD_EVENT.path, title: SAHAJCLOUD_EVENT.title },
 ]
 
 const COUNTRY = PATH[0]
@@ -41,11 +41,11 @@ test('browsing in moves the URL and the drawers, and Back retraces it', async ({
   // have pushed a new entry and left nothing to go forward to.
   await backTo(atlas, COUNTRY.title).click()
   await expect.poll(() => atlasRoute(page)).toBe(COUNTRY.route)
-  await expect(heading(WIRE_EVENT.title)).toHaveCount(0)
+  await expect(heading(SAHAJCLOUD_EVENT.title)).toHaveCount(0)
 
   await page.goForward()
-  await expect.poll(() => atlasRoute(page)).toBe(WIRE_EVENT.path)
-  await expect(heading(WIRE_EVENT.title)).toBeVisible()
+  await expect.poll(() => atlasRoute(page)).toBe(SAHAJCLOUD_EVENT.path)
+  await expect(heading(SAHAJCLOUD_EVENT.title)).toBeVisible()
 
   // The browser's Back retraces every step, and the last one leaves the host page as it was.
   await page.goBack()
@@ -58,11 +58,13 @@ test('browsing in moves the URL and the drawers, and Back retraces it', async ({
 })
 
 test('a deep link to a class goes back past the places that hold only it', async ({ page }) => {
-  await page.goto(hostPage('full-map.html', WIRE_EVENT.path))
+  await page.goto(hostPage('full-map.html', SAHAJCLOUD_EVENT.path))
 
   const atlas = widget(page)
 
-  await expect(atlas.getByRole('heading', { name: WIRE_EVENT.title, exact: true })).toBeVisible()
+  await expect(
+    atlas.getByRole('heading', { name: SAHAJCLOUD_EVENT.title, exact: true }),
+  ).toBeVisible()
 
   // A deep link has no in-widget history, so `navigate(-1)` here would take the HOST page back
   // to wherever the visitor came from (#89). It climbs instead, past the city and the region,
@@ -80,8 +82,10 @@ test('a link to a place with one class opens it, and Back does not bounce into i
 
   const atlas = widget(page)
 
-  await expect.poll(() => atlasRoute(page)).toBe(WIRE_EVENT.path)
-  await expect(atlas.getByRole('heading', { name: WIRE_EVENT.title, exact: true })).toBeVisible()
+  await expect.poll(() => atlasRoute(page)).toBe(SAHAJCLOUD_EVENT.path)
+  await expect(
+    atlas.getByRole('heading', { name: SAHAJCLOUD_EVENT.title, exact: true }),
+  ).toBeVisible()
 
   await backTo(atlas, COUNTRY.title).click()
   await expect.poll(() => atlasRoute(page)).toBe(COUNTRY.route)

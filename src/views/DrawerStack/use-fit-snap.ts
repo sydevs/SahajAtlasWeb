@@ -1,9 +1,9 @@
 import { useLayoutEffect, useState } from 'react'
 
+import { LOADING_ATTR } from '@/components/organisms/Skeleton/Skeleton'
+import { WIDE_SNAP } from '@/config/responsive'
 import { overlayContainer } from '@/lib/overlay'
 
-// The share of the frame the near-full snap shows. Content taller than this just takes it.
-const NEAR_FULL = 0.97
 // Below this a sheet would sit under the peek, which is no longer "open".
 const MIN_FIT_PX = 120
 
@@ -34,7 +34,7 @@ export function fitHeight({
   const fit = Math.ceil(bodyOffset + contentHeight + footerSpace)
 
   if (!Number.isFinite(fit) || fit < MIN_FIT_PX || frameHeight <= 0) return null
-  if (fit >= frameHeight * NEAR_FULL) return 'full'
+  if (fit >= frameHeight * WIDE_SNAP) return 'full'
 
   return fit
 }
@@ -105,7 +105,14 @@ export function useFitSnap(enabled: boolean, view: string): SheetFit | null {
         return
       }
 
-      const update = () => setFit(measure(sheet, current))
+      // A placeholder is nothing true to fit: the sheet holds its stop and moves once, when the
+      // content arrives, rather than fitting the placeholder first.
+      const update = () =>
+        setFit(
+          Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))
+            ? null
+            : measure(sheet, current),
+        )
       const resize = new ResizeObserver(update)
       const watch = () => {
         resize.disconnect()

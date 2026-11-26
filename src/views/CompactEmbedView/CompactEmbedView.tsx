@@ -122,7 +122,7 @@ const closeClass = 'absolute end-3 top-3 z-50'
  * click-outside-to-close, makes it legibly a layer over their site.
  *
  * ⚠ **`contain: layout` is load-bearing, not an optimisation.** Everything rendered
- * inside — the map canvas, every drawer, the cog — is `position:
+ * inside — the map canvas and every drawer — is `position:
  * fixed`. A fixed descendant resolves against the VIEWPORT, unless an ancestor
  * establishes a containing block. Without it, they escape the margin and paint to
  * the screen edge while the dialog sits inset. Measured in Chrome 151: a `fixed;
@@ -215,7 +215,7 @@ function ExpandedDialog({
               needs `forceMount`, which keeps the content — the Mapbox canvas included —
               mounted while closed, and not mounting it is the entire point of the compact
               form. This uses framer, rather than CSS, so `MotionConfig` covers it, which
-              keeps reduced motion to three seams instead of four (`src/components/AGENTS.md`). */}
+              adds no seam to the reduced-motion ones `src/components/AGENTS.md` lists. */}
           <m.div
             ref={adopt}
             animate={{ opacity: 1 }}

@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
 import { Button } from '@/components/atoms/Button'
-import { DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { ListItem } from '@/components/molecules/ListItem'
 import { ListToolbar } from '@/components/molecules/ListToolbar'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
@@ -22,12 +22,18 @@ describe('the panel gutter', () => {
   it.each([
     ['the drawer header', <DrawerHeader key="h">title</DrawerHeader>],
     [
+      "a search field's toolbar",
+      <DrawerToolbar key="t" field>
+        field
+      </DrawerToolbar>,
+    ],
+    [
       'a list row',
       <MemoryRouter key="r">
         <ListItem count={3} href="/gb" label="United Kingdom" />
       </MemoryRouter>,
     ],
-    ['the class page header', <EventHeader key="e" event={mockEvent} />],
+    ['the class page header', <EventHeader key="e" title={mockEvent.title} />],
   ])('insets %s by it', (_, element) => {
     const classes = firstClasses(renderToStaticMarkup(element))
 

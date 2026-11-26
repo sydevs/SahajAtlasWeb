@@ -238,7 +238,7 @@ function Listing({ target, inlinePanel }: { target: FlowTarget; inlinePanel: boo
 
   return (
     <>
-      <EventHeader event={{ ...listing, title }} nav={<NavRow />} />
+      <EventHeader nav={<NavRow />} title={title} />
       <DrawerBody>
         {inlinePanel && (
           <div className="mx-6 mb-4 rounded-lg border border-divider">

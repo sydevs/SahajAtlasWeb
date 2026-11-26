@@ -144,12 +144,16 @@ describe('the container-vs-viewport decision table', () => {
  */
 const RAW_VIEWPORT_READERS: Record<string, string> = {
   // The height of the box the sheet covers, when no frame owns it, to cap the camera padding.
+  // The width of the box a control's label opens in, when no frame owns it, to pick its side.
+  'components/atoms/HoverLabel/HoverLabel.tsx': 'grows a label rightward when the left has no room',
+  // The height of the window a frameless phone sheet sits in, shared by the sheet and the boot panel.
+  'config/responsive.ts': "caps a short window's sheet stops (`shortSheetCap`)",
   'hooks/use-map-controller-real.tsx': 'caps camera padding for a short viewport',
   'lib/slot-decision.ts':
     'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
   // The height of the box the sheet slides in, when no frame owns it: to tell the peek, and to
   // keep a short window's stops clear of the top.
-  'views/DrawerStack/DrawerStack.tsx': 'marks the sheet at its peek, and caps its stops when short',
+  'views/DrawerStack/DrawerStack.tsx': 'marks the sheet at its peek',
 }
 
 describe('raw viewport reads are a closed list too', () => {

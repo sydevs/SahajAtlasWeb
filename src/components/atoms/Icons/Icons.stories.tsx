@@ -8,11 +8,13 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Download,
   Funnel,
   Globe,
   Info,
   Languages,
   LoaderCircle,
+  LocateFixed,
   MailCheck,
   MapPin,
   Milestone,
@@ -29,6 +31,8 @@ import {
 } from 'lucide-react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
+
+import { MeditateFigure } from './MeditateFigure'
 
 import { Button } from '@/components/atoms/Button'
 
@@ -57,11 +61,13 @@ const ICONS = [
   { name: 'ChevronDown', Icon: ChevronDown },
   { name: 'ChevronLeft', Icon: ChevronLeft },
   { name: 'ChevronRight', Icon: ChevronRight },
+  { name: 'Download', Icon: Download },
   { name: 'Funnel', Icon: Funnel },
   { name: 'Globe', Icon: Globe },
   { name: 'Info', Icon: Info },
   { name: 'Languages', Icon: Languages },
   { name: 'LoaderCircle', Icon: LoaderCircle },
+  { name: 'LocateFixed', Icon: LocateFixed },
   { name: 'MailCheck', Icon: MailCheck },
   { name: 'MapPin', Icon: MapPin },
   { name: 'Milestone', Icon: Milestone },
@@ -124,6 +130,17 @@ export const Default: Story = () => (
             gallery in the same change that first uses it.
           </p>
         </div>
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="The one glyph that is not Lucide's: the We Meditate app's meditating figure, a brand mark, on the first screen's Online classes row."
+      inContext={true}
+      title="Brand mark"
+    >
+      <div className="flex w-24 flex-col items-center gap-2 text-center">
+        <MeditateFigure size={28} />
+        <span className="text-xs text-gray-11">MeditateFigure</span>
       </div>
     </StorySection>
 

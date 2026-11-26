@@ -43,6 +43,76 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **On a slow or failing connection the map and its panel appear at once.** ([#490]) In the full
+  map form the widget no longer shows a white page with "Loading…" while it reads your client
+  record: the map draws straight away, and the panel stands where it will open, holding
+  placeholders shaped like what is coming — the first screen's search box and country rows, a
+  place's rows or class cards, or a class page. A screen reader hears "Finding classes…" once. The
+  panel arrives once: it no longer slides in from the left on a computer, and on a phone it moves
+  at most once, when the content arrives. If the data can't be read, the message and Try again sit
+  inside the panel and the map stays; the spinner in the middle of the map is gone. A wrong `key`
+  now costs one Mapbox map load before its error shows, and your client record's colours and home
+  region arrive a moment after the map. The compact card and the map-less forms wait as before.
+  **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **A failed security check pauses only signing up.** ([#490]) When the Turnstile check can't load
+  — a CSP without `frame-src https://cloud.sydevelopers.com`, a domain missing from your client
+  record, or a slow network — visitors can still move around the map, browse places and open
+  classes. The registration form says why Register is off and offers Try again, which mounts a
+  fresh check. The full-page "This Atlas can't run on this page" error is gone. The console still
+  names both fixes, within about 40 seconds. ⚠ A page with the wrong settings no longer looks
+  broken to you at a glance: check the console, or try registering, after changing your CSP.
+
+- **The search box is its 44px tap height on a touch screen again.** ([#490]) It had grown to
+  about 134px on every phone and tablet.
+
+- **On a computer, the panel beside the map is as tall as what it shows.** ([#495]) At 1024px
+  and wider, the floating panel ends under its content instead of always running the full height
+  of the window or of your map's box, so a place with two classes covers far less of the map. A
+  long list still fills the height and scrolls inside the panel, and the bottom edge eases over
+  200ms as visitors move between places (instantly with reduced motion). While someone types in a
+  search box, the panel takes the full height so the suggestions fit, and "We couldn't find that
+  place." now shows in the suggestions' spot, styled like them, once typing pauses. The location
+  prompt at the foot of a list now sits 16px from the panel's bottom edge.
+  Width, phones, the full-width calendar and map-less embeds are unchanged. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
+- **Every country, region and city panel has a search box under its title.** ([#485]) It is the
+  same "search for a place" field the first screen opens on, in place of the magnifier that led
+  to a separate search page, so a visitor who went into the wrong place can search again from
+  where they are. The box stays put while the list scrolls under it. Typing leaves the address
+  alone; picking a place opens its results with the active filters kept. The calendar and filter
+  controls stay in the header, and the panel shows the same box while it loads and when it
+  fails, in place of the old magnifier. While the box is on screen, the place search's hidden `aria-live`
+  region sits in your `<body>`, as it already did on the first screen. **No parameter, origin,
+  CSP, storage or Permissions-Policy change.**
+
+- **Every class in a list ends with the same arrow as a place.** ([#488]) A class row in a
+  region's or a search's list now shows the grey chevron a country, region or city row has always
+  shown, so a class looks as tappable as a place. The arrow takes about 24px from the title, so a
+  long class name wraps to a second line a little sooner than before. Nothing else moves, and the
+  whole row is still one link. **No parameter, origin, CSP, storage or Permissions-Policy
+  change.**
+
+- **Place slugs may contain non-ASCII letters, and URLs carry them percent-encoded.** ([#483]) A
+  region's slug keeps its native letters, lowercased (`/bg/софия` where it was `/bg/sofiya`;
+  `/de/trier/universität-trier` where it was `universitat-trier`). On the wire, in
+  `routing=path` pathnames and in `?atlas=` values, they are percent-encoded
+  (`/bg/%D1%81%D0%BE%D1%84%D0%B8%D1%8F`), and the widget resolves either spelling to the same
+  place. A host that matches or rewrites these paths must decode each segment before matching,
+  and must not assume `[a-z0-9-]`. **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **The map's buttons sit together in its top right corner.** ([#482]) Find my location, then
+  settings, are two round buttons there — 40px, and 44px on a touch screen — with Mapbox's
+  credits button beside them; in a window 480px tall or less they run as a row. Settings moved
+  there from beside the panel. With a mouse or the keyboard, each shows its name beside it. Both
+  follow the dark theme in every state, where the locate button used to stay white. Mapbox's own
+  locate button (`.mapboxgl-ctrl-geolocate`) is no longer shown: the widget draws its own and
+  drives Mapbox's from it, so a host rule styling Mapbox's button no longer reaches it. A blocked
+  location now opens the "could not get a location" notice instead of a disabled button. Every
+  button shows the pointer cursor again. **No parameter, origin, CSP, storage or
+  Permissions-Policy change.**
+
 - **The panel's text, edges and corners follow one system.** ([#471]) Titles are larger (20px)
   than the rows under them (16px); times, addresses, Filters, Sort and the Register button are a
   touch larger, without letter spacing. The header, search box, notices, list and buttons share
@@ -435,14 +505,22 @@ no-referrer`.
 
 ### Added
 
+- **Share offers a QR code for posters.** ([#492]) A closed "QR code for posters" row under the
+  share buttons opens a black-on-white code of the class's shared link and a "Download for
+  printing" button (a PNG of about 1200 px). The code is drawn in the browser from a script
+  chunk on `sahajatlas.com`, fetched only when the row is opened, so a CSP that already allows
+  the widget's `script-src` needs no change. On a phone, Share now opens as tall as its content.
+
 - **Visitors can add a class, or suggest a correction to one, from the widget.** ([#147]) Every
   list ends with a link to add a class; a region or venue page offers to add one there, and a
   class page offers a correction. The flow opens new routes under your page's URL — `/add`,
   `<region>/add` and `<class>/correct` — and sends nothing to anyone until the visitor submits;
   a local coordinator reviews it before it appears. It uses the Mapbox origins and the captcha
   frame your CSP already allows, so your policy is unchanged.
+
 - **Registrants can join a mailing list.** ([#147]) Where a list exists for the class's area,
   the registration form shows an opt-in box. Ticking it subscribes them once they register.
+
 - **The guide now documents Wix, and sends you to a setup screen that fills it in for you.**
   ([#349]) Wix has nowhere to paste a `<script>` tag, so the script embed goes in a **Custom
   Element** — Server URL `https://sahajatlas.com/auto.js?key=YOUR_KEY`, tag name `sahaj-atlas` —
@@ -584,6 +662,10 @@ no-referrer`.
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
 
 ### Fixed
+
+- **The place-search box is its normal height on touch screens.** ([#485]) On a phone or tablet
+  it drew about three times as tall as intended (132px instead of 44px), pushing the list below
+  it down the panel. No parameter, origin or CSP change.
 
 - **An event's structured data now names your organization as the organizer.** ([#442]) The widget
   reads that name from the public name on your client record, and had been reading a field the
@@ -1229,6 +1311,9 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
+[#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
+[#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483
 [#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
 [#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469
 [#192]: https://github.com/sydevs/SahajAtlasWeb/pull/192
@@ -1334,3 +1419,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#446]: https://github.com/sydevs/SahajAtlasWeb/pull/446
 [#447]: https://github.com/sydevs/SahajAtlasWeb/pull/447
 [#470]: https://github.com/sydevs/SahajAtlasWeb/pull/470
+[#482]: https://github.com/sydevs/SahajAtlasWeb/pull/482
+[#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
+[#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
+[#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495

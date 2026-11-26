@@ -5,6 +5,7 @@ import type { RecoveryOffer } from '@/hooks/use-recovery-offer'
 
 import { useEffect, useRef } from 'react'
 import { CircleFlag } from 'react-circle-flags'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from 'react-error-boundary'
 import { QueryErrorResetBoundary } from '@tanstack/react-query'
@@ -36,38 +37,12 @@ import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
  */
 const APP_SURFACE = 'flex-center h-full w-full flex-col gap-3 bg-background p-10'
 
-/**
- * This is the same surface, for the form with no box to fill.
- *
- * ⚠ **`h-full` alone collapses silently in map mode. This is the common case.** An
- * unboxed map embed measures zero height on purpose. Everything the interface draws uses
- * `position: fixed`, so the element itself takes no room in the host's layout. The
- * standalone shell's `<html>` behaves the same way. A percentage height against a parent
- * with no definite height resolves to `auto`. So this surface shrink-wraps to its own
- * content instead: measured at 140px, pinned to the TOP of an 800px viewport, with the
- * spinner centred in that 140px, not on the screen.
- *
- * So this fallback copies the shape of what it replaces. The interface it stands in for
- * is fixed and inset-0 in that form, and so is this. Where the widget HAS a box — a
- * contained map, a map-less embed, the compact card — `h-full` is already correct. Taking
- * the viewport there would paint over the host's page. So the caller decides the form.
- * This component does not guess it.
- */
-const APP_SURFACE_UNBOXED = `${APP_SURFACE} fixed inset-0`
-
-export type LoadingFallbackProps = {
-  /**
-   * Take the viewport, not the parent's height. True only for the unboxed map form,
-   * whose interface is itself fixed. See `APP_SURFACE_UNBOXED`.
-   */
-  unboxed?: boolean
-}
-
-export function LoadingFallback({ unboxed = false }: LoadingFallbackProps) {
+/** The spinner a boxed form shows while its code arrives. The full-window map form has `BootFallback`. */
+export function LoadingFallback() {
   const { t } = useTranslation()
 
   return (
-    <div className={unboxed ? APP_SURFACE_UNBOXED : APP_SURFACE}>
+    <div className={APP_SURFACE}>
       {/* Use `srLabel`, not `label`. Screen readers announce it, but it does not draw
           on screen. `DrawerLoadingBody` makes the same choice. A visible "Loading…"
           text adds nothing the spinner has not already said. Its height would also
@@ -227,43 +202,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     clearFilters: false,
     contact: false,
     report: true,
-  },
-  // Turnstile failed to load, so this widget cannot send anything the viewer
-  // writes (issue #182). The usual cause is a `config` failure: a host CSP that
-  // will not let the widget frame SahajCloud, where the challenge renders, or a
-  // host domain no client record lists (#343, sydevs/SahajCloud#1072). This row
-  // still earns its own row, for one reason `config` cannot express:
-  //
-  // **It offers no report action.** The report form is itself gated by Turnstile.
-  // Sending a viewer to it would hand them a second form that also cannot submit.
-  // This mirrors the call `offline` makes for the network, one layer along.
-  //
-  // The sentence names the cause, not the fix. A visitor cannot edit a CSP. The
-  // instruction "add SahajCloud to your frame-src" means nothing to most visitors
-  // on a meditation page. Only the site's developer needs it.
-  // `reportIntegrationWarning` prints that instruction to the console, where a
-  // developer debugging the embed will look. `docs/embedding.md` carries the
-  // lasting version.
-  //
-  // ⚠ **This row DOES retry. That looks wrong next to `config`, but is correct.**
-  // The check lands on this same kind for a CSP that refuses the frame and for a
-  // frame request that simply failed on the network, and it clears its memoized
-  // verdict whenever it is negative. So a second attempt mounts a fresh frame and
-  // is a real second attempt, and the network-failure half of that pair can
-  // genuinely recover. A CSP block fails again the same way, which costs the
-  // viewer one press. A `config` failure has no such recoverable half, so it
-  // withholds the retry. This row does not.
-  'captcha-blocked': {
-    messageKey: 'common.errors.captcha_blocked',
-    fallbackText:
-      "The map can't load here right now, because its security check didn't respond. Try again later.",
-    color: 'danger',
-    retry: true,
-    onward: false,
-    search: false,
-    clearFilters: false,
-    contact: false,
-    report: false,
   },
   // The catch-all row. A zod parse failure lands here too. SahajCloud's data shape
   // drifting from ours used to have its own `contract` row, which only withheld the
@@ -447,7 +385,7 @@ export type SurfaceLimits = {
    * else.
    */
   canNavigate?: boolean
-  /** The surface already leads with a geocoder (SearchView). A second would look odd. */
+  /** The surface's chrome already holds a geocoder. A second would be a duplicate. */
   hasSearchChrome?: boolean
   /** There is an organiser's number on the event, so the viewer can be put in touch
    *  with someone. Without one, `contact` gives way to `onward`. */
@@ -793,15 +731,20 @@ export function FallbackRegion({
  *
  *  - `max-h` reads `--sy-sheet-top`, the sheet's live top edge. DrawerStack mirrors
  *    this value every frame, so the box cannot extend far past the fold. The `0px`
- *    fallback resolves to the full height. That is correct on the desktop panel and
- *    the map-less container, where the body already IS the visible area. It still
- *    over-measures by the header's height — the box starts below the header, not at
- *    the sheet's edge — which is why the second part matters.
+ *    fallback resolves to the full height, which is right in the map-less container,
+ *    where the body already IS the visible area. It still over-measures by the header's
+ *    height — the box starts below the header, not at the sheet's edge — which is why
+ *    the second part matters.
  *  - **Auto margins, not `justify-center`.** Auto margins centre content when there is
  *    slack, and collapse to nothing when there is not. So tall content starts at the
  *    top and scrolls inside the body instead. `justify-center` would instead clip the
  *    overflowing TOP, hiding the sentence and leaving only the buttons. That is the
  *    failure mode this fix avoids.
+ *
+ * ⚠ **At ≥lg all four classes are inert, and leaving them is what keeps the phone fix.**
+ * The floating panel is as tall as its view, so `h-full` takes the body's own content
+ * height, the `0px` `max-h` fallback never binds, and both auto margins collapse. Measured
+ * at 1280×800: a 768px panel centring at 304.5px margins became a 159px panel at 0.
  */
 export const CENTERED_BODY =
   'flex h-full max-h-[calc(var(--sy-frame-h)_-_var(--sy-sheet-top,0px))] flex-col items-center px-gutter py-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
@@ -814,9 +757,11 @@ export const CENTERED_BODY =
  * move the sentence away from where the reader's eye already is, and would make the
  * drawer look like a different kind of screen. This posture also needs no `max-h`
  * guard: content that starts at the top is on screen by construction. That is exactly
- * what `CENTERED_BODY` has to work to achieve.
+ * what `CENTERED_BODY` has to work to achieve. Nor does it fill the body: it shares the body
+ * with what follows it (the location prompt), and a floating panel sized to its content would
+ * push that out of view.
  */
-export const START_BODY = 'flex h-full flex-col items-start px-gutter py-6 text-start'
+export const START_BODY = 'flex flex-col items-start px-gutter py-6 text-start'
 
 /** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
 export type FallbackAlign = 'center' | 'start'
@@ -839,7 +784,8 @@ type FallbackShellProps = FallbackActionsProps & {
  * live body and the floor it degrades to both render this, so the two cannot look like
  * different screens.
  *
- * ONE column at ONE width. Every part is `w-full` inside a single `max-w-xs` box. Left
+ * ONE column at ONE width. Every part is `w-full` inside a single box: `max-w-xs` when
+ * centred, and the panel's full width when it starts at the top of a list. Left
  * to shrink-wrap on its own, each part came out a different width, stacked on a centre
  * line: a banner as wide as its sentence, a button row as wide as its labels, and a
  * full-width field.
@@ -854,7 +800,9 @@ function FallbackShell({
 }: FallbackShellProps) {
   return (
     <FallbackRegion className={align === 'start' ? START_BODY : CENTERED_BODY} message={message}>
-      <div className="flex w-full max-w-xs flex-col items-start gap-3">
+      <div
+        className={clsx('flex w-full flex-col items-start gap-3', align !== 'start' && 'max-w-xs')}
+      >
         {/* `textAlign="left"` is set explicitly, not left to the default. The
             centred posture sets `text-center` on the container. A sentence centred
             inside its own banner is harder to read, and costs the onward link its

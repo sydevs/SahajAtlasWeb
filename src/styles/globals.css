@@ -634,9 +634,15 @@ html.sy-atlas {
   right: env(safe-area-inset-right, 0px);
 }
 
+/* Mapbox's controls stay sharp and usable above the blur that covers the map until the camera
+   arrives (`MapCurtain`, z-10). Without this they read as grey smudges. */
+.mapboxgl-ctrl-top-right {
+  z-index: 20;
+}
+
 /* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
    Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and map
-   mode renders the geolocate button and the attribution there. This is unconditional,
+   mode renders its control column there (`Mapbox/MapControls`). This is unconditional,
    rather than direction-aware: under RTL the collapse control moves to the other corner
    and this nudge is merely unnecessary, which is a better failure than two round buttons
    on top of each other. */
@@ -644,60 +650,37 @@ html.sy-atlas {
   margin-top: 40px;
 }
 
-/* Mapbox paints its locate and attribution controls white, with glyphs drawn in fixed colours,
-   so in the dark theme they stayed white beside a dark settings cog. These give them the cog's
-   surface. `invert` then `hue-rotate` turns the glyphs light while keeping each state's hue (the
-   locate button's blue when active, its red on an error), so every state Mapbox draws survives. */
-.dark .mapboxgl-ctrl-group,
-.dark .mapboxgl-ctrl-attrib.mapboxgl-compact {
-  background-color: hsl(var(--background));
+/* Mapbox's credits, which sit beside the map's control column (`Mapbox/MapControls`) in Mapbox's
+   own look. Inside our element, Mapbox's corner margins and float would push it off the column's
+   top edge, so they are reset; the column's own gap spaces it. On a touch screen it gets the 44px
+   tap area every other control has, without growing the 24px button.
+   `attribution.test.ts` fails if a mapbox-gl upgrade renames the classes this targets. */
+.sy-map-controls .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  margin: 0;
+  float: none;
 }
 
-.dark .mapboxgl-ctrl-group:not(:empty) {
-  box-shadow: 0 0 0 1px var(--gray-6);
+/* No `relative` beside the utility: Mapbox already makes this button `position: absolute`, which
+   anchors the tap area as well, and `relative` would unpin it. */
+.sy-map-controls .mapboxgl-ctrl-attrib-button {
+  @apply touch-target;
+}
+
+/* Mapbox paints its credits white, with a glyph drawn in a fixed colour, so in the dark theme it
+   stayed white beside the dark buttons. This gives it their surface, and `invert` then
+   `hue-rotate` turns the glyph light. */
+.dark .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  background-color: hsl(var(--background));
 }
 
 .dark .mapboxgl-ctrl button:not(:disabled):hover {
   background-color: var(--gray-3);
 }
 
-.dark .mapboxgl-ctrl-icon,
 .dark .mapboxgl-ctrl-attrib-button {
   filter: invert(1) hue-rotate(180deg);
 }
 
 .dark .mapboxgl-ctrl-attrib a {
   color: var(--gray-11);
-}
-
-/* The boot curtain's spinner (views/FullInterface.tsx → MapCurtain). It fades in on a
-   delay, rather than appearing with the frost, so a warm boot — where the camera
-   arrives almost at once — reads as a clean frost-then-reveal instead of flashing a
-   spinner nobody had time to register. This uses a CSS delay, rather than a timer,
-   because there is no state here to schedule against. `forwards` holds it visible for
-   the genuinely slow case this exists to cover.
-
-   The PostCSS scoping pass namespaces the keyframes along with the selector, so this
-   cannot collide with an animation of the same name on the host's page. */
-@keyframes sy-map-curtain-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.sy-map-curtain-spinner {
-  opacity: 0;
-  animation: sy-map-curtain-in 200ms ease-out 200ms forwards;
-}
-
-/* Nothing to fade under the preference — this shows it immediately rather than
-   animating it in. */
-@media (prefers-reduced-motion: reduce) {
-  .sy-map-curtain-spinner {
-    opacity: 1;
-    animation: none;
-  }
 }

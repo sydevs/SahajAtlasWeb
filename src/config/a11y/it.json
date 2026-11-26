@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Caricamento…",
+    "finding_classes": "Ricerca dei corsi…",
     "settings": "Impostazioni"
   },
   "event": {
@@ -21,6 +22,7 @@
   },
   "share": {
     "copy_link": "Copia link",
-    "share_on": "Condividi su %{platform}"
+    "share_on": "Condividi su %{platform}",
+    "qr_code": "Codice QR per %{title}"
   }
 }

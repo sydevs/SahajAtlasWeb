@@ -5,7 +5,7 @@ import { Navigate, useLocation } from 'react-router'
 
 import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
-import { DrawerBody } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerToolbar } from '@/components/atoms/Drawer'
 import {
   ActiveFilterPills,
   EventListItem,
@@ -34,10 +34,9 @@ import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
 import {
   CalendarButton,
-  EmptyEventList,
   FilterButton,
   GeolocationSuggestion,
-  SearchButton,
+  SearchField,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -135,13 +134,17 @@ export function RegionView({ slug }: { slug: string }) {
         actions={
           <>
             <CalendarButton regionSlug={region.slug} />
-            <SearchButton />
             <FilterButton iconOnly />
           </>
         }
         subtitle={subheader}
         title={header}
       />
+      {/* A field, not an icon, so a visitor who landed in the wrong place can search again from
+          here. */}
+      <DrawerToolbar field>
+        <SearchField />
+      </DrawerToolbar>
       <DrawerBody>
         <ActiveFilterPills />
         {/* Above the region's own content, which IS the "other classes near them" the
@@ -184,14 +187,13 @@ export function RegionView({ slug }: { slug: string }) {
             list are more than the screen can carry, and the reader has just acted once
             already. It returns as soon as they dismiss the banner. */}
         {!feedback && <GeolocationSuggestion position="above" regionCenter={region.center} />}
-        {isEmpty && hasActiveFilters(filters) ? (
+        {isEmpty ? (
           <FallbackPanel
+            hasSearchChrome
             align="start"
-            kind="no-results"
+            kind={hasActiveFilters(filters) ? 'no-results' : 'empty'}
             onClearFilters={() => setFilters(DEFAULT_FILTERS)}
           />
-        ) : isEmpty ? (
-          <EmptyEventList />
         ) : (
           <List>
             {/* On a region with sub-regions, the online roll-up opens in its own drawer

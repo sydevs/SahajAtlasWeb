@@ -14,6 +14,7 @@ import {
   buildYahooCalendarUrl,
   icsFileName,
 } from '@/lib/ics'
+import { saveBlob } from '@/lib/download'
 import { frameCollision, overlayContainer } from '@/lib/overlay'
 
 export type AddToCalendarProps = {
@@ -60,18 +61,10 @@ export function calendarLinkTargets(event: IcsEventInput): CalendarLinkTarget[] 
 }
 
 function downloadEventIcs(event: IcsEventInput) {
-  const blob = new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' })
-  const href = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-
-  anchor.href = href
-  anchor.download = icsFileName(event.title)
-  // Firefox only follows a synthetic click on an anchor that is IN the document.
-  // Revoking in the same tick cancels the download in Safari, so it is deferred.
-  document.body.append(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(href), 1000)
+  saveBlob(
+    new Blob([buildEventIcs(event)], { type: 'text/calendar;charset=utf-8' }),
+    icsFileName(event.title),
+  )
 }
 
 const { surface, row } = menuChrome({ rows: 'stacked' })

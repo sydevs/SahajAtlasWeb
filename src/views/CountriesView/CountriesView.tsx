@@ -3,9 +3,9 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from 'react-i18next'
-import { Monitor } from 'lucide-react'
 
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { MeditateFigure } from '@/components/atoms/Icons'
 import { Link } from '@/components/atoms/Link'
 import { ActiveFilterPills, FallbackPanel, List, ListItem } from '@/components/molecules'
 import api, { clientQuery, countriesQuery } from '@/config/api'
@@ -69,6 +69,7 @@ export function CountriesView() {
   // The count above follows the active filters, so the search it opens must too.
   const onlineSearch = `/search?${filtersToParams({ ...filters, format: 'online' }).toString()}`
   const noMatches = hasActiveFilters(filters) && sortedCountries.length === 0 && onlineCount === 0
+  const showBrowseHeading = onlineCount > 0 && sortedCountries.length > 0
 
   // Frame the world view when this view mounts. This uses `reset()`, not an empty
   // `frameSearch`. The root view is the one place that genuinely wants the whole world, and
@@ -98,6 +99,25 @@ export function CountriesView() {
       <DrawerBody>
         <ActiveFilterPills />
         <GeolocationSuggestion position="above" />
+        {/* Online classes belong to no country — a leading entry into the online-filtered search
+            rather than a place in the list below. `noMatches` implies no online classes, so this
+            never sits above the fallback. */}
+        {onlineCount > 0 && (
+          <List>
+            <ListItem
+              count={onlineCount}
+              description={t('online.subtitle')}
+              href={onlineSearch}
+              icon={<MeditateFigure size={24} />}
+              label={t('online.title')}
+            />
+          </List>
+        )}
+        {showBrowseHeading && (
+          <h3 className="px-gutter pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
+            {t('countries.browse_heading')}
+          </h3>
+        )}
         {noMatches ? (
           <FallbackPanel
             align="start"
@@ -106,16 +126,6 @@ export function CountriesView() {
           />
         ) : (
           <List>
-            {/* Online classes belong to no country — a leading entry into the
-              online-filtered search rather than a place in the list below. */}
-            {onlineCount > 0 && (
-              <ListItem
-                count={onlineCount}
-                href={onlineSearch}
-                icon={<Monitor size={20} />}
-                label={t('online.title')}
-              />
-            )}
             {sortedCountries.map((country) => (
               <ListItem
                 key={country.id}

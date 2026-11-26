@@ -15,22 +15,30 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
-import clsx from 'clsx'
 
 import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
+import { ClientGate } from '@/config/client-gate'
 import {
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
+  WIDE_SNAP,
   WidgetWidthContext,
+  capStop,
+  shortSheetCap,
   useIsShortViewport,
   useIsWide,
 } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import { useBrowsedCountry, useCalendarPosition, useSheetCover } from '@/config/store'
+import {
+  useBrowsedCountry,
+  useCalendarPosition,
+  useMapControls,
+  useSheetCover,
+} from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
@@ -113,23 +121,10 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 //  - 0.97 near-full
 const PEEK_SNAP = `${SHEET_PEEK_PX}px` // the collapsed peek
 const OPEN_SNAP = `${SHEET_OPEN_PX}px` // default, and what the peek expands to
-const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, 0.97]
-const WIDE_SNAP = SNAP_POINTS[2] // the near-full snap the full-width calendar opens at
+const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
 // Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
 // state holds this token and the ladder carries the live number (`useFitSnap`).
 const FIT_SNAP = 'fit'
-
-// On a phone on its side, the open and taller stops covered nearly all of a 375px-tall map. There
-// every pixel stop stays this far below the top of the window, the band of map a 300px open stop
-// left on such a screen.
-// shortcut: this is under the 160px the camera reserves above the sheet for a pin it just framed
-// (`MIN_MAP_STRIP_PX`), so on a short window a framed pin can land under the sheet. Raise it to
-// the camera's reserve once the landscape sheet has been measured on a phone.
-const ABOVE_SHEET_WHEN_SHORT_PX = 75
-
-/** A pixel stop held down to `cap`. Fractions, and every stop when there is no cap, pass through. */
-const capStop = <T extends number | string | null>(point: T, cap: number | null): T | string =>
-  cap !== null && typeof point === 'string' && parseFloat(point) > cap ? `${cap}px` : point
 
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it
@@ -234,8 +229,7 @@ export function DrawerStack() {
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
   // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
-  // because the wide panel exists only above the crossing; below it `wide` gates the settings
-  // cog alone, which a phone in month view had lost (#331). The view is read reactively, so
+  // because the wide panel exists only above the crossing (#331). The view is read reactively, so
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
@@ -297,14 +291,16 @@ export function DrawerStack() {
   // sliced the "Next session" line in half. It never opens lower than that snap: the loading
   // skeleton is short, and a sheet that dipped under it would only climb again once the class
   // arrived. One drag down still stops there, with the map and the class's pin above.
-  const fit = useFitSnap(canCollapse && top?.kind === 'event', location.pathname)
+  // Share opens the same way, so its last row (the poster QR code) is in view without a drag.
+  const fitsContent = top?.kind === 'event' || top?.kind === 'share'
+  const fit = useFitSnap(canCollapse && fitsContent, location.pathname)
   const fitPx = typeof fit === 'number' && fit > SHEET_OPEN_PX ? fit : null
   const fitSnap = fitPx === null ? null : `${fitPx}px`
   const snapPoints = useMemo(
     () => (fitSnap === null ? SNAP_POINTS : [PEEK_SNAP, OPEN_SNAP, fitSnap, WIDE_SNAP]),
     [fitSnap],
   )
-  const openSnap = top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP
+  const openSnap = fitsContent ? FIT_SNAP : OPEN_SNAP
   const vaulSnap = snap === FIT_SNAP ? (fit === 'full' ? WIDE_SNAP : (fitSnap ?? OPEN_SNAP)) : snap
   // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
   // literally would swap the token for whatever it resolved to that render, and the sheet would
@@ -313,14 +309,11 @@ export function DrawerStack() {
     if (next === vaulSnap) return
     setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
   }
-  // A short window caps the pixel stops (ABOVE_SHEET_WHEN_SHORT_PX) only on the way to vaul, so
+  // A short window caps the pixel stops (`shortSheetCap`) only on the way to vaul, so
   // `snap` keeps naming the logical stop and everything that compares it stays as it is. The
   // near-full stop is a fraction, and still covers the map on purpose.
   const shortViewport = useIsShortViewport()
-  const snapCap =
-    shortViewport && canCollapse && !frameElement()
-      ? Math.max(SHEET_PEEK_PX, window.innerHeight - ABOVE_SHEET_WHEN_SHORT_PX)
-      : null
+  const snapCap = shortViewport && canCollapse && !frameElement() ? shortSheetCap() : null
   // Memoised like the ladder it is built from: vaul re-measures every stop when this changes.
   const shownSnapPoints = useMemo(
     () =>
@@ -354,6 +347,18 @@ export function DrawerStack() {
 
     return () => setSheetCover(null)
   }, [sheetCover, setSheetCover])
+
+  // The sheet's near-full stop covers the map's control column all but its top edge, which would
+  // show as a row of slivers above the sheet. Everywhere else a drawer either leaves the column
+  // clear or covers it whole.
+  const controlsHidden = direction === 'bottom' && vaulSnap === WIDE_SNAP
+  const setControlsHidden = useMapControls((s) => s.setHidden)
+
+  useEffect(() => {
+    setControlsHidden(controlsHidden)
+
+    return () => setControlsHidden(false)
+  }, [controlsHidden, setControlsHidden])
 
   // Mirrors the active sheet's live top onto the sheet itself, every frame, so what reads it
   // tracks a drag without waiting for the snap to settle (map plus mobile only). It is what
@@ -504,16 +509,17 @@ export function DrawerStack() {
     }
   }, [canCollapse])
 
-  // A few views open at the near-full snap on mobile (`opensTall`), and an event at the height of
-  // its own content, while every other view keeps the third-height open snap. Keyed on the view KIND (not `wide`), so switching the
-  // calendar between month/week/list keeps it tall, rather than collapsing the list to the
-  // short snap. This runs only when navigating between kinds, so it never fights a manual
-  // drag within one view.
+  // A few views open at the near-full snap on mobile (`opensTall`), and the views that fit their
+  // own content open at that height (`fitsContent`), while every other view keeps the
+  // third-height open snap. Keyed on the view KIND (not `wide`), so switching the calendar
+  // between month/week/list keeps it tall, rather than collapsing the list to the short snap.
+  // This runs only when navigating between kinds, so it never fights a manual drag within one
+  // view.
   useEffect(() => {
     if (direction === 'bottom') {
-      setSnap(opensTall(top?.kind) ? WIDE_SNAP : top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP)
+      setSnap(opensTall(top?.kind) ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
     }
-  }, [direction, top?.kind])
+  }, [direction, fitsContent, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this
@@ -606,12 +612,14 @@ export function DrawerStack() {
         collapse()
       }}
     >
-      <div className="relative min-h-0 flex-1">
-        <AnimatePresence>
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
+        {/* `initial={false}`: the first view takes over from the loading shapes already on
+            screen, so it arrives without fading in from nothing. Later views still cross-fade. */}
+        <AnimatePresence initial={false}>
           <ViewLayer key={top?.path ?? '/'}>
             {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
                 suspend that shows `DrawerLoading` — the shared chrome (header plus Back,
-                rebuilt from the URL) over a spinner — and only a FAILED load
+                rebuilt from the URL) over placeholders shaped like the view — and only a FAILED load
                 throws inward to the boundary. That is what keeps a first open of the
                 calendar, register, or share drawer from flashing blank or unstyled: the
                 drawer's identity is on screen from the first frame, and only its body
@@ -621,6 +629,7 @@ export function DrawerStack() {
                 FallbackComponent={DrawerErrorFallback}
                 onReset={() => setSecondary(loadSecondaryViews())}
               >
+                <ClientGate />
                 <TopView entry={top} secondary={secondary} />
               </ResetErrorBoundary>
             </Suspense>
@@ -711,6 +720,7 @@ export function DrawerStack() {
             <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
               <Drawer
                 key={direction}
+                enterInPlace
                 open
                 container={container}
                 direction={direction}
@@ -741,7 +751,7 @@ export function DrawerStack() {
     )
   }
 
-  // Map mode: the single drawer, plus the cog and the sheet's measuring origin, portaled beside it.
+  // Map mode: the single drawer, plus the sheet's measuring origin, portaled beside it.
   const target = overlayContainer()
 
   return (
@@ -749,50 +759,17 @@ export function DrawerStack() {
       <DrawerControlContext.Provider value={control}>
         {target &&
           createPortal(
-            <>
-              <div
-                ref={sheetOriginRef}
-                aria-hidden
-                className="pointer-events-none fixed top-0 h-0 w-0"
-              />
-              {/* Inline-start, offset past the drawer on ≥md (flush at tablet,
-                floating in by 4 at ≥lg), so it never overlaps the panel. Uses the
-                logical `start-*`, rather than `left-*`: under RTL the drawer flips to
-                the right edge, and the cog has to travel with it. On mobile the
-                sheet sits at the bottom, so the top-left corner stays clear. */}
-              {/* Uses top-3 on mobile/tablet. At ≥lg the drawer floats (lg:inset-y-4),
-                so this bumps the cog to top-4 to line up with the drawer's top edge.
-                Hidden on the full-width calendar — a focused view with no clean
-                corner for the floating cog — settings stay reachable from every
-                other view. */}
-              {/* The cog sits 16px past the panel — 32px at ≥lg, where the drawer itself is
-                already inset by 16px. Both `352px` fallbacks below are the drawer-width
-                pair — the twin value is `DRAWER_W_PX` in `hooks/use-map-controller-real.tsx`. */}
-              {!wide && (
-                <SettingsMenu
-                  className={clsx(
-                    'fixed top-3 z-40',
-                    // ⚠ **Uses `isWide`, not a `md:` variant — the #169 correction.**
-                    // This clears the LEFT PANEL, so it has to agree with whatever
-                    // decided there is one — and that is now the frame's width, not
-                    // the viewport's. A 600px contained map on a desktop gets the
-                    // bottom sheet, and a viewport variant would still push the cog
-                    // 384px right for a panel that is not there. At a 400px frame it
-                    // would land past the edge, where the frame's `overflow-clip`
-                    // clips it away entirely. Outside a frame, `isWide` IS the
-                    // viewport's answer, so this stays the same offset it always was.
-                    isWide
-                      ? 'start-[calc(var(--sy-drawer-w,352px)+16px+env(safe-area-inset-left,0px))] lg:start-[calc(var(--sy-drawer-w,352px)+32px+env(safe-area-inset-left,0px))] lg:top-4'
-                      : 'start-3',
-                  )}
-                />
-              )}
-            </>,
+            <div
+              ref={sheetOriginRef}
+              aria-hidden
+              className="pointer-events-none fixed top-0 h-0 w-0"
+            />,
             target,
           )}
         <Drawer
           key={direction}
           dismissible
+          enterInPlace
           open
           activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
           container={target}

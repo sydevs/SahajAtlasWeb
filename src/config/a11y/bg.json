@@ -6,6 +6,7 @@
   },
   "common": {
     "loading": "Зареждане…",
+    "finding_classes": "Търсим занимания…",
     "settings": "Настройки"
   },
   "event": {
@@ -21,6 +22,7 @@
   },
   "share": {
     "copy_link": "Копиране на връзката",
-    "share_on": "Споделяне: %{platform}"
+    "share_on": "Споделяне: %{platform}",
+    "qr_code": "QR код за %{title}"
   }
 }

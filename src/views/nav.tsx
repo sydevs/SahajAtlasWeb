@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerHeader } from '@/components/atoms/Drawer'
+import { SkeletonGroup, SkeletonLine } from '@/components/organisms/Skeleton/Skeleton'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { backLabel } from '@/views/nav-names'
@@ -121,6 +122,8 @@ export type NavHeaderProps = {
   actions?: ReactNode
   /** A panel over a page (the filters): a title and an X that closes back onto the page. */
   close?: boolean
+  /** The title is on its way: its line is drawn as a placeholder, outside any heading. */
+  pendingTitle?: boolean
 }
 
 /**
@@ -128,7 +131,13 @@ export type NavHeaderProps = {
  * the same spot from view to view. The controls share the Back row, so the title has the panel's
  * full width and a long name wraps instead of being cut off.
  */
-export function NavHeader({ title, subtitle, actions, close = false }: NavHeaderProps) {
+export function NavHeader({
+  title,
+  subtitle,
+  actions,
+  close = false,
+  pendingTitle = false,
+}: NavHeaderProps) {
   // The filters' own drawer over the calendar marks its control, so its loading and error
   // chrome closes the same way.
   const { overlay } = useDrawerControl()
@@ -146,7 +155,14 @@ export function NavHeader({ title, subtitle, actions, close = false }: NavHeader
   return (
     <DrawerHeader className="flex-col items-stretch gap-0">
       <NavRow>{actions}</NavRow>
-      {title && <DrawerTitle subtitle={subtitle} title={title} />}
+      {pendingTitle ? (
+        // No heading: a heading with nothing in it is worse than none.
+        <SkeletonGroup>
+          <SkeletonLine className="text-xl" width="w-1/2" />
+        </SkeletonGroup>
+      ) : (
+        title && <DrawerTitle subtitle={subtitle} title={title} />
+      )}
     </DrawerHeader>
   )
 }

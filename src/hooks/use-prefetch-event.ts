@@ -78,8 +78,8 @@ const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine ===
  * It never runs for the hundred cards they merely swept across on the way.
  *
  * This deliberately has no per-card unmount teardown, though a card CAN unmount mid-dwell, since the list re-pages under a stationary cursor.
- * This hook runs on every row of the repo's one memoized 1000-row list.
- * A ref plus a cleanup effect on all thousand of them would buy the cancellation of at most one pending warm, since the gate holds a single timer.
+ * This hook runs on every row of the repo's one memoized list, up to the reveal ceiling (`MAX_REVEAL` in `lib/shape/reveal.ts`, 400 rows).
+ * A ref plus a cleanup effect on all of them would buy the cancellation of at most one pending warm, since the gate holds a single timer.
  * The uncancelled case costs one speculative request, which the concurrency cap already bounds.
  * Every case where the pointer actually leaves is covered by `leave`.
  */

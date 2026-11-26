@@ -2,6 +2,7 @@ import type { EventSchedule, Weekday } from '@/types'
 
 import { DateTime } from 'luxon'
 
+import { fileStem } from './download'
 import { DEFAULT_DURATION, scheduleStart, scheduleTimeZone, withEndTime } from './shape/event'
 import { validateWebUrl } from './url'
 
@@ -564,24 +565,5 @@ export function buildYahooCalendarUrl(input: IcsEventInput): string {
   return `https://calendar.yahoo.com/?${params.toString()}`
 }
 
-/**
- * A filesystem-safe `.ics` filename for the download. This is ASCII-only: the
- * `download` attribute reaches Windows and Android filesystems with very
- * different ideas about what a filename may contain, and a title is
- * CMS-authored free text in any script. A transliteration library would be a
- * dependency for a filename, so a non-Latin title degrades to the generic
- * name, rather than to mojibake.
- */
-export function icsFileName(title: string): string {
-  const slug = title
-    .normalize('NFKD')
-    // Strips combining marks, but only AFTER NFKD has split them off their
-    // base letter (so "Méditation" slugs to "meditation", not "m-ditation").
-    .replace(/\p{M}/gu, '')
-    .replace(/[^a-zA-Z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toLowerCase()
-    .slice(0, 60)
-
-  return `${slug || 'event'}.ics`
-}
+/** A filesystem-safe `.ics` filename for the download. */
+export const icsFileName = (title: string): string => `${fileStem(title, 'event')}.ics`
