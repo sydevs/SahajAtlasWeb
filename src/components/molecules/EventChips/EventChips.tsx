@@ -50,10 +50,9 @@ export function EventChips({ event, variant = 'default', className }: EventChips
   // At most ONE availability chip renders. "Full" supersedes "Today". When
   // the session is today but cannot be joined, availability is the more
   // actionable fact. Two chips reading "Full · Today" would invite the
-  // reader to act on the one that no longer applies. This matches the
-  // resolver's `statusChip` precedence. The resolver guarantees `full` is
-  // set only when it is the actual blocker, so an ended or dormant event
-  // still falls through to its own treatment.
+  // reader to act on the one that no longer applies. The resolver guarantees
+  // `full` is set only when it is the actual blocker, so an ended or dormant
+  // event still falls through to its own treatment.
   const full = display.full
   // Only a card that leads with its pattern ("Every Wednesday") carries "Today" here, and
   // EventFacts drops that card's muted "Today" line to match. Elsewhere the when line says it.

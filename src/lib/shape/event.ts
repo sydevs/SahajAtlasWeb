@@ -395,8 +395,7 @@ export function resolveEventDisplay(
   // check below, this mirrors the server's gate order (ended, then started
   // course, then full). So `full` is true only when it is the reason
   // registration is blocked. That is what lets every surface reading it first
-  // (`statusChip`, `blockedMessage`, the Full chip) stay correct without its own
-  // precedence.
+  // (`blockedMessage`, the Full chip) stay correct without its own precedence.
   const base = { online, kind, full: false, dormant }
 
   if (dormant) return terminalDisplay(base, 'inactive', hasContact, hasWebsite)

@@ -31,8 +31,6 @@ export type EventDisplayStrings = {
   /** This is true for a plain weekly class, the default shape. Its `typeLabel` adds
    *  nothing on a compact surface, so the list card skips its type pill. */
   isDefaultType: boolean
-  /** Status chip text, or null when the state shows no chip. */
-  statusChip: string | null
   /** This is the templated recurrence pattern, such as "Every Wednesday." It is approximate and secondary. */
   recurrenceLine: string | null
   /** This is the authoritative next-session, first-session, or terminal line. */
@@ -168,20 +166,6 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const isDefaultType =
       kind === 'class' && schedule?.recurrenceType === 'WEEKLY' && (schedule?.interval ?? 1) === 1
 
-    // ── Status chip ──
-    const chipDate = firstSession ?? next
-    let statusChip: string | null = null
-
-    if (full) statusChip = t('event.display.chip_full')
-    else if (status === 'today') statusChip = t('event.display.chip_today')
-    // The upcoming state announces the occurrence that is actually coming, `next`.
-    // Under `firstDate` and `upcomingDates` drift, `firstSession` can be a stale past instant.
-    else if (status === 'upcoming' && next)
-      statusChip = t('event.display.chip_starts', { date: shortDate(next) })
-    else if (status === 'started' && chipDate)
-      statusChip = t('event.display.started_on', { date: shortDate(chipDate) })
-    else if (status === 'ended') statusChip = t('event.display.chip_ended')
-
     // ── Recurrence pattern line (weekday labels from display-zone instants) ──
     let recurrenceLine: string | null = null
     const recurrence = schedule?.recurrenceType
@@ -215,6 +199,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     }
 
     // ── The authoritative when-line ──
+    const chipDate = firstSession ?? next
     let whenLine: string
 
     if (status === 'inactive') whenLine = t('event.display.contact_for_timing')
@@ -331,7 +316,6 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       display,
       typeLabel,
       isDefaultType,
-      statusChip,
       recurrenceLine,
       whenLine,
       eventTimeRange,
