@@ -319,14 +319,16 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // sliced the "Next session" line in half. It never opens lower than that snap: the loading
   // skeleton is short, and a sheet that dipped under it would only climb again once the class
   // arrived. One drag down still stops there, with the map and the class's pin above.
-  const fit = useFitSnap(canCollapse && top?.kind === 'event', location.pathname)
+  // Share opens the same way, so its last row (the poster QR code) is in view without a drag.
+  const fitsContent = top?.kind === 'event' || top?.kind === 'share'
+  const fit = useFitSnap(canCollapse && fitsContent, location.pathname)
   const fitPx = typeof fit === 'number' && fit > SHEET_OPEN_PX ? fit : null
   const fitSnap = fitPx === null ? null : `${fitPx}px`
   const snapPoints = useMemo(
     () => (fitSnap === null ? SNAP_POINTS : [PEEK_SNAP, OPEN_SNAP, fitSnap, WIDE_SNAP]),
     [fitSnap],
   )
-  const openSnap = top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP
+  const openSnap = fitsContent ? FIT_SNAP : OPEN_SNAP
   const vaulSnap = snap === FIT_SNAP ? (fit === 'full' ? WIDE_SNAP : (fitSnap ?? OPEN_SNAP)) : snap
   // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
   // literally would swap the token for whatever it resolved to that render, and the sheet would
@@ -543,9 +545,9 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // manual drag on a non-calendar view.
   useEffect(() => {
     if (direction === 'bottom') {
-      setSnap(top?.kind === 'calendar' ? WIDE_SNAP : top?.kind === 'event' ? FIT_SNAP : OPEN_SNAP)
+      setSnap(top?.kind === 'calendar' ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
     }
-  }, [direction, top?.kind])
+  }, [direction, fitsContent, top?.kind])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this
@@ -640,7 +642,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
         collapse()
       }}
     >
-      <div className="relative min-h-0 flex-1">
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
         <AnimatePresence>
           <ViewLayer key={top?.path ?? '/'}>{topView}</ViewLayer>
         </AnimatePresence>

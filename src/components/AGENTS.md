@@ -210,7 +210,7 @@ shipping a narrow embed that quietly behaves like a desktop.
 | Contact — `tel:` vs. number + copy popover (`EventActions`) | input | Whether `tel:` reaches a dialer is hardware, not window width. This is the one place "narrow ⇒ mobile" reads wrong. |
 | Map camera padding (`use-map-controller`) | container (the frame) | Camera padding must agree with whatever picked the panel it pads around. Reads `frameElement()` — `null`, and so the viewport, wherever no frame exists. |
 | Map controls: column vs row (`MapControls`) | viewport (via `useIsShortViewport`) | A phone on its side is too short for a column. The same answer caps the frameless phone sheet's stops (`DrawerStack`), so the row stays above that sheet's top. |
-| Anchored-panel geometry — `lg:inset-y-4`, `lg:rounded-2xl` (Drawer atom) | viewport (accepted residue) | #169 broke "viewport equals container". The expanded dialog is shorter than the window by the host's header. What survives is cosmetic float and rounding. |
+| Anchored-panel geometry — `lg:top-4`, the content-height cap, `lg:rounded-2xl` (Drawer atom) | viewport (accepted residue) | #169 broke "viewport equals container". The expanded dialog is shorter than the window by the host's header. What survives is cosmetic float, rounding, and a panel as tall as its view. |
 | Which calendar view renders, which options the switch offers, and which one it lights (`CalendarView`, and `DrawerStack` for the drawer's width) | container (via `useIsWideWidget`) | Not a fit question but a **capability** one: Schedule-X refuses its month grid and its week grid below the crossing, and substitutes silently. So this is the one row where the signal decides what a third-party library *can draw*, not how much room to give it — and a viewport read would light a grid a 320px column cannot render (#331). All five seams read one resolver, so they cannot disagree. |
 | Modal box sizing | container (the frame) | Portals through `overlayContainer()`, so a frame contains and clips it on both axes. |
 | `EventHeader`'s `md:pt-4` | viewport (accepted residue) | The only variant that fires wrongly in a narrow map-less embed. It is cosmetic — fix it if you are already there. |
@@ -494,18 +494,18 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
 
 - Components are grouped by atomic tier — `src/components/{atoms,molecules,organisms}/`
   — each in its own **PascalCase folder** (`Chip/Chip.tsx` + stories + `index.ts`),
-  with a barrel `index.ts` per tier (the `Icons/` and `Mapbox/` sub-modules group
-  several files). `src/views/` holds the route screens. App code imports from the
-  tier barrels. Components import each other by component-folder path. See
-  `DESIGN_SYSTEM.md`.
+  with a barrel `index.ts` per tier that has callers (the `Icons/` and `Mapbox/`
+  sub-modules group several files). `src/views/` holds the route screens. App code
+  imports from the tier barrels, except for an atom, which it takes by folder path —
+  atoms carry no tier barrel. Components import each other by component-folder path.
+  See `DESIGN_SYSTEM.md`.
   ⚠ **The eager shell imports by component-folder path too** — `DESIGN_SYSTEM.md`,
   "Eager-shell exception", says which modules and why, and `Widget.standalone.test.ts`
   fails on a barrel import there.
 - **Explicit named exports — no `export *`.** Every component and tier barrel lists
   exactly what it surfaces: the primary component(s) plus the `<Name>Props` type.
   Keep single-use internals (private modals, row primitives, helper sub-cards)
-  module-private. The `Icons/` icon-set module is the one wildcard exception. See
-  the export rules in `DESIGN_SYSTEM.md`.
+  module-private. See the export rules in `DESIGN_SYSTEM.md`.
 - **Atoms stay primitive.** Put pure domain helpers (e.g. `isSoon`) in `src/lib/`,
   not in an atom, and keep single-use compositions inlined in their one parent.
 - Keep components presentational where possible. Pull data via hooks
@@ -587,7 +587,7 @@ read at mount. The image carousel is the worked example: its pause/play toggle k
 one accessible name while `aria-pressed` carries the state, and it renders only when
 the carousel actually autoplays.
 
-**The rest of the app's motion is off under that preference too, through three
+**The rest of the app's motion is off under that preference too, through four
 seams — one per animation technology** (issue #102):
 
 - **framer-motion** — `MotionConfig` in `src/providers.tsx` covers every `m.*`
@@ -602,6 +602,9 @@ seams — one per animation technology** (issue #102):
   `@media (prefers-reduced-motion: reduce)` block at the foot of
   `src/styles/vaul.css` kills both `animation` and `transition` — vaul's own
   `[data-vaul-animate='false']` hook covers only the first.
+- **The Web Animations API** — the height ease in `DrawerContent` (the Drawer atom), which
+  eases the floating panel as its view resizes it, reads `usePrefersReducedMotion` itself:
+  neither `MotionConfig` nor the vaul media query reaches an `element.animate()` call.
 - **The map camera needs nothing.** mapbox-gl already short-circuits `flyTo` to
   `jumpTo`, zeroes `easeTo`'s duration, and reads the media query live — see the
   comment in `src/hooks/use-mapbox.ts` for the two ways to break this

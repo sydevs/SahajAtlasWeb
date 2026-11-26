@@ -30,7 +30,7 @@ export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPrompt
   // keeps the close button's hover square inside the banner.
   return (
     <Alert
-      className="mx-gutter mb-2 gap-2.5 ps-3 pe-1"
+      className="mx-gutter gap-2.5 ps-3 pe-1"
       closeLabel={t('search.a11y.dismiss_nearby_prompt')}
       color="secondary"
       icon={<MapPin size={18} />}

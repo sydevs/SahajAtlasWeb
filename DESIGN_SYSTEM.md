@@ -34,7 +34,7 @@ src/components/
     Chip.tsx                  #   the component (PascalCase, matches the folder)
     Chip.stories.tsx          #   co-located Ladle stories
     index.ts                  #   component barrel: explicit `export { Chip }` + `ChipProps`
-  <tier>/index.ts             # tier barrel — the public import surface
+  <tier>/index.ts             # tier barrel — the public import surface (atoms carry none)
 src/views/      # URL-driven drawer screens (DrawerStack + one folder per route)
 src/lib/        # pure domain utilities (no React/i18n) — e.g. shape/event.ts (isSoon)
 ```
@@ -58,13 +58,14 @@ here is **organisms own data/network/map lifecycles. Atoms and molecules don't.*
 
 | Folder                | Exports                                                              | Notes                                                                                                                                                                                                                                                                                                       |
 | --------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Icons/` (story only) | —                                                                    | **No component.** Interface glyphs come from `lucide-react`, used directly at the call site; this folder holds the gallery of the ones the app renders. Lucide strokes with `currentColor` and sets `aria-hidden` itself. It has no mirroring prop, though, so directional glyphs carry `rtl:-scale-x-100` per call site |
+| `Icons/`              | `MeditateFigure`                                                     | Interface glyphs come from `lucide-react`, used directly at the call site; this folder holds the gallery of the ones the app renders. Lucide strokes with `currentColor` and sets `aria-hidden` itself. It has no mirroring prop, though, so directional glyphs carry `rtl:-scale-x-100` per call site. `MeditateFigure`'s rule: `src/AGENTS.md` § Icons |
 | `Alert/`              | `Alert`                                                              | Status/error banner (`tv()`). `role` defaults to `status`, `alert` is opt-in for genuine errors. Two alignment axes: `align` sets the icon's cross-axis position (auto: centred for one line, top for two). `textAlign` sets the layout — `left` (default) keeps the icon beside the copy, `center` stacks the icon above it |
 | `Button/`             | `Button`, `controlSurface`                                           | The app's one control — no separate IconButton. `radius` (`sm`/`full`, same vocabulary as Chip) sets the corner. `isIconOnly` squares the width to the size scale. Renders `<button>`, or `<a>` when given `href` (that arm omits `disabled`). `controlSurface` is the shared colour × variant recipe |
 | `Checkbox/`           | `Checkbox`                                                           | Radix toggle with `appearance: 'switch' \| 'checkbox'` (default `switch`). The checkbox appearance backs the registration consent field. `isInvalid` recolours to danger. Disabled repaints on the **neutral ramp** off Radix's `data-disabled`, rather than fading the brand fill. A pale brand tint read as "a lighter shade of on." There is no `neutral` colour: grey means disabled |
 | `Chip/`               | `Chip`                                                               | Pure presentational atom, brand-token styling (`tv()`). `onClose`/`closeLabel` form a union — a close button always has a label |
 | `Combobox/`           | `Combobox`, `ComboboxOption`                                         | Search-in-the-field single-select (Radix Popover + cmdk) — the region filter. Type to filter by label or `hint`, click to select. The trigger displays only the short label. Radix's portal survives the modal calendar filter sheet, where a Floating-UI popover is pointer-locked out |
-| `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Toolbar`/`Body`/`Footer`/`Close` | vaul drawer, left ≥md, bottom sheet on mobile, non-modal, portals into the themed root. The single surface abstraction; `DrawerSlotsProvider mode="inline"` gives its parts to the inline embed's column, where no drawer renders. `DrawerToolbar` is a fixed band between header and body, outside the scroll container. It holds controls that act on the scrolling content, such as SearchView's Filters and Sort. Without it, those controls would scroll away just when a long list makes them useful |
+| `Disclosure/`         | `Disclosure`                                                         | A row that opens to show more, on Radix Collapsible. The panel is unmounted while closed, so what it holds loads only on open. Opening scrolls its own scroll container (never the host page) to show the panel |
+| `Drawer/`             | `Drawer`, `DrawerContent`/`Header`/`Toolbar`/`Body`/`Footer`/`Close` | vaul drawer, left ≥md, bottom sheet on mobile, non-modal, portals into the themed root. The single surface abstraction; `DrawerSlotsProvider mode="inline"` gives its parts to the inline embed's column, where no drawer renders. `DrawerToolbar` is a fixed band between header and body, outside the scroll container. It holds controls that act on the scrolling content, such as SearchView's Filters and Sort. Without it, those controls would scroll away just when a long list makes them useful. `field` makes it the band for a place page's `SearchField`: the header's gutter and the suggestion list's width |
 | `Dropdown/`           | `Dropdown`                                                           | Floating-UI popover shell: portaled, flip/shift (`tv()`). Not a menu — menus use Radix DropdownMenu (see `SettingsMenu`) |
 | `Input/`              | `Input`                                                              | Native `<input>` on the shared `fieldChrome` recipe, forwarding its ref for react-hook-form. `isInvalid` swaps to danger, `highlight` primary-tints an active field. Replaces hand-rolled `<input className={fieldChrome(...)}>` call sites |
 | `Link/`               | `Link`                                                               | Router link, or `<a>` for external/`mailto:`/`tel:`. Forwards a ref (used as a whole-card hit target) |
@@ -116,14 +117,15 @@ Radix-wrapping atoms carry their own `isInvalid` `tv()` variant.
 | `Fallbacks/`         | `LoadingFallback`, `ErrorFallback`, `FallbackPanel`, `ResetErrorBoundary`, `CENTERED_BODY` | **Every state that leaves a viewer with no content**, from one table (issue #89). `ERROR_POLICY`, its narrowing function `visibleActions`, the action row, and the display hooks stay **module-private** (tests reach them by module path). Exporting any of them would let the next view hand-roll its own panel — the drift #89 removed. `ERROR_POLICY` maps each `FallbackKind` to its localized copy, its `color` register, and its controls (`retry`/`onward`/`search`/`clearFilters`/`contact`/`report`). A `FallbackKind` is one of the classified failures (`classifyError`, `src/lib/report.ts`), or a way a list can legitimately come back empty. `FallbackPanel` is the shared body. A dead link, a broken query, and an empty list read one component and one row, rather than three components agreeing by hand. `visibleActions` narrows by surface (no boundary to reset, nowhere to navigate, a geocoder already in the chrome) and never strands a viewer. `align` gives two postures: `center` for a drawer whose whole content the panel replaces, and `start` for list views, standing in for content that begins top-left. The onward rung renders inside the banner (`OnwardLink`), since it continues the sentence. The actions sit outside it, since they act on the screen. `ErrorFallback` is the whole-widget screen. `views/fallbacks.tsx` adds the drawer's chrome |
 | `FormField/`         | `FormField`, `fieldErrorId`, `fieldHelpId`, `fieldDescribedBy`                             | Label + control + help/error shell shared by the registration and report forms. Owns the required marker and the `aria-describedby` id convention |
 | `ImageCarousel/`     | `ImageCarousel`, `Slide`                                                                   | Generic Swiper carousel (`slides`). Folds in the lazy YARL lightbox (own chunk) |
-| `List/`              | `List`, `listRow`                                                                          | Scrollable `<ul>` for region/event rows. `listRow` is the shared row chrome and gutter |
+| `List/`              | `List`, `ListRow`                                                                          | Scrollable `<ul>` for region/event rows. `ListRow` is the shell every row renders into: the `<li><a>`, row chrome, gutter and chevron |
 | `GeolocationPrompt/` | `GeolocationPrompt`                                                                        | The IP-geolocated "events near you?" suggestion line |
-| `ListItem/`          | `ListItem`                                                                                 | Every row in a region list: the country → region → area drill-down and the online-classes entry. `icon` is a fixed slot that sizes and spaces the glyph, so rows align whatever goes in it |
+| `ListItem/`          | `ListItem`                                                                                 | Every row in a region list: the country → region → area drill-down and the online-classes entry. `icon` is a fixed slot that sizes and spaces the glyph, so rows align whatever goes in it. `description` adds a quieter line under the label |
 | `SearchFilters/`     | `SearchFilters`                                                                            | The filter form (format/frequency/day/time/language), fully controlled |
 | `SettingsMenu/`      | `SettingsMenu`                                                                             | The cog: theme radio group and language submenu, on Radix DropdownMenu (needs Sub/RadioGroup) |
 | `ListToolbar/`       | `ListToolbar`                                                                              | The controls row above the SearchView results — a Filters button plus a SortMenu, in a thin `justify-between` layout the view fills. CountriesView, a browse index, filters via a header icon instead — no toolbar or sort |
 | `SortMenu/`          | `SortMenu`                                                                                 | The results-list sort selector (Recommended/Closest/Soonest), persisted in `?sort=`. A Radix DropdownMenu radio group (mirrors `SettingsMenu`) |
 | `ShareContent/`      | `ShareContent`, `CopyField`                                                                | Copyable URL and region-ordered `react-share` targets with a native Web Share fallback (share dialog + registration thank-you) |
+| `QrPoster/`          | `QrPoster`                                                                                 | The closed "QR code for posters" row under the share buttons: a black-on-white QR code of the class link and a PNG download for printing. The `uqr` encoder loads on open. Reached only through the lazy Share view, so **not** in the barrel |
 
 **Organisms** (`src/components/organisms/`)
 
@@ -148,7 +150,7 @@ Folder-per-component, not re-exported through the component barrels.
 
 ## Conventions
 
-### Exports — named, one barrel per tier
+### Exports — named, one barrel per tier that has callers
 
 - **Use named exports** for every component (no `export default`). This keeps the
   barrels clean and import names greppable.
@@ -171,7 +173,7 @@ Folder-per-component, not re-exported through the component barrels.
      `DrawerBody`/`DrawerFooter` layout parts + `DrawerClose`. The single surface abstraction: a
      `Drawer` is `open`/`onOpenChange` controlled, and every View composes it.
   6. **`ActionRow/`** — `ActionRow` + `ActionCircle` (the row and its one child type).
-  8. **`List/`** — `List` + the `listRow` recipe its card children share.
+  8. **`List/`** — `List` + `ListRow`, the shell its card children render into.
   9. **`ShareContent/`** (molecules) — `ShareContent` + `CopyField` (also used by
      the event panel's desktop contact popover).
   10. **`Fallbacks/`** (molecules) — `LoadingFallback` + `ErrorFallback` + `FallbackPanel`
@@ -183,10 +185,11 @@ Folder-per-component, not re-exported through the component barrels.
         screen with a different sentence). The policy machinery itself is **not** exported.
         The barrel lists only what a caller outside the folder actually mounts.
   11. **`Menu/`** — the `menuChrome` recipe and no component, the one entry here that
-      surfaces no primary. `Icons/` is the other folder without one.
+      surfaces no primary.
 - **App code (views, stories) imports from the tier barrel**:
-  `import { Chip } from '@/components/atoms'`. The barrel is the public surface,
-  so layout can change behind it.
+  `import { ListItem } from '@/components/molecules'`. The barrel is the public surface,
+  so layout can change behind it. ⚠ **Atoms have no tier barrel** — every view and story takes
+  an atom by its folder path, so the barrel that stood here surfaced 17 folders to no caller.
 - **Inside `src/components`, components import each other by the _component folder_
   path** (`@/components/atoms/Chip`, `@/components/molecules/EventFacts`), not
   through a tier barrel. Going through the tier barrel here risks import cycles (a
@@ -199,8 +202,9 @@ Folder-per-component, not re-exported through the component barrels.
   `src/lib/` (`resolveEventDisplay`, the `isSoon` predicate, the time formatters).
   A **single-use** composition stays module-private in its one parent (the
   registration form's `Field`/`LabeledInput`). A **multi-use** one becomes a thin
-  exported molecule (`EventFacts`, used by `EventListItem` and the event panel) or a
-  shared recipe (`listRow`, `fieldChrome`, `menuChrome`, `panelChrome`).
+  exported molecule (`EventFacts`, used by `EventListItem` and the event panel; `ListRow`, the
+  shell both list rows render into) or a shared recipe (`fieldChrome`, `menuChrome`,
+  `panelChrome`).
 - **Code-split exception:** a heavy organism that is lazy-loaded (the event detail
   page lazy-imports `EventView`) is intentionally left _out_ of its tier barrel,
   so a barrel import doesn't pull it back into the static graph. Such components —
@@ -247,8 +251,9 @@ Folder-per-component, not re-exported through the component barrels.
   gzipped beside this one), and its bare `lite` entry merges no conflicting classes at all.
 - **A skin more than one component spells is one recipe, not a copy each, and it lives in the
   atom that owns the chrome.** `fieldChrome` (`atoms/Select`) covers the field controls,
-  `panelChrome` beside it the panel a Select or Combobox trigger opens, `listRow` the card rows,
-  and `menuChrome` (`atoms/Menu`) the Radix dropdown menus. Each difference is a **variant**, so
+  `panelChrome` beside it the panel a Select or Combobox trigger opens, and `menuChrome`
+  (`atoms/Menu`) the Radix dropdown menus. Where every user renders the same markup, share a
+  component instead: `ListRow` (`molecules/List`) is the list rows' shell. Each difference is a **variant**, so
   an intended one reads differently from an accidental one — three hand-copied copies of the menu
   skin had already diverged before anything noticed (#367), and `lib/overlay.popper.test.ts` now
   refuses another of either.

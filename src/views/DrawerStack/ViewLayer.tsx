@@ -3,13 +3,14 @@ import { m, useIsPresent } from 'framer-motion'
 import clsx from 'clsx'
 
 // One view's layer in the sheet's cross-fade. The outgoing and incoming views overlap for
-// the fade, so each fills the sheet absolutely rather than sharing its height.
+// the fade in the one grid cell DrawerStack makes. They stay in flow, so the floating panel takes
+// its height from them.
 //
 // ⚠ **Not `AnimatePresence mode="popLayout"`.** That pops the outgoing view out of flow with
 // a `<style>` element framer-motion appends to `document.head` — the HOST's head, which
 // cannot reach into the widget's shadow root (#236). So in every embed both views stayed in
 // the flex column for the whole fade, each taking half the panel: the new view flickered in
-// halfway down, then jumped to the top. Absolute layers need no stylesheet at all.
+// halfway down, then jumped to the top. A shared grid cell needs no stylesheet at all.
 //
 // The outgoing layer stops taking pointer events and leaves the accessibility tree the
 // moment it starts to exit, so a click mid-fade lands on the view it can see arriving.
@@ -24,7 +25,7 @@ export function ViewLayer({ children }: { children: ReactNode }) {
         // At the peek only the header fits, so what follows it would show as a sliced-off
         // strip; hidden, it also leaves the tab order. A two-line title would be sliced the same
         // way, so there it keeps to one line.
-        'absolute inset-0 flex flex-col [[data-sy-peek]_&>*:not(:first-child)]:invisible',
+        'col-start-1 row-start-1 flex min-h-0 flex-col [[data-sy-peek]_&>*:not(:first-child)]:invisible',
         '[[data-sy-peek]_&>:first-child_:is(h1,h2)]:line-clamp-1',
         !isPresent && 'pointer-events-none',
       )}

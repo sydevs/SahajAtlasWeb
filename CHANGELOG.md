@@ -43,6 +43,34 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **On a computer, the panel beside the map is as tall as what it shows.** ([#495]) At 1024px
+  and wider, the floating panel ends under its content instead of always running the full height
+  of the window or of your map's box, so a place with two classes covers far less of the map. A
+  long list still fills the height and scrolls inside the panel, and the bottom edge eases over
+  200ms as visitors move between places (instantly with reduced motion). While someone types in a
+  search box, the panel takes the full height so the suggestions fit, and "We couldn't find that
+  place." now shows in the suggestions' spot, styled like them, once typing pauses. The location
+  prompt at the foot of a list now sits 16px from the panel's bottom edge.
+  Width, phones, the full-width calendar and map-less embeds are unchanged. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
+- **Every country, region and city panel has a search box under its title.** ([#485]) It is the
+  same "search for a place" field the first screen opens on, in place of the magnifier that led
+  to a separate search page, so a visitor who went into the wrong place can search again from
+  where they are. The box stays put while the list scrolls under it. Typing leaves the address
+  alone; picking a place opens its results with the active filters kept. The calendar and filter
+  controls stay in the header, and the panel shows the same box while it loads and when it
+  fails, in place of the old magnifier. While the box is on screen, the place search's hidden `aria-live`
+  region sits in your `<body>`, as it already did on the first screen. **No parameter, origin,
+  CSP, storage or Permissions-Policy change.**
+
+- **Every class in a list ends with the same arrow as a place.** ([#488]) A class row in a
+  region's or a search's list now shows the grey chevron a country, region or city row has always
+  shown, so a class looks as tappable as a place. The arrow takes about 24px from the title, so a
+  long class name wraps to a second line a little sooner than before. Nothing else moves, and the
+  whole row is still one link. **No parameter, origin, CSP, storage or Permissions-Policy
+  change.**
+
 - **Place slugs may contain non-ASCII letters, and URLs carry them percent-encoded.** ([#483]) A
   region's slug keeps its native letters, lowercased (`/bg/софия` where it was `/bg/sofiya`;
   `/de/trier/universität-trier` where it was `universitat-trier`). On the wire, in
@@ -482,6 +510,12 @@ no-referrer`.
 
 ### Added
 
+- **Share offers a QR code for posters.** ([#492]) A closed "QR code for posters" row under the
+  share buttons opens a black-on-white code of the class's shared link and a "Download for
+  printing" button (a PNG of about 1200 px). The code is drawn in the browser from a script
+  chunk on `sahajatlas.com`, fetched only when the row is opened, so a CSP that already allows
+  the widget's `script-src` needs no change. On a phone, Share now opens as tall as its content.
+
 - **The guide now documents Wix, and sends you to a setup screen that fills it in for you.**
   ([#349]) Wix has nowhere to paste a `<script>` tag, so the script embed goes in a **Custom
   Element** — Server URL `https://sahajatlas.com/auto.js?key=YOUR_KEY`, tag name `sahaj-atlas` —
@@ -623,6 +657,10 @@ no-referrer`.
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
 
 ### Fixed
+
+- **The place-search box is its normal height on touch screens.** ([#485]) On a phone or tablet
+  it drew about three times as tall as intended (132px instead of 44px), pushing the list below
+  it down the panel. No parameter, origin or CSP change.
 
 - **An event's structured data now names your organization as the organizer.** ([#442]) The widget
   reads that name from the public name on your client record, and had been reading a field the
@@ -1268,6 +1306,8 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
+[#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
 [#466]: https://github.com/sydevs/SahajAtlasWeb/pull/466
 [#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483
 [#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
@@ -1375,3 +1415,5 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#447]: https://github.com/sydevs/SahajAtlasWeb/pull/447
 [#470]: https://github.com/sydevs/SahajAtlasWeb/pull/470
 [#482]: https://github.com/sydevs/SahajAtlasWeb/pull/482
+[#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
+[#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495

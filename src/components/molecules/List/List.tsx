@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 
+import { ChevronRight } from 'lucide-react'
+
+import { Link, type LinkProps } from '@/components/atoms/Link'
 import { tv } from '@/styles/tv'
 
 // The list row's chrome and its horizontal gutter live here, not in each
@@ -9,19 +12,34 @@ import { tv } from '@/styles/tv'
 // gutter, held in sync by a comment. One recipe, one constant. Change the
 // gutter here, and the divider follows.
 
-/**
- * A navigable row inside a `List`. Cards wrap it in an `<li>`, so each row
- * is a valid direct child of the `<ul>`, and spread this onto that li's
- * inner <Link> or <a>. So the hover and press feedback, and the gutter,
- * stay identical across row types.
- */
-export const listRow = tv({
-  // `items-stretch` undoes the Link atom's `items-center`, its inline
-  // icon-link alignment. On a flex-col card, that would centre every line
-  // of content. Row-shaped cards (ListItem) re-opt into `items-center` in
-  // their own classes, which wins the merge as the later conflict.
-  base: 'block items-stretch px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
+const listRow = tv({
+  slots: {
+    row: 'flex items-center px-gutter text-inherit transition-colors hover:bg-primary-2 active:bg-primary-3 dark:hover:bg-gray-3 dark:active:bg-gray-4',
+    // The chevron only restates what tapping the row already does, so it
+    // sits a step below the quietest text in any row (gray-11, #432).
+    chevron: 'text-gray-9 rtl:-scale-x-100',
+  },
 })
+
+const { row, chevron } = listRow()
+
+/**
+ * A navigable row inside a `List`: the shell every card renders its content
+ * into. It is an `<li>` wrapping the Link, so each row is a valid direct
+ * child of the `<ul>` (#65), and it ends in the chevron. So the hover and
+ * press feedback, the gutter and the chevron stay identical across row
+ * types. Anchor props (handlers, `data-*`) pass through to the Link.
+ */
+export function ListRow({ className, children, ...props }: LinkProps) {
+  return (
+    <li>
+      <Link className={row({ className })} {...props}>
+        {children}
+        <ChevronRight className={chevron()} size={20} />
+      </Link>
+    </li>
+  )
+}
 
 // The divider draws here. Cards carry no border of their own, so mixed
 // region and event lists stay uniform. It is a ::before rule on every

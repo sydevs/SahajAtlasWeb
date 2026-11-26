@@ -164,7 +164,39 @@ export const NO_ERROR = 'None'
  */
 export const EMPTY = 'Empty'
 
-export type StoryFallbackArg = StoryErrorKey | typeof NO_ERROR | typeof EMPTY
+/**
+ * `EMPTY` with filters applied: the list came back empty because of them, so the panel's way
+ * out is "Clear all" rather than somewhere else to look. Data too, like `EMPTY` — the story
+ * seeds the filters and the emptied list together.
+ */
+export const EMPTY_FILTERED = 'Empty · filtered'
+
+/**
+ * The view still waiting on its data: the drawer's Suspense fallback, the chrome a view keeps
+ * while it loads. Every view reaches it, so it sits beside "render normally" on every story.
+ */
+export const LOADING = 'Loading'
+
+export type StoryFallbackArg =
+  StoryErrorKey | typeof NO_ERROR | typeof EMPTY | typeof EMPTY_FILTERED | typeof LOADING
+
+/**
+ * Suspends for good, so the drawer's loading chrome stays on screen. Only from an update after
+ * mount: `SeedPath` reaches its path through a router navigation, which React renders as a
+ * transition, and a transition that suspends keeps the screen it had — blank — rather than
+ * showing the fallback.
+ */
+const NEVER = new Promise<never>(() => {})
+
+function Suspender() {
+  const [suspended, setSuspended] = useState(false)
+
+  useEffect(() => setSuspended(true), [])
+
+  if (suspended) throw NEVER
+
+  return null
+}
 
 /**
  * The failures EVERY data-reading view can reach, because they come from the FETCH,
@@ -188,9 +220,11 @@ const FETCH_ERRORS = ['Offline', 'Server', 'Config', 'Unknown'] as const
  * This is a `select`, not a radio: with the shared failures appended it runs to seven
  * options, and a radio column that tall pushes the Example control off the panel.
  */
-export const stateControl = (...viewFallbacks: (StoryErrorKey | typeof EMPTY)[]) => ({
+export const stateControl = (
+  ...viewFallbacks: (StoryErrorKey | typeof EMPTY | typeof EMPTY_FILTERED)[]
+) => ({
   name: 'Fallback',
-  options: [NO_ERROR, ...viewFallbacks, ...FETCH_ERRORS] as StoryFallbackArg[],
+  options: [NO_ERROR, LOADING, ...viewFallbacks, ...FETCH_ERRORS] as StoryFallbackArg[],
   control: { type: 'select' as const },
   defaultValue: NO_ERROR as StoryFallbackArg,
 })
@@ -198,7 +232,7 @@ export const stateControl = (...viewFallbacks: (StoryErrorKey | typeof EMPTY)[])
 export type ViewStoryProps = Omit<ViewHarnessProps, 'seedKey'> & {
   /** The example's key — folded into the harness's seedKey with the state. */
   example: string
-  /** The selected fallback state, or `NO_ERROR` / `EMPTY` to render the view. */
+  /** The selected fallback state, or `NO_ERROR` / `EMPTY` / `EMPTY_FILTERED` to render the view. */
   state?: StoryFallbackArg
 }
 
@@ -220,11 +254,14 @@ export type ViewStoryProps = Omit<ViewHarnessProps, 'seedKey'> & {
  * ancestor and falls through to the IP guess — with no per-fallback stub anywhere.
  */
 export function ViewStory({ example, state = NO_ERROR, children, ...harness }: ViewStoryProps) {
-  const thrown = state === NO_ERROR || state === EMPTY ? undefined : STORY_ERRORS[state]
+  const thrown =
+    state === NO_ERROR || state === EMPTY || state === EMPTY_FILTERED || state === LOADING
+      ? undefined
+      : STORY_ERRORS[state]
 
   return (
     <ViewHarness {...harness} seedKey={`${example}·${state}`}>
-      {thrown ? <Thrower error={thrown} /> : children}
+      {state === LOADING ? <Suspender /> : thrown ? <Thrower error={thrown} /> : children}
     </ViewHarness>
   )
 }

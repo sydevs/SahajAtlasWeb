@@ -3,7 +3,12 @@ import type { QueryClient } from '@tanstack/react-query'
 import type { StoryFallbackArg } from '@/views/story-harness'
 import type { Region } from '@/types'
 
-import { EMPTY, NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
+import { useMemo } from 'react'
+
+import { SeedSearchParams } from '@/components/ladle'
+import { regionQuery } from '@/config/api'
+import { filtersFromParams } from '@/lib/shape'
+import { EMPTY, EMPTY_FILTERED, NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { useLocale } from '@/hooks/use-locale'
 import { mockCityWithVenuesRegion, mockCountryRegion, mockLeafRegion } from '@/mocks/regions'
@@ -21,6 +26,9 @@ const EXAMPLES: Record<string, Region> = {
 }
 
 type ExampleKey = keyof typeof EXAMPLES
+
+/** A days filter, so the filter button carries a badge and a pill names what emptied the list. */
+const FILTERED = 'days=1,3'
 
 /** Whatever region is selected, with nothing left to list — a region whose programs have
  *  all ended. This is derived, not a fixture of its own, so `Empty` is a state ANY example
@@ -53,6 +61,8 @@ const emptied = (region: Region): Region => ({
  *    The bare "Browse all countries" floor only appears when even the guess is absent
  *    (Molecules › Fallbacks shows it).
  *
+ * `Empty · filtered` is `Empty` with two days filtered, so the panel offers "Clear all" instead.
+ *
  * `Empty` and the not-found cases render the very same `FallbackPanel`, one policy row apart —
  * which is the point. A barren region gets the same way out as a URL that never existed
  * (issue #89). Put them side by side, and the only difference should be the sentence.
@@ -63,18 +73,33 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
 }) => {
   const { locale } = useLocale()
   const base = EXAMPLES[example] ?? EXAMPLES.Country
-  const region = state === EMPTY ? emptied(base) : base
+  const region = state === EMPTY || state === EMPTY_FILTERED ? emptied(base) : base
+  // Every state seeds the URL, the unfiltered ones with nothing: the decorator's router outlives
+  // the story, so a filter left behind would key the next state's read on a query nobody seeded.
+  // Memoized per state, since `SeedSearchParams` re-seeds on a new object.
+  const params = useMemo(
+    () => new URLSearchParams(state === EMPTY_FILTERED ? FILTERED : ''),
+    [state],
+  )
 
   return (
     <ViewStory
       example={example}
       path={region.path}
-      seed={(client: QueryClient) =>
-        client.setQueryData<Region>(['region', region.slug, locale], region)
-      }
+      seed={(client: QueryClient) => {
+        // Under the unfiltered key too: the params land one render after the client.
+        client.setQueryData<Region>(regionQuery(region.slug, locale).queryKey, region)
+        client.setQueryData<Region>(
+          regionQuery(region.slug, locale, filtersFromParams(new URLSearchParams(FILTERED)))
+            .queryKey,
+          region,
+        )
+      }}
       state={state}
     >
-      <RegionView slug={region.slug} />
+      <SeedSearchParams params={params}>
+        <RegionView slug={region.slug} />
+      </SeedSearchParams>
     </ViewStory>
   )
 }
@@ -90,5 +115,5 @@ Default.argTypes = {
   },
   // A slug the region tree does not carry — a renamed CMS slug in an old bookmark, or a
   // typo. The one dead link this view's routes can produce.
-  state: stateControl(EMPTY, 'Not found · place'),
+  state: stateControl(EMPTY, EMPTY_FILTERED, 'Not found · place'),
 }

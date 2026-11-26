@@ -18,7 +18,8 @@ export const isIOS = () =>
   typeof navigator !== 'undefined' &&
   isIOSPlatform(navigator.platform ?? '', navigator.maxTouchPoints ?? 0)
 
-function canScroll(el: Element) {
+/** Whether `el` scrolls vertically and has something to scroll. */
+export function canScroll(el: Element) {
   if (el.scrollHeight <= el.clientHeight) return false
 
   const { overflowY } = getComputedStyle(el)

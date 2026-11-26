@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Download,
   Expand,
   Funnel,
   Globe,
@@ -31,6 +32,8 @@ import {
 } from 'lucide-react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
+
+import { MeditateFigure } from './MeditateFigure'
 
 import { Button } from '@/components/atoms/Button'
 
@@ -59,6 +62,7 @@ const ICONS = [
   { name: 'ChevronDown', Icon: ChevronDown },
   { name: 'ChevronLeft', Icon: ChevronLeft },
   { name: 'ChevronRight', Icon: ChevronRight },
+  { name: 'Download', Icon: Download },
   { name: 'Expand', Icon: Expand },
   { name: 'Funnel', Icon: Funnel },
   { name: 'Globe', Icon: Globe },
@@ -128,6 +132,17 @@ export const Default: Story = () => (
             gallery in the same change that first uses it.
           </p>
         </div>
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="The one glyph that is not Lucide's: the We Meditate app's meditating figure, a brand mark, on the first screen's Online classes row."
+      inContext={true}
+      title="Brand mark"
+    >
+      <div className="flex w-24 flex-col items-center gap-2 text-center">
+        <MeditateFigure size={28} />
+        <span className="text-xs text-gray-11">MeditateFigure</span>
       </div>
     </StorySection>
 
