@@ -212,18 +212,19 @@ describe('useEventDisplay — an in-person class names its clock only for a view
 })
 
 describe('useEventDisplay — the type label', () => {
-  const labelFor = (event: DisplayableEvent) => {
-    let label: string | null = 'unset'
+  const stringsFor = (event: DisplayableEvent) => {
+    let strings: ReturnType<typeof useEventDisplay> | undefined
     const Probe = () => {
-      label = useEventDisplay(event).typeLabel
+      strings = useEventDisplay(event)
 
       return null
     }
 
     renderToStaticMarkup(createElement(Probe))
 
-    return label
+    return strings!
   }
+  const labelFor = (event: DisplayableEvent) => stringsFor(event).typeLabel
 
   // The resolver reads an absent recurrence as `oneoff`, and a listing with no schedule at all
   // has no recurrence either. Naming it is what put "One-off event" on a by-request class.
@@ -247,5 +248,12 @@ describe('useEventDisplay — the type label', () => {
 
   it('names the same listing without the flag', () => {
     expect(labelFor({ ...stored, inactive: false })).toBe('One-off event')
+  })
+
+  it('never calls an untyped listing the default type, though its schedule is weekly', () => {
+    const weekly = { ...stored.schedule, recurrenceType: 'WEEKLY', interval: 1 } as const
+
+    expect(stringsFor({ ...stored, schedule: weekly, inactive: false }).isDefaultType).toBe(true)
+    expect(stringsFor({ ...stored, schedule: weekly, inactive: true }).isDefaultType).toBe(false)
   })
 })

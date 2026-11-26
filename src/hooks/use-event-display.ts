@@ -167,7 +167,10 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // The plain weekly class is the default shape.
     // Naming it on a compact surface, the list card's pill, adds nothing, so cards skip it.
     const isDefaultType =
-      kind === 'class' && schedule?.recurrenceType === 'WEEKLY' && (schedule?.interval ?? 1) === 1
+      typeLabel !== null &&
+      kind === 'class' &&
+      schedule?.recurrenceType === 'WEEKLY' &&
+      (schedule?.interval ?? 1) === 1
 
     // ── Status chip ──
     const chipDate = firstSession ?? next
