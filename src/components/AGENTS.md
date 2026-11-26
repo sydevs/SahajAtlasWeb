@@ -26,6 +26,13 @@ Before hand-rolling UI, check in this order:
    ARIA. We own the Tailwind skin.
 3. Only then write something new, in the right atomic tier per `DESIGN_SYSTEM.md`.
 
+**Every form is one kit.** A field is `FormField` around a form atom — `Input`, `Textarea`,
+`Select`, `Combobox`, a `size="md"` `ToggleGroup` for short choices, `RadioGroup` (choice cards
+with `icon` and `hint`) for longer ones, `Checkbox` — and takes its wiring from `FormField`'s
+render prop (`{(control) => <Input {...control} />}`), a group as `as="fieldset"`. Don't hand-roll
+a radio, a segmented control or a field shell; the report, registration and add-a-class forms
+share these, and the FormField story's "Form atoms" section shows them all.
+
 ## Styling
 
 - Tailwind 4 utility classes are the default. For components with variants
@@ -599,7 +606,8 @@ three things defeat it:
 - **`overflow: hidden` clips it**, so a `truncate` on the control itself takes the area away and
   leaves the class in the DOM saying nothing. Put `truncate` on an inner span.
 - **An `<input>` renders no pseudo-element at all**, so a field takes a drawn
-  `pointer-coarse:h-11` instead — `fieldChrome` and the geocoder's own input both do.
+  `pointer-coarse:h-11` instead — `fieldChrome` (through the `field-height` utility) and the
+  geocoder's own input both do.
 - **Two such areas that meet take each other's pixels**, the later element winning every shared
   one, so both controls measure short. Controls that sit flush — the toggle group's items — are
   drawn at 44px instead, and rows that sit close get `pointer-coarse:` spacing. The gate

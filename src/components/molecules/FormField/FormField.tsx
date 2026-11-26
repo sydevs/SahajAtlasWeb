@@ -17,6 +17,12 @@ export const fieldErrorId = (name?: string) => (name ? `${name}-error` : undefin
 export const fieldHelpId = (name?: string) => (name ? `${name}-help` : undefined)
 
 /**
+ * The id of a group's legend, which its control names itself by (`aria-labelledby`). A radio
+ * group inside a fieldset is otherwise a nameless group within a named one.
+ */
+export const fieldLabelId = (name?: string) => (name ? `${name}-label` : undefined)
+
+/**
  * The full `aria-describedby` value for a control: its help text, its
  * error, or both. Callers pass this straight to the control, so the two
  * ids cannot be wired inconsistently.
@@ -33,6 +39,21 @@ export const fieldDescribedBy = ({
   [help ? fieldHelpId(name) : undefined, error ? fieldErrorId(name) : undefined]
     .filter(Boolean)
     .join(' ') || undefined
+
+/**
+ * What a field hands its control, so the control is wired to the label, the help and the error
+ * by the field itself rather than by each caller: spread it onto any form atom.
+ */
+export type FieldControlProps = {
+  /** The control's id, matching the label's `htmlFor`. Absent for a group. */
+  id?: string
+  /** A group's legend, which names it. Absent for a single control, which its label names. */
+  'aria-labelledby'?: string
+  /** The help or the error, whichever shows. */
+  'aria-describedby'?: string
+  'aria-required'?: true
+  isInvalid: boolean
+}
 
 export type FormFieldProps = {
   label: ReactNode
@@ -58,15 +79,34 @@ export type FormFieldProps = {
   announceError?: boolean
   /** The control's id. Omitted for a composite control (e.g. a radio list) with no single id. */
   htmlFor?: string
-  children: ReactNode
+  /**
+   * A group of controls with no single id — a choice of cards, a row of days — renders as a
+   * `fieldset`, its label as the `legend`. `name` then keys the help, error and legend ids.
+   */
+  as?: 'fieldset'
+  name?: string
+  /**
+   * The control, or a function that receives its wiring ({@link FieldControlProps}) — the id,
+   * `aria-labelledby`, `aria-describedby`, `aria-required` and `isInvalid` — so no caller
+   * assembles them by hand.
+   */
+  children: ReactNode | ((control: FieldControlProps) => ReactNode)
 }
 
 /**
- * Label, control, and help or error: the shared shell for the app's forms
- * (the registration form and the report-issue form). It exists as a
- * molecule, instead of a copy per form, so the required marker, the
- * help-or-error precedence, and above all the `aria-describedby` id
- * convention are defined once.
+ * Label, control, and help or error: the shared shell for every form in the app — the
+ * registration form, the report-issue form and adding or correcting a class. It exists as a
+ * molecule, instead of a copy per form, so the required marker, the help-or-error precedence,
+ * and above all the `aria-describedby` id convention are defined once.
+ *
+ * A single control is labelled by a `<label>`; a group (`as="fieldset"`) by a `<legend>`. Pass
+ * the control as a function to receive its wiring:
+ *
+ * ```tsx
+ * <FormField error={error} help={help} htmlFor="email" label="Email">
+ *   {(control) => <Input {...control} type="email" />}
+ * </FormField>
+ * ```
  */
 export function FormField({
   label,
@@ -74,18 +114,44 @@ export function FormField({
   help,
   error,
   htmlFor,
+  as,
+  name,
   children,
   announceError = true,
 }: FormFieldProps) {
+  const group = as === 'fieldset'
+  const key = group ? name : htmlFor
+  const showHelp = Boolean(help) && !error
+  const control: FieldControlProps = {
+    id: group ? undefined : htmlFor,
+    'aria-labelledby': group ? fieldLabelId(key) : undefined,
+    'aria-describedby': fieldDescribedBy({ name: key, help: showHelp, error: Boolean(error) }),
+    'aria-required': required || undefined,
+    isInvalid: Boolean(error),
+  }
+  const caption = (
+    <>
+      {label}
+      {required && ' *'}
+    </>
+  )
+  const Root = group ? 'fieldset' : 'div'
+
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium" htmlFor={htmlFor}>
-        {label}
-        {required && ' *'}
-      </label>
-      {children}
-      {help && !error && (
-        <span className="text-xs text-gray-11" id={fieldHelpId(htmlFor)}>
+    <Root className="flex min-w-0 flex-col gap-1">
+      {group ? (
+        // A legend sits outside the fieldset's flex flow, so it spaces itself.
+        <legend className="mb-1 text-sm font-medium" id={fieldLabelId(key)}>
+          {caption}
+        </legend>
+      ) : (
+        <label className="text-sm font-medium" htmlFor={htmlFor}>
+          {caption}
+        </label>
+      )}
+      {typeof children === 'function' ? children(control) : children}
+      {showHelp && (
+        <span className="text-xs text-gray-11" id={fieldHelpId(key)}>
           {help}
         </span>
       )}
@@ -114,12 +180,12 @@ export function FormField({
       {error && (
         <span
           className="text-xs text-danger-11"
-          id={fieldErrorId(htmlFor)}
+          id={fieldErrorId(key)}
           role={announceError ? 'alert' : undefined}
         >
           {error}
         </span>
       )}
-    </div>
+    </Root>
   )
 }

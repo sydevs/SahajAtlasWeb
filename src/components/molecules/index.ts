@@ -51,8 +51,8 @@ export type { FallbackAlign, FallbackKind } from './Fallbacks'
 // FormField — the label, control, and help-or-error shell shared by the
 // app's forms, and `fieldErrorId`, the single definition of the
 // aria-describedby id convention.
-export { FormField, fieldErrorId, fieldHelpId, fieldDescribedBy } from './FormField'
-export type { FormFieldProps } from './FormField'
+export { FormField, fieldErrorId, fieldHelpId, fieldLabelId, fieldDescribedBy } from './FormField'
+export type { FieldControlProps, FormFieldProps } from './FormField'
 
 // ActionRow / ActionCircle — the labelled tonal-circle secondary actions
 // under an event's Register CTA (Directions, Website, Contact, Share).

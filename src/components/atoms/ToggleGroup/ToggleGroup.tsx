@@ -9,16 +9,25 @@ import { tv } from '@/styles/tv'
 // Radix. The selected item fills with the primary ramp, through
 // `data-[state=on]`. `joined` renders the items as one segmented control,
 // flush with shared borders and rounded outer corners, instead of separate
-// pills.
+// pills. `size="md"` is the form size: as tall as a field (`field-height`), so a
+// choice row sits level with the inputs around it. The root takes a layout
+// through `className` — `grid grid-cols-7` for a row of days — and the items
+// fill their cells.
 const toggleGroup = tv({
   slots: {
     root: 'inline-flex items-center',
     // ⚠ The `pointer-coarse` pair is the 44px tap floor (#432), and it is a drawn size rather
     // than the `touch-target` utility on purpose: the items are flush, so an invisible area
     // wider than an item would sit over its neighbour and take the neighbour's taps instead.
-    item: 'relative inline-flex h-8 min-w-8 items-center justify-center border border-gray-6 bg-background px-2 text-sm font-medium text-gray-11 transition-colors outline-none select-none hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-12 data-[state=on]:bg-primary-12 data-[state=on]:text-white dark:data-[state=on]:border-primary-9 dark:data-[state=on]:bg-primary-9 dark:data-[state=on]:text-primary-foreground pointer-coarse:h-11 pointer-coarse:min-w-11',
+    item: 'relative inline-flex min-w-8 items-center justify-center border border-gray-6 bg-background px-2 text-sm font-medium text-gray-11 transition-colors outline-none select-none hover:bg-gray-3 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-disabled data-[state=on]:z-10 data-[state=on]:border-primary-12 data-[state=on]:bg-primary-12 data-[state=on]:text-white dark:data-[state=on]:border-primary-9 dark:data-[state=on]:bg-primary-9 dark:data-[state=on]:text-primary-foreground pointer-coarse:min-w-11',
   },
   variants: {
+    size: {
+      sm: { item: 'h-8 pointer-coarse:h-11' },
+      // ⚠ `min-w-0` and the narrow gap: seven days in a phone-width form's grid leave each cell
+      // just over 44px, which the 44px minimum width and a 4px gap would push off the row.
+      md: { item: 'field-height min-w-0 px-2 pointer-coarse:min-w-0' },
+    },
     joined: {
       false: { root: 'flex-wrap gap-1', item: 'rounded-lg' },
       // Segmented: natural-width items in a single row, flush with overlapping
@@ -48,7 +57,8 @@ const toggleGroup = tv({
       },
     },
   },
-  defaultVariants: { joined: false },
+  compoundVariants: [{ joined: false, size: 'md', class: { root: 'gap-0.5' } }],
+  defaultVariants: { joined: false, size: 'sm' },
 })
 
 // This lets ToggleGroupItem pick up the parent's `joined`, `highlight`, and
@@ -56,10 +66,12 @@ const toggleGroup = tv({
 // mirrors the Drawer atom's slot context.
 const ToggleGroupContext = createContext<{
   joined: boolean
+  size: 'sm' | 'md'
   highlight: boolean
   isInvalid: boolean
 }>({
   joined: false,
+  size: 'sm',
   highlight: false,
   isInvalid: false,
 })
@@ -67,8 +79,13 @@ const ToggleGroupContext = createContext<{
 type ToggleGroupBaseProps = {
   disabled?: boolean
   'aria-label'?: string
+  /** The group's visible name, such as a `FormField` legend (`fieldLabelId`). */
+  'aria-labelledby'?: string
+  'aria-required'?: boolean | 'true' | 'false'
   /** Render the items as a joined segmented control rather than separate pills. */
   joined?: boolean
+  /** `sm` for the dense filter rows; `md` for a form, as tall as its fields. */
+  size?: 'sm' | 'md'
   /** Primary-tint the group to flag an active field. */
   highlight?: boolean
   /** Danger-border the items and set `aria-invalid` to flag a validation error. */
@@ -82,27 +99,50 @@ type ToggleGroupBaseProps = {
 // This discriminates on `type`, so `value` and `onValueChange` are a
 // string for single-select, or a string array for multi-select, matching
 // Radix's own overloads.
-export type ToggleGroupProps = ToggleGroupBaseProps &
-  (
-    | {
-        type: 'single'
-        value?: string
-        defaultValue?: string
-        onValueChange?: (value: string) => void
-      }
-    | {
-        type: 'multiple'
-        value?: string[]
-        defaultValue?: string[]
-        onValueChange?: (value: string[]) => void
-      }
-  )
+type SelectionProps =
+  | {
+      type: 'single'
+      value?: string
+      defaultValue?: string
+      onValueChange?: (value: string) => void
+      /**
+       * A question that always has an answer, as a radio group does: pressing the chosen item
+       * again keeps it, where Radix would clear the value.
+       */
+      required?: boolean
+    }
+  | {
+      type: 'multiple'
+      value?: string[]
+      defaultValue?: string[]
+      onValueChange?: (value: string[]) => void
+    }
+
+export type ToggleGroupProps = ToggleGroupBaseProps & SelectionProps
+
+/** The selection props as Radix takes them: a required single choice ignores Radix's empty value. */
+const answered = (props: SelectionProps) => {
+  if (props.type !== 'single') return props
+
+  const { required, onValueChange, ...single } = props
+
+  return {
+    ...single,
+    onValueChange: (value: string) => {
+      if (required && value === '') return
+      onValueChange?.(value)
+    },
+  }
+}
 
 export function ToggleGroup({
   disabled,
   'aria-label': ariaLabel,
+  'aria-labelledby': labelledBy,
   'aria-describedby': describedBy,
+  'aria-required': ariaRequired,
   joined = false,
+  size = 'sm',
   highlight,
   isInvalid,
   className,
@@ -116,7 +156,7 @@ export function ToggleGroup({
 
   return (
     <ToggleGroupContext.Provider
-      value={{ joined, highlight: highlight ?? false, isInvalid: isInvalid ?? false }}
+      value={{ joined, size, highlight: highlight ?? false, isInvalid: isInvalid ?? false }}
     >
       {/* `props` is the discriminated (type, value, onValueChange) union.
           It is assignable to Radix's own overload union. So this needs one
@@ -125,9 +165,11 @@ export function ToggleGroup({
         aria-describedby={describedBy}
         aria-invalid={isInvalid || undefined}
         aria-label={ariaLabel}
+        aria-labelledby={labelledBy}
+        aria-required={ariaRequired || (props.type === 'single' && props.required) || undefined}
         className={root({ className })}
         disabled={disabled}
-        {...props}
+        {...answered(props)}
       >
         {children}
       </RadixToggleGroup.Root>
@@ -155,8 +197,8 @@ export function ToggleGroupItem({
   className,
   children,
 }: ToggleGroupItemProps) {
-  const { joined, highlight, isInvalid } = useContext(ToggleGroupContext)
-  const { item } = toggleGroup({ joined, highlight, isInvalid })
+  const { joined, size, highlight, isInvalid } = useContext(ToggleGroupContext)
+  const { item } = toggleGroup({ joined, size, highlight, isInvalid })
 
   return (
     <RadixToggleGroup.Item
