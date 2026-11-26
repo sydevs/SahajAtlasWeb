@@ -187,7 +187,11 @@ export function EventFacts({
   // It also owns a title above the facts, and a slot below them. The other
   // variants render just the fact column, and take `className` on it.
   const body = (
-    <div className={card ? slots.base() : slots.base({ className })}>
+    // `data-sheet-fold`: the panel's facts end a class's key-facts stop (`foldHeight`).
+    <div
+      className={card ? slots.base() : slots.base({ className })}
+      data-sheet-fold={variant === 'default' || undefined}
+    >
       {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
