@@ -43,6 +43,17 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Filters asks only what can narrow the classes where the visitor is.** ([#514]) It opens on
+  Where, Online or in person, Day, Time of day and Language, with Frequency and Dates under "More
+  filters"; each option shows how many classes it leaves, one that leaves none is greyed out, and
+  a question that cannot change the results in that place is not asked. The region list is gone:
+  the place in scope is a removable tag. ⚠ **The filters' new Near me asks the browser for the
+  visitor's location, on map-less embeds too**, which never asked before. A host that embeds in an
+  iframe, or sends a `Permissions-Policy` header, grants `geolocation` as
+  [Permissions Policy](docs/embedding.md#permissions-policy) already lists; without it Near me
+  says it could not get a location. The position is rounded to about 110m before it reaches the
+  URL. **No parameter, origin, CSP or storage change.**
+
 - **Keyboard focus looks the same on every control.** ([#510]) A 2px line in your brand colour,
   drawn just inside the control, with a thin band of the panel's colour inside it so it still
   shows on a filled button such as Register. Buttons, filter tags, fields, the place search and
@@ -1479,3 +1490,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#496]: https://github.com/sydevs/SahajAtlasWeb/pull/496
 [#506]: https://github.com/sydevs/SahajAtlasWeb/pull/506
 [#510]: https://github.com/sydevs/SahajAtlasWeb/pull/510
+[#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
