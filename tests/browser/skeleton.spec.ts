@@ -1,6 +1,6 @@
-import type { Page, Route } from '@playwright/test'
+import type { Locator, Page, Route } from '@playwright/test'
 
-import { SAHAJCLOUD_EVENT } from '../../src/mocks/sahajcloud'
+import { SAHAJCLOUD_API_KEY, SAHAJCLOUD_EVENT } from '../../src/mocks/sahajcloud'
 
 import { expect, hostPage, test, widget } from './fixtures'
 import { LANE_API_ORIGIN } from './lane.mjs'
@@ -29,8 +29,8 @@ async function hold(page: Page, boot: boolean) {
  * tall it is, measured from the panel's top, and the first rows of its list, measured from the
  * body's top. A placeholder and the view it stands for should draw the same shape.
  */
-const shape = (page: Page) =>
-  widget(page).evaluate((host) => {
+const shape = (root: Locator) =>
+  root.evaluate((host) => {
     const root = host.shadowRoot ?? document
     const visible = (el: Element) => el.getBoundingClientRect().height > 0
     const body = [...root.querySelectorAll('[data-band="body"]')].filter(visible).at(-1)
@@ -111,31 +111,41 @@ const ROUTES = [
   { name: 'a class', route: SAHAJCLOUD_EVENT.path, exactRows: false },
 ]
 
+// The boot panel stands in for the map-first interface alone, which only the standalone page opened
+// directly renders: every embed opens inline. The review server serves that page at `/` alone, with
+// no fallback for a deep link, so the map-first form is measured on the first screen.
+const STANDALONE = `/?key=${SAHAJCLOUD_API_KEY}`
+
 const STAGES = [
-  { stage: 'the boot panel', boot: true },
-  { stage: 'the drawer', boot: false },
+  { stage: 'the boot panel', boot: true, routes: ROUTES.slice(0, 1), standalone: true },
+  { stage: 'the drawer', boot: false, routes: ROUTES.slice(0, 1), standalone: true },
+  { stage: 'the inline column', boot: false, routes: ROUTES, standalone: false },
 ]
 
 for (const viewport of VIEWPORTS) {
-  for (const { stage, boot } of STAGES) {
-    for (const { name, route, exactRows } of ROUTES) {
+  for (const { stage, boot, routes, standalone } of STAGES) {
+    for (const { name, route, exactRows } of routes) {
       test(`${name}: ${stage} loads in the shape it arrives in (${viewport.name})`, async ({
         page,
       }) => {
         await page.setViewportSize(viewport)
         const release = await hold(page, boot)
 
-        await page.goto(hostPage('full-map.html', route))
-        await expect(widget(page).locator('[data-sy-loading]').first()).toBeVisible()
+        await page.goto(standalone ? STANDALONE : hostPage('full-map.html', route))
+
+        // The standalone page renders into its own document, with no element around it.
+        const root = standalone ? page.locator('body') : widget(page)
+
+        await expect(root.locator('[data-sy-loading]').first()).toBeVisible()
         // The boot panel is no drawer: the interface, vaul and all, has not arrived.
-        if (boot) await expect(widget(page).locator('[data-vaul-drawer]')).toHaveCount(0)
-        const loading = await shape(page)
+        if (boot) await expect(root.locator('[data-vaul-drawer]')).toHaveCount(0)
+        const loading = await shape(root)
 
         release()
-        await expect(widget(page).locator('[data-sy-loading]')).toHaveCount(0)
+        await expect(root.locator('[data-sy-loading]')).toHaveCount(0)
         // The cross-fade's outgoing layer leaves after 150ms.
         await page.waitForTimeout(400)
-        const loaded = await shape(page)
+        const loaded = await shape(root)
 
         expect(loading, 'a loading panel').not.toBeNull()
         expect(loaded, 'a loaded panel').not.toBeNull()
