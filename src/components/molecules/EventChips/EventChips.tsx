@@ -22,10 +22,10 @@ export type EventChipsProps = {
 
 /**
  * The event's triage chips. Up to three, all `flat`: the class type
- * (primary, none for an inactive listing), the language(s) combined into one
- * chip (secondary), and a single availability chip, "Full" (neutral) or, on a
- * card, "Today" (contrast). The list card and the event header share this
- * component, so the two never drift. `compact` trims the redundant chips on the card.
+ * (primary), the language(s) combined into one chip (secondary), and a
+ * single availability chip, "Full" (neutral) or, on a card, "Today"
+ * (contrast). The list card and the event header share this component, so
+ * the two never drift. `compact` trims the redundant chips on the card.
  */
 export function EventChips({ event, variant = 'default', className }: EventChipsProps) {
   const { t } = useTranslation()
@@ -34,7 +34,7 @@ export function EventChips({ event, variant = 'default', className }: EventChips
 
   const compact = variant === 'compact'
 
-  // Type: `default` names it, where there is one — a by-request listing has none.
+  // Type: `default` names it, where there is one — an inactive listing has none.
   // `compact` skips the plain weekly class, whose label adds nothing on a compact card.
   const showType = typeLabel !== null && (!compact || !isDefaultType)
 

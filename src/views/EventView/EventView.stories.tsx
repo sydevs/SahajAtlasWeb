@@ -33,7 +33,7 @@ const EXAMPLES: Record<string, Event> = {
   // class still runs), and the slot becomes "This event is full" + "See nearby
   // events" + the contact helper.
   Full: mockEventFull,
-  // Full AND meeting today — the page shows the "Full" chip, never a "Today" one.
+  // Full AND meeting today: the chip says "Full", the when line "Today".
   'Full · today': mockEventFullToday,
   'External registration': {
     ...mockEvent,

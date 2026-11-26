@@ -231,7 +231,7 @@ describe('useEventDisplay — the type label', () => {
     expect(labelFor({ eventType: 'offline', address: { city: 'Stirling' } })).toBe(null)
   })
 
-  // Stirling (event 1505): flagged, with a schedule group SahajCloud still sends.
+  // A schedule group SahajCloud still sends, as for Stirling (event 1505).
   const stored = {
     eventType: 'offline',
     address: { city: 'Stirling' },

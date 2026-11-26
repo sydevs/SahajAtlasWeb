@@ -55,7 +55,7 @@ const Samples = ({ variant }: { variant: 'default' | 'compact' }) => (
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The event header names the type and folds every language into one chip. It shows no Today chip: the when line says it."
+      description="The event header names the type and folds every language into one chip."
       title="Default"
     >
       <Samples variant="default" />
