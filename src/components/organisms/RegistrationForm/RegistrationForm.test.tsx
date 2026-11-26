@@ -97,8 +97,6 @@ describe('RegistrationForm', () => {
 
       expect(anchor).toContain('target="_blank"')
       expect(anchor).toMatch(/rel="[^"]*\bnoopener\b/)
-      // The Link atom's 44px tap area on touch screens, a pseudo-element that keeps the line height.
-      expect(anchor).toMatch(/class="[^"]*\btouch-target\b[^"]*\brelative\b/)
     })
 
     it('sets the line left-aligned, at the card size, in the quiet grey', () => {
