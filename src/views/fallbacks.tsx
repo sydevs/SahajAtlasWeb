@@ -18,7 +18,11 @@ import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, isoCountryCode, nearestKnownRegion, resolveStack } from '@/lib/shape'
-import { FieldSkeleton, PanelSkeletonBody, panelShape } from '@/views/PanelSkeleton'
+import {
+  SkeletonBody,
+  SkeletonField,
+  skeletonShape,
+} from '@/components/organisms/Skeleton/Skeleton'
 import { BackButton, NavHeader, NavRow } from '@/views/nav'
 import {
   CalendarButton,
@@ -156,7 +160,7 @@ export function DrawerChrome({
     // Mapbox Geocoder — a shadow-DOM custom element bound to the live map — which the view
     // arriving a moment later would tear down and build again. An ERROR chrome keeps the real
     // field. There it is the escape hatch.
-    const field = loading ? <FieldSkeleton /> : <SearchField />
+    const field = loading ? <SkeletonField /> : <SearchField />
 
     // CountriesView's header.
     if (!entry) {
@@ -223,7 +227,7 @@ export function DrawerChrome({
   return (
     <>
       {header}
-      <DrawerToolbar field>{loading ? <FieldSkeleton /> : <SearchField />}</DrawerToolbar>
+      <DrawerToolbar field>{loading ? <SkeletonField /> : <SearchField />}</DrawerToolbar>
     </>
   )
 }
@@ -248,7 +252,7 @@ function useCachedRegion(slug: string | undefined) {
 
 /**
  * The Suspense fallback for a view whose data is still loading: the view's own header (its way
- * back and its controls work), over the body the boot panel drew (`PanelSkeletonBody`), so nothing
+ * back and its controls work), over the body the boot panel drew (`SkeletonBody`), so nothing
  * changes as one hands over to the other. A view with nothing worth drawing ahead of it waits
  * on the spinner.
  */
@@ -258,7 +262,7 @@ export function DrawerLoading() {
   const location = useLocation()
   const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
   const region = useCachedRegion(entry?.kind === 'region' ? entry.slug : undefined)
-  const shape = panelShape(entry, region.node?.level)
+  const shape = skeletonShape(entry, region.node?.level)
 
   return (
     <>
@@ -266,7 +270,7 @@ export function DrawerLoading() {
       {shape ? (
         <DrawerBody>
           {/* The phone sheet pins Register to its foot once the class arrives. */}
-          <PanelSkeletonBody body={shape.body} cta={!hasMap || isWide} />
+          <SkeletonBody body={shape.body} cta={!hasMap || isWide} />
         </DrawerBody>
       ) : (
         <DrawerLoadingBody />

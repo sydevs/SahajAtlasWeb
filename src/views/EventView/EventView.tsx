@@ -24,7 +24,7 @@ import { parentOf } from '@/lib/shape'
 import { NavRow } from '@/views/nav'
 import { useDrawerControl, useFrameEventOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
-import { PanelSkeletonBody } from '@/views/PanelSkeleton'
+import { SkeletonBody } from '@/components/organisms/Skeleton/Skeleton'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
 // chunk, as pages/event.tsx used to, by lazy-loading it here.
@@ -130,7 +130,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
         >
           {/* The page's shape while its code arrives, marked loading so the phone sheet holds
               still until it has (`useFitSnap`). */}
-          <Suspense fallback={<PanelSkeletonBody body="class" cta={!stickyRegister} />}>
+          <Suspense fallback={<SkeletonBody body="class" cta={!stickyRegister} />}>
             <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs

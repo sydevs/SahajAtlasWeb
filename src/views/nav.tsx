@@ -6,7 +6,7 @@ import { ChevronLeft, X } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerHeader } from '@/components/atoms/Drawer'
-import { Skeleton, SkeletonLine } from '@/components/atoms/Skeleton/Skeleton'
+import { SkeletonGroup, SkeletonLine } from '@/components/organisms/Skeleton/Skeleton'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
 import { backLabel } from '@/views/nav-names'
@@ -140,9 +140,9 @@ export function NavHeader({
       <NavRow>{actions}</NavRow>
       {pendingTitle ? (
         // No heading: a heading with nothing in it is worse than none.
-        <Skeleton>
+        <SkeletonGroup>
           <SkeletonLine className="text-xl" width="w-1/2" />
-        </Skeleton>
+        </SkeletonGroup>
       ) : (
         title && <DrawerTitle subtitle={subtitle} title={title} />
       )}

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { Skeleton, SkeletonLine } from '@/components/atoms/Skeleton/Skeleton'
+import { SkeletonGroup, SkeletonLine } from '@/components/organisms/Skeleton/Skeleton'
 
 const EVENT_HEADER = 'flex shrink-0 flex-col px-gutter pt-1 pb-2 md:pt-4'
 const EVENT_TITLE = 'line-clamp-3 text-xl break-words'
@@ -24,15 +24,15 @@ export type EventHeaderProps = {
  */
 export function EventHeader({ title, nav }: EventHeaderProps) {
   return (
-    <div className={EVENT_HEADER}>
+    <div className={EVENT_HEADER} data-band="header">
       {nav}
       {title ? (
         <h1 className={EVENT_TITLE}>{title}</h1>
       ) : (
-        <Skeleton>
+        <SkeletonGroup>
           <SkeletonLine className="text-xl" width="w-4/5" />
           <SkeletonLine className="text-xl" width="w-2/5" />
-        </Skeleton>
+        </SkeletonGroup>
       )}
     </div>
   )

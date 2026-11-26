@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState } from 'react'
 
-import { LOADING_ATTR } from '@/components/atoms/Skeleton/Skeleton'
+import { LOADING_ATTR } from '@/components/organisms/Skeleton/Skeleton'
 import { WIDE_SNAP } from '@/config/responsive'
 import { overlayContainer } from '@/lib/overlay'
 

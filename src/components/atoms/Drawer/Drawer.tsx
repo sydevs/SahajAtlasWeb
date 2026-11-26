@@ -257,7 +257,11 @@ export function DrawerContent({
 export function DrawerHeader({ children, className }: { children: ReactNode; className?: string }) {
   const { slots } = useDrawerSlots()
 
-  return <div className={slots.header({ className })}>{children}</div>
+  return (
+    <div className={slots.header({ className })} data-band="header">
+      {children}
+    </div>
+  )
 }
 
 /**
@@ -286,6 +290,7 @@ export function DrawerToolbar({
       className={slots.toolbar({
         className: `${field ? `${RESULTS_BAND} px-gutter pb-2` : ''} ${className ?? ''}`,
       })}
+      data-band="toolbar"
     >
       {children}
     </div>
@@ -318,6 +323,7 @@ export function DrawerBody({
       className={slots.body({
         className: `${scrolled ? 'shadow-[inset_0_7px_6px_-7px_rgb(0_0_0/0.25)]' : ''} ${className ?? ''}`,
       })}
+      data-band="body"
       data-sheet-fit={fitSheet || undefined}
       onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
     >

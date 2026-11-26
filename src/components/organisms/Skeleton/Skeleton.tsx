@@ -1,0 +1,300 @@
+import type { ReactNode } from 'react'
+import type { StackEntry } from '@/lib/shape/path'
+import type { RegionLevel } from '@/types'
+
+import { useTranslation } from 'react-i18next'
+import { ChevronRight } from 'lucide-react'
+import clsx from 'clsx'
+
+// ⚠ By leaf path, and no other component of the interface: the boot panel draws this before the
+// interface's code has arrived, so this module sits in the eager graph.
+import { RESULTS_BAND, drawer } from '@/components/atoms/Drawer/drawer-style'
+import { List } from '@/components/molecules/List/List'
+import { guessListsPlaces } from '@/lib/shape/hierarchy'
+import { tv } from '@/styles/tv'
+
+// The loading panel: a few generic shapes, one set for every view that loads, shared by the boot
+// panel and the drawer's own loading state. Each is sized like what replaces it — a 56px place
+// row, a class card's title over two lines, the field's 38px box (46px on a touch screen) — so the
+// content lands where its placeholder stood. `tests/browser/skeleton.spec.ts` measures each
+// against the view it stands for.
+
+/**
+ * Marks a loading placeholder. The phone sheet's fit (`useFitSnap`) holds its stop while one is in
+ * the body, so the sheet moves once, when the content arrives.
+ */
+export const LOADING_ATTR = 'data-sy-loading'
+
+/** Spread onto the element that wraps a placeholder. */
+export const LOADING = { [LOADING_ATTR]: '' }
+
+// ── The primitives ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * A group of placeholder shapes: hidden from assistive tech, pulsing unless motion is reduced. It
+ * must be a real box — a `contents` wrapper draws nothing for the pulse to fade. A loading state
+ * says what it waits for once, in words, beside it.
+ */
+export function SkeletonGroup({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div aria-hidden className={clsx('motion-safe:animate-pulse', className)}>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * One line of text, at that text's own line height: `className` carries the text classes of the
+ * line it stands for (`text-lg`), so the content lands where the bar was.
+ */
+export function SkeletonLine({
+  className,
+  width = 'w-1/2',
+}: {
+  className?: string
+  width?: string
+}) {
+  return (
+    <div className={clsx('flex items-center', className)}>
+      {/* The zero-width space gives the line its real line box. */}
+      {'​'}
+      <span className={clsx('h-[0.75em] rounded-full bg-gray-3', width)} />
+    </div>
+  )
+}
+
+const block = tv({ base: 'rounded-lg bg-gray-3' })
+
+/** Any other shape — a flag's circle, a button's box — sized by the caller. */
+export function SkeletonBlock({ className }: { className?: string }) {
+  return <div className={block({ className })} />
+}
+
+// ── The panel ───────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The header a view opens with: the search field (the first screen), the field over Filters and
+ * Sort (search results), Back and a title (with the search box under it on a place), or a class's
+ * own header.
+ */
+export type SkeletonHeaderKind = 'field' | 'search' | 'titled' | 'titled-field' | 'class'
+
+/** What fills the panel: place rows, class cards, or a class page. */
+export type SkeletonBodyKind = 'places' | 'classes' | 'class'
+
+export type SkeletonShape = { header: SkeletonHeaderKind; body: SkeletonBodyKind }
+
+/**
+ * The shape of the view a route opens, or `null` for a view not worth drawing ahead of — the
+ * calendar, the forms and the share sheet, whose data is already on hand when they open, so only
+ * their code is on its way and their own header over a spinner says so.
+ *
+ * `level` is the place's, once the region tree has it.
+ */
+export function skeletonShape(
+  entry: StackEntry | undefined,
+  level?: RegionLevel,
+): SkeletonShape | null {
+  switch (entry?.kind) {
+    case undefined:
+      return { header: 'field', body: 'places' }
+    case 'search':
+      return { header: 'search', body: 'classes' }
+    case 'region':
+      return {
+        header: 'titled-field',
+        body: guessListsPlaces(entry.path, level) ? 'places' : 'classes',
+      }
+    case 'online':
+      return { header: 'titled', body: 'classes' }
+    case 'event':
+      return { header: 'class', body: 'class' }
+    default:
+      return null
+  }
+}
+
+const FIELD =
+  'flex h-[38px] min-w-0 flex-1 items-center gap-3 rounded-lg border border-divider bg-gray-2 ps-2 pointer-coarse:h-[46px]'
+
+/** The search field's box, greyed and holding bars, so it reads as on its way, not as a field. */
+export function SkeletonField() {
+  return (
+    <SkeletonGroup className={FIELD}>
+      <SkeletonBlock className="h-5 w-5 shrink-0 rounded-full" />
+      <SkeletonLine className="flex-1 field-size" width="w-2/5" />
+    </SkeletonGroup>
+  )
+}
+
+/** A header's content, for a panel with no real header yet: the field and a control, or Back and a title. */
+export function SkeletonHeader({ header }: { header: 'field' | 'titled' }) {
+  if (header === 'field') {
+    return (
+      <>
+        <SkeletonField />
+        <SkeletonGroup className="flex h-8 w-8 shrink-0 items-center justify-center">
+          <SkeletonBlock className="h-5 w-5 rounded-full" />
+        </SkeletonGroup>
+      </>
+    )
+  }
+
+  return (
+    <SkeletonGroup>
+      <div className="mb-2 flex min-h-8 items-center">
+        <SkeletonLine className="text-sm" width="w-36" />
+      </div>
+      <SkeletonLine className="text-xl" width="w-1/2" />
+    </SkeletonGroup>
+  )
+}
+
+const ROW = 'flex items-center gap-1 px-gutter'
+const CHEVRON = <ChevronRight className="shrink-0 text-gray-9 rtl:-scale-x-100" size={20} />
+
+function PlaceRows() {
+  return (
+    <List>
+      {['w-2/5', 'w-1/2', 'w-1/3', 'w-2/5', 'w-1/4', 'w-1/3'].map((width, row) => (
+        <li key={row} className={clsx(ROW, 'min-h-14 py-3')}>
+          <SkeletonLine className="flex-grow text-lg" width={width} />
+          <SkeletonLine className="me-1 text-sm" width="w-5" />
+          {CHEVRON}
+        </li>
+      ))}
+    </List>
+  )
+}
+
+function ClassCards() {
+  return (
+    <List>
+      {['w-3/5', 'w-4/5', 'w-1/2', 'w-2/3'].map((width) => (
+        <li key={width} className={clsx(ROW, 'py-4')}>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <SkeletonLine className="text-lg" width={width} />
+            <div className="mt-0.5 mb-1 flex flex-col gap-1.5">
+              <SkeletonLine className="min-h-5.5 text-sm" width="w-1/2" />
+              <SkeletonLine className="min-h-5.5 text-sm" width="w-2/5" />
+            </div>
+          </div>
+          {CHEVRON}
+        </li>
+      ))}
+    </List>
+  )
+}
+
+/** A class's page below its title: chips, the when and where, Register, then its words. */
+function ClassPage({ cta }: { cta: boolean }) {
+  return (
+    <div className="flex flex-col gap-4 px-gutter pt-2 pb-10">
+      <div className="flex gap-1">
+        <SkeletonBlock className="h-5 w-24" />
+        <SkeletonBlock className="h-5 w-16" />
+      </div>
+      <div className="mb-2 flex flex-col gap-2.5">
+        <SkeletonLine className="text-base leading-snug" width="w-3/5" />
+        <SkeletonLine className="text-base leading-snug" width="w-1/2" />
+      </div>
+      {cta && <SkeletonBlock className="h-10 w-full" />}
+      <div className="flex flex-col gap-2">
+        <SkeletonLine className="text-sm leading-snug" width="w-full" />
+        <SkeletonLine className="text-sm leading-snug" width="w-4/5" />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * What fills a loading panel, marked loading so the phone sheet holds still until the content
+ * arrives (`useFitSnap`), and announced once, in words.
+ *
+ * `cta` draws Register in the class page's flow; leave it off where Register pins to the phone
+ * sheet's foot once the class arrives.
+ */
+export function SkeletonBody({ body, cta = true }: { body: SkeletonBodyKind; cta?: boolean }) {
+  const { t } = useTranslation()
+
+  return (
+    <div {...LOADING}>
+      <p className="sr-only" role="status">
+        {t(body === 'class' ? 'common.a11y.loading' : 'common.a11y.finding_classes')}
+      </p>
+      <SkeletonGroup>
+        {body === 'places' && <PlaceRows />}
+        {body === 'classes' && <ClassCards />}
+        {body === 'class' && <ClassPage cta={cta} />}
+      </SkeletonGroup>
+    </div>
+  )
+}
+
+export interface SkeletonProps {
+  /** The view's shape (`skeletonShape`). With none, a titled header over an empty body. */
+  shape: SkeletonShape | null
+  /** As on `SkeletonBody`. */
+  cta?: boolean
+  /** The drawer it stands in for: the side panel, or the phone sheet, whose header sits closer to its handle. */
+  direction?: 'left' | 'bottom'
+}
+
+/**
+ * A whole loading panel's content, in the drawer's own bands — header, the search band, body — for
+ * a panel that has nothing real on screen yet (the boot panel). A view loading inside the drawer
+ * keeps its real header and draws only `SkeletonBody`.
+ */
+export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
+  const header = shape?.header ?? 'titled'
+  const panel = drawer({ direction, mode: 'anchored' })
+
+  return (
+    <>
+      {header === 'class' ? (
+        // EventView's own header (`EventHeader`), not the drawer's header band.
+        <div className="flex shrink-0 flex-col px-gutter pt-1 pb-2 md:pt-4" data-band="header">
+          <SkeletonHeader header="titled" />
+        </div>
+      ) : (
+        <div
+          className={panel.header({
+            className:
+              header === 'field' || header === 'search'
+                ? undefined
+                : 'flex-col items-stretch gap-0',
+          })}
+          data-band="header"
+        >
+          <SkeletonHeader header={header === 'field' || header === 'search' ? 'field' : 'titled'} />
+        </div>
+      )}
+      {header === 'search' && (
+        // SearchView's Filters and Sort, in their list toolbar.
+        <div className={panel.toolbar()} data-band="toolbar">
+          <SkeletonGroup className="flex items-center justify-between gap-2 px-[calc(var(--spacing-gutter)_-_12px)] py-1">
+            <SkeletonBlock className="h-8 w-24" />
+            <SkeletonBlock className="h-8 w-24" />
+          </SkeletonGroup>
+        </div>
+      )}
+      {header === 'titled-field' && (
+        <div
+          className={panel.toolbar({ className: `${RESULTS_BAND} px-gutter pb-2` })}
+          data-band="toolbar"
+        >
+          <SkeletonField />
+        </div>
+      )}
+      <div className={panel.body()} data-band="body">
+        {shape && <SkeletonBody body={shape.body} cta={cta} />}
+      </div>
+    </>
+  )
+}
