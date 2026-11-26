@@ -188,7 +188,6 @@
       "to": "To"
     },
     "days": {
-      "label": "Day of week",
       "short_label": "Day"
     },
     "format": {
@@ -200,17 +199,10 @@
     },
     "language": {
       "all": "All languages",
-      "empty": "No languages available",
       "label": "Language"
     },
     "more": {
       "label": "More filters"
-    },
-    "region": {
-      "all": "All regions",
-      "empty": "No regions found",
-      "label": "Region",
-      "search": "Search regions…"
     },
     "time": {
       "afternoon": "Afternoon",
