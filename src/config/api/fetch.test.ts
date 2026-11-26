@@ -16,7 +16,7 @@ import livePreview, { LIVE_PREVIEW_INACTIVE } from '@/config/live-preview/protoc
 import { previewRequestDecorator } from '@/config/live-preview/request'
 import { eventsQuery, regionQuery } from '@/config/api'
 import { MAX_RETRY_DELAY, queryClient } from '@/config/query-client'
-import { DEFAULT_FILTERS } from '@/lib/shape'
+import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 import { EventDocSchema } from '@/types'
 import de from '@/config/a11y/de.json'
 
@@ -543,7 +543,7 @@ describe('getRegion (region-tree derivation)', () => {
   it('counts countries only by what the filters let through, and drops a country with none', async () => {
     mockBackend()
 
-    const count = async (filters?: typeof DEFAULT_FILTERS) =>
+    const count = async (filters?: EventFilters) =>
       (await api.getCountries(filters)).map(({ slug, eventCount }) => ({ slug, eventCount }))
 
     expect(await count()).toEqual([{ slug: 'belgium', eventCount: 5 }])
@@ -564,7 +564,7 @@ describe('getRegion (region-tree derivation)', () => {
     ])
     expect(countriesQuery(DEFAULT_FILTERS).queryKey).toEqual(['countries'])
 
-    const online = { ...DEFAULT_FILTERS, format: 'online' as const }
+    const online: EventFilters = { ...DEFAULT_FILTERS, format: 'online' }
 
     expect(regionQuery('belgium', 'en', online).queryKey).not.toEqual(
       regionQuery('belgium', 'en').queryKey,
