@@ -32,9 +32,7 @@
       "classes_near_city": "See classes near %{city}",
       "config": "This Atlas isn't set up correctly on this page.",
       "generic": "Something went wrong.",
-      "near_city": "See events near %{city}",
       "no_classes": "No classes found.",
-      "no_events": "No events found.",
       "not_found": "We couldn't find what you were looking for.",
       "not_found_event": "We couldn't find that class.",
       "not_found_region": "We couldn't find that place.",
@@ -42,7 +40,6 @@
       "retry": "Try again",
       "search_label": "Or search for a place",
       "server": "Our servers are having trouble right now.",
-      "share_unavailable": "There is no link to share for this meditation yet.",
       "share_unavailable_class": "There is no link to share for this class yet.",
       "unavailable": "This program can’t be joined right now."
     },
@@ -116,8 +113,6 @@
       "distance_away": "%{distance} away",
       "distance_from_place": "%{distance} from %{place}",
       "distance_from_search": "%{distance} from the searched location",
-      "event_ended": "This event has ended",
-      "event_full": "This event is full",
       "first_session": "First session: %{date}",
       "free_meditation_class": "Free meditation class",
       "hosted_from": "Hosted from %{city}",
@@ -139,7 +134,6 @@
       "type_class_monthly": "Monthly class",
       "type_class_weekly": "Weekly class",
       "type_course": "Course",
-      "type_oneoff": "One-off event",
       "type_oneoff_class": "One-off class",
       "unverified_note": "This listing has not been verified by a local coordinator yet.",
       "unverified_title": "Unverified listing",
@@ -174,7 +168,6 @@
       "apply": "Apply",
       "clear": "Clear all",
       "clear_one": "Clear",
-      "no_results": "No events match your filters.",
       "no_results_classes": "No classes match your filters.",
       "remove": "Remove %{label}",
       "title": "Filters"
@@ -267,7 +260,6 @@
     "results": {
       "farther": "Show distant events",
       "more": "Show more",
-      "no_nearby": "No events within %{km} km.",
       "no_nearby_classes": "No classes within %{km} km.",
       "showing": "Showing %{shown} of %{total} events"
     },
