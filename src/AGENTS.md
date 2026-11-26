@@ -35,7 +35,7 @@ Do not format files by hand. PostToolUse hooks run Prettier and `eslint --fix` a
 
 ## Dates and times
 
-- **Every date or time on screen goes through `@/lib/time`** (`formatTimeRange`, `formatDate`, `formatWeekday`, `weekdayNames`, `formatMonth`, `formatRelativeDate`), and every distance through `formatDistance`, given `useLocale().formatLocale`: the page's language in the visitor's browser region (`regionalLocale` says how). Never assemble a time, a day period or a date by hand, and never force a clock (`hour12`) on a locale. A machine format (`HH:mm` for a form value, an ICS stamp, Schedule-X's wall-clock strings) is data, not display, and stays a `toFormat`.
+- **Every date, time and distance on screen is formatted through `@/lib/time`** (distances through `formatDistance`), given `useLocale().formatLocale`. Never assemble a time, a day period or a date by hand, and never force `hour12`. A machine format (a form value, an ICS stamp, Schedule-X's wall-clock strings) is data and stays a `toFormat`.
 
 ## Environment variables
 
