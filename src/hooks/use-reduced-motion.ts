@@ -19,7 +19,7 @@ import { useMediaQuery } from 'react-responsive'
  * It does not pass `reducedMotion="user"`, which would have been the obvious spelling.
  * `"user"` runs on framer's own mount-once read.
  * It would have disagreed with the two live seams beside it, the vaul media query and mapbox-gl's own check, for the rest of any session in which the viewer flipped the setting.
- * See `src/components/AGENTS.md` for the three seams and which one a new animation falls under.
+ * See `src/components/AGENTS.md` for the seams and which one a new animation falls under.
  */
 export function usePrefersReducedMotion() {
   return useMediaQuery({ query: '(prefers-reduced-motion: reduce)' })

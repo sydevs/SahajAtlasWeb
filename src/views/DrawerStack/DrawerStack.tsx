@@ -596,7 +596,7 @@ export function DrawerStack() {
         collapse()
       }}
     >
-      <div className="relative min-h-0 flex-1">
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
         {/* `initial={false}`: the first view takes over from the loading shapes already on
             screen, so it arrives without fading in from nothing. Later views still cross-fade. */}
         <AnimatePresence initial={false}>

@@ -66,6 +66,9 @@ function expectSameShape(loading: Shape, loaded: Shape, exactRows: boolean) {
   expect(bands(loading), 'the same bands, in order').toEqual(bands(loaded))
   loading.bands.forEach((band, index) => {
     expect(Math.abs(band.top - loaded.bands[index].top), `${band.band} top`).toBeLessThanOrEqual(1)
+    // The body holds whatever the view lists, and the desktop panel is as tall as its content
+    // (#495), so only the bands above it have a height to match; the rows below say the rest.
+    if (band.band === 'body') return
     expect(
       Math.abs(band.height - loaded.bands[index].height),
       `${band.band} height`,

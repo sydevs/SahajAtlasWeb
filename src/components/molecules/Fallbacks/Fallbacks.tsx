@@ -731,15 +731,20 @@ export function FallbackRegion({
  *
  *  - `max-h` reads `--sy-sheet-top`, the sheet's live top edge. DrawerStack mirrors
  *    this value every frame, so the box cannot extend far past the fold. The `0px`
- *    fallback resolves to the full height. That is correct on the desktop panel and
- *    the map-less container, where the body already IS the visible area. It still
- *    over-measures by the header's height — the box starts below the header, not at
- *    the sheet's edge — which is why the second part matters.
+ *    fallback resolves to the full height, which is right in the map-less container,
+ *    where the body already IS the visible area. It still over-measures by the header's
+ *    height — the box starts below the header, not at the sheet's edge — which is why
+ *    the second part matters.
  *  - **Auto margins, not `justify-center`.** Auto margins centre content when there is
  *    slack, and collapse to nothing when there is not. So tall content starts at the
  *    top and scrolls inside the body instead. `justify-center` would instead clip the
  *    overflowing TOP, hiding the sentence and leaving only the buttons. That is the
  *    failure mode this fix avoids.
+ *
+ * ⚠ **At ≥lg all four classes are inert, and leaving them is what keeps the phone fix.**
+ * The floating panel is as tall as its view, so `h-full` takes the body's own content
+ * height, the `0px` `max-h` fallback never binds, and both auto margins collapse. Measured
+ * at 1280×800: a 768px panel centring at 304.5px margins became a 159px panel at 0.
  */
 export const CENTERED_BODY =
   'flex h-full max-h-[calc(var(--sy-frame-h)_-_var(--sy-sheet-top,0px))] flex-col items-center px-gutter py-6 text-center [&>:first-child]:mt-auto [&>:last-child]:mb-auto'
@@ -752,9 +757,11 @@ export const CENTERED_BODY =
  * move the sentence away from where the reader's eye already is, and would make the
  * drawer look like a different kind of screen. This posture also needs no `max-h`
  * guard: content that starts at the top is on screen by construction. That is exactly
- * what `CENTERED_BODY` has to work to achieve.
+ * what `CENTERED_BODY` has to work to achieve. Nor does it fill the body: it shares the body
+ * with what follows it (the location prompt), and a floating panel sized to its content would
+ * push that out of view.
  */
-export const START_BODY = 'flex h-full flex-col items-start px-gutter py-6 text-start'
+export const START_BODY = 'flex flex-col items-start px-gutter py-6 text-start'
 
 /** Which posture a surface renders in — see `CENTERED_BODY` / `START_BODY`. */
 export type FallbackAlign = 'center' | 'start'

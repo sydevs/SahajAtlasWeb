@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react'
@@ -13,6 +14,7 @@ import { RESULTS_BAND, drawer, inPlaceTransform } from './drawer-style'
 import { isIOS, useSheetDragClaim } from './sheet-touch'
 
 import { type VariantProps } from '@/styles/tv'
+import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { overlayContainer } from '@/lib/overlay'
 
 // A drawer built on vaul (see issue #30). It uses a tailwind-variants slot set,
@@ -38,6 +40,7 @@ type DrawerCtx = {
   direction: DrawerDirection
   // A `filled` drawer, map-less, hides the drag handle. There is nothing to drag.
   mode: 'anchored' | 'filled'
+  wide?: boolean
   // The portal target for a real drawer. Map-less mode passes the widget container.
   container?: HTMLElement | null
   // Where the panel starts before vaul places it (`enterInPlace`); absent means off screen.
@@ -163,7 +166,7 @@ export function Drawer({
 
   return (
     <DrawerContext.Provider
-      value={{ slots, direction: direction ?? 'bottom', mode, container, initialTransform }}
+      value={{ slots, direction: direction ?? 'bottom', mode, wide, container, initialTransform }}
     >
       <Vaul.Root {...rootProps} />
     </DrawerContext.Provider>
@@ -221,11 +224,50 @@ export function DrawerContent({
   handle,
   onEscapeKeyDown,
 }: DrawerContentProps) {
-  const { slots, direction, mode, container, initialTransform } = useDrawerSlots()
+  const { slots, direction, mode, wide, container, initialTransform } = useDrawerSlots()
   // State, not a ref: the portal mounts the panel a pass after this component does.
   const [panel, setPanel] = useState<HTMLDivElement | null>(null)
 
   useSheetDragClaim(direction === 'bottom' && mode !== 'filled' ? panel : null)
+
+  // The floating panel is as tall as its view, so its height changes as the content does.
+  // CSS cannot ease that: the height stays `auto` while only the content changes, so no
+  // transition fires. Hence the Web Animations API, which neither `MotionConfig` nor
+  // `vaul.css`'s reduced-motion block reaches — this reads the preference itself.
+  const reduce = usePrefersReducedMotion()
+  const eases = direction === 'left' && mode === 'anchored' && !wide && !reduce
+
+  // A layout effect, so turning it off (the full-width calendar) disconnects the observer
+  // before it can report that resize, which must not ease.
+  useLayoutEffect(() => {
+    if (!panel || !eases || typeof ResizeObserver === 'undefined') return
+
+    // Seeded by the observer's first delivery, which every observed element gets.
+    let last: number | undefined
+    let ease: Animation | undefined
+    const observer = new ResizeObserver(() => {
+      // A resize mid-ease is skipped. The return to `auto` re-fires the observer, which
+      // eases the rest from where this one stopped.
+      if (ease?.playState === 'running') return
+
+      const next = panel.offsetHeight
+
+      if (last !== undefined && next !== last) {
+        ease = panel.animate(
+          { height: [`${last}px`, `${next}px`] },
+          { duration: 200, easing: 'ease-out' },
+        )
+      }
+      last = next
+    })
+
+    observer.observe(panel)
+
+    return () => {
+      observer.disconnect()
+      ease?.cancel()
+    }
+  }, [panel, eases])
 
   const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
   // `undefined` means use the default themed root. An explicit `null` opts out.
@@ -278,8 +320,8 @@ export function DrawerToolbar({
   children: ReactNode
   className?: string
   /**
-   * The band holds a `SearchField` and nothing else, so it carries the header's inset and its
-   * results width. Its own gutter, not the field's: `100cqi` is the band's content box.
+   * The band holds a `SearchField` and nothing else, so it carries the header's inset and marks
+   * itself as the band the suggestion list runs to.
    */
   field?: boolean
 }) {
@@ -350,8 +392,7 @@ export function DrawerFooter({
    * ⚠ `fixed`, not `absolute`, and the sheet's `pb-[calc(var(--sy-frame-h)*0.03)]`
    * is why. The cancellation only holds while the offset is measured from the
    * sheet's own box, and `absolute` resolves against the nearest POSITIONED
-   * ancestor — which since #312 is a crossfade layer filling the sheet's
-   * CONTENT box, 3% short. Measured at 390×844 on a deployed preview: the bar
+   * ancestor — the sheet's content box at best, 3% short. Measured at 390×844 on a deployed preview: the bar
    * sat at 818.69 rather than 844, with the body showing through the gap
    * (#320). `fixed` resolves against the nearest ancestor with a transform,
    * and that is the sheet itself, whatever DrawerStack nests in between.

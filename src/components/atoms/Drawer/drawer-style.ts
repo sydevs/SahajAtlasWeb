@@ -2,13 +2,11 @@ import { tv } from '@/styles/tv'
 
 // The drawer's geometry, apart from vaul, so the boot panel (`views/BootFallback`) can stand
 // exactly where the drawer will open before the interface's code, vaul included, has arrived.
-// A band hosting a `SearchField` hands the geocoder's suggestion list its width
-// (`--sy-results-w`, read in Mapbox/themes.ts): a dropdown narrower than the band left the
-// list's counts peeking out beside it. The field starts the band and the list sits 1px
-// inside the field's border on each side, hence the 2px. This belongs to the bands rather
-// than the views that mount a field, which drifted: the error chrome mounts a live field
-// (`views/fallbacks.tsx`) and had neither declaration.
-export const RESULTS_BAND = '[container-type:inline-size] [--sy-results-w:calc(100cqi_-_2px)]'
+// Marks a band hosting a `SearchField`: the suggestion list runs from the field to the band's
+// end (`MapSearch` measures it), since a dropdown narrower than the band left the list's counts
+// peeking out beside it. This belongs to the bands rather than the views that mount a field,
+// which drifted: the error chrome mounts a live field (`views/fallbacks.tsx`).
+export const RESULTS_BAND = 'sy-results-band'
 
 export const drawer = tv({
   slots: {
@@ -90,9 +88,13 @@ export const drawer = tv({
       // constant. So changing this width means changing that one in the same
       // edit. Otherwise the map keeps framing around the old width, and
       // nothing anywhere reports the drift.
+      // Floating (≥lg), the panel is as tall as its view, up to the frame's height less its
+      // margins. While someone is typing in the place search it takes the full height, since the
+      // suggestions open inside it and it clips. Keyed on the typing, not on the list being open:
+      // Mapbox opens and closes the list on every response, and the panel would follow each one.
       left: {
         content:
-          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:inset-y-4 lg:left-4 lg:rounded-2xl',
+          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl lg:has-[[role=search]:focus-within_input:not(:placeholder-shown)]:h-[calc(var(--sy-frame-h)-32px)]',
       },
       right: {
         content:

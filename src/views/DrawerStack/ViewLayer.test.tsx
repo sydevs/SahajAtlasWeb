@@ -14,7 +14,7 @@ import Providers from '@/providers'
  * jsdom, because the subject is a re-render: a key change leaves the outgoing layer mounted
  * while it exits, and only then can a spec ask what that layer is doing. jsdom has no layout,
  * so the halfway-down flicker itself is out of reach here — `no-restricted-syntax` in
- * `eslint.config.js` refuses the `popLayout` that caused it, and the absolute layer is what
+ * `eslint.config.js` refuses the `popLayout` that caused it, and the shared grid cell is what
  * replaced it.
  */
 
@@ -54,7 +54,7 @@ const stack = (view: string) => (
 )
 
 describe('ViewLayer', () => {
-  it('overlaps the outgoing and incoming views, rather than stacking them in flow', async () => {
+  it('overlaps the outgoing and incoming views in one grid cell, rather than stacking them', async () => {
     const { root, reactRoot } = mountInShadowRoot()
 
     await act(async () => reactRoot.render(stack('region')))
@@ -64,7 +64,7 @@ describe('ViewLayer', () => {
 
     expect(layers.map((layer) => layer.textContent)).toEqual(['region', 'event'])
 
-    for (const layer of layers) expect(layer.className).toContain('absolute inset-0')
+    for (const layer of layers) expect(layer.className).toContain('col-start-1 row-start-1')
 
     await act(async () => reactRoot.unmount())
   })

@@ -66,6 +66,17 @@ cover everything a host would notice since the widget was first deployed.
 - **The search box is its 44px tap height on a touch screen again.** ([#490]) It had grown to
   about 134px on every phone and tablet.
 
+- **On a computer, the panel beside the map is as tall as what it shows.** ([#495]) At 1024px
+  and wider, the floating panel ends under its content instead of always running the full height
+  of the window or of your map's box, so a place with two classes covers far less of the map. A
+  long list still fills the height and scrolls inside the panel, and the bottom edge eases over
+  200ms as visitors move between places (instantly with reduced motion). While someone types in a
+  search box, the panel takes the full height so the suggestions fit, and "We couldn't find that
+  place." now shows in the suggestions' spot, styled like them, once typing pauses. The location
+  prompt at the foot of a list now sits 16px from the panel's bottom edge.
+  Width, phones, the full-width calendar and map-less embeds are unchanged. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
 - **Every country, region and city panel has a search box under its title.** ([#485]) It is the
   same "search for a place" field the first screen opens on, in place of the magnifier that led
   to a separate search page, so a visitor who went into the wrong place can search again from
@@ -1400,3 +1411,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#482]: https://github.com/sydevs/SahajAtlasWeb/pull/482
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
 [#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
+[#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495

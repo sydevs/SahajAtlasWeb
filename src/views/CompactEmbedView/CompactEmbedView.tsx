@@ -215,7 +215,7 @@ function ExpandedDialog({
               needs `forceMount`, which keeps the content — the Mapbox canvas included —
               mounted while closed, and not mounting it is the entire point of the compact
               form. This uses framer, rather than CSS, so `MotionConfig` covers it, which
-              keeps reduced motion to three seams instead of four (`src/components/AGENTS.md`). */}
+              adds no seam to the reduced-motion ones `src/components/AGENTS.md` lists. */}
           <m.div
             ref={adopt}
             animate={{ opacity: 1 }}
