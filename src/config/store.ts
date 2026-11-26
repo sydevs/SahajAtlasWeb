@@ -289,6 +289,30 @@ export const useNearMeState = create<NearMeState>((set) => ({
   setCenter: (center) => set(() => ({ center })),
 }))
 
+// ===== SEARCH FOCUS ===== //
+
+// A one-shot request for the list's place search to take focus when it next mounts. "Search
+// instead", offered when Near me cannot locate the visitor, closes the filters onto the list,
+// whose search box is not rendered until the drawer has gone.
+type SearchFocusState = {
+  requested: boolean
+  request: () => void
+  /** True once, for the first search box to mount after a request. */
+  consume: () => boolean
+}
+
+export const useSearchFocus = create<SearchFocusState>((set, get) => ({
+  requested: false,
+  request: () => set(() => ({ requested: true })),
+  consume: () => {
+    const requested = get().requested
+
+    if (requested) set(() => ({ requested: false }))
+
+    return requested
+  },
+}))
+
 // ===== REGISTRATION DRAFT ===== //
 
 // This holds in-progress registration form values, hoisted out of the form.

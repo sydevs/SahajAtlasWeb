@@ -220,11 +220,9 @@ describe('nearbyBounds', () => {
 
 describe('locatedPlace', () => {
   it('rounds every coordinate it hands a URL to three decimals, the frame too', async () => {
-    const { place, named } = locatedPlace(
-      { longitude: 2.352219, latitude: 48.856614 },
-      feed(),
-      { naming: false },
-    )
+    const { place, named } = locatedPlace({ longitude: 2.352219, latitude: 48.856614 }, feed(), {
+      naming: false,
+    })
     const decimals = (n: number) => (String(n).split('.')[1] ?? '').length
 
     expect(place.center).toEqual([2.352, 48.857])

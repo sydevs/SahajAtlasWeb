@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
@@ -10,6 +9,7 @@ import { Chip } from '@/components/atoms/Chip'
 import { FormField } from '@/components/molecules/FormField'
 import { regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
+import { useSearchFocus } from '@/config/store'
 import { useNearMe, useNearVisitor } from '@/hooks/use-near-me'
 import { type PlaceSearch, parseCenter, searchedPlaceName } from '@/lib/shape'
 import { useDrawerControl } from '@/views/shared'
@@ -38,7 +38,7 @@ export function WhereFilter({ region, onPlace, onClear, searchable }: WhereFilte
   const nearMeOn = useNearVisitor(center)
   const { data: regions } = useQuery(regionsQuery())
   const { status, locate } = useNearMe({ naming: hasMap, onPlace })
-  const section = useRef<HTMLDivElement>(null)
+  const requestSearchFocus = useSearchFocus((s) => s.request)
 
   const regionName = region ? (regions?.find((node) => node.slug === region)?.name ?? region) : null
   const placeName = center && !nearMeOn ? searchedPlaceName(searchParams.get('q')) : null
@@ -48,27 +48,15 @@ export function WhereFilter({ region, onPlace, onClear, searchable }: WhereFilte
   // heading over nothing would read as something failing to load.
   if (!searchable && !scopeLabel) return null
 
-  // Only the top view is rendered, so the list's search box appears once the drawer has closed.
-  // It is looked for in the widget's own root until it does, and focused then.
+  // Only the top view is rendered, so the list's search box takes the focus once it mounts.
   const searchInstead = () => {
-    const root = section.current?.getRootNode() as Document | ShadowRoot | undefined
-    let tries = 0
-
+    requestSearchFocus()
     dismiss()
-
-    const focusField = () => {
-      const field = root?.querySelector<HTMLInputElement>('[role="search"] input')
-
-      if (field) return field.focus()
-      if (++tries < 20) setTimeout(focusField, 50)
-    }
-
-    setTimeout(focusField, 50)
   }
 
   return (
     <FormField as="fieldset" label={t('filters.where.label')} name="filter-where">
-      <div ref={section} className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         {searchable && (
           <Button
             aria-pressed={nearMeOn}
