@@ -1,8 +1,5 @@
 {
   "calendar": {
-    "next": "Next",
-    "pick_date": "Pick a date",
-    "previous": "Previous",
     "times_note": "Times are local to each class. Online classes show your time (%{zone}).",
     "title": "Calendar",
     "view_list": "List",
@@ -19,8 +16,6 @@
       "back_to_world_map": "Back to the world map",
       "cancel": "Cancel",
       "close": "Close",
-      "explore": "Explore",
-      "loading": "Loading…",
       "show_more": "Show more",
       "widget_label": "Free meditation classes"
     },
@@ -81,8 +76,7 @@
     "settings": {
       "theme_auto": "System (Auto)",
       "theme_dark": "Dark Theme",
-      "theme_light": "Light Theme",
-      "title": "Settings"
+      "theme_light": "Light Theme"
     }
   },
   "countries": {
@@ -96,9 +90,7 @@
       "contact": "Contact",
       "directions": "Directions",
       "download_ics": "Download .ics file",
-      "pause_slideshow": "Pause slideshow",
       "share": "Share",
-      "view_photo": "View photo",
       "website": "Website"
     },
     "display": {
@@ -171,7 +163,6 @@
       "clear": "Clear all",
       "clear_one": "Clear",
       "no_results": "No events match your filters.",
-      "remove": "Remove %{label}",
       "title": "Filters"
     },
     "dates": {
@@ -255,14 +246,12 @@
       "title": "No classes listed in %{country} yet."
     },
     "nearby_prompt": {
-      "dismiss": "Dismiss",
       "title": "Looking for classes near %{city}?"
     },
     "results": {
       "farther": "Show distant events",
       "more": "Show more",
-      "no_nearby": "No events within %{km} km.",
-      "showing": "Showing %{shown} of %{total} events"
+      "no_nearby": "No events within %{km} km."
     },
     "sort": {
       "closest": "Closest",
@@ -273,13 +262,11 @@
   },
   "share": {
     "copied": "Copied",
-    "copy_link": "Copy link",
     "native": "Share…",
     "qr_download": "Download for printing",
     "qr_failed": "The QR code didn’t load. Check your connection, then close and reopen this.",
     "qr_hint": "Print this on posters or flyers. People can point their phone camera at it to open this class.",
     "qr_title": "QR code for posters",
-    "share_on": "Share on %{platform}",
     "title": "Share Meditation"
   }
 }
