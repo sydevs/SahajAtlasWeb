@@ -11,7 +11,8 @@
   },
   "event": {
     "view_photo": "Преглед на снимката",
-    "pause_slideshow": "Пауза на слайдшоуто"
+    "pause_slideshow": "Пауза на слайдшоуто",
+    "copy_address": "Копиране на адреса"
   },
   "filters": {
     "remove": "Премахване: %{label}"

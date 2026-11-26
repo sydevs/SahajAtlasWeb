@@ -1,7 +1,9 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-import { CalendarDays, MapPin, Monitor } from 'lucide-react'
+import { useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { CalendarDays, Check, Copy, MapPin, Monitor } from 'lucide-react'
 
 import { tv } from '@/styles/tv'
 import {
@@ -9,6 +11,8 @@ import {
   useEventDisplay,
   type DisplayableEvent,
 } from '@/hooks/use-event-display'
+import { useCopy } from '@/hooks/use-copy'
+import { hasApproximatePlace } from '@/lib/shape/event'
 
 // The when/where fact list. `default` is the panel treatment: brand-tinted
 // icons, roomy spacing. `compact` is the list-card treatment: a size under
@@ -117,6 +121,7 @@ export function EventFacts({
     eventTimeRange,
     eventStartTime,
     whereLine,
+    whereLineFull,
     roomLine,
     whereSubtext,
   } = useEventDisplay(event)
@@ -156,17 +161,26 @@ export function EventFacts({
   if (whereLine && display.status !== 'ended') {
     // The room is directions, so only the panel carries it. The list card and the
     // share/registration summaries are triage and recap (#316).
-    const room = variant === 'default' ? roomLine : null
+    const panel = variant === 'default'
+    const room = panel ? roomLine : null
+    // The class page is where people find the place, so only it adds the postcode, and lets a
+    // tap copy the address to paste into a maps app. A town alone is not worth copying.
+    const where =
+      panel && !display.online && !hasApproximatePlace(event) ? (
+        <CopyAddress value={whereLineFull} />
+      ) : (
+        whereLine
+      )
 
     items.push({
       icon: display.online ? Monitor : MapPin,
       text: room ? (
         <>
           <div>{room}</div>
-          <div>{whereLine}</div>
+          <div>{where}</div>
         </>
       ) : (
-        whereLine
+        where
       ),
       stacked: Boolean(room),
       subtext: display.online ? (whereSubtext ?? undefined) : (distance ?? undefined),
@@ -210,5 +224,48 @@ export function EventFacts({
       {body}
       {children}
     </div>
+  )
+}
+
+/**
+ * The class page's street address, which copies itself when tapped. For two seconds the line
+ * reads "Copied" in its place, and a screen reader hears it. Where the clipboard is missing or
+ * refused, the address is selected instead, ready to copy by hand.
+ */
+function CopyAddress({ value }: { value: string }) {
+  const { t } = useTranslation()
+  const { copied, copy } = useCopy(2000)
+  const text = useRef<HTMLSpanElement>(null)
+
+  const onClick = async () => {
+    if (!(await copy(value)) && text.current) window.getSelection()?.selectAllChildren(text.current)
+  }
+
+  return (
+    <>
+      <button
+        // The address is the visible text, so the name carries it too (WCAG 2.5.3).
+        aria-label={`${t('event.a11y.copy_address')}: ${value}`}
+        className="touch-target relative rounded-lg text-start outline-none select-text focus-visible:ring-2 focus-visible:ring-focus"
+        type="button"
+        onClick={() => void onClick()}
+      >
+        {copied ? (
+          <span className="text-primary-11">
+            <Check aria-hidden className="me-1.5 inline align-[-3px]" size={16} />
+            {t('share.copied')}
+          </span>
+        ) : (
+          // Inline, so on a wrapped address the icon follows the last word.
+          <>
+            <span ref={text}>{value}</span>
+            <Copy aria-hidden className="ms-1.5 inline align-[-2px] text-gray-11" size={14} />
+          </>
+        )}
+      </button>
+      <span aria-live="polite" className="sr-only">
+        {copied ? t('share.copied') : ''}
+      </span>
+    </>
   )
 }

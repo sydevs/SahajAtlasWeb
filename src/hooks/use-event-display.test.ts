@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { composeCalendarLine, useEventDisplay } from './use-event-display'
 
 import snapshot from '@/config/translations.en.json'
+import { mockEvent } from '@/mocks/events'
 
 const copy = (key: string): string =>
   key
@@ -243,5 +244,58 @@ describe('useEventDisplay — the type label', () => {
         },
       }),
     ).toBe('One-off event')
+  })
+})
+
+describe('useEventDisplay — the postcode on the class page', () => {
+  const lines = (event: DisplayableEvent) => {
+    let result = { whereLine: '', whereLineFull: '' }
+    const Probe = () => {
+      const { whereLine, whereLineFull } = useEventDisplay(event)
+
+      result = { whereLine, whereLineFull }
+
+      return null
+    }
+
+    renderToStaticMarkup(createElement(Probe))
+
+    return result
+  }
+  // A running weekly class, so the street shows.
+  const at = (address: Record<string, string>, extra: Partial<DisplayableEvent> = {}) =>
+    lines({ ...mockEvent, address: { ...mockEvent.address, ...address }, ...extra })
+
+  it('ends the full line with the postcode, after the town', () => {
+    expect(at({ street: '120 Heath St', city: 'London', postCode: 'NW3 1DR' })).toEqual({
+      whereLine: '120 Heath St, London',
+      whereLineFull: '120 Heath St, London NW3 1DR',
+    })
+  })
+
+  it.each([
+    ['the street', { street: '120 Heath St, NW3 1DR', city: 'London', postCode: 'NW3 1DR' }],
+    ['the city', { street: '120 Heath St', city: 'London NW3 1DR', postCode: 'NW3 1DR' }],
+    [
+      'the street, spaced differently',
+      { street: '120 Heath St nw31dr', city: 'London', postCode: 'NW3 1DR' },
+    ],
+  ])('adds no postcode %s already holds', (_, address) => {
+    const { whereLine, whereLineFull } = at(address)
+
+    expect(whereLineFull).toBe(whereLine)
+  })
+
+  it.each([
+    ['an online class', { eventType: 'online' as const }],
+    ['an inactive listing', { inactive: true }],
+  ])('adds no postcode for %s', (_, extra) => {
+    const { whereLine, whereLineFull } = at(
+      { street: '120 Heath St', city: 'London', postCode: 'NW3 1DR' },
+      extra,
+    )
+
+    expect(whereLineFull).toBe(whereLine)
+    expect(whereLineFull).not.toContain('NW3')
   })
 })

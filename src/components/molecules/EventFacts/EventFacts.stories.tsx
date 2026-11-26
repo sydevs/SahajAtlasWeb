@@ -32,7 +32,10 @@ const ended: Event = {
  */
 export const Default: Story = () => (
   <StoryWrapper>
-    <StorySection description="A recurring in-person class." title="In person">
+    <StorySection
+      description="A recurring in-person class. The address ends with its postcode, and a tap copies it."
+      title="In person"
+    >
       <div className="max-w-md">
         <EventFacts event={mockEvent} />
       </div>
@@ -44,6 +47,20 @@ export const Default: Story = () => (
     >
       <div className="max-w-md">
         <EventFacts event={{ ...mockEvent, address: { ...mockEvent.address, room: 'Hall B' } }} />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="A host who typed the postcode into the street already — it is not added twice."
+      title="Postcode in the street"
+    >
+      <div className="max-w-md">
+        <EventFacts
+          event={{
+            ...mockEvent,
+            address: { ...mockEvent.address, street: '5 Market St, CB2 3QJ' },
+          }}
+        />
       </div>
     </StorySection>
 

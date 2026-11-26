@@ -27,14 +27,16 @@ describe('EventFacts — the room line (#316)', () => {
     const street = mockEvent.address?.street ?? ''
 
     expect(street).not.toBe('')
-    expect(html).toContain(`<div>${roomLine}</div><div>${street}`)
+    expect(html).toContain(`<div>${roomLine}</div><div><button`)
+    expect(html).toContain(`<span>${street}`)
   })
 
   it('hangs the pin from the first line when the room stacks it', () => {
     const stacked = renderToStaticMarkup(<EventFacts event={withRoom} />)
     const single = renderToStaticMarkup(<EventFacts event={mockEvent} />)
     // The location fact is the last item, so its alignment is the last one rendered.
-    const pinItem = (html: string) => [...html.matchAll(/items-(start|center)/g)].at(-1)?.[0]
+    const pinItem = (html: string) =>
+      [...html.matchAll(/class="flex gap-3 (items-(?:start|center))"/g)].at(-1)?.[1]
 
     expect(pinItem(stacked)).toBe('items-start')
     expect(pinItem(single)).toBe('items-center')
@@ -62,5 +64,37 @@ describe('EventFacts — the room line (#316)', () => {
     ],
   ])('adds no line for %s', (_, event) => {
     expect(renderToStaticMarkup(<EventFacts event={event} />)).not.toContain('event.display.room')
+  })
+})
+
+describe('EventFacts — the address', () => {
+  const full = '5 Market St, Cambridge CB2 3QJ'
+
+  it('makes the class page address, postcode included, a copy button', () => {
+    const html = renderToStaticMarkup(<EventFacts event={mockEvent} />)
+
+    expect(html).toContain(`aria-label="event.a11y.copy_address: ${full}"`)
+    expect(html).toContain(`<span>${full}</span>`)
+  })
+
+  it.each([
+    ['the list card', 'compact'],
+    ['the share and registration summaries', 'card'],
+  ] as const)('keeps %s to plain street and town', (_, variant) => {
+    const html = renderToStaticMarkup(<EventFacts event={mockEvent} variant={variant} />)
+
+    expect(html).toContain('5 Market St, Cambridge')
+    expect(html).not.toContain('CB2 3QJ')
+    expect(html).not.toContain('<button')
+  })
+
+  it.each([
+    ['an online class', mockEventSlimOnline],
+    ['an inactive listing', mockEventInactive],
+  ])('gives %s no copy button', (_, event) => {
+    const html = renderToStaticMarkup(<EventFacts event={event} />)
+
+    expect(html).not.toContain('<button')
+    expect(html).not.toContain('CB2 3QJ')
   })
 })
