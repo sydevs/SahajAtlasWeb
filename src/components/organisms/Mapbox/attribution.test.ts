@@ -19,7 +19,7 @@ const STYLES = 'src/styles/globals.css'
 const MAPBOX_STYLES = 'node_modules/mapbox-gl/dist/mapbox-gl.css'
 // Where the bottom sheet's snap ladder lives, whose lowest stop rules out both bottom corners for
 // the attribution.
-const STACK = 'src/views/DrawerStack/DrawerStack.tsx'
+const STACK = 'src/views/DrawerStack/sheet-ladder.ts'
 
 const cornerIn = (source: string, prop: string) =>
   source.match(new RegExp(`${prop}(?:="|: ')((?:top|bottom)-(?:left|right))['"]`))?.[1]
@@ -45,7 +45,7 @@ describe('the Mapbox wordmark and attribution corners', () => {
     // uncovered on a narrow embed: the ladder's lowest stop is the peek, not a dismissed sheet.
     // A dismissible sheet would free a bottom corner and relax this.
     expect(read(STACK), "the bottom sheet's lowest stop").toMatch(
-      /const SNAP_POINTS = \[PEEK_SNAP,/,
+      /export const SNAP_POINTS = \[PEEK_SNAP,/,
     )
     // The side panel takes the left in a wide layout, so this is the right. Physical, and paired
     // with the drawer's deferred RTL flip (`atoms/Drawer`'s `TODO(rtl, #52 WS8)`).

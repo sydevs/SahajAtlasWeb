@@ -23,7 +23,6 @@ import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
 import {
-  SHEET_OPEN_PX,
   SHEET_PEEK_PX,
   WIDE_SNAP,
   WidgetWidthContext,
@@ -55,6 +54,13 @@ import {
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
+import {
+  FIT_SNAP,
+  OPEN_SNAP,
+  PEEK_SNAP,
+  sheetCoverPx,
+  sheetLadder,
+} from '@/views/DrawerStack/sheet-ladder'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
@@ -99,19 +105,6 @@ const loadSecondaryViews = () => ({
 })
 
 type SecondaryViews = ReturnType<typeof loadSecondaryViews>
-
-// The mobile bottom-sheet snap ladder, ascending. vaul reads a string as pixels, and a
-// number as a fraction of the sheet height:
-//  - the peek (`SHEET_PEEK_PX`) — the handle plus the first screen's search row, or the Back
-//    row and one line of title (ViewLayer clamps the title to one line there)
-//  - the open stop (`SHEET_OPEN_PX`) — the Back row, the title, a list row, and a peek of the next
-//  - 0.97 near-full
-const PEEK_SNAP = `${SHEET_PEEK_PX}px` // the collapsed peek
-const OPEN_SNAP = `${SHEET_OPEN_PX}px` // default, and what the peek expands to
-const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
-// Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
-// state holds this token and the ladder carries the live number (`useFitSnap`).
-const FIT_SNAP = 'fit'
 
 // Frames a stationary sheet holds before the `--sy-sheet-top` mirror parks itself (about
 // 0.5s at 60fps — well past the end of any vaul spring). See the effect below for why it
@@ -277,15 +270,30 @@ export function DrawerStack() {
   // arrived. One drag down still stops there, with the map and the class's pin above.
   // Share opens the same way, so its last row (the poster QR code) is in view without a drag.
   const fitsContent = top?.kind === 'event' || top?.kind === 'share'
-  const fit = useFitSnap(canCollapse && fitsContent, location.pathname)
-  const fitPx = typeof fit === 'number' && fit > SHEET_OPEN_PX ? fit : null
-  const fitSnap = fitPx === null ? null : `${fitPx}px`
-  const snapPoints = useMemo(
-    () => (fitSnap === null ? SNAP_POINTS : [PEEK_SNAP, OPEN_SNAP, fitSnap, WIDE_SNAP]),
-    [fitSnap],
-  )
+  const classView = top?.kind === 'event'
+  const { fit, fold: measuredFold } = useFitSnap(canCollapse && fitsContent, location.pathname)
+  // A sheet the visitor dragged to the key-facts stop holds it as a literal px stop. That stop
+  // stays on the ladder however the fold remeasures (the footer, a font), so it never moves.
+  const heldFold =
+    classView &&
+    typeof snap === 'string' &&
+    snap.endsWith('px') &&
+    snap !== PEEK_SNAP &&
+    snap !== OPEN_SNAP
+      ? parseFloat(snap)
+      : null
+  const fold = heldFold ?? measuredFold
+  const ladder = useMemo(() => sheetLadder({ classView, fit, fold }), [classView, fit, fold])
+  const { points: snapPoints, fitSnap } = ladder
   const openSnap = fitsContent ? FIT_SNAP : OPEN_SNAP
-  const vaulSnap = snap === FIT_SNAP ? (fit === 'full' ? WIDE_SNAP : (fitSnap ?? OPEN_SNAP)) : snap
+  // A class dragged to the open stop while its details loaded holds the key-facts stop that
+  // replaced it.
+  const vaulSnap =
+    snap === FIT_SNAP
+      ? ladder.fitStop
+      : classView && snap === OPEN_SNAP && !snapPoints.includes(OPEN_SNAP)
+        ? snapPoints[1]
+        : snap
   // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
   // literally would swap the token for whatever it resolved to that render, and the sheet would
   // stop following its content.
@@ -317,13 +325,9 @@ export function DrawerStack() {
   }
   // What the sheet covers of the map, resolved from the snap it sits at, so the camera reserves
   // the collapsed peek while the sheet is collapsed and a class's taller sheet while it is open.
-  // The near-full snap reports the open snap instead: the pin is hidden there whatever the camera
-  // does, so the framing serves the third-height stop one drag below.
   const sheetCover = !canCollapse
     ? null
-    : snap === PEEK_SNAP
-      ? SHEET_PEEK_PX
-      : Math.min(snap === FIT_SNAP && fitPx !== null ? fitPx : SHEET_OPEN_PX, snapCap ?? Infinity)
+    : Math.min(sheetCoverPx({ snap, classView, fit, fold }), snapCap ?? Infinity)
   const setSheetCover = useSheetCover((s) => s.setBottom)
 
   useEffect(() => {
@@ -498,12 +502,15 @@ export function DrawerStack() {
   // Keyed on the view KIND (not `wide`), so switching the calendar between
   // month/week/list keeps it tall, rather than collapsing the list to the short snap.
   // This runs only when navigating to or from the calendar, so it never fights a
-  // manual drag on a non-calendar view.
+  // manual drag on a non-calendar view. A class keys on its path too: class B tapped after
+  // class A was dragged opens at B's own fit, never at A's held key-facts stop.
+  const openedClass = classView ? location.pathname : null
+
   useEffect(() => {
     if (direction === 'bottom') {
       setSnap(top?.kind === 'calendar' ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
     }
-  }, [direction, fitsContent, top?.kind])
+  }, [direction, fitsContent, top?.kind, openedClass])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this

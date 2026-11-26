@@ -1,7 +1,7 @@
 import { useLayoutEffect, useState } from 'react'
 
 import { LOADING_ATTR } from '@/components/organisms/Skeleton/Skeleton'
-import { WIDE_SNAP } from '@/config/responsive'
+import { SHEET_OPEN_PX, WIDE_SNAP } from '@/config/responsive'
 import { overlayContainer } from '@/lib/overlay'
 
 // Below this a sheet would sit under the peek, which is no longer "open".
@@ -9,6 +9,12 @@ const MIN_FIT_PX = 120
 
 /** What a sheet's content needs: a height in px, or `'full'` when it reaches the near-full snap. */
 export type SheetFit = number | 'full'
+
+// The key-facts stop leaves at least a third of the map showing above it, so the class's pin
+// still has room; a fold taller than that is cut at the cap rather than covering the map.
+const FOLD_MAX_SHARE = 0.66
+// Air between the last key fact and the footer's top edge, so the address never sits flush on it.
+const FOLD_GAP_PX = 12
 
 /**
  * The height, in px, that shows the open sheet's content and nothing more: the handle, the
@@ -39,6 +45,47 @@ export function fitHeight({
   return fit
 }
 
+/**
+ * The class's key-facts stop, in px: the sheet down to its last marked row, plus the sticky
+ * footer. Never below the shared open snap, and never above two thirds of the frame. `null`
+ * when it can't be measured yet.
+ *
+ * Pure, so the arithmetic is testable without a DOM. Every number is in CSS px.
+ */
+export function foldHeight({
+  foldBottom,
+  footerSpace,
+  frameHeight,
+}: {
+  /** From the sheet's top edge to the last marked row's bottom edge, unscrolled. */
+  foldBottom: number
+  /** What the sticky footer covers at the bottom of the sheet. */
+  footerSpace: number
+  frameHeight: number
+}): number | null {
+  if (!Number.isFinite(foldBottom) || foldBottom <= 0 || frameHeight <= 0) return null
+
+  const fold = Math.ceil(foldBottom + FOLD_GAP_PX + footerSpace)
+
+  return Math.floor(Math.min(Math.max(fold, SHEET_OPEN_PX), frameHeight * FOLD_MAX_SHARE))
+}
+
+function measureFold(sheet: HTMLElement, body: HTMLElement): number | null {
+  const rows = Array.from(body.querySelectorAll<HTMLElement>('[data-sheet-fold]'))
+
+  if (rows.length === 0) return null
+
+  const top = sheet.getBoundingClientRect().top
+
+  return foldHeight({
+    // A body scrolled before this reads still measures from its own top.
+    foldBottom:
+      Math.max(...rows.map((row) => row.getBoundingClientRect().bottom)) - top + body.scrollTop,
+    footerSpace: parseFloat(getComputedStyle(body, '::after').height) || 0,
+    frameHeight: sheet.offsetHeight,
+  })
+}
+
 function measure(sheet: HTMLElement, body: HTMLElement): SheetFit | null {
   const style = getComputedStyle(body)
   const footerSpace = parseFloat(getComputedStyle(body, '::after').height) || 0
@@ -59,6 +106,14 @@ function measure(sheet: HTMLElement, body: HTMLElement): SheetFit | null {
   })
 }
 
+export type SheetMeasure = {
+  fit: SheetFit | null
+  /** The key-facts stop (`foldHeight`). */
+  fold: number | null
+}
+
+const UNMEASURED: SheetMeasure = { fit: null, fold: null }
+
 /**
  * Follows the open bottom sheet's content height while `enabled`, so a class opens showing
  * its title, when and where above the sticky Register bar, with no blank sheet below. A view
@@ -70,12 +125,12 @@ function measure(sheet: HTMLElement, body: HTMLElement): SheetFit | null {
  * It reads the sheet the same way the `--sy-sheet-top` loop does: inside this widget's own
  * portal target, never the host's document.
  */
-export function useFitSnap(enabled: boolean, view: string): SheetFit | null {
-  const [fit, setFit] = useState<SheetFit | null>(null)
+export function useFitSnap(enabled: boolean, view: string): SheetMeasure {
+  const [measured, setMeasured] = useState<SheetMeasure>(UNMEASURED)
 
   useLayoutEffect(() => {
     if (!enabled) {
-      setFit(null)
+      setMeasured(UNMEASURED)
 
       return
     }
@@ -99,20 +154,30 @@ export function useFitSnap(enabled: boolean, view: string): SheetFit | null {
       detach?.()
       detach = null
       body = current
+      setMeasured(UNMEASURED)
       if (!sheet || !current) {
-        setFit(null)
+        setMeasured(UNMEASURED)
 
         return
       }
 
       // A placeholder is nothing true to fit: the sheet holds its stop and moves once, when the
       // content arrives, rather than fitting the placeholder first.
-      const update = () =>
-        setFit(
-          Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))
-            ? null
-            : measure(sheet, current),
-        )
+      const update = () => {
+        if (Array.from(current.children).some((kid) => kid.hasAttribute(LOADING_ATTR))) {
+          setMeasured((prev) => (prev.fit === null ? prev : { ...prev, fit: null }))
+
+          return
+        }
+        setMeasured((prev) => {
+          const next = {
+            fit: measure(sheet, current),
+            fold: measureFold(sheet, current),
+          }
+
+          return next.fit === prev.fit && next.fold === prev.fold ? prev : next
+        })
+      }
       const resize = new ResizeObserver(update)
       const watch = () => {
         resize.disconnect()
@@ -152,5 +217,5 @@ export function useFitSnap(enabled: boolean, view: string): SheetFit | null {
     // `view` re-finds the body when another view (another path) mounts its own.
   }, [enabled, view])
 
-  return enabled ? fit : null
+  return enabled ? measured : UNMEASURED
 }
