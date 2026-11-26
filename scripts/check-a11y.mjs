@@ -105,7 +105,7 @@ export const TAP_EXCEPTIONS = [
   {
     selector: '[data-radix-focus-guard]',
     reason:
-      "Radix's own focus sentinels. They are deliberately empty and focusable, one either side of a trap.",
+      'Radix\'s own focus sentinels. They are deliberately empty and focusable, one either side of a trap.',
   },
 ]
 
@@ -258,7 +258,7 @@ export function formatUnmeasured(unmeasured) {
  *
  * @param {{ disabledRules: string[], minTap: number, selectors: string[], step: number }} options
  */
-
+ 
 async function pageAudit({ disabledRules, minTap, selectors, step }) {
   const root = document.body
   const rules = {}
@@ -452,6 +452,7 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
       .filter(tabbable).length,
   }
 }
+ 
 
 /** How long the DOM must sit still before a story counts as rendered, and the cap on waiting. */
 const QUIET_MS = 250
@@ -518,6 +519,7 @@ async function keyboardWalk(page, count, resting, selectors) {
   for (let i = 0; i < count; i += 1) {
     await page.keyboard.press('Tab')
 
+     
     const stop = await page.evaluate((exceptions) => {
       const el = /** @type {any} */ (document.activeElement)
 
@@ -536,6 +538,7 @@ async function keyboardWalk(page, count, resting, selectors) {
         painted: paint(el),
       }
     }, selectors)
+     
 
     if (!stop) break
     if (stop.skip) continue
@@ -546,7 +549,8 @@ async function keyboardWalk(page, count, resting, selectors) {
       // opened on focus. It has no resting style to compare against, so the indicator check
       // abstains rather than guessing.
       indicated:
-        resting[String(stop.order)] === undefined || stop.painted !== resting[String(stop.order)],
+        resting[String(stop.order)] === undefined ||
+        stop.painted !== resting[String(stop.order)],
     })
   }
 
@@ -581,8 +585,8 @@ export async function run({ only, origin } = {}) {
   // warmed cache entry serves both CI consumers. The default launches the headless shell, a
   // download of its own under the same directory (#459).
   const browser = await chromium.launch({ channel: 'chromium' })
-  // `isMobile` is what makes `(hover: none) and (pointer: coarse)` match, and the `touch-target` utility is
-  // written against that query — on a fine pointer every small control would be reported and
+  // `isMobile` is what makes `(hover: none) and (pointer: coarse)` match, and the `touch-target`
+  // utility is written against that query — on a fine pointer every small control would be reported and
   // the gate would be measuring a device nobody taps.
   const context = await browser.newContext({
     viewport: PHONE,
