@@ -43,7 +43,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **Share opens the phone's own share sheet, and Copy link says "Link copied".** ([#517]) A
+- **Share opens the phone's own share sheet, and Copy link says "Link copied".** ([#518]) A
   class's Share panel and the sign-up confirmation now show the same block: the class's summary,
   as its list card shows it, then Share, then Copy link. Share opens the device's share sheet.
   Where there is none, as in most desktop browsers, or where your `Permissions-Policy` refuses
@@ -1512,4 +1512,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#506]: https://github.com/sydevs/SahajAtlasWeb/pull/506
 [#510]: https://github.com/sydevs/SahajAtlasWeb/pull/510
 [#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
-[#517]: https://github.com/sydevs/SahajAtlasWeb/pull/517
+[#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
