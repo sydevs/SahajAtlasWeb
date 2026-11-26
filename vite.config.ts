@@ -13,6 +13,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 import circleFlags from './scripts/circle-flags.mjs'
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
+import { GEO_PLACEHOLDER, encodeGeo, fixtureGeo } from './worker/geo.mjs'
 
 /**
  * Where the emitted CSS goes instead of `document.head` (#236).
@@ -265,6 +266,30 @@ function stripDsStore(): Plugin {
   }
 }
 
+/**
+ * The dev server's stand-in for the app Worker: it writes a fixed Prague location
+ * (`fixtureGeo`) where the Worker writes the visitor's, so `pnpm dev` shows the nearby
+ * suggestion as production would. `ATLAS_DEV_GEO=off` serves the placeholder untouched, which
+ * the widget reads as no guess. A build never runs it: the Worker owns that file's bytes.
+ */
+function devApproxLocation(): Plugin {
+  const token = () => encodeGeo(fixtureGeo(Date.now())!)
+  const off = process.env.ATLAS_DEV_GEO === 'off'
+
+  return {
+    name: 'sy-dev-approx-location',
+    apply: 'serve',
+    transform(code, id) {
+      if (off || !id.endsWith('/src/loader/literals.ts')) return undefined
+
+      return code.replace(GEO_PLACEHOLDER, token())
+    },
+    transformIndexHtml(html) {
+      return off ? html : html.replace(GEO_PLACEHOLDER, token())
+    },
+  }
+}
+
 /** The build entries emitted under a fixed name, by `rolldownOptions.input` key. */
 const STABLE_ENTRY_FILES = new Map([
   ['bridge', 'auto.js'],
@@ -297,6 +322,7 @@ export default defineConfig(({ command }) => ({
     // `<script>` tag parsed up front.
     flattenEntryImports('loader'),
     stripDsStore(),
+    devApproxLocation(),
     circleFlags(),
     // This plugin's position in the array does not set its order.
     // `sentryVitePlugin` returns an `enforce: 'pre'` plugin, which Vite

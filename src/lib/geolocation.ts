@@ -5,7 +5,7 @@ import type { PlaceSearch } from '@/lib/shape'
 import { approxBounds, boundsOfPoints, distanceKm } from './geo'
 import { geocodeCountryCode, reverseGeocode } from './geocode'
 
-// The visibility logic behind the IP-geolocation "nearby classes"
+// The visibility logic behind the approximate-location "nearby classes"
 // suggestion, factored out of the GeolocationSuggestion component so every
 // condition is unit-tested (the component itself is hook-heavy, and the
 // node lane cannot render it).
@@ -145,8 +145,8 @@ export const isLocalRegion = (
 
 /** The inputs the geolocation-prompt visibility decision reads. */
 export type GeolocationPromptState = {
-  /** The resolved IP guess, or `null` while loading / on failure. */
-  guess: { latitude: number; longitude: number } | null
+  /** The guessed town's point, `[lng, lat]`, or `null` without a guess. */
+  guess: [number, number] | null
   /** Session-dismissed (× or accepted). */
   dismissed: boolean
   /** A place search is already active (SearchView with `?center`/`?q`). */
@@ -158,7 +158,7 @@ export type GeolocationPromptState = {
 }
 
 /**
- * Whether to show the IP-geolocation nearby suggestion.
+ * Whether to show the approximate-location nearby suggestion.
  *
  * This is hidden in any of these cases:
  *
@@ -178,13 +178,26 @@ export const shouldShowGeolocationPrompt = ({
 }: GeolocationPromptState): boolean => {
   if (!guess || dismissed || activeSearch) return false
 
-  const point: [number, number] = [guess.longitude, guess.latitude]
-
   return (
-    hasClassWithin(geojson, point, NEARBY_MAX_KM) &&
-    !isLocalRegion(regionCenter, point, LOCAL_REGION_KM)
+    hasClassWithin(geojson, guess, NEARBY_MAX_KM) &&
+    !isLocalRegion(regionCenter, guess, LOCAL_REGION_KM)
   )
 }
+
+/**
+ * The search a guessed town opens. City-sized, not framed around the nearest classes as a
+ * device fix is: an IP guess is too coarse for its nearest classes to be the visitor's. Already
+ * public and coarse, so not rounded either; its name needs no reverse lookup.
+ */
+export const guessedPlace = (
+  guess: { city: string; center: [number, number] },
+  country: { code?: string; name?: string },
+): PlaceSearch => ({
+  q: country.name ? `${guess.city}, ${country.name}` : guess.city,
+  center: guess.center,
+  bbox: approxBounds(guess.center, NEARBY_RADIUS_KM),
+  countryCode: country.code,
+})
 
 /**
  * Where a located visitor is, in the terms a typed search uses, for both ways in: the map's

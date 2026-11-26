@@ -19,7 +19,7 @@ export type GeolocationPromptProps = {
  * the session. It announces politely (`role="status"`), not as an
  * assertive alert, since it is a passive guess. It is framed as a *guess*:
  * "Looking for classes near %{city}?", never "your location". This is
- * presentational only. The IP lookup, session-scoped dismissal, and
+ * presentational only. The guess, session-scoped dismissal, and
  * navigation live in `GeolocationSuggestion` (src/views/shared.tsx).
  */
 export function GeolocationPrompt({ city, onAccept, onClose }: GeolocationPromptProps) {

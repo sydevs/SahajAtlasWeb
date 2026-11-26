@@ -25,6 +25,15 @@
 export const ELEMENT_NAME = 'sahaj-atlas'
 
 /**
+ * The visitor's approximate location, as the app Worker writes it over this literal in the built
+ * `loader.js` — or the literal itself, unreplaced, which the widget reads as no guess. The
+ * Worker's copy is `GEO_PLACEHOLDER` in `worker/geo.mjs`, pinned by `worker/geo.test.ts`.
+ * ⚠ Used once, and passed on as it is: a comparison against it would let the minifier fold the
+ * check away, and `scripts/assert-geo-placeholder.mjs` fails a build that loses the literal.
+ */
+export const WRITTEN_GEO = '__SY_ATLAS_GEO__'
+
+/**
  * A site-relative path, or `undefined`.
  *
  * This is a behavioural duplicate of `safePath` (`src/lib/shape/path.ts`), which is where the

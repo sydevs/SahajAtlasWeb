@@ -14,12 +14,13 @@ import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
+import { useApproxLocation } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox/Map'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
 import { parentOf } from '@/lib/shape'
-import { mockGeojson, mockIpLocation, mockRegionNodes } from '@/mocks/regions'
+import { mockApproxLocation, mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
 // stories (Region / Online / Search) build their lists from ONE shared source.
@@ -302,16 +303,15 @@ export function ViewHarness({
     })
 
     // Seeds the feed, the wholesale region tree, the host-client record, and a
-    // passive IP guess (so the nearby prompt renders where supported) for every
-    // view — no story pings the (absent) backend or the third-party geolocation
-    // service. The case's own `seed` layers its view-specific keys on top. The
+    // approximate location (so the nearby prompt renders where supported) for every
+    // view — no story pings the (absent) backend. The case's own `seed` layers its view-specific keys on top. The
     // region tree is read by anything filter-adjacent (the Region filter's
     // options, the active-pill name lookup, the country-website check), which is
     // why it is global rather than per-case.
     c.setQueryData(geojsonQuery().queryKey, mockGeojson)
     c.setQueryData(regionsQuery().queryKey, mockRegionNodes)
     c.setQueryData(clientQuery(atlasAuth.apiKey).queryKey, mockClient)
-    c.setQueryData(['ip-location'], mockIpLocation)
+    useApproxLocation.setState({ location: mockApproxLocation })
     seed?.(c)
 
     return c

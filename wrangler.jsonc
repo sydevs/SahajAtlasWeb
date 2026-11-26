@@ -15,8 +15,14 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sahajatlas-web",
 
-  // Required even with no `main`. This is the date wrangler 4.150.0 suggests.
   "compatibility_date": "2026-10-06",
+
+  // One small script, for the visitor's approximate location (`worker/index.ts`). It runs only
+  // where `run_worker_first` names a path; every other file is served as a free static asset,
+  // never through it.
+  // ⚠ `public/_headers` does not reach a response the script builds, so it sets the site-wide
+  // CORS and `noindex` itself. `docs/rules/deployment.md` owns the topology.
+  "main": "worker/index.ts",
 
   // `pnpm build` writes `dist/` and copies `public/` into it, which is how the shared
   // `_headers` and `robots.txt` reach this Worker. `not_found_handling` does the job the
@@ -31,7 +37,12 @@
   // `scripts/wrangler-config.test.ts` pins the pairing instead.
   "assets": {
     "directory": "dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // `loader.js` for every script embed, `/` for the standalone page and the iframe embed. A
+    // deep link to the standalone page (`/gb/london`) still takes the SPA fallback without the
+    // script, so it gets no location — measured under `wrangler dev`.
+    "run_worker_first": ["/loader.js", "/"]
   },
 
   // Not the default — wrangler's own schema says `false`.

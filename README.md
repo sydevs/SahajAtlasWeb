@@ -71,15 +71,14 @@ The language picker persists **nothing** — i18next's detector would cache
 comes from a `?locale=` on your page's URL, then the loader script's `locale=`,
 then your page's `<html lang>`, then the browser, per page load.
 
+The visitor's approximate town and country arrive inside the widget's own
+`loader.js`: Cloudflare reads them off the request that fetched it, and the
+widget sends them nowhere. They power "classes near you" and the order of the
+share targets, and are not stored.
+
 Requests leave the browser for these hosts, none of them yours or
 SahajCloud's:
 
-- **`https://ipwho.is` — IP geolocation.** Once per session, a free, keyless
-  service turns the visitor's IP into a city, so the widget can offer
-  "classes near you" and localize an online class's start time. No referrer,
-  key, or cookie. A five-second timeout. Silent on failure. Skipped when
-  neither feature could show. An IP is personal data in the EU — the widget
-  picks a city with it, then discards it.
 - **`https://cdn.usefathom.com` — Fathom analytics.** Cookieless, aggregate
   pageview counting, loaded only when the build carries an analytics ID and
   your client record names a real (non-localhost) primary domain.

@@ -6,7 +6,8 @@ import { useQuery } from '@tanstack/react-query'
 import { geojsonQuery } from '@/config/api'
 import { useNearMeState } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
-import { LOCATE_POSITION_OPTIONS, locatedPlace } from '@/lib/geolocation'
+import { requestPosition, useLocating } from '@/hooks/use-locator'
+import { locatedPlace } from '@/lib/geolocation'
 
 /** How long to wait for a place name before searching without one. */
 const NAME_WAIT_MS = 1500
@@ -21,8 +22,9 @@ export function useNearVisitor(center: [number, number] | undefined): boolean {
 }
 
 /**
- * The Near me choice: asks the browser for a position only when pressed, and answers with a place
- * in the same terms as a typed search (`locatedPlace`), waiting briefly for the place's name.
+ * The Near me choice: asks for a position only when pressed, through the one locator the map's
+ * find-me shares (`requestPosition`), and answers with a place in the same terms as a typed
+ * search (`locatedPlace`), waiting briefly for the place's name.
  */
 export function useNearMe({
   naming,
@@ -34,7 +36,8 @@ export function useNearMe({
   const { locale } = useLocale()
   const setCenter = useNearMeState((s) => s.setCenter)
   const { data: geojson } = useQuery(geojsonQuery())
-  const [status, setStatus] = useState<NearMeStatus>('idle')
+  const locating = useLocating()
+  const [failed, setFailed] = useState(false)
   // The fix can arrive seconds later, by when the visitor may have left. An answer belongs only
   // to the request still waiting.
   const request = useRef(0)
@@ -47,10 +50,8 @@ export function useNearMe({
   const locate = useCallback(() => {
     const id = ++request.current
 
-    if (!navigator.geolocation) return setStatus('failed')
-
-    setStatus('locating')
-    navigator.geolocation.getCurrentPosition(
+    setFailed(false)
+    requestPosition().then(
       async (position) => {
         if (id !== request.current) return
 
@@ -63,17 +64,17 @@ export function useNearMe({
         if (id !== request.current) return
 
         setCenter(place.center)
-        setStatus('idle')
         // The fix can take seconds, so the place goes to the caller as it is NOW, not as it was
         // when Near me was pressed: an answer tapped meanwhile must not be lost.
         latest.current({ ...place, ...name })
       },
       () => {
-        if (id === request.current) setStatus('failed')
+        if (id === request.current) setFailed(true)
       },
-      LOCATE_POSITION_OPTIONS,
     )
   }, [geojson, locale, naming, setCenter])
+
+  const status: NearMeStatus = locating ? 'locating' : failed ? 'failed' : 'idle'
 
   return { status, locate }
 }

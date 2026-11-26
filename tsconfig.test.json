@@ -27,6 +27,7 @@
   "include": [
     "tests",
     "scripts",
+    "worker",
     "vite.config.ts",
     "vitest.config.ts",
     "vitest.smoke.config.ts",

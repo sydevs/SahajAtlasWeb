@@ -10,6 +10,7 @@ import livePreview from './config/live-preview/protocol'
 import { activateLivePreview, captureLivePreview } from './config/live-preview/boot'
 import { startClientsPreview } from './config/live-preview/clients'
 import { attributeEnabled } from './config/attributes'
+import { bootApproxLocation } from './config/store'
 import { initTheme } from './hooks/use-theme'
 import { reportIntegrationWarning } from './lib/report'
 import { FULL_SLOT, decideSlot, framed } from './lib/slot-decision'
@@ -30,6 +31,10 @@ if (!atlasAuth.apiKey) {
 // Iframe-friendly content-only mode: `?map=0` (or `?map=false`) renders without
 // the Mapbox canvas. Default is the full map.
 const hasMap = attributeEnabled(searchParams.get('map'))
+
+// The app Worker writes the visitor's approximate location into this page's meta tag, as it
+// does into `loader.js` for an embed.
+bootApproxLocation(document.querySelector<HTMLMetaElement>('meta[name="sy-atlas-geo"]')?.content)
 
 // SahajCloud live-preview boot (issue #40). Synchronous, and deliberately only half the
 // job: this stashes the token and takes it out of `location.href` before React mounts

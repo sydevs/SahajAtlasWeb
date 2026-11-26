@@ -133,10 +133,6 @@ const answerMapbox: Answer = (url) => {
   return undefined
 }
 
-// What ipwho.is answers for an address it cannot place. `IpLocationSchema` refuses it, so no
-// "classes near you" prompt appears in any scenario.
-const answerIpLookup: Answer = () => json({ success: false, message: 'Reserved range' })
-
 const named = (request: Request) => `${request.method()} ${request.url()}`
 
 /**
@@ -208,7 +204,6 @@ export const test = base.extend<{ lane: Lane }>({
           await route.abort('blockedbyclient')
         },
       )
-      await context.route('https://ipwho.is/**', routeTo(answerIpLookup))
       await context.route(/^https:\/\/[a-z]+\.mapbox\.com\//, routeTo(answerMapbox))
       await context.route(`${LANE_API_ORIGIN}/**`, routeTo(answerSahajCloudRoute))
 

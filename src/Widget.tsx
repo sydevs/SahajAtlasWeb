@@ -14,6 +14,7 @@ import embed from './config/embed'
 import { queryClient } from './config/query-client'
 import i18n from './config/i18n'
 import { bootLocale } from './config/locale'
+import { bootApproxLocation } from './config/store'
 import { useLocale } from './hooks/use-locale'
 import { usePublishedNode } from './hooks/use-published-node'
 import { getInitialTheme, setThemeRoot } from './hooks/use-theme'
@@ -627,9 +628,14 @@ class SahajAtlasElement extends AtlasElementBase {
  * a URL captured on loader idle, which was neither this moment nor the one that
  * matters.
  */
-export function boot(config: LoaderConfig, observed: EmbedFingerprint | null = null): void {
+export function boot(
+  config: LoaderConfig,
+  observed: EmbedFingerprint | null = null,
+  writtenGeo: string | null = null,
+): void {
   embed.config = config
   embed.observed = observed
+  bootApproxLocation(writtenGeo)
 
   // Guarded: `customElements.define` throws NotSupportedError on a name that is
   // already registered, and two copies of the embed script on one page is a plausible

@@ -1,10 +1,11 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { StoryFallbackArg } from '@/views/story-harness'
-import type { Event, IpLocation } from '@/types'
+import type { Event } from '@/types'
 
 import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { ShareView } from '@/views/ShareView/ShareView'
+import { useApproxLocation } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { mockEvent } from '@/mocks/events'
 
@@ -24,20 +25,20 @@ try {
 }
 
 // A representative viewer country per world region. The share targets order themselves from
-// the IP lookup's `country_code` (see `useViewerCountry`). So each example seeds one country code.
+// the approximate location's country (see `useViewerCountry`). So each example seeds one country code.
 // `Default` carries none, and falls back to the universal set. Email always gets appended, so
 // it is the last icon in every case.
-const REGIONS: Record<string, { code?: string; city: string; country: string }> = {
-  Default: { city: 'Anywhere', country: 'Worldwide' },
-  Russia: { code: 'RU', city: 'Moscow', country: 'Russia' },
-  'East Asia': { code: 'JP', city: 'Tokyo', country: 'Japan' },
-  'South Asia': { code: 'IN', city: 'Mumbai', country: 'India' },
-  'Southeast Asia': { code: 'ID', city: 'Jakarta', country: 'Indonesia' },
-  'Middle East': { code: 'AE', city: 'Dubai', country: 'United Arab Emirates' },
-  Europe: { code: 'DE', city: 'Berlin', country: 'Germany' },
-  Americas: { code: 'US', city: 'New York', country: 'United States' },
-  Africa: { code: 'NG', city: 'Lagos', country: 'Nigeria' },
-  Oceania: { code: 'AU', city: 'Sydney', country: 'Australia' },
+const REGIONS: Record<string, { code?: string; city: string }> = {
+  Default: { city: 'Anywhere' },
+  Russia: { code: 'RU', city: 'Moscow' },
+  'East Asia': { code: 'JP', city: 'Tokyo' },
+  'South Asia': { code: 'IN', city: 'Mumbai' },
+  'Southeast Asia': { code: 'ID', city: 'Jakarta' },
+  'Middle East': { code: 'AE', city: 'Dubai' },
+  Europe: { code: 'DE', city: 'Berlin' },
+  Americas: { code: 'US', city: 'New York' },
+  Africa: { code: 'NG', city: 'Lagos' },
+  Oceania: { code: 'AU', city: 'Sydney' },
 }
 
 type RegionKey = keyof typeof REGIONS
@@ -87,7 +88,7 @@ export const Default: Story<{ region: RegionKey; share: ShareKey; state: StoryFa
   state,
 }) => {
   const { locale } = useLocale()
-  const { code, city, country } = REGIONS[region]
+  const { code, city } = REGIONS[region]
   const { webUrl, linkable } = SHARE_CASES[share]
 
   return (
@@ -97,12 +98,8 @@ export const Default: Story<{ region: RegionKey; share: ShareKey; state: StoryFa
       path={`${mockEvent.path}/share`}
       seed={(client: QueryClient) => {
         client.setQueryData<Event>(['event', mockEvent.id, locale], { ...mockEvent, webUrl })
-        client.setQueryData<IpLocation>(['ip-location'], {
-          latitude: 0,
-          longitude: 0,
-          city,
-          country,
-          ...(code ? { country_code: code } : {}),
+        useApproxLocation.setState({
+          location: { ...(code && { countryCode: code }), place: { city, center: [0, 0] } },
         })
       }}
       state={state}

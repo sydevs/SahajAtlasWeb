@@ -38,7 +38,7 @@ import type { DetectionSignals, EmbedFingerprint } from './detect'
 
 import { parseConfig } from './config'
 import { fingerprint } from './detect'
-import { ELEMENT_NAME } from './literals'
+import { ELEMENT_NAME, WRITTEN_GEO } from './literals'
 
 /** The console prefix. Duplicated from `reportIntegrationWarning`'s — see `./literals.ts`. */
 const LOG_PREFIX = '[sahaj-atlas]'
@@ -312,13 +312,15 @@ function start(script: HTMLScriptElement | null): void {
         // own router has had a turn. A host SPA that rewrites the URL during boot would
         // otherwise get measured mid-flight.
         //
-        // **This hands over the observation, and nothing else.** The loader used to compose a
+        // The Worker-written location rides along as the raw token; the widget decodes it.
+        //
+        // **The observation goes over as it is.** The loader used to compose a
         // report here too — the observation joined to the page's URL. That meant capturing the
         // URL at this moment, and carrying it on the boot singleton until the widget mounted
         // and sent it. The mount is now read by the send site itself (`lib/mount.ts`), so the
         // loader has no business with the host's URL at all. There is one observation now, not
         // two copies.
-        whenIdle(() => boot(config, detect(config)))
+        whenIdle(() => boot(config, detect(config), WRITTEN_GEO))
       })
       // A blocked or 404'd chunk is the one failure here a host can act on, and unhandled it is
       // an anonymous rejection beside an empty slot (#239). The browser's own error names the

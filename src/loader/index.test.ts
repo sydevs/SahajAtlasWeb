@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { WRITTEN_GEO } from './literals'
+
 /**
  * The loader's hand-off to the widget — the one step that runs after the host's page has moved
  * on, so a failure here leaves an empty slot rather than an error anyone sees (#239).
@@ -114,6 +116,8 @@ describe('booting on idle', () => {
     expect(widget.boot).toHaveBeenCalledWith(
       expect.objectContaining({ key: 'test-key' }),
       expect.objectContaining({ mode: 'inline' }),
+      // Unbuilt, the location literal is the placeholder the app Worker writes over.
+      WRITTEN_GEO,
     )
   })
 

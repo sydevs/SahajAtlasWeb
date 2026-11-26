@@ -304,7 +304,7 @@ The control opens the distance-ranked results centered on the visitor —
 `frameSearch` do the framing, so the fit inherits the `VENUE_MAX_ZOOM` cap and
 the list re-ranks. `nearbyBounds` builds the frame from the visitor plus the
 nearest few classes, floored at `NEARBY_RADIUS_KM` and capped at
-`NEARBY_MAX_KM` — the same radius that gates the IP prompt itself, so a class
+`NEARBY_MAX_KM` — the same radius that gates the nearby prompt itself, so a class
 the app declines to suggest cannot widen the camera either.
 
 - **`followUserLocation={false}` stops Mapbox moving the camera itself.** Its
@@ -322,8 +322,8 @@ the app declines to suggest cannot widen the camera either.
 ## The map needs browser PERMISSIONS, and a grep will not find them
 
 `<GeolocateControl />` is our JSX, but `navigator.geolocation` runs **inside
-mapbox-gl**, so grepping `src/` for it finds only the filters' Near me
-(`use-near-me.ts`, which also runs in a map-less embed) and misses the map's own request. The widget is embedded on pages we do not own, and
+mapbox-gl**, so grepping `src/` for it finds only the locator's map-less fallback
+(`use-locator.ts`, which Near me reaches in a map-less embed) and misses the map's own request. The widget is embedded on pages we do not own, and
 Permissions Policy can deny `geolocation`, `clipboard-write`, or `web-share` to
 a cross-origin frame by default (a host can also deny a script embed the same
 way with a header) — all three fail **silently**: "Find my location" does
@@ -379,7 +379,9 @@ lays out its own children:
   over itself, sets the same switch.
 - **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
   `showButton={false}`, and our button calls its `trigger()` through `useLocate`; the blue dot, the permission flow
-  and the `onError` dialog are unchanged. A permission denied before the map loaded used to
+  and the `onError` dialog are unchanged. While the map is mounted, `useLocate` registers that
+  control as the one locator's source (`hooks/use-locator.ts`), so the filters' Near me asks
+  through it too and draws the same dot; one request is out at a time, and a second ask shares it. A permission denied before the map loaded used to
   leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
   dialog too.
 - **The credits are Mapbox's own compact `AttributionControl`, in Mapbox's own look**, created

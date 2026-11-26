@@ -153,11 +153,9 @@ and `src/config/api/auth.ts`.
 
 ## Third-party services (no key)
 
-- **`https://ipwho.is`** — free, keyless IP-geolocation, used by `useIpLocation`
-  (`src/hooks/use-ip-location.ts`) to power the passive "events near you" suggestion. One lookup
-  per session, through a **bare `fetch`** — deliberately not the shared PayloadSDK client, whose
-  wrapped `fetch` (`interceptFetch` → `applyRequestContext`, `src/config/api/client.ts`) would
-  attach the SahajCloud `Authorization: clients API-Key …` and `locale` to a third-party host.
-  There is no secret and nothing to configure — the origin is a constant, and the bundle is
-  public. The lookup **fails silently** (returns `null`, no prompt) on any error, so a host
-  page's `connect-src` CSP that omits this origin just suppresses the suggestion.
+- **No IP-geolocation service.** The visitor's approximate location comes from Cloudflare's own
+  `request.cf`, written into `loader.js` and the standalone page by the app Worker
+  (`worker/index.ts`, `worker/geo.mjs`); nothing to configure. `pnpm dev` writes a fixed Prague
+  answer instead (`devApproxLocation` in `vite.config.ts`), and `ATLAS_DEV_GEO=off` serves the
+  placeholder untouched, which the widget reads as no guess. The `ipwho.is` lookup this replaced
+  is gone.
