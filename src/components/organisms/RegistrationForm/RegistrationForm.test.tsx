@@ -69,8 +69,10 @@ describe('RegistrationForm', () => {
   it('names the name and email fields for autofill', () => {
     const html = render(form)
 
-    expect(html).toMatch(/autoComplete="name"[^>]*id="name"/i)
-    expect(html).toMatch(/autoComplete="email"[^>]*id="email"/i)
+    const input = (id: string) => html.match(new RegExp(`<input[^>]*id="${id}"[^>]*>`))?.[0]
+
+    expect(input('name')).toMatch(/autoComplete="name"/i)
+    expect(input('email')).toMatch(/autoComplete="email"/i)
   })
 
   it('links the words a translation marks in the consent line to the privacy policy', () => {
