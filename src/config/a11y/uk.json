@@ -11,7 +11,8 @@
   },
   "event": {
     "view_photo": "Відкрити фото",
-    "pause_slideshow": "Призупинити слайд-шоу"
+    "pause_slideshow": "Призупинити слайд-шоу",
+    "copy_address": "Копіювати адресу"
   },
   "filters": {
     "remove": "Вилучити: %{label}"

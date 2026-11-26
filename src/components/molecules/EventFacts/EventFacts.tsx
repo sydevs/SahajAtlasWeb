@@ -1,7 +1,8 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-import { CalendarDays, MapPin, Monitor } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { CalendarDays, Check, Copy, MapPin, Monitor } from 'lucide-react'
 
 import { tv } from '@/styles/tv'
 import {
@@ -9,6 +10,7 @@ import {
   useEventDisplay,
   type DisplayableEvent,
 } from '@/hooks/use-event-display'
+import { useCopy } from '@/hooks/use-copy'
 
 // The when/where fact list. `default` is the panel treatment: brand-tinted
 // icons, roomy spacing. `compact` is the list-card treatment: a size under
@@ -117,6 +119,7 @@ export function EventFacts({
     eventTimeRange,
     eventStartTime,
     whereLine,
+    whereLineWithPostCode,
     roomLine,
     whereSubtext,
   } = useEventDisplay(event)
@@ -157,19 +160,22 @@ export function EventFacts({
   ]
 
   if (whereLine && display.status !== 'ended') {
-    // The room is directions, so only the panel carries it. The list card and the
-    // share/registration summaries are triage and recap (#316).
-    const room = variant === 'default' ? roomLine : null
+    // The room and the copyable address are for finding the place, so only the panel carries
+    // them. The list card and the share/registration summaries are triage and recap (#316).
+    const panel = variant === 'default'
+    const room = panel ? roomLine : null
+    const where =
+      panel && whereLineWithPostCode ? <CopyAddress value={whereLineWithPostCode} /> : whereLine
 
     items.push({
       icon: display.online ? Monitor : MapPin,
       text: room ? (
         <>
           <div>{room}</div>
-          <div>{whereLine}</div>
+          <div>{where}</div>
         </>
       ) : (
-        whereLine
+        where
       ),
       stacked: Boolean(room),
       subtext: display.online ? (whereSubtext ?? undefined) : (distance ?? undefined),
@@ -213,5 +219,50 @@ export function EventFacts({
       {body}
       {children}
     </div>
+  )
+}
+
+/** The class page's street address, which copies itself when tapped. The Directions action beside
+ *  it opens Google Maps from the stored point (`lib/events.ts`), so the clipboard is the only
+ *  route to any other maps app — Apple Maps is the iOS default. */
+function CopyAddress({ value }: { value: string }) {
+  const { t } = useTranslation()
+  const { copied, copy } = useCopy(2000)
+
+  const status = copied ? t('common.chrome.copied') : ''
+
+  // A refused copy selects the address instead, ready to copy by hand. The button's only text is
+  // the address, since the icon is `aria-hidden` and empty, so its children ARE the address. The
+  // element comes in as an argument because `currentTarget` is null once the copy has awaited.
+  const onClick = async (button: HTMLButtonElement) => {
+    if (!(await copy(value))) window.getSelection()?.selectAllChildren(button)
+  }
+
+  return (
+    <>
+      <button
+        data-vaul-no-drag
+        aria-label={`${t('event.a11y.copy_address')}: ${value}`}
+        className="touch-target relative rounded-lg text-start outline-none select-text focus-visible:ring-2 focus-visible:ring-focus"
+        type="button"
+        onClick={(event) => void onClick(event.currentTarget)}
+      >
+        {/* The address stays laid out under "Copied", so a wrapped line keeps its height. Inline,
+            so the icon follows its last word. */}
+        <span className={copied ? 'invisible' : undefined}>
+          {value}
+          <Copy aria-hidden className="ms-1.5 inline align-[-2px] text-gray-11" size={14} />
+        </span>
+        {copied && (
+          <span className="absolute inset-0 text-primary-11">
+            <Check aria-hidden className="me-1.5 inline align-[-3px]" size={16} />
+            {status}
+          </span>
+        )}
+      </button>
+      <span aria-live="polite" className="sr-only">
+        {status}
+      </span>
+    </>
   )
 }

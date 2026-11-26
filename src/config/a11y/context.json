@@ -11,7 +11,8 @@
   },
   "event": {
     "view_photo": "Names a photo in an event’s image carousel that has no description of its own; activating it opens the photo full size.",
-    "pause_slideshow": "Names the toggle button that stops the image carousel advancing on its own. The name stays the same whether paused or not; the button’s pressed state carries that."
+    "pause_slideshow": "Names the toggle button that stops the image carousel advancing on its own. The name stays the same whether paused or not; the button’s pressed state carries that.",
+    "copy_address": "Names the button on a class page that copies the venue’s street, town and postcode; the address itself is read right after it, as “Copy address: 120 Heath St, London NW3 1DR”."
   },
   "filters": {
     "remove": "Names the remove button on an active-filter chip. `%{label}` = the filter’s own label."

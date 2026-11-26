@@ -11,7 +11,8 @@
   },
   "event": {
     "view_photo": "Foto bekijken",
-    "pause_slideshow": "Diavoorstelling pauzeren"
+    "pause_slideshow": "Diavoorstelling pauzeren",
+    "copy_address": "Adres kopiëren"
   },
   "filters": {
     "remove": "%{label} verwijderen"
