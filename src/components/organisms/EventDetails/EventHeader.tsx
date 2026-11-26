@@ -27,7 +27,9 @@ export function EventHeader({ title, nav }: EventHeaderProps) {
     <div className={EVENT_HEADER} data-band="header">
       {nav}
       {title ? (
-        <h1 className={EVENT_TITLE}>{title}</h1>
+        // An h2, as every view's title is: inline, the page heading above it is the h1 (or the
+        // h2 under a host's own), and a second h1 would split the host page's outline.
+        <h2 className={EVENT_TITLE}>{title}</h2>
       ) : (
         <SkeletonGroup>
           <SkeletonLine className="text-xl" width="w-4/5" />
