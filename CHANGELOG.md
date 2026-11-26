@@ -45,8 +45,9 @@ cover everything a host would notice since the widget was first deployed.
 
 - **A class page's actions are quiet grey buttons, and Register is taller.** ([#502]) Directions,
   Contact, Share and Website were outlined circles; each is now a grey button with its icon beside
-  the word, or above it across the row when a label would not fit on one line (four actions, a
-  narrow phone, or longer languages such as Spanish, Portuguese and Russian). Register is 48px
+  the word, or above it across the row when a label would not fit on one line (a narrow phone,
+  all four actions in the desktop panel, or longer languages such as Spanish, Portuguese and
+  Russian). Register is 48px
   tall. On the phone map sheet only Register pins to the foot: the actions stay in the panel,
   under the address, rather than riding the pinned bar. On an iPhone or iPad, Directions opens
   Apple Maps rather than Google Maps, which made a fresh browser accept Google's consent page

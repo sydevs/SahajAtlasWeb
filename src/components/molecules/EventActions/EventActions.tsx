@@ -5,7 +5,6 @@ import { Globe, Navigation, Phone, Share } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { Button } from '@/components/atoms/Button'
-import { isIOS } from '@/components/atoms/Drawer/sheet-touch'
 import { CopyField } from '@/components/molecules/ShareContent'
 import { useCoarsePointer } from '@/config/responsive'
 import { useEventDisplay } from '@/hooks/use-event-display'
@@ -13,6 +12,7 @@ import { usePopover } from '@/hooks/use-popover'
 import { directionsUrl } from '@/lib'
 import { telHref } from '@/lib/shape'
 import { overlayContainer } from '@/lib/overlay'
+import { isIOS } from '@/lib/platform'
 import { Event } from '@/types'
 
 // One quiet grey Button per action, so Register stays the only thing that stands out. Each starts
@@ -25,31 +25,66 @@ const ACTION =
 
 const ICON_SIZE = 18
 
+const LABEL = {
+  directions: 'event.actions.directions',
+  website: 'event.actions.website',
+  contact: 'event.actions.contact',
+  share: 'event.actions.share',
+} as const
+
 // Icon beside label while every label fits on one line, otherwise icon above label across the
 // row. No width breakpoint can tell: three labels need 266px in English and 336px in Portuguese.
-// A row stays stacked until `labels` changes, so it cannot flip back and forth.
+// A cut records the width the inline row needs, and the row goes back inline only once it has
+// that much, so it cannot flip back and forth. Fonts can land after the first check, and the
+// row's own size does not change when they do, so their arrival re-checks too.
 function useStackWhenCut(labels: string) {
   const ref = useRef<HTMLDivElement>(null)
-  const [stackedFor, setStackedFor] = useState<string>()
-  const stacked = stackedFor === labels
+  const [cut, setCut] = useState<{ labels: string; needs: number }>()
+  const stacked = cut?.labels === labels
 
   useLayoutEffect(() => {
     const row = ref.current
 
-    if (!row || stacked || typeof ResizeObserver === 'undefined') return undefined
+    if (!row || typeof ResizeObserver === 'undefined') return undefined
 
+    let live = true
     const check = () => {
-      const spans = [...row.querySelectorAll('span')]
+      if (!live) return
 
-      if (spans.some((label) => label.scrollWidth > label.clientWidth)) setStackedFor(labels)
+      if (cut && stacked) {
+        if (row.clientWidth > cut.needs) setCut(undefined)
+
+        return
+      }
+
+      const buttons = [...row.children]
+      const overflow = buttons.map((button) => {
+        const label = button.querySelector('span')
+
+        return label ? label.scrollWidth - label.clientWidth : 0
+      })
+
+      if (!overflow.some((px) => px > 0)) return
+
+      const gap = parseFloat(getComputedStyle(row).columnGap) || 0
+      const needs = buttons.reduce(
+        (sum, button, i) => sum + button.getBoundingClientRect().width + overflow[i],
+        gap * (buttons.length - 1),
+      )
+
+      setCut({ labels, needs: Math.ceil(needs) })
     }
     const observer = new ResizeObserver(check)
 
     check()
     observer.observe(row)
+    void document.fonts?.ready.then(check)
 
-    return () => observer.disconnect()
-  }, [labels, stacked])
+    return () => {
+      live = false
+      observer.disconnect()
+    }
+  }, [cut, labels, stacked])
 
   return { ref, stacked }
 }
@@ -139,7 +174,7 @@ export type EventActionsProps = {
  * with the number and copy on desktop. A raw tel: link is a desktop dead end.
  */
 export function EventActions({ event, basePath }: EventActionsProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   // The one responsive decision in the app that is about the DEVICE, not
   // the space (issue #107). Whether a `tel:` link reaches anything is a
@@ -159,10 +194,7 @@ export function EventActions({ event, basePath }: EventActionsProps) {
 
         return (
           <Button key={kind} className={ACTION} href={mapsUrl} target="_blank" variant="flat">
-            <ActionContent
-              icon={<Navigation size={ICON_SIZE} />}
-              label={t('event.actions.directions')}
-            />
+            <ActionContent icon={<Navigation size={ICON_SIZE} />} label={t(LABEL.directions)} />
           </Button>
         )
       case 'website':
@@ -170,12 +202,12 @@ export function EventActions({ event, basePath }: EventActionsProps) {
 
         return (
           <Button key={kind} className={ACTION} href={event.website} target="_blank" variant="flat">
-            <ActionContent icon={<Globe size={ICON_SIZE} />} label={t('event.actions.website')} />
+            <ActionContent icon={<Globe size={ICON_SIZE} />} label={t(LABEL.website)} />
           </Button>
         )
       case 'contact': {
         if (!event.contactPhone) return []
-        const label = t('event.actions.contact')
+        const label = t(LABEL.contact)
 
         // Touch devices dial. Everything else shows the number with a copy affordance.
         return canDial ? (
@@ -199,13 +231,14 @@ export function EventActions({ event, basePath }: EventActionsProps) {
             variant="flat"
             onClick={() => navigate(`${basePath}/share`)}
           >
-            <ActionContent icon={<Share size={ICON_SIZE} />} label={t('event.actions.share')} />
+            <ActionContent icon={<Share size={ICON_SIZE} />} label={t(LABEL.share)} />
           </Button>
         )
     }
   })
-  // The language and the set decide every label.
-  const { ref, stacked } = useStackWhenCut(`${i18n.language}:${buttons.map((b) => b.key).join()}`)
+  const { ref, stacked } = useStackWhenCut(
+    buttons.map((button) => t(LABEL[button.key as keyof typeof LABEL])).join('|'),
+  )
 
   if (buttons.length === 0) return null
 
