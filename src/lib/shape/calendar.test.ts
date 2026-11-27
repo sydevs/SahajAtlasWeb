@@ -2,22 +2,19 @@ import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
 import {
-  CALENDAR_VIEW_LIST,
-  CALENDAR_VIEW_MONTH,
-  CALENDAR_VIEW_MONTH_AGENDA,
-  CALENDAR_VIEW_WEEK,
-  computeDayBoundaries,
-  eventsToCalendarEntries,
-  isCalendarViewOption,
-  resolveCalendarView,
-  scheduleXLocale,
-  tidyPlaceCase,
   type CalendarEntry,
   type CalendarSourceEvent,
+  calendarViewFromParams,
+  calendarWindow,
+  daysBetween,
+  entriesByDay,
+  eventsToCalendarEntries,
+  monthGrid,
+  shiftWeek,
+  tidyPlaceCase,
+  weekFilters,
 } from './calendar'
 import { DEFAULT_FILTERS, type EventFilters } from './filters'
-
-import { regionalLocale } from '@/lib/time'
 
 const at = (zone: string, iso: string) => DateTime.fromISO(iso, { zone })
 
@@ -166,7 +163,7 @@ describe('eventsToCalendarEntries', () => {
       onlineLabel: 'Online',
     })
 
-    expect(entry).toMatchObject({ detail: 'London · Online', calendarId: 'online' })
+    expect(entry).toMatchObject({ detail: 'London · Online', online: true })
     expect(bare).toMatchObject({ name: 'Weekly meditation', detail: 'Online' })
   })
 
@@ -174,7 +171,7 @@ describe('eventsToCalendarEntries', () => {
     const evt = makeEvent({ title: 'Just the title', occurrences: [at('UTC', '2026-07-06T09:30')] })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(entry.calendarId).toBeUndefined()
+    expect(entry.online).toBe(false)
     expect(entry.detail).toBeUndefined()
   })
 
@@ -229,160 +226,6 @@ describe('eventsToCalendarEntries', () => {
   })
 })
 
-describe('computeDayBoundaries', () => {
-  const entry = (start: string, end: string): CalendarEntry => ({
-    id: start,
-    name: 'x',
-    start,
-    end,
-    path: '/1',
-  })
-
-  it('frames to the events (1h either side) when no time filter is set', () => {
-    const entries = [
-      entry('2026-07-06 09:30', '2026-07-06 10:30'),
-      entry('2026-07-06 14:00', '2026-07-06 15:00'),
-    ]
-
-    expect(computeDayBoundaries(entries, [])).toEqual({ start: '08:00', end: '16:00' })
-  })
-
-  it('counts an overnight event to the day end', () => {
-    const entries = [entry('2026-07-06 23:00', '2026-07-07 00:30')]
-
-    expect(computeDayBoundaries(entries, [])).toEqual({ start: '22:00', end: '24:00' })
-  })
-
-  it('is undefined with no entries and no filter', () => {
-    expect(computeDayBoundaries([], [])).toBeUndefined()
-  })
-
-  it('spans a single selected period, ignoring the events', () => {
-    expect(computeDayBoundaries([], ['morning'])).toEqual({ start: '06:00', end: '12:00' })
-  })
-
-  it('spans multiple non-wrapping periods from earliest to latest', () => {
-    expect(computeDayBoundaries([], ['morning', 'evening'])).toEqual({
-      start: '06:00',
-      end: '24:00',
-    })
-  })
-
-  it('frames an overnight span (evening into night) as start > end', () => {
-    expect(computeDayBoundaries([], ['night'])).toEqual({ start: '00:00', end: '06:00' })
-    expect(computeDayBoundaries([], ['evening', 'night'])).toEqual({ start: '17:00', end: '06:00' })
-  })
-
-  it('is undefined when every period is selected (whole day)', () => {
-    expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening', 'night'])).toBeUndefined()
-  })
-})
-
-describe('isCalendarViewOption', () => {
-  it('accepts the three the switch offers', () => {
-    expect(isCalendarViewOption(CALENDAR_VIEW_MONTH)).toBe(true)
-    expect(isCalendarViewOption(CALENDAR_VIEW_WEEK)).toBe(true)
-    expect(isCalendarViewOption(CALENDAR_VIEW_LIST)).toBe(true)
-  })
-
-  // The one name the store must never hold: it renders FOR Month and the switch has no item
-  // for it, so a stored `month-agenda` would light nothing.
-  it('refuses the month agenda', () => {
-    expect(isCalendarViewOption(CALENDAR_VIEW_MONTH_AGENDA)).toBe(false)
-  })
-
-  // Radix reports a deselect as the empty string, which is what the guard replaced.
-  it('refuses an empty value and an unknown name', () => {
-    expect(isCalendarViewOption('')).toBe(false)
-    expect(isCalendarViewOption('day')).toBe(false)
-  })
-})
-
-describe('resolveCalendarView', () => {
-  it('renders what the viewer picked at or above the crossing', () => {
-    expect(resolveCalendarView(CALENDAR_VIEW_MONTH, true)).toEqual({
-      view: CALENDAR_VIEW_MONTH,
-      option: CALENDAR_VIEW_MONTH,
-    })
-    expect(resolveCalendarView(CALENDAR_VIEW_WEEK, true)).toEqual({
-      view: CALENDAR_VIEW_WEEK,
-      option: CALENDAR_VIEW_WEEK,
-    })
-  })
-
-  it('collapses month onto the month agenda below the crossing, still lighting Month', () => {
-    expect(resolveCalendarView(CALENDAR_VIEW_MONTH, false)).toEqual({
-      view: CALENDAR_VIEW_MONTH_AGENDA,
-      option: CALENDAR_VIEW_MONTH,
-    })
-  })
-
-  it('collapses week onto the month agenda below the crossing, where Week is not offered', () => {
-    expect(resolveCalendarView(CALENDAR_VIEW_WEEK, false)).toEqual({
-      view: CALENDAR_VIEW_MONTH_AGENDA,
-      option: CALENDAR_VIEW_MONTH,
-    })
-  })
-
-  it('passes the list view through at either width', () => {
-    for (const isWide of [true, false]) {
-      expect(resolveCalendarView(CALENDAR_VIEW_LIST, isWide)).toEqual({
-        view: CALENDAR_VIEW_LIST,
-        option: CALENDAR_VIEW_LIST,
-      })
-    }
-  })
-
-  it('treats an unset store as month, so a fresh phone mount renders the agenda', () => {
-    expect(resolveCalendarView(null, true).view).toBe(CALENDAR_VIEW_MONTH)
-    expect(resolveCalendarView(null, false).view).toBe(CALENDAR_VIEW_MONTH_AGENDA)
-  })
-
-  // The store keeps the viewer's pick, never the resolution, so widening restores it — the
-  // round trip the criteria name, a resize over the crossing in both directions.
-  it('restores a stored week above the crossing after a trip below it', () => {
-    const stored = CALENDAR_VIEW_WEEK
-
-    expect(resolveCalendarView(stored, false).option).toBe(CALENDAR_VIEW_MONTH)
-    expect(resolveCalendarView(stored, true).option).toBe(CALENDAR_VIEW_WEEK)
-  })
-})
-
-describe('scheduleXLocale', () => {
-  it('keeps an exact match', () => {
-    expect(scheduleXLocale('en-GB')).toBe('en-GB')
-    expect(scheduleXLocale('pt-BR')).toBe('pt-BR')
-  })
-
-  it('falls back to the base language for a regional tag it lacks', () => {
-    expect(scheduleXLocale('de-DE')).toBe('de-DE')
-    expect(scheduleXLocale('de-AT')).toBe('de-DE')
-    expect(scheduleXLocale('fr-CA')).toBe('fr-FR')
-    expect(scheduleXLocale('es-MX')).toBe('es-ES')
-    // A Portuguese page whose browser reads pt-PT still runs the grid in Portuguese.
-    expect(scheduleXLocale(regionalLocale('pt-BR', ['pt-PT']))).toBe('pt-BR')
-    expect(scheduleXLocale('pt')).toBe('pt-BR')
-  })
-
-  // The lists beside the grid read `regionalLocale`'s tag, so the grid follows its date order: a
-  // Czech browser's en-CZ reads day first in both.
-  it('runs a regional English as en-GB or en-US by its date order', () => {
-    expect(scheduleXLocale('en')).toBe('en-US')
-    expect(scheduleXLocale('en-US')).toBe('en-US')
-    expect(scheduleXLocale(regionalLocale('en', ['cs-CZ', 'en-US']))).toBe('en-GB')
-    expect(scheduleXLocale('en-DE')).toBe('en-GB')
-    expect(scheduleXLocale('en-AU')).toBe('en-GB')
-    expect(scheduleXLocale('en-ZA')).toBe('en-GB')
-    expect(scheduleXLocale('en-CA')).toBe('en-US')
-    expect(scheduleXLocale(regionalLocale('en', ['pt-BR']))).toBe('en-US')
-  })
-
-  it('falls back to en-US for a language Schedule-X lacks', () => {
-    expect(scheduleXLocale('hu')).toBe('en-US')
-    expect(scheduleXLocale('hu-HU')).toBe('en-US')
-  })
-})
-
 describe('tidyPlaceCase', () => {
   it('recases a name typed all in capitals, keeping its joining words lower case', () => {
     expect(tidyPlaceCase('HARROGATE')).toBe('Harrogate')
@@ -397,5 +240,86 @@ describe('tidyPlaceCase', () => {
     expect(tidyPlaceCase('McLean')).toBe('McLean')
     expect(tidyPlaceCase('coventry')).toBe('coventry')
     expect(tidyPlaceCase('東京')).toBe('東京')
+  })
+})
+
+const entry = (start: string): CalendarEntry => ({
+  id: start,
+  name: 'x',
+  start,
+  end: start,
+  path: '/1',
+  online: false,
+})
+
+describe('the Week', () => {
+  const today = '2026-11-27'
+
+  it('opens on the seven days from today, or from a link’s first day', () => {
+    expect(calendarWindow({ start: null, end: null }, today)).toEqual({
+      start: today,
+      end: '2026-12-03',
+      isThisWeek: true,
+    })
+    // A link naming three weeks opens the first seven days; one that has passed opens today.
+    expect(calendarWindow({ start: '2026-12-10', end: '2026-12-31' }, today)).toMatchObject({
+      start: '2026-12-10',
+      end: '2026-12-16',
+      isThisWeek: false,
+    })
+    expect(calendarWindow({ start: '2026-11-01', end: null }, today).start).toBe(today)
+  })
+
+  it('pages a week at a time, and back to this week’s plain address', () => {
+    const now = calendarWindow({ start: null, end: null }, today)
+    const next = shiftWeek(now, 1, today)
+
+    expect(next).toEqual({ start: '2026-12-04', end: '2026-12-10' })
+    expect(shiftWeek(calendarWindow(next, today), -1, today)).toEqual({ start: null, end: null })
+  })
+
+  it('reads its own seven days in place of the link’s range', () => {
+    expect(
+      weekFilters({ ...DEFAULT_FILTERS, dateRange: { start: null, end: null } }, today).dateRange,
+    ).toEqual({
+      start: today,
+      end: '2026-12-03',
+    })
+  })
+
+  it('takes its view from the address', () => {
+    expect(calendarViewFromParams(new URLSearchParams('view=week'))).toBe('week')
+    expect(calendarViewFromParams(new URLSearchParams('view=list'))).toBe('month')
+    expect(daysBetween('2026-11-30', '2026-12-02')).toEqual([
+      '2026-11-30',
+      '2026-12-01',
+      '2026-12-02',
+    ])
+  })
+})
+
+describe('the Month', () => {
+  it('lays a month out in whole weeks from the locale’s first weekday', () => {
+    const monday = monthGrid('2026-11-27', 1)
+    const sunday = monthGrid('2026-11-27', 7)
+
+    expect(monday[0][0]).toBe('2026-10-26')
+    expect(monday.at(-1)?.at(-1)).toBe('2026-12-06')
+    expect(sunday[0][0]).toBe('2026-11-01')
+    expect(sunday.every((week) => week.length === 7)).toBe(true)
+  })
+
+  it('groups entries by their start day, each day in start order', () => {
+    const days = entriesByDay([
+      entry('2026-11-27 19:00'),
+      entry('2026-11-27 09:00'),
+      entry('2026-11-28 10:00'),
+    ])
+
+    expect(days.get('2026-11-27')?.map((e) => e.start)).toEqual([
+      '2026-11-27 09:00',
+      '2026-11-27 19:00',
+    ])
+    expect([...days.keys()]).toEqual(['2026-11-27', '2026-11-28'])
   })
 })

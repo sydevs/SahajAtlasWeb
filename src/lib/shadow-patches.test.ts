@@ -4,18 +4,11 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 
 import { FocusScope } from '@radix-ui/react-focus-scope'
-import {
-  createCalendar,
-  createViewList,
-  createViewMonthGrid,
-  createViewWeek,
-} from '@schedule-x/calendar'
 import { hideOthers } from 'aria-hidden'
 import { createElement } from 'react'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Temporal } from 'temporal-polyfill'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { deepActiveElement } from './active-element'
 
@@ -45,8 +38,6 @@ const FOCUS_SCOPE = '@radix-ui/react-focus-scope'
 
 const ARIA_HIDDEN = 'aria-hidden'
 
-const SCHEDULE_X = '@schedule-x/calendar'
-
 const VAUL = 'vaul'
 
 const PATCHES: Record<string, Patch> = {
@@ -75,61 +66,6 @@ const PATCHES: Record<string, Patch> = {
       ["issue-10's exemption is collected from the target's own root", 'sydevsTargetRoot'],
     ],
     gone: [['correctTargets keeps the target, not its host', 'return correctedTarget;']],
-  },
-  // ⚠ All three builds, since the bundle loads `core.js` (`module`) while this lane loads
-  // `core.cjs.js` (`main`) — a spec green against one says nothing about the other.
-  [SCHEDULE_X]: {
-    patch: 'patches/@schedule-x__calendar@4.9.1.patch',
-    files: ['dist/core.js', 'dist/core.cjs.js', 'dist/core.umd.js'],
-    hunks: [
-      [
-        'Temporal is the polyfill module, not a global',
-        'const Temporal = temporalPolyfill.Temporal;',
-      ],
-      ['ids resolve through the rendered roots too', 'const sydevsById = (id) => {'],
-      ['selectors resolve through the rendered roots too', 'const sydevsQuery = (selector) => {'],
-      ['render records the element it rendered into', 'sydevsContainers.add(el);'],
-      ['the week grid is sized on that element', "sydevsSetProperty('--sx-week-grid-height'"],
-      ['the hour rows are sized on that element', "sydevsSetProperty('--sx-week-grid-hour-height'"],
-      ['calendar colours are set on that element', 'sydevsSetProperty(`--sx-color-${colorName}`'],
-      ['render sets the colours again', 'const sydevsColors = new EventColors(this.$app.config);'],
-      [
-        'a start already in the calendar’s zone is read as is',
-        'if (this._start.timeZoneId === this._config.timezone.value) return this._start;',
-      ],
-      [
-        'an end already in the calendar’s zone is read as is',
-        'if (this._end.timeZoneId === this._config.timezone.value) return this._end;',
-      ],
-      [
-        'a word the widget supplies is asked for first',
-        'const sydevsWords = languages.value.sydevs;',
-      ],
-      [
-        'the widget’s translations join the built-in languages',
-        '.withTranslations(Object.assign({}, translations, config.translations))',
-      ],
-    ],
-    gone: [
-      [
-        'the widget’s translations replace every built-in language',
-        '.withTranslations(config.translations || translations)',
-      ],
-      [
-        'the view container lookup reads only the document',
-        'document.getElementById(viewContainerId)',
-      ],
-      ['the wrapper lookup reads only the document', 'document.getElementById(calendarId)'],
-      ['view teardown reads only the document', 'document.getElementById(this.randomId)'],
-      [
-        'the month agenda observes only the document',
-        'const monthViewElement = document.getElementById(id)',
-      ],
-      [
-        'a variable is written onto the host page’s <html>',
-        'document.documentElement.style.setProperty(',
-      ],
-    ],
   },
   // ⚠ `modal` is forwarded in the ESM build alone: the one every consumer loads, measured — the
   // bundle, the dev server's pre-bundle, Ladle, and this lane in node and jsdom alike.
@@ -374,193 +310,6 @@ describe('FocusScope through a shadow boundary', () => {
    */
   it('keeps every hunk in our own pinned copy', () => {
     expectPatched(FOCUS_SCOPE, packageRoot(require_, FOCUS_SCOPE), 'our pin')
-  })
-})
-
-describe('Schedule-X through a shadow boundary', () => {
-  const meditation = {
-    id: 1,
-    title: 'Meditation',
-    start: Temporal.ZonedDateTime.from('2026-10-20T19:00[UTC]'),
-    end: Temporal.ZonedDateTime.from('2026-10-20T20:00[UTC]'),
-  }
-
-  // A spec that throws must not leave its stubbed `Temporal` to the next one.
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  // Unpatched, the core finds its view container with `document.getElementById`, which
-  // cannot see into the root, so the grid never renders: the embed showed the calendar's
-  // header over an empty body.
-  it('renders its view inside a shadow root', async () => {
-    const root = mountShadowHost()
-    const container = document.createElement('div')
-
-    root.append(container)
-
-    const calendar = createCalendar({
-      views: [createViewMonthGrid(), createViewList()],
-      selectedDate: Temporal.PlainDate.from('2026-10-19'),
-      events: [meditation],
-    })
-
-    await act(async () => {
-      calendar.render(container)
-    })
-
-    // The view mounts a beat after the wrapper, from an effect.
-    await vi.waitFor(() => {
-      expect(root.querySelector('.sx__view-container .sx__month-grid-wrapper')).not.toBeNull()
-    })
-
-    await act(async () => {
-      calendar.destroy()
-    })
-  })
-
-  // Unpatched, the core reads the PAGE's `Temporal`: a browser's own, or a host's copy. Every
-  // `instanceof` against the polyfill objects the widget hands it then fails, and the polyfill's
-  // documented cure overwrites that global for the whole host page.
-  it('reads the polyfill module, never the page’s own Temporal', async () => {
-    vi.stubGlobal('Temporal', { PlainDate: class {}, ZonedDateTime: class {}, Now: {} })
-
-    const root = mountShadowHost()
-    const container = document.createElement('div')
-
-    root.append(container)
-
-    const calendar = createCalendar({
-      views: [createViewMonthGrid()],
-      selectedDate: Temporal.PlainDate.from('2026-10-19'),
-      events: [meditation],
-    })
-
-    await act(async () => {
-      calendar.render(container)
-    })
-
-    await vi.waitFor(() => {
-      expect(root.querySelector('.sx__month-grid-event')?.textContent).toContain('Meditation')
-    })
-
-    await act(async () => {
-      calendar.destroy()
-    })
-  })
-
-  // Unpatched, both go onto the host page's <html>. There the theme's
-  // `:root { --sx-week-grid-height: 0 }`, restated on the widget's scope root inside the
-  // shadow root, wins over the inherited height, so the week grid collapsed to 0px; and a
-  // colour written as `hsl(var(--secondary-9))` resolves against the host's tokens, not ours,
-  // so online events lost their colour.
-  it('sets its sizing and colours on the element it rendered into, not on the host page', async () => {
-    const root = mountShadowHost()
-    const container = document.createElement('div')
-
-    root.append(container)
-
-    const online = { main: 'red', container: 'pink', onContainer: 'black' }
-    const calendar = createCalendar({
-      views: [createViewWeek()],
-      selectedDate: Temporal.PlainDate.from('2026-10-19'),
-      weekOptions: { gridHeight: 1200 },
-      calendars: { online: { colorName: 'online', lightColors: online, darkColors: online } },
-    })
-
-    await act(async () => {
-      calendar.render(container)
-    })
-
-    await vi.waitFor(() => {
-      expect(container.style.getPropertyValue('--sx-week-grid-height')).toBe('1200px')
-    })
-    expect(container.style.getPropertyValue('--sx-week-grid-hour-height')).toBe('50px')
-    expect(container.style.getPropertyValue('--sx-color-online')).toBe('red')
-    expect(document.documentElement.getAttribute('style') ?? '').toBe('')
-
-    await act(async () => {
-      calendar.destroy()
-    })
-  })
-
-  // Unpatched, every read of an event's start or end re-zones it, even into the zone it is
-  // already in. A full feed's sort and layout read each event thousands of times, which made
-  // the calendar several times slower than on 2.x.
-  it('reads an event already in the calendar’s zone as is, and re-zones any other', () => {
-    const elsewhere = {
-      ...meditation,
-      id: 2,
-      start: meditation.start.withTimeZone('Asia/Kolkata'),
-      end: meditation.end.withTimeZone('Asia/Kolkata'),
-    }
-    const calendar = createCalendar({
-      views: [createViewMonthGrid()],
-      timezone: 'UTC',
-      events: [meditation, elsewhere],
-    })
-
-    type Read = { start: Temporal.ZonedDateTime; end: Temporal.ZonedDateTime }
-    const [same, other] = (
-      calendar as unknown as { $app: { calendarEvents: { list: { value: Read[] } } } }
-    ).$app.calendarEvents.list.value
-
-    expect(same.start).toBe(same.start)
-    expect(same.end).toBe(same.end)
-    expect(other.start.timeZoneId).toBe('UTC')
-    expect(other.end.timeZoneId).toBe('UTC')
-    expect(other.start.equals(meditation.start)).toBe(true)
-  })
-
-  // Unpatched, a key's words are one string per language with `{{n}}` filled in, so "+ 2 classes"
-  // could not take a plural form, and passing any table replaced every language Schedule-X ships.
-  it('asks the widget for a word first, and keeps its own languages for the rest', async () => {
-    const root = mountShadowHost()
-    const container = document.createElement('div')
-
-    root.append(container)
-
-    const sydevs = (key: string, vars: Record<string, unknown>) =>
-      key === '+ {{n}} events' ? `+ ${String(vars.n)} Kurse` : undefined
-    const calendar = createCalendar({
-      views: [createViewMonthGrid()],
-      isResponsive: false,
-      locale: 'de-DE',
-      timezone: 'UTC',
-      selectedDate: Temporal.PlainDate.from('2026-10-19'),
-      events: [10, 11, 12, 13, 14, 15].map((hour) => ({
-        id: hour,
-        title: 'Meditation',
-        start: Temporal.ZonedDateTime.from(`2026-10-20T${hour}:00[UTC]`),
-        end: Temporal.ZonedDateTime.from(`2026-10-20T${hour}:30[UTC]`),
-      })),
-      // The patched core takes a function beside its languages, which its types cannot say.
-      translations: { sydevs } as unknown as Parameters<typeof createCalendar>[0]['translations'],
-    })
-
-    await act(async () => {
-      calendar.render(container)
-    })
-
-    await vi.waitFor(() => {
-      expect(root.querySelector('.sx__month-grid-day__events-more')).not.toBeNull()
-    })
-
-    const more = root.querySelector('.sx__month-grid-day__events-more')
-
-    expect(more?.textContent).toBe('+ 2 Kurse')
-    // A key the widget leaves alone keeps Schedule-X's own German.
-    expect(more?.getAttribute('aria-label')).toMatch(/^Link zu 2 weiteren /)
-
-    await act(async () => {
-      calendar.destroy()
-    })
-  })
-
-  // No consumer pin below: only `@schedule-x/react` reaches this package besides us, as a peer,
-  // so it resolves our pinned copy rather than bringing its own.
-  it('keeps every hunk in our own pinned copy', () => {
-    expectPatched(SCHEDULE_X, packageRoot(require_, SCHEDULE_X), 'our pin')
   })
 })
 

@@ -126,6 +126,24 @@ export const formatLongDate = (at: DateTime, locale: string): string =>
     year: at.year === DateTime.now().setZone(at.zone).year ? undefined : 'numeric',
   })
 
+/**
+ * Two dates as one span, the way the locale joins them: "16 – 22 Nov" in the UK, "Nov 16 – 22" in
+ * the US, with the month or year written twice only where they differ.
+ */
+export const formatDateRange = (start: DateTime, end: DateTime, locale: string): string =>
+  new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: end.year === DateTime.now().setZone(end.zone).year ? undefined : 'numeric',
+    timeZone: 'UTC',
+  }).formatRange(
+    new Date(Date.UTC(start.year, start.month - 1, start.day)),
+    new Date(Date.UTC(end.year, end.month - 1, end.day)),
+  )
+
+/** The weekday a locale's weeks start on, as Luxon numbers them: 1 for Monday, 7 for Sunday. */
+export const firstWeekday = (locale: string): number => Info.getStartOfWeek({ locale })
+
 /** A weekday's name: "Wednesday", or "Wed" when `short`. */
 export const formatWeekday = (
   at: DateTime,

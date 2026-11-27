@@ -1,178 +1,208 @@
-import type { CalendarConfig } from '@schedule-x/calendar'
-
-import { type CSSProperties, Suspense, useMemo, useRef } from 'react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { Suspense, useMemo, useRef } from 'react'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
-import { useNextCalendarApp } from '@schedule-x/react'
-import {
-  createViewList,
-  createViewMonthAgenda,
-  createViewMonthGrid,
-  createViewWeek,
-} from '@schedule-x/calendar'
-import { createCalendarControlsPlugin } from '@schedule-x/calendar-controls'
 import { ChevronRight } from 'lucide-react'
-// ⚠ The module, never `temporal-polyfill/global`: that overwrites the host page's own
-// `Temporal` and `Intl.DateTimeFormat`. The patched Schedule-X core binds this same module,
-// and its `instanceof` checks need both sides on one copy.
-import { Temporal } from 'temporal-polyfill'
 
-import '@schedule-x/theme-default/dist/index.css'
-
-import { CalendarMount } from './CalendarMount'
-import { dayHeadingParts } from './day-heading'
-import { calendarRenderers } from './renderers'
-import { scheduleXWords } from './schedule-x-words'
-import { scheduleXTimeline } from './timeline'
+import { MonthView } from './MonthView'
+import { ShareWeek } from './ShareWeek'
+import { WeekList } from './WeekList'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
-import api from '@/config/api'
+import api, { regionsQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useCalendarPosition } from '@/config/store'
-import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
-import { useEventFilters } from '@/hooks/use-filters'
+import { useCalendarView, useSetCalendarView } from '@/hooks/use-calendar-view'
+import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
-import { useTheme } from '@/hooks/use-theme'
 import {
-  CALENDAR_VIEW_LIST,
-  CALENDAR_VIEW_MONTH,
-  CALENDAR_VIEW_MONTH_AGENDA,
-  CALENDAR_VIEW_WEEK,
+  type CalendarViewName,
+  type CalendarWindow,
   type EventFilters,
-  computeDayBoundaries,
+  CALENDAR_WEEK_PARAM,
+  DEFAULT_FILTERS,
+  calendarWindow,
   eventsToCalendarEntries,
+  filtersFromParams,
   filtersKey,
-  isCalendarViewOption,
-  resolveCalendarView,
-  scheduleXLocale,
+  filtersToParams,
+  hasActiveFilters,
+  safePath,
+  shiftWeek,
   todayISO,
+  weekFrom,
 } from '@/lib/shape'
-import { formatDate, formatMonth, zoneCity } from '@/lib/time'
+import { formatDateRange, formatMonth, zoneCity } from '@/lib/time'
 import { BackButton } from '@/views/nav'
-import { ExpandSheetButton, FilterButton } from '@/views/shared'
+import { DrawerTitle, ExpandSheetButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 
-// Online programs get their own colour, the secondary ramp, so they stand out from
-// in-person events on the grid. Entries built with `calendarId: 'online'` (see
-// eventsToCalendarEntries) pick it up. Light and dark share the same token strings — the
-// `--secondary-*` CSS vars adapt to the theme on the `.sx-calendar` wrapper, so SX's own
-// isDark colour switch is not needed.
-const ONLINE_COLORS = {
-  main: 'hsl(var(--secondary-9))',
-  container: 'hsl(var(--secondary-4))',
-  // Plain text: the -11 step measured under 3:1 on its own tint.
-  onContainer: 'var(--gray-12)',
-}
-const CALENDARS = {
-  online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
-}
+const NO_DATES = { start: null, end: null }
 
-type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
-
-// The date the grid has focused, or today until it reports one.
+// The date the Month has in view, or today until the visitor moves it.
 const useFocusedDate = () => useCalendarPosition((s) => s.date) ?? todayISO()
 
-// The header drives Schedule-X through the `calendar-controls` plugin, but its buttons are
-// live before the grid mounts — the header sits above the Suspense. So each action updates the
-// store FIRST. That is what re-renders the header — label and active view — and what the grid
-// seeds from when it (re)mounts. It then best-effort calls the plugin to move the *mounted*
-// calendar. This call is wrapped because a plugin call before its `onRender` throws a
-// TypeError, since there is no `$app` yet. The store write above already recorded the intent,
-// and the seed applies it on mount.
-const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin) => void) => {
-  try {
-    fn(controls)
-  } catch {
-    // Pre-mount: the plugin has no `$app` yet — the store write above seeds it on mount.
-  }
+const setFocused = (day: string) => useCalendarPosition.getState().setDate(day)
+
+/**
+ * The filters a visitor chose, for the pills and the Filters count. The place is the calendar's
+ * title, and on the Week the dates are its arrows: neither is a restriction they added.
+ */
+export const chosenCalendarFilters = (
+  filters: EventFilters,
+  view: CalendarViewName,
+): EventFilters => ({
+  ...filters,
+  region: null,
+  dateRange: view === 'week' ? NO_DATES : filters.dateRange,
+})
+
+/** The address a shared week opens: this place, these filters, the Week, and its seven days. */
+export const shareWeekRoute = (filters: EventFilters, week: CalendarWindow): string => {
+  const params = filtersToParams({ ...filters, dateRange: { start: week.start, end: week.end } })
+
+  params.set('view', CALENDAR_WEEK_PARAM)
+
+  return `/calendar?${params}`
 }
 
-// This drives Schedule-X from this project's own header, rather than styling its built-in
-// one, whose date picker, view dropdown, and nav kept causing conflicts. The `calendar-controls`
-// plugin is a public API (`setView`/`setDate`/`getRange`/…), so the header uses this project's
-// own atoms — one consistent drawer header — and SX's header bar stays hidden in globals.css.
-function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
+/** Opens the Week on the seven days from a day, in place. */
+function useOpenWeek() {
+  const [, setSearchParams] = useSearchParams()
+  const location = useLocation()
+
+  return (day: string) =>
+    setSearchParams(
+      (prev) => {
+        const next = filtersToParams(
+          { ...filtersFromParams(prev), dateRange: weekFrom(day) },
+          new URLSearchParams(prev),
+        )
+
+        next.set('view', CALENDAR_WEEK_PARAM)
+
+        return next
+      },
+      { replace: true, state: location.state },
+    )
+}
+
+// The place the calendar is scoped to, from the cache-once region tree.
+function usePlace(slug: string | null) {
+  const { data: regions } = useQuery(regionsQuery())
+  const node = slug ? regions?.find((region) => region.slug === slug) : undefined
+
+  return { name: node?.name ?? undefined, path: safePath(node?.webPath) }
+}
+
+/**
+ * "See list": the place's own list. Opened from that list, this steps back to it, so flipping
+ * between the two never piles up entries behind Back.
+ */
+function SeeListButton({ path }: { path: string }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from
+
+  return (
+    <Button
+      className="shrink-0"
+      color="primary"
+      size="sm"
+      variant="flat"
+      onClick={() =>
+        from?.split('?')[0] === path
+          ? navigate(-1)
+          : navigate(path, { replace: true, state: location.state })
+      }
+    >
+      {t('calendar.see_list')}
+    </Button>
+  )
+}
+
+function CalendarHeader({ view, week }: { view: CalendarViewName; week: CalendarWindow }) {
   const { t } = useTranslation()
   const { formatLocale } = useLocale()
-  const isWide = useIsWideWidget()
-  const stored = useCalendarPosition((s) => s.view)
-  // The OPTION, not the stored name: below the crossing a stored `week` renders a month
-  // agenda, so the lit button, the label and the paging step must all follow what rendered.
-  const { option } = resolveCalendarView(stored, isWide)
+  const setView = useSetCalendarView()
+  const filters = useEventFilters()
+  const { setDateRange } = useSetFilters()
   const focused = useFocusedDate()
+  const place = usePlace(filters.region)
   const dateInputRef = useRef<HTMLInputElement>(null)
+  const today = todayISO()
+  const isWeek = view === 'week'
+  const weekDates = formatDateRange(
+    DateTime.fromISO(week.start),
+    DateTime.fromISO(week.end),
+    formatLocale,
+  )
+  const month = DateTime.fromISO(focused).startOf('month')
+  const label = isWeek
+    ? week.isThisWeek
+      ? t('calendar.next_7_days')
+      : weekDates
+    : formatMonth(month, formatLocale)
+  // Nothing before today has classes, so neither view pages back past it.
+  const atStart = isWeek ? week.isThisWeek : month <= DateTime.now().startOf('month')
 
-  // The header label, localized straight from luxon (no per-month i18n key), shows the month +
-  // year in month view, but the specific date (condensed month) in the week + list views — for
-  // the week its first day.
-  const dt = DateTime.fromISO(focused)
-  const label =
-    option === CALENDAR_VIEW_MONTH
-      ? formatMonth(dt, formatLocale)
-      : formatDate(option === CALENDAR_VIEW_WEEK ? dt.startOf('week') : dt, formatLocale, {
-          weekday: false,
-        })
+  const pick = (day: string) =>
+    isWeek ? setDateRange(day <= today ? NO_DATES : weekFrom(day)) : setFocused(day)
 
-  const applyDate = (next: string) => {
-    useCalendarPosition.getState().setDate(next)
-    drive(controls, (c) => c.setDate(Temporal.PlainDate.from(next)))
+  const step = (direction: -1 | 1) => {
+    if (isWeek) return setDateRange(shiftWeek(week, direction, today))
+
+    const next = month.plus({ months: direction })
+
+    // This month opens on today, so the phone list starts on a day still to come.
+    setFocused((next.hasSame(DateTime.now(), 'month') ? today : next.toISODate()) ?? today)
   }
 
-  // The store takes what was PICKED, never the width-specific view that renders for it, so a
-  // `week` picked on a desktop lights Week again after a trip through a phone width.
-  const selectView = (next: string) => {
-    if (!isCalendarViewOption(next)) return
-    useCalendarPosition.getState().setView(next)
-    drive(controls, (c) => c.setView(resolveCalendarView(next, isWide).view))
-  }
-
-  // Page one period off the focused date — a month in month view, a week in week view, a day in
-  // list view (matching the built-in nav's semantics per view).
-  const step = (dir: -1 | 1) => {
-    const base = DateTime.fromISO(focused)
-    const moved =
-      option === CALENDAR_VIEW_MONTH
-        ? base.plus({ months: dir })
-        : option === CALENDAR_VIEW_WEEK
-          ? base.plus({ weeks: dir })
-          : base.plus({ days: dir })
-    const next = moved.toISODate()
-
-    if (next) applyDate(next)
+  const switchTo = (next: string) => {
+    if (next !== 'month' && next !== 'week') return
+    // The Week's dates do not follow the visitor to the Month, which opens on the first of them.
+    if (next === 'month' && isWeek) setFocused(week.start)
+    setView(next)
   }
 
   return (
     <>
-      <BackButton />
+      <div className="flex w-full items-center justify-between gap-2">
+        <BackButton />
+        <div className="flex shrink-0 items-center gap-1">
+          {isWeek && <ShareWeek dates={weekDates} route={shareWeekRoute(filters, week)} />}
+          <FilterButton iconOnly counted={chosenCalendarFilters(filters, view)} />
+        </div>
+      </div>
       {/* Pulled down to the peek, the way to raise the sheet again, as every other header has. */}
       <ExpandSheetButton />
-      {/* Mode picker — holds the top row with Back when the rest wraps below. */}
-      <ToggleGroup
-        joined
-        aria-label={t('calendar.title')}
-        type="single"
-        value={option}
-        onValueChange={selectView}
-      >
-        <ToggleGroupItem value={CALENDAR_VIEW_MONTH}>{t('calendar.view_month')}</ToggleGroupItem>
-        {/* Schedule-X ships no small-screen week, and a 7-column time grid at 390px was never
-            readable — so below the crossing the switch offers Month and List only. */}
-        {isWide && (
-          <ToggleGroupItem value={CALENDAR_VIEW_WEEK}>{t('calendar.view_week')}</ToggleGroupItem>
-        )}
-        <ToggleGroupItem value={CALENDAR_VIEW_LIST}>{t('calendar.view_list')}</ToggleGroupItem>
-      </ToggleGroup>
+      <div className="flex w-full items-center justify-between gap-2">
+        <DrawerTitle title={place.name ?? t('calendar.title')} />
+        {place.path && <SeeListButton path={place.path} />}
+      </div>
 
-      {/* Nav + filter — wraps to a second line on narrow widths, one line on large. */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex w-full flex-wrap items-center gap-2">
+        <ToggleGroup
+          joined
+          aria-label={t('calendar.title')}
+          type="single"
+          value={view}
+          onValueChange={switchTo}
+        >
+          <ToggleGroupItem value="month">{t('calendar.view_month')}</ToggleGroupItem>
+          <ToggleGroupItem value="week">{t('calendar.view_week')}</ToggleGroupItem>
+        </ToggleGroup>
+
         <div className="flex items-center gap-0.5">
           <Button
             isIconOnly
             aria-label={t('calendar.a11y.previous')}
+            disabled={atStart}
             size="sm"
             variant="ghost"
             onClick={() => step(-1)}
@@ -180,16 +210,12 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             <ChevronRight className="h-4 w-4 rotate-180 rtl:-scale-x-100" />
           </Button>
 
-          {/* The focused date sits between the arrows. Clicking it opens the browser's native
-              picker, which has its own Today button, so this needs no separate one. The input
-              overlays the button so the picker anchors to it, but stays click-through.
-              Its `field-size` is insurance, not a live fix: nothing can focus it today, and
-              Safari's focus zoom needs focus (#322). Giving an input that can become focusable
-              anything under 16px is the defect, so the floor goes on now rather than later. */}
+          {/* The label opens the browser's own date picker, which has its own Today. The input
+              overlays the label so the picker anchors to it, and stays click-through. Its
+              `field-size` keeps Safari from zooming should it ever take focus (#322). */}
           <div className="relative">
             <button
-              // A drawn 44px on a touch screen, like the arrows either side (#432): an
-              // invisible tap area would reach over them at this 2px gap, and they would take it.
+              // A drawn 44px on a touch screen, like the arrows either side (#432).
               className="inline-flex items-center rounded-lg px-1.5 py-1 text-sm font-medium hover:bg-primary-3 pointer-coarse:min-h-11 pointer-coarse:px-3"
               type="button"
               onClick={() => dateInputRef.current?.showPicker?.()}
@@ -200,10 +226,11 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
               ref={dateInputRef}
               aria-label={t('calendar.a11y.pick_date')}
               className="pointer-events-none absolute inset-0 h-full w-full field-size opacity-0"
+              min={today}
               tabIndex={-1}
               type="date"
-              value={focused}
-              onChange={(event) => event.target.value && applyDate(event.target.value)}
+              value={isWeek ? week.start : focused}
+              onChange={(event) => event.target.value && pick(event.target.value)}
             />
           </div>
 
@@ -217,187 +244,79 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
             <ChevronRight className="h-4 w-4 rtl:-scale-x-100" />
           </Button>
         </div>
-
-        <FilterButton />
       </div>
     </>
   )
 }
 
-// The full-width calendar, at route `/calendar`, optionally with `?region=<slug>`. Its
-// entries are the filtered feed (`getCalendarEvents`) expanded into one per upcoming
-// occurrence — timezone-correct, online events included — on a Schedule-X month, week, or
-// list (agenda) grid whose `--sx-*` tokens are mapped to this project's theme (see
-// globals.css). This view is placeless, so it never frames the map. Clicking an entry opens
-// its EventView. The Filter button opens FilterView as a right or bottom overlay over this
-// still-mounted view (see DrawerStack).
-//
-// This project's own header (CalendarControls) drives the calendar via the calendar-controls
-// plugin, so SX's built-in header stays hidden — one consistent drawer header for every width.
-// The plugin is created here and shared with the header. The grid is KEYED by the applied
-// filters, so it captures Schedule-X's config once and remounts with fresh events and
-// dayBoundaries on apply — the shared plugin re-binds to the new instance. A local Suspense
-// keeps the header and pills visible while the cache-once source resolves. Across a remount,
-// and when returning from an event, the view and focused date restore from
-// `useCalendarPosition`.
+/**
+ * The calendar, at `/calendar`, optionally scoped with `?region=<slug>`: a Month, or the Week
+ * (`?view=week`) of a place's next seven days. The entries are the filtered feed
+ * (`getCalendarEvents`) expanded into one per upcoming occurrence, each at its own wall clock.
+ * This view is placeless, so it never frames the map. The Filter button opens FilterView as an
+ * overlay over this still-mounted view (DrawerStack).
+ */
 export function CalendarView() {
   const filters = useEventFilters()
-  const { locale } = useLocale()
-  // Shared with the grid (which registers + binds it) and the header (which drives it). Stable
-  // across filter-apply remounts — the grid re-binds the same plugin to each new instance.
-  const controls = useMemo(() => createCalendarControlsPlugin(), [])
+  const view = useCalendarView()
+  const week = calendarWindow(filters.dateRange, todayISO())
 
   return (
     <>
       <DrawerHeader className="max-w-none flex-wrap items-center gap-x-3 gap-y-2">
-        <CalendarControls controls={controls} />
+        <CalendarHeader view={view} week={week} />
       </DrawerHeader>
-      <ActiveFilterPills />
-      {/* The grid owns the `['calendar', …]` read. The header above — month nav, view picker,
-          filters, close — and the pills read none of it. So a failed grid is survivable in
-          place. Escalating it to the drawer boundary would replace all that working chrome to
-          show the identical alert (issue #89).
-          `resetKeys` is load-bearing, not decoration. `listResetKey` (lib/shape/path.ts)
-          explains why the pathname alone is not enough. */}
+      <ActiveFilterPills filters={chosenCalendarFilters(filters, view)} />
+      {/* The body owns the `['calendar', …]` read, so a failed read keeps the working header
+          above it rather than escalating to the drawer boundary (#89). `resetKeys` moves it on
+          when the filters do (`listResetKey`, lib/shape/path.ts). */}
       <ResetErrorBoundary FallbackComponent={DrawerErrorBody} resetKeys={[filtersKey(filters)]}>
-        {/* `DrawerLoadingBody`, not `DrawerLoading` — this fence sits BELOW the header
-            above, so the chrome-ful one drew a second header (and a second Back button)
-            under CalendarControls while the grid loaded. Pairs with `DrawerErrorBody` on
-            the boundary, for the same reason. */}
         <Suspense fallback={<DrawerLoadingBody />}>
-          <CalendarGrid
-            key={`${filtersKey(filters)}|${locale}`}
-            controls={controls}
-            filters={filters}
-          />
+          <CalendarBody filters={filters} view={view} week={week} />
         </Suspense>
       </ResetErrorBoundary>
     </>
   )
 }
 
-function CalendarGrid({
+function CalendarBody({
   filters,
-  controls,
+  view,
+  week,
 }: {
   filters: EventFilters
-  controls: CalendarControlsPlugin
+  view: CalendarViewName
+  week: CalendarWindow
 }) {
-  // The "Online" term is the SAME one the list/detail views show for an online event's
-  // location (`events:display.online`) — no calendar-specific duplicate.
   const { t } = useTranslation()
   const { locale, formatLocale } = useLocale()
-  const { theme } = useTheme()
-  const navigate = useAtlasNavigate()
   const isWide = useIsWideWidget()
-
+  const focused = useFocusedDate()
+  const { setFilters } = useSetFilters()
+  const openWeek = useOpenWeek()
+  // One read for every date, so paging the Week or the Month never refetches.
+  const anyDate = useMemo(() => ({ ...filters, dateRange: NO_DATES }), [filters])
   const { data: source } = useSuspenseQuery({
-    queryKey: ['calendar', filtersKey(filters), locale],
-    queryFn: () => api.getCalendarEvents(filters),
+    queryKey: ['calendar', filtersKey(anyDate), locale],
+    queryFn: () => api.getCalendarEvents(anyDate),
   })
 
+  // The "Online" term is the one the class pages show for an online class's location.
   const onlineLabel = t('event.display.online')
-  const events = useMemo(
-    () => eventsToCalendarEntries(source, filters, { onlineLabel }),
-    [source, filters, onlineLabel],
+  // The Month keeps a dates filter as a filter; the Week cuts its own seven days.
+  const entries = useMemo(
+    () => eventsToCalendarEntries(source, view === 'week' ? anyDate : filters, { onlineLabel }),
+    [source, view, anyDate, filters, onlineLabel],
   )
-  // Frame the week/day grid to the selected time-of-day periods, or (unfiltered) to the
-  // events themselves — 1 h either side of the earliest/latest occurrence.
-  const dayBoundaries = useMemo(
-    () => computeDayBoundaries(events, filters.timeOfDay),
-    [events, filters.timeOfDay],
-  )
-  // Memoized although the config below is captured once: this grid re-renders on every route
-  // change, and converting a full feed costs a visible pause each time.
-  const timeline = useMemo(() => scheduleXTimeline(events), [events])
+  const shown =
+    view === 'week'
+      ? entries.filter((entry) => entry.start >= week.start && entry.start <= `${week.end} 24`)
+      : entries
 
-  // Seed from the last position — view and focused date. This reads once, non-reactively, for
-  // the capture-config-once hook. The header and the callback below keep it current, so at the
-  // next remount — a filter apply captures config during *render* — the seed is already up to
-  // date.
-  const position = useCalendarPosition.getState()
-
-  const calendar = useNextCalendarApp(
-    {
-      // `month-agenda` is registered because `controls.setView` validates the name against this
-      // list — the resolver, never Schedule-X, is what chooses it.
-      views: [createViewMonthGrid(), createViewMonthAgenda(), createViewWeek(), createViewList()],
-      // ⚠ Captured ONCE, so this seam answers a width crossing only because `DrawerStack`
-      // remounts the whole drawer when `isWide` flips (vaul's `direction` is not
-      // hot-swappable), remounting this grid with it. Should that stop, so does this.
-      defaultView: resolveCalendarView(position.view, isWide).view,
-      selectedDate: position.date ? Temporal.PlainDate.from(position.date) : undefined,
-      ...timeline,
-      // Online programs render in the secondary colour (see CALENDARS + `calendarId`).
-      calendars: CALENDARS,
-      // Undefined leaves Schedule-X's default grid (whole day).
-      dayBoundaries,
-      isDark: theme === 'dark',
-      // ⚠ Otherwise Schedule-X rewrites the rendered view at its own breakpoint and emits no
-      // callback, so the switch cannot learn about it — which lit Month over a day list on a
-      // phone. `resolveCalendarView` decides instead (#331, `docs/rules/i18n-and-state.md`).
-      isResponsive: false,
-      // SX needs a supported BCP-47 code (see `scheduleXLocale`), or it throws. This project's
-      // token overrides (globals.css) carry the light/dark and accent theming regardless of
-      // `isDark`.
-      locale: scheduleXLocale(formatLocale),
-      // The patched core takes a function beside its languages, which its types cannot say.
-      translations: scheduleXWords(t) as unknown as CalendarConfig['translations'],
-      callbacks: {
-        // Each entry carries its event's route. This opens the matching EventView — the atlas
-        // navigate stamps camera and depth like every other in-widget push.
-        onEventClick: (event) => {
-          if (typeof event.path === 'string') navigate(event.path)
-        },
-        // Persist the focused date as the user pages through the calendar (drives the header label).
-        onSelectedDateUpdate: (date) => useCalendarPosition.getState().setDate(date.toString()),
-        // The month grid's "+N more" jumps to the list view focused on that day.
-        onClickPlusEvents: (date) => {
-          controls.setDate(date)
-          controls.setView(CALENDAR_VIEW_LIST)
-          useCalendarPosition.getState().setDate(date.toString())
-          useCalendarPosition.getState().setView(CALENDAR_VIEW_LIST)
-        },
-      },
-      weekOptions: {
-        eventWidth: 98,
-      },
-    },
-    [controls],
-  )
-
-  const renderers = useMemo(() => calendarRenderers(formatLocale), [formatLocale])
-
-  // The phone month list names the day it shows, which otherwise only an outline in the grid
-  // says. Schedule-X draws that list, so the words reach it as custom properties (globals.css),
-  // and a screen reader hears them from the live line below as the day changes.
-  const focused = useFocusedDate()
-  const storedView = useCalendarPosition((s) => s.view)
-  const isAgenda = resolveCalendarView(storedView, isWide).view === CALENDAR_VIEW_MONTH_AGENDA
-  // Counted as Schedule-X lists them: a class past midnight shows on both its days. Only the
-  // agenda reads it, and a custom property set on the root restyles the whole grid beneath.
-  const day = isAgenda
-    ? dayHeadingParts(DateTime.fromISO(focused), {
-        count: events.filter(
-          (entry) => entry.start <= `${focused} 24` && entry.end > `${focused} 00:00`,
-        ).length,
-        locale: formatLocale,
-        t,
-      })
-    : null
-  const dayStyle = day
-    ? ({
-        '--sy-agenda-day': JSON.stringify(day.heading),
-        '--sy-agenda-day-note': day.note ? JSON.stringify(day.note) : 'none',
-      } as CSSProperties)
-    : undefined
-
-  // Says whose clock the grid is in: an in-person class reads in its own zone and an online one
-  // in the viewer's (`eventTimeZone`), so a London visitor's 1:00 AM Toronto class looks like a
-  // mistake without it (#25). It sits above the times it explains, so it is read before them. Any
-  // online entry in the expansion earns it: gating on the focused month would hide it from a
-  // week straddling two months, and from the list view, which pages past the month it starts in.
-  const hasOnline = events.some((entry) => entry.calendarId === 'online')
+  // Says whose clock the times are in: an in-person class reads in its own zone and an online
+  // one in the viewer's, so a London visitor's 1:00 AM Toronto class looks like a mistake
+  // without it (#25). It sits above the times it explains.
+  const hasOnline = shown.some((entry) => entry.online)
 
   return (
     <>
@@ -406,15 +325,32 @@ function CalendarGrid({
           {t('calendar.times_note', { zone: zoneCity(DateTime.local().zoneName) })}
         </p>
       )}
-      <DrawerBody className="max-w-none overflow-hidden px-gutter py-4">
-        {day && (
-          <p aria-live="polite" className="sr-only">
-            {[day.heading, day.note].filter(Boolean).join(', ')}
-          </p>
+      <DrawerBody className={`max-w-none py-4 ${view === 'week' ? '' : 'px-gutter'}`}>
+        {view === 'week' ? (
+          <WeekList
+            entries={entries}
+            filtered={hasActiveFilters(chosenCalendarFilters(filters, 'week'))}
+            locale={formatLocale}
+            window={week}
+            onClearFilters={() =>
+              setFilters({
+                ...DEFAULT_FILTERS,
+                region: filters.region,
+                dateRange: filters.dateRange,
+              })
+            }
+            onWeekFrom={openWeek}
+          />
+        ) : (
+          <MonthView
+            entries={entries}
+            focused={focused}
+            isWide={isWide}
+            locale={formatLocale}
+            onFocus={setFocused}
+            onWeekFrom={openWeek}
+          />
         )}
-        <div className="sx-calendar" style={dayStyle}>
-          <CalendarMount calendar={calendar} renderers={renderers} />
-        </div>
       </DrawerBody>
     </>
   )

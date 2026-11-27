@@ -93,6 +93,8 @@ export const bestRecovery = (
   events: readonly FilterableEvent[],
   filters: EventFilters,
   today: string = todayISO(),
+  /** The Week's dates are its arrows, so its way out never offers to drop them. */
+  { keepDates = false }: { keepDates?: boolean } = {},
 ): FilterRecovery | null => {
   const candidates: Pick<FilterRecovery, 'group' | 'patch'>[] = [
     filters.format !== 'any' && { group: 'format' as const, patch: { format: 'any' as const } },
@@ -100,10 +102,11 @@ export const bestRecovery = (
     filters.timeOfDay.length > 0 && { group: 'time' as const, patch: { timeOfDay: [] } },
     filters.cadence !== 'any' && { group: 'cadence' as const, patch: { cadence: 'any' as const } },
     filters.languages.length > 0 && { group: 'languages' as const, patch: { languages: [] } },
-    isDateRestricted(filters.dateRange) && {
-      group: 'dates' as const,
-      patch: { dateRange: { start: null, end: null } },
-    },
+    !keepDates &&
+      isDateRestricted(filters.dateRange) && {
+        group: 'dates' as const,
+        patch: { dateRange: { start: null, end: null } },
+      },
   ].filter((candidate) => candidate !== false)
 
   return candidates.reduce<FilterRecovery | null>((best, candidate) => {

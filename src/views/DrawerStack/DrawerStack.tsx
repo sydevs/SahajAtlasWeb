@@ -35,16 +35,11 @@ import {
   useIsWide,
 } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import {
-  useBrowsedCountry,
-  useCalendarPosition,
-  useMapControls,
-  useSheetCover,
-} from '@/config/store'
+import { useBrowsedCountry, useMapControls, useSheetCover } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
-  CALENDAR_VIEW_LIST,
+  calendarViewFromParams,
   backStep,
   sameRoute,
   baseStackEntry,
@@ -217,13 +212,14 @@ export function DrawerStack() {
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
-  // The calendar is the one full-width view. It fills the widget, minus the floating margins,
-  // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
-  // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
-  // because the wide panel exists only above the crossing (#331). The view is read reactively, so
-  // switching it resizes the drawer. Date changes do not re-render this component.
-  const calendarView = useCalendarPosition((s) => s.view)
-  const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
+  // The calendar's Month is the one full-width view: it fills the widget, minus the floating
+  // margins, instead of the 352px left panel (the Drawer `wide` variant). Its Week is one column
+  // and keeps the panel, so the map stays in view. `isWide` is here because the wide panel exists
+  // only above the crossing (#331).
+  const wide =
+    top?.kind === 'calendar' &&
+    isWide &&
+    calendarViewFromParams(new URLSearchParams(location.search)) === 'month'
   // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
   // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes

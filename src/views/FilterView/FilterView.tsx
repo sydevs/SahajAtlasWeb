@@ -19,6 +19,7 @@ import {
   DEFAULT_FILTERS,
   type EventFilters,
   type PlaceSearch,
+  calendarViewFromParams,
   filterOriginRegion,
   filtersToParams,
   hasActiveFilters,
@@ -27,6 +28,8 @@ import {
   parseBounds,
   parseCenter,
   placeFiltersPath,
+  todayISO,
+  weekFilters,
 } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 import { useDrawerControl, useFrameOnTop } from '@/views/shared'
@@ -52,12 +55,17 @@ export function FilterView() {
     () => ({ ...applied, region: applied.region ?? originRegion }),
     [applied, originRegion],
   )
-  const facets = useFilterFacets(filters)
-  const count = facets?.counts.total
-
   // The view beneath. Only the calendar and the search list show filtered classes, so over any
   // other view a place search moves the filters onto a search.
   const origin = parentOf(location.pathname)
+  // Over the calendar's Week the dates are its arrows: the form asks none, counts the seven days
+  // on screen whatever range the link names, and Clear keeps them.
+  const overWeek = origin === '/calendar' && calendarViewFromParams(searchParams) === 'week'
+  const facets = useFilterFacets(overWeek ? weekFilters(filters, todayISO()) : filters, {
+    keepDates: overWeek,
+  })
+  const count = facets?.counts.total
+  const kept = overWeek ? filters.dateRange : DEFAULT_FILTERS.dateRange
   const filtersOrigin = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
   const moveTo = (to: { pathname: string; search: string } | string) =>
@@ -112,8 +120,12 @@ export function FilterView() {
   )
 
   // Clear resets the answers, not the Where: the visitor is still looking in the same place.
-  const answered = hasActiveFilters({ ...filters, region: null })
-  const clear = () => write({ ...DEFAULT_FILTERS, region: filters.region })
+  const answered = hasActiveFilters({
+    ...filters,
+    region: null,
+    dateRange: overWeek ? DEFAULT_FILTERS.dateRange : filters.dateRange,
+  })
+  const clear = () => write({ ...DEFAULT_FILTERS, region: filters.region, dateRange: kept })
   const recovery = count === 0 ? facets?.recovery : undefined
   // Nothing matches, and removing any one answer still finds nothing: Clear is the way out.
   const clearLeads = count === 0 && !recovery
@@ -133,6 +145,7 @@ export function FilterView() {
       >
         <SearchFilters
           facets={facets}
+          hideDates={overWeek}
           value={filters}
           where={
             <WhereFilter

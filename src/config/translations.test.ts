@@ -217,6 +217,10 @@ describe('every key a call site asks for', () => {
  * Delete an entry in the PR that wires it: the pin below fails until you do.
  */
 const PENDING_KEYS: Record<string, string> = {
+  'event.actions.copy_number': 'sydevs/SahajCloud#1304',
+  'filters.when.label': 'sydevs/SahajCloud#1302',
+  'filters.where.scope': 'sydevs/SahajCloud#1302',
+  'share.email': 'sydevs/SahajCloud#1304',
   'common.map.close': 'sydevs/SahajAtlasWeb#466',
   'countries.place_title': 'sydevs/SahajAtlasWeb#466',
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
@@ -233,6 +237,7 @@ const PENDING_KEYS: Record<string, string> = {
  * Delete an entry in the sync PR that drops the key: the pin below fails until you do.
  */
 const RETIRING_KEYS: Record<string, string> = {
+  'calendar.view_list': 'sydevs/SahajAtlasWeb#538',
   'filters.chrome.apply': 'sydevs/SahajCloud#1293',
   'registration.form.okay': 'sydevs/SahajCloud#1294',
   'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',
