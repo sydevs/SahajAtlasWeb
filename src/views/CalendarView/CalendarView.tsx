@@ -10,6 +10,7 @@ import { WeekList } from './WeekList'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { CALENDAR_HEADER } from '@/components/organisms/Skeleton/Skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
 import api, { regionsQuery } from '@/config/api'
@@ -242,7 +243,7 @@ export function CalendarView() {
 
   return (
     <>
-      <DrawerHeader className="max-w-none flex-wrap items-center gap-x-3 gap-y-2">
+      <DrawerHeader className={CALENDAR_HEADER}>
         <CalendarHeader view={view} week={week} />
       </DrawerHeader>
       <ActiveFilterPills filters={chosenCalendarFilters(filters, view)} />

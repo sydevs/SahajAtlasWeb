@@ -8993,10 +8993,6 @@ export interface SyAtlasTranslationsCommonErrorsStrings {
    */
   unavailable?: string;
   /**
-   * Message in the Share view when the class has no shareable link.
-   */
-  share_unavailable_class?: string;
-  /**
    * Empty-list message in the Region and Online views, when the place itself has no classes.
    */
   no_classes?: string;
@@ -9225,7 +9221,7 @@ export interface SyAtlasTranslationsFiltersChromeStrings {
    */
   apply?: string;
   /**
-   * Action that clears every filter at once.
+   * Action that clears every filter at once: the filters' footer, the button over an empty list of results, and the filter buttons on a computer (an icon, this as its hover label).
    */
   clear?: string;
   /**
@@ -9296,6 +9292,22 @@ export interface SyAtlasTranslationsFiltersWhenStrings {
    * Label of the When button above the map on a computer, which opens the days, times of day and More filters.
    */
   label?: string;
+  /**
+   * The When button's name once more than two answers are picked (days, times of day, frequency, dates), entered per plural form. `%{count}` = how many.
+   */
+  count_one?: string;
+  /**
+   * The When button's name once more than two answers are picked (days, times of day, frequency, dates), entered per plural form. `%{count}` = how many.
+   */
+  count_few?: string;
+  /**
+   * The When button's name once more than two answers are picked (days, times of day, frequency, dates), entered per plural form. `%{count}` = how many.
+   */
+  count_many?: string;
+  /**
+   * The When button's name once more than two answers are picked (days, times of day, frequency, dates), entered per plural form. `%{count}` = how many.
+   */
+  count_other?: string;
 }
 export interface SyAtlasTranslationsFiltersFormatStrings {
   /**
@@ -9382,6 +9394,22 @@ export interface SyAtlasTranslationsFiltersLanguageStrings {
    * Language option: no preference.
    */
   all?: string;
+  /**
+   * The Language button's name once more than two languages are picked, entered per plural form. `%{count}` = how many.
+   */
+  count_one?: string;
+  /**
+   * The Language button's name once more than two languages are picked, entered per plural form. `%{count}` = how many.
+   */
+  count_few?: string;
+  /**
+   * The Language button's name once more than two languages are picked, entered per plural form. `%{count}` = how many.
+   */
+  count_many?: string;
+  /**
+   * The Language button's name once more than two languages are picked, entered per plural form. `%{count}` = how many.
+   */
+  count_other?: string;
 }
 export interface SyAtlasTranslationsFiltersDatesStrings {
   /**
@@ -10156,14 +10184,6 @@ export interface SyAtlasTranslationsSubmitErrorsStrings {
   urls_not_allowed?: string;
 }
 export interface SyAtlasTranslationsShareStrings {
-  /**
-   * Share view heading. Untranslated in every non-English locale today — the English merge serves English until a translator fills it.
-   */
-  title?: string;
-  /**
-   * Heading of the Share view for one class.
-   */
-  title_class?: string;
   /**
    * Label of the device’s own share sheet.
    */

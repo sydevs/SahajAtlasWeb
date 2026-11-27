@@ -19,8 +19,10 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, isoCountryCode, nearestKnownRegion, resolveStack } from '@/lib/shape'
 import {
+  CALENDAR_HEADER,
   LOADING_BODY_CLIP,
   SkeletonBody,
+  SkeletonCalendarControls,
   SkeletonField,
   SkeletonLocation,
   skeletonShape,
@@ -202,6 +204,15 @@ export function DrawerChrome({
     return <EventHeader nav={<NavRow />} title={title} />
   }
 
+  // The calendar's header is its controls, not a title.
+  if (loading && entry.kind === 'calendar') {
+    return (
+      <DrawerHeader className={CALENDAR_HEADER}>
+        <SkeletonCalendarControls />
+      </DrawerHeader>
+    )
+  }
+
   // The view's own header, so nothing moves when the view arrives. No title when nothing
   // resolved: a blank <h2> is a heading with no name, worse for a screen reader than none. A
   // place still loading draws its title's line instead, outside any heading.
@@ -223,6 +234,7 @@ export function DrawerChrome({
       }
       close={entry.kind === 'filters'}
       pendingTitle={loading && entry.kind === 'region' && !title}
+      subtitle={entry.kind === 'register' ? t('registration.form.reassurance') : undefined}
       title={title}
     />
   )

@@ -217,14 +217,12 @@ describe('every key a call site asks for', () => {
  * Delete an entry in the PR that wires it: the pin below fails until you do.
  */
 const PENDING_KEYS: Record<string, string> = {
-  'filters.language.count': 'sydevs/SahajCloud#1307',
-  'filters.when.count': 'sydevs/SahajCloud#1307',
-  'event.actions.copy_number': 'sydevs/SahajCloud#1304',
-  'filters.when.label': 'sydevs/SahajCloud#1302',
-  'filters.where.scope': 'sydevs/SahajCloud#1302',
-  'share.email': 'sydevs/SahajCloud#1304',
   'common.map.close': 'sydevs/SahajAtlasWeb#466',
   'countries.place_title': 'sydevs/SahajAtlasWeb#466',
+  'filters.language.count': 'sydevs/SahajAtlasWeb#542',
+  'filters.when.count': 'sydevs/SahajAtlasWeb#542',
+  'filters.when.label': 'sydevs/SahajAtlasWeb#542',
+  'filters.where.scope': 'sydevs/SahajAtlasWeb#542',
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
 }
 
