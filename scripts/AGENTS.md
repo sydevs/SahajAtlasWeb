@@ -11,9 +11,10 @@ document order, or paints no focus indicator (#432).
   carries the measurement that put this in a browser rather than in the unit lane, and the four
   deliberate properties — the build it reads, the job it is a step of, why the tap floor is
   probed, and the two axe rules that are off.
-- **The pure half is in the unit lane** (`scripts/check-a11y.test.ts`): the span arithmetic, both
-  report formatters, and the exemption list as a closed set. An exemption is a hole in the floor,
-  so each one carries its reason beside the selector, and the spec asserts both.
+- **The pure half is in the unit lane** (`scripts/check-a11y.test.ts`): the span arithmetic, the
+  unsettled-read verdict, both report formatters, and both exemption lists as closed sets. An
+  exemption is a hole in the floor, so each one carries its reason beside the selector, and the
+  spec asserts both.
 - `--origin http://localhost:61000` audits `pnpm ladle` instead, which recompiles as you edit.
   That is the fix loop, never the gate.
 

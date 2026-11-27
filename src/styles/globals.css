@@ -631,6 +631,12 @@ html.sy-atlas {
   display: none;
 }
 
+/* The month agenda's selected day is its grid's one Tab stop, and Schedule-X marks selection with
+   an inset ring that focus leaves unchanged — so Tab into the grid showed nothing (#515). */
+.sx-calendar .sx__month-agenda-day:focus-visible {
+  @apply focus-outline;
+}
+
 /* Suppresses Schedule-X's per-event "grow in" animation (`sx-grow-event` on
    `.is-event-new`). The CalendarGrid remounts when the filters change (to
    refresh events and dayBoundaries), which otherwise replays this grow on
