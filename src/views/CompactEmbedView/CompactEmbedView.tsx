@@ -55,8 +55,8 @@ type CardAction = { kind: 'overlay'; onOpen: () => void } | { kind: 'link'; href
  * collapses to invisible. Against a tall one, it stretches two lines down 600px of
  * empty background.
  *
- * **The button is named for the task, not the product** — "Find a class near you",
- * never the widget's own name. That is the accessible name a screen-reader user
+ * **The button is named for the task, not the product** — "Expand map", the key the inline
+ * embed's own expand control reads (SahajCloud#1268), never the widget's own name. That is the accessible name a screen-reader user
  * hears. It is also the de-branding ratchet (#158). The one control here is the
  * easiest place in the app to forget it.
  */
@@ -80,11 +80,11 @@ function Card({ action }: { action: CardAction }) {
             reimplemented. */}
         {action.kind === 'link' ? (
           <Button color="primary" href={action.href} target="_blank">
-            {t('compact.open')}
+            {t('common.map.expand')}
           </Button>
         ) : (
           <Button color="primary" onClick={action.onOpen}>
-            {t('compact.open')}
+            {t('common.map.expand')}
           </Button>
         )}
       </div>

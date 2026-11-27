@@ -34,8 +34,8 @@ describe('CompactEmbedView', () => {
   it('names the task, not the product', () => {
     const html = renderToStaticMarkup(<CompactEmbedView compact={overlay}>{null}</CompactEmbedView>)
 
-    expect(html).toContain(copy('compact.open'))
-    expect(copy('compact.open')).toMatch(/find a class/i)
+    expect(html).toContain(copy('common.map.expand'))
+    expect(copy('common.map.expand')).toMatch(/expand map/i)
   })
 
   it('carries no brand string', () => {
