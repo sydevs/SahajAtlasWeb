@@ -10,25 +10,35 @@ export default { title: 'Molecules' } satisfies StoryDefault
 const slides: Slide[] = [
   {
     src: 'https://picsum.photos/seed/atlas-hall/1600/1200',
+    width: 1600,
+    height: 1200,
     alt: 'Meditation hall',
     caption: 'A sunlit meditation hall',
   },
   {
     src: 'https://picsum.photos/seed/atlas-group/1200/1600',
+    width: 1200,
+    height: 1600,
     alt: 'Group session',
     caption: 'A group meditating together',
   },
   {
     src: 'https://picsum.photos/seed/atlas-garden/1600/900',
+    width: 1600,
+    height: 900,
     alt: 'Garden venue',
     caption: 'An outdoor garden venue',
   },
   {
     src: 'https://picsum.photos/seed/atlas-candle/1200/1200',
+    width: 1200,
+    height: 1200,
     alt: 'Candle',
   },
   {
     src: 'https://picsum.photos/seed/atlas-path/1200/1500',
+    width: 1200,
+    height: 1500,
     alt: 'Garden path',
     caption: 'The path to the hall',
   },

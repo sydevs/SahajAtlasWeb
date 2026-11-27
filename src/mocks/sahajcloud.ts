@@ -86,7 +86,14 @@ const title = (id: number) => titles.get(id) ?? mockEvent.title
 const images = mockEventImages.map((image, index) => {
   const filename = `atlas-${index + 1}.png`
 
-  return { id: index + 1, url: `/api/images/file/${filename}`, filename, alt: image.alt }
+  return {
+    id: index + 1,
+    url: `/api/images/file/${filename}`,
+    filename,
+    alt: image.alt,
+    width: image.width,
+    height: image.height,
+  }
 })
 
 /**

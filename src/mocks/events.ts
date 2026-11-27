@@ -51,10 +51,14 @@ export const mockEventImages: EventImage[] = [
   {
     url: 'https://picsum.photos/seed/atlas-hall/1200/800',
     alt: 'Meditation hall',
+    width: 1200,
+    height: 800,
   },
   {
     url: 'https://picsum.photos/seed/atlas-group/1200/800',
     alt: 'Group session',
+    width: 1200,
+    height: 800,
   },
 ]
 

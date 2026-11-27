@@ -31,6 +31,16 @@ describe('ImageGallery', () => {
     expect(html.match(/<img /g)).toHaveLength(3)
   })
 
+  it('sizes each image from its stored dimensions, so the tile holds its box before it loads', () => {
+    const html = renderToStaticMarkup(
+      <ImageGallery slides={[{ ...slides[0], width: 1200, height: 800 }, slides[1]]} />,
+    )
+
+    expect(html).toMatch(/<img[^>]*height="800"[^>]*width="1200"/)
+    // An image with no stored size still renders, at its natural size once loaded.
+    expect(html.match(/<img [^>]*>/g)?.[1]).not.toContain('width=')
+  })
+
   it('names each tile by its alt text, or the generic label when it has none', () => {
     const html = renderToStaticMarkup(<ImageGallery slides={slides} />)
 

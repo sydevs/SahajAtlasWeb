@@ -131,9 +131,12 @@ export const OptionalScheduleSchema = z.preprocess(
 // virtual field derived from `filename` (which `getEvent` selects). It is nullish,
 // so a single file-less image cannot fail the whole event read. Consumers skip
 // images without a url (mirrors the `SafeUrlSchema` / `firstDate_tz` tolerance).
+// `width` and `height` are the stored file's, so the gallery can reserve each tile's box.
 export const EventImageSchema = z.object({
   url: z.string().nullish(),
   alt: z.string().nullish(),
+  width: z.number().nullish(),
+  height: z.number().nullish(),
 } satisfies PartialZodShape<SahajCloudImage>)
 export type EventImage = z.infer<typeof EventImageSchema>
 

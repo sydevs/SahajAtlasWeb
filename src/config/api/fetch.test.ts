@@ -785,6 +785,11 @@ describe('getEvent', () => {
 
     const [options] = sdk.findByID.mock.calls[0] as [{ select: Record<string, unknown> }]
 
+    // The gallery reserves each tile's box from these, so the read must ask for them.
+    expect(options).toMatchObject({
+      populate: { images: { width: true, height: true } },
+    })
+
     // The badge reads the stage off this document. Same `confidenceScore` rule as the feed.
     expect(options.select.verificationStage).toBe(true)
     expect(options.select).not.toHaveProperty('confidenceScore')

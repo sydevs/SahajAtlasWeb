@@ -78,7 +78,15 @@ export function EventDetails({
     () =>
       event.images.flatMap((image) =>
         image.url
-          ? [{ src: image.url, alt: image.alt ?? undefined, caption: image.alt ?? undefined }]
+          ? [
+              {
+                src: image.url,
+                alt: image.alt ?? undefined,
+                caption: image.alt ?? undefined,
+                width: image.width ?? undefined,
+                height: image.height ?? undefined,
+              },
+            ]
           : [],
       ),
     [event.images],

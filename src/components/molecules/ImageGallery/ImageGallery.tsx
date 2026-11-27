@@ -11,6 +11,9 @@ export type Slide = {
   alt?: string
   /** Caption shown under the image in the lightbox. */
   caption?: string
+  /** Intrinsic size, when known, so a tile holds its box before the image arrives. */
+  width?: number
+  height?: number
 }
 
 export type ImageGalleryProps = {
@@ -47,8 +50,10 @@ export function ImageGallery({ slides }: ImageGalleryProps) {
             <img
               alt={slide.alt ?? undefined}
               className="block h-auto w-full"
+              height={slide.height}
               loading="lazy"
               src={slide.src}
+              width={slide.width}
             />
           </button>
         ))}
