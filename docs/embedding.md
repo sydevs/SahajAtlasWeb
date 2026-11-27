@@ -440,12 +440,12 @@ to read it.
 
 **You do not size it. Every embed opens inline, as part of your page, as tall as what it shows.**
 
-| The widget is…                                             | What a visitor sees                                                                                                                                                                                                                                            |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 720px wide or more                                         | A heading, then two columns: the classes on the left, and a square map on the right that stays in view below your header while the visitor scrolls the list. A list takes 40% of the width and a class 60%, the map the rest; neither column goes under 352px. |
-| Narrower                                                   | A heading, a short map strip, then the classes.                                                                                                                                                                                                                |
-| Loaded with `map=false`                                    | A heading and the classes, in one column. No map, and no way to open one.                                                                                                                                                                                      |
-| Under 280px wide, or under 360px tall where it cannot grow | The heading and "Expand map" alone, which opens the map over your page — in a new tab from a frame, or with `map=false`. See below.                                                                                                                            |
+| The widget is…                                             | What a visitor sees                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 720px wide or more                                         | A heading, then two columns: the classes on the left, and a square map on the right that stays in view below your header while the visitor scrolls the list. A list takes 40% of the width and a class 60%, the map the rest; neither column goes under 352px. A class's Register and actions sit under the map. |
+| Narrower                                                   | A heading, a short map strip, then the classes. On a class, its Register and actions sit between the strip and the class.                                                                                                                                                                                        |
+| Loaded with `map=false`                                    | A heading and the classes, in one column. No map, and no way to open one.                                                                                                                                                                                                                                        |
+| Under 280px wide, or under 360px tall where it cannot grow | The heading and "Expand map" alone, which opens the map over your page — in a new tab from a frame, or with `map=false`. See below.                                                                                                                                                                              |
 
 The width is **the widget's own**, not the browser window's (issue #107): a 320px column on a large
 desktop screen gets the narrow layout.
@@ -1227,7 +1227,7 @@ Inside that landmark, every control the widget draws:
 - is never a Tab stop while it is invisible;
 - carries a name in the page's language, icon-only controls included;
 - answers to a tap of at least 44 × 44 CSS pixels on a touch-only screen (`(hover: none) and
-  (pointer: coarse)`). A touchscreen laptop gets the larger drawn controls but none of the
+(pointer: coarse)`). A touchscreen laptop gets the larger drawn controls but none of the
   invisible tap areas, which its mouse would hit without seeing them.
 
 **Each of those is checked on every change we make**, in a real browser at phone size, over every

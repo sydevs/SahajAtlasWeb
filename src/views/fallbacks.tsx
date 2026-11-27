@@ -25,6 +25,7 @@ import {
   skeletonShape,
 } from '@/components/organisms/Skeleton/Skeleton'
 import { BackButton, NavHeader, NavRow } from '@/views/nav'
+import { useInlineAside } from '@/hooks/use-inline-aside'
 import {
   CalendarButton,
   ExpandSheetButton,
@@ -265,6 +266,7 @@ function useCachedRegion(slug: string | undefined) {
 export function DrawerLoading() {
   const { hasMap } = useWidgetMode()
   const isWide = useIsWideWidget()
+  const aside = useInlineAside() !== null
   const location = useLocation()
   const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
   const region = useCachedRegion(entry?.kind === 'region' ? entry.slug : undefined)
@@ -275,8 +277,9 @@ export function DrawerLoading() {
       <DrawerChrome loading />
       {shape ? (
         <DrawerBody className={LOADING_BODY_CLIP}>
-          {/* The phone sheet pins Register to its foot once the class arrives. */}
-          <SkeletonBody body={shape.body} cta={!hasMap || isWide} />
+          {/* The phone sheet pins Register to its foot once the class arrives, and the inline
+              embed puts it under its map. */}
+          <SkeletonBody body={shape.body} cta={!aside && (!hasMap || isWide)} />
         </DrawerBody>
       ) : (
         <DrawerLoadingBody />

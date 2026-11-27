@@ -8,6 +8,7 @@ import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
 import { EventActions } from '@/components/molecules/EventActions'
+import { InlineAside, useInlineAside } from '@/hooks/use-inline-aside'
 import { EventChips } from '@/components/molecules/EventChips'
 import { ImageGallery } from '@/components/molecules/ImageGallery'
 import { EventFacts } from '@/components/molecules/EventFacts'
@@ -33,8 +34,8 @@ export type EventSurfaceProps = {
 
 export type EventDetailsProps = EventSurfaceProps & {
   /** Render Register inline, above the action row. The mobile map sheet passes
-   *  false and pins Register in the sticky drawer footer instead (#320). The
-   *  action row stays in the panel either way. */
+   *  false and pins Register in the sticky drawer footer instead (#320). Inline
+   *  beside a map, both go under the map whatever this says. */
   registerInline?: boolean
   /**
    * This slot renders below the facts, inside the panel's own flow, above the
@@ -72,6 +73,15 @@ export function EventDetails({
 
   // The poster code is the class's own link, so a class with nothing to share has no row (#115).
   const shareUrl = useShareUrl(event.webUrl, event.path)
+  // Inline beside a map, Register and the actions sit under the map, in reach while the visitor
+  // reads the rest of the page.
+  const aside = useInlineAside() !== null
+  const actions = (
+    <>
+      <EventRegisterBar basePath={basePath} event={event} strings={strings} />
+      <EventActions basePath={basePath} event={event} strings={strings} />
+    </>
+  )
 
   return (
     <div className="flex flex-col gap-4 px-gutter pt-2 pb-10">
@@ -96,8 +106,16 @@ export function EventDetails({
         />
       )}
 
-      {registerInline && <EventRegisterBar basePath={basePath} event={event} strings={strings} />}
-      <EventActions basePath={basePath} event={event} strings={strings} />
+      {aside ? (
+        <InlineAside>{actions}</InlineAside>
+      ) : (
+        <>
+          {registerInline && (
+            <EventRegisterBar basePath={basePath} event={event} strings={strings} />
+          )}
+          <EventActions basePath={basePath} event={event} strings={strings} />
+        </>
+      )}
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (

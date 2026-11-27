@@ -40,6 +40,7 @@ import {
 } from '@/views/FullInterface'
 import { type Box, MIN_INLINE_HEIGHT_PX, MIN_INLINE_WIDTH_PX } from '@/views/InlineEmbedView/fit'
 import { headingPlace } from '@/views/InlineEmbedView/heading-place'
+import { InlineAsideProvider } from '@/hooks/use-inline-aside'
 import {
   hostElement,
   pageHasHeading,
@@ -258,6 +259,8 @@ export function InlineColumns({
   const { pathname } = useLocation()
   // A class's own register and share views keep its split, so opening one moves no column.
   const classPage = CLASS_VIEWS.has(resolveStack(pathname).at(-1)?.kind ?? '')
+  const [aside, setAside] = useState<HTMLDivElement | null>(null)
+  const asideHeight = useHeight(aside)
 
   return (
     <div
@@ -270,23 +273,51 @@ export function InlineColumns({
       )}
     >
       {/* The page heading sets the width here, so the bands' own cap is lifted. */}
-      <div className="flex min-w-0 flex-col [--sy-content-max:none]">{children}</div>
+      <div className="flex min-w-0 flex-col [--sy-content-max:none]">
+        <InlineAsideProvider value={aside}>{children}</InlineAsideProvider>
+      </div>
       {hasMap && (
         <div className="order-first px-gutter @min-sy-cols:order-none @min-sy-cols:ps-0">
           <div
-            // ⚠ `contain: layout` makes this box the containing block for the canvas, which is
-            // fixed. `transform-gpu` gives WebKit's compositor the same box to clip it to (#424).
-            // The square is capped to what fits below the header, so all of it stays in view.
-            className="relative h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-sy-cols:sticky @min-sy-cols:top-[calc(var(--sy-inline-top,0px)+16px)] @min-sy-cols:ms-auto @min-sy-cols:aspect-square @min-sy-cols:h-auto @min-sy-cols:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px)]"
-            style={{ '--sy-inline-top': `${top}px` } as CSSProperties}
+            // The map and what the view puts under it stick together. The square is capped to
+            // what fits below the header beside them, so all of it stays in view.
+            className="@min-sy-cols:sticky @min-sy-cols:top-[calc(var(--sy-inline-top,0px)+16px)] @min-sy-cols:ms-auto @min-sy-cols:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px-var(--sy-aside-h,0px))]"
+            style={
+              { '--sy-inline-top': `${top}px`, '--sy-aside-h': `${asideHeight}px` } as CSSProperties
+            }
           >
-            {map}
-            <ExpandButton className="absolute bottom-3 left-3 z-10" />
+            <div
+              // ⚠ `contain: layout` makes this box the containing block for the canvas, which is
+              // fixed. `transform-gpu` gives WebKit's compositor the same box to clip it to (#424).
+              className="relative h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-sy-cols:aspect-square @min-sy-cols:h-auto"
+            >
+              {map}
+              <ExpandButton className="absolute bottom-3 left-3 z-10" />
+            </div>
+            <div ref={setAside} className="flex flex-col gap-3 pt-4 empty:hidden" />
           </div>
         </div>
       )}
     </div>
   )
+}
+
+/** An element's height, kept current; 0 while it is absent or hidden. */
+function useHeight(element: HTMLElement | null) {
+  const [height, setHeight] = useState(0)
+
+  useEffect(() => {
+    if (!element || typeof ResizeObserver === 'undefined') return setHeight(0)
+    const observer = new ResizeObserver(() =>
+      setHeight(Math.round(element.getBoundingClientRect().height)),
+    )
+
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [element])
+
+  return height
 }
 
 const tooSmallMessage = ({ width, height }: Box) =>

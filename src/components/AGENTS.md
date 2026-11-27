@@ -257,6 +257,9 @@ once. The expanded map is `MapInterface`, the same interface without that boot.
   flag, and remounts on collapse, re-framing as its controller arrives. They share the padding
   store: `RealMapControllerProvider inline` writes nothing, since the store's margin-only default
   is its padding, and the expanded map's provider gives that default back when it unmounts.
+- **A class's Register and actions sit under the inline map**, in `InlineColumns`' aside:
+  `EventDetails` portals them there through `InlineAside` (`hooks/use-inline-aside.tsx`), and
+  the map's square shrinks by the aside's height, so both stay in view while they stick.
 - **Layout is measured on the widget, in CSS** — `@container` with `@min-sy-cols:`, never a
   viewport variant (#107).
 - **The host's page is `host-page.ts`'s business, and every read there is guarded** — hosts patch

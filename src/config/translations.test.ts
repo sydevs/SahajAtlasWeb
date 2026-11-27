@@ -221,7 +221,6 @@ const PENDING_KEYS: Record<string, string> = {
   'countries.near_city': 'sydevs/SahajCloud#1295',
   'countries.near_me': 'sydevs/SahajCloud#1295',
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
-  'search.chrome.city_or_postcode': 'sydevs/SahajCloud#1295',
 }
 
 /**
