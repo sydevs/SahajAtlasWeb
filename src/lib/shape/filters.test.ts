@@ -159,6 +159,14 @@ describe('matchesFilters — time of day (selected periods, in the event zone)',
     expect(matchesFilters(withHour('06:00'), withFilters({ timeOfDay: ['night'] }))).toBe(false)
   })
 
+  it('takes a listing with no times into every time of day, but no day', () => {
+    const timeless = event({ occurrences: [] })
+
+    expect(matchesFilters(timeless, withFilters({ timeOfDay: ['night'] }))).toBe(true)
+    expect(matchesFilters(timeless, withFilters({ timeOfDay: ['morning'] }))).toBe(true)
+    expect(matchesFilters(timeless, withFilters({ daysOfWeek: [1] }))).toBe(false)
+  })
+
   it('falls back to UTC when the event has no timezone', () => {
     const noZone = event({ zone: null, occurrences: [at('UTC', '2026-07-06T09:00')] })
 

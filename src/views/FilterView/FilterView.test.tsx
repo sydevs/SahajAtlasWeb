@@ -42,6 +42,7 @@ const counts = (total: number) =>
     format: { offline: total, online: 0 },
     days: {},
     time: { morning: 0, afternoon: 0, evening: total, night: 0 },
+    timeless: 0,
     cadence: { DAILY: 0, WEEKLY: total, MONTHLY: 0, once: 0 },
     languages: [],
   }) as FilterFacets['counts']

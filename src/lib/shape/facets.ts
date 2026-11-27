@@ -7,6 +7,7 @@ import {
   type TimePeriod,
   TIME_PERIODS,
   isDateRestricted,
+  isTimeless,
   matchesFilters,
   todayISO,
 } from './filters'
@@ -31,6 +32,8 @@ export type FacetCounts = {
   format: { offline: number; online: number }
   days: Record<number, number>
   time: Record<TimePeriod, number>
+  /** Of the classes each time of day counts, those that name no times, and so count in all four. */
+  timeless: number
   cadence: Record<Exclude<EventCadence, 'any'>, number>
   /** Most-used language first. */
   languages: { code: string; count: number }[]
@@ -52,6 +55,7 @@ export const facetCounts = (
   }
 
   const codes = new Set(events.flatMap((event) => event.languages))
+  const anyTime = { ...filters, timeOfDay: [], region: null }
 
   return {
     total: count({}),
@@ -60,6 +64,10 @@ export const facetCounts = (
     time: Object.fromEntries(
       TIME_PERIODS.map((period) => [period, count({ timeOfDay: [period] })]),
     ) as FacetCounts['time'],
+    timeless: events.reduce(
+      (sum, event) => (isTimeless(event) && matchesFilters(event, anyTime, today) ? sum + 1 : sum),
+      0,
+    ),
     cadence: Object.fromEntries(
       EVENT_CADENCES.map((cadence) => [cadence, count({ cadence })]),
     ) as FacetCounts['cadence'],

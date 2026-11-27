@@ -378,10 +378,11 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
   const shown = shownGroups(value, facets)
   const counts = facets?.counts
   // Night is offered only while some class here starts in it, hidden rather than greyed: in
-  // practice that is online classes from far-off time zones. A chosen Night stays, so it can be
-  // undone.
+  // practice that is online classes from far-off time zones. A listing with no times counts in
+  // every time of day, so it is no reason to offer Night. A chosen Night stays, so it can be undone.
+  const startsAtNight = counts ? counts.time.night - counts.timeless : 0
   const timePeriods = TIME_PERIODS.filter(
-    (period) => period !== 'night' || timeOfDay.includes(period) || (counts?.time.night ?? 0) > 0,
+    (period) => period !== 'night' || timeOfDay.includes(period) || startsAtNight > 0,
   )
 
   const patch = (next: Partial<EventFilters>) => onChange({ ...value, ...next })

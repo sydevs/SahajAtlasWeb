@@ -133,3 +133,16 @@ describe('bestRecovery', () => {
     expect(bestRecovery(feed, DEFAULT_FILTERS, today)).toBeNull()
   })
 })
+
+describe('facetCounts — a listing with no times', () => {
+  it('counts in every time of day, and says how many such listings there are', () => {
+    const without = facetCounts(feed, DEFAULT_FILTERS, today)
+    const counts = facetCounts([...feed, event({ dates: [] })], DEFAULT_FILTERS, today)
+
+    expect(without.timeless).toBe(0)
+    expect(counts.timeless).toBe(1)
+    for (const period of ['morning', 'afternoon', 'evening', 'night'] as const) {
+      expect(counts.time[period]).toBe(without.time[period] + 1)
+    }
+  })
+})
