@@ -92,7 +92,7 @@ export function AddToCalendar({ event }: AddToCalendarProps) {
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
-        <Button color="primary" variant="flat">
+        <Button className="w-full" color="secondary" variant="flat">
           <CalendarPlus size={16} />
           {t('event.actions.add_calendar')}
           <ChevronDown size={16} />
