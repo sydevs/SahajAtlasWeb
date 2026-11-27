@@ -592,9 +592,24 @@ export function unsettledDetail(audit, now, placeholderStory) {
 async function keyboardWalk(page, count, resting, selectors) {
   const stops = []
 
-  await page.evaluate(() => document.body.focus())
+  // ⚠ Not `document.body.focus()`, which is a no-op: the body is not focusable, so whatever the
+  // page focused during the audit stays the starting point. Schedule-X's month agenda focuses
+  // its day cell on any attribute change inside it, the audit's own stamping included, so
+  // `views--calendar`'s walk began on that cell and its first Tab left the page — 0 of 9 stops,
+  // passing. A focused, unfocusable-by-Tab anchor at the top resets the starting point.
+  await page.evaluate(() => {
+    const anchor = document.createElement('span')
 
-  for (let i = 0; i < count; i += 1) {
+    anchor.tabIndex = -1
+    anchor.setAttribute('data-a11y-walk-start', '')
+    document.body.prepend(anchor)
+    anchor.focus()
+  })
+
+  // A skipped focus sentinel is not one of the `count` stops, so it does not spend one: in
+  // `atoms--drawer` the guard ahead of its one control took the walk's only press. The second
+  // bound stops a page of nothing but sentinels from walking for ever.
+  for (let reached = 0, presses = 0; reached < count && presses < count * 3 + 2; presses += 1) {
     await page.keyboard.press('Tab')
 
      
@@ -627,6 +642,7 @@ async function keyboardWalk(page, count, resting, selectors) {
       break
     }
 
+    reached += 1
     stops.push({
       ...stop,
       // An element the audit never stamped is one the page added after it ran — a portal that
@@ -765,7 +781,19 @@ export async function run({ only, origin } = {}) {
       let reached = -1
       const checked = new Set()
 
-      for (const stop of await keyboardWalk(page, result.stops, result.resting, selectors)) {
+      const walked = await keyboardWalk(page, result.stops, result.resting, selectors)
+
+      // A roving-tabindex group legitimately ends a walk short of `result.stops`, but never at
+      // zero: an empty walk over a page with stops measured nothing and would pass (#515).
+      if (result.stops > 0 && walked.length === 0) {
+        failures.push({
+          story: id,
+          kind: 'keyboard-walk',
+          detail: `Tab reached none of the ${result.stops} stop(s) the page offers`,
+        })
+      }
+
+      for (const stop of walked) {
         // ⚠ An unstamped stop (rendered after the audit) has no place in document order, and
         // `Number(null)` is 0, which would read as a jump back to the top.
         const at = stop.order === null ? NaN : Number(stop.order)

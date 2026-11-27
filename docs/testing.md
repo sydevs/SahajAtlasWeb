@@ -571,7 +571,7 @@ browser 131** — and the browser's 80 contrast failures and 24 label-in-name fa
 among the 31, which is the whole argument. (The browser figure is from the 49 stories that
 rendered; three forms timed out in that first pass.)
 
-Six things about it are deliberate:
+Seven things about it are deliberate:
 
 - **The quiet period it waits for cannot close until the story has changed the page once.** `load`
   fires before React mounts, so a run that looked in that gap found the page quiet because nothing
@@ -595,6 +595,13 @@ Six things about it are deliberate:
   Measured 2026-11-26 on 11 cores: five full runs measured 689 controls each, about 49s against
   41s before. With the placeholder wait off and a 50ms window, the recount reported the
   skeleton read on every run.
+- **The keyboard walk starts from an anchor it focuses at the top of the body, and an empty walk
+  is a finding** (#515). `document.body.focus()` is a no-op, so the walk used to start wherever
+  the page had put focus — Schedule-X's month agenda focuses its day cell on any attribute change
+  inside it, the audit's own stamping included, and `views--calendar` walked 0 of its 9 stops and
+  passed. A skipped Radix focus sentinel no longer spends one of the walk's presses either, which
+  had left `atoms--drawer` at 0 of 1. A walk that reaches none of a story's stops now fails as
+  `keyboard-walk`; a roving-tabindex group still ends one short of the count legitimately.
 - **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
   so a story that failed to build would pass by never having been built. `--origin
 http://localhost:61000` points it at the dev server anyway, for the local fix loop only.
