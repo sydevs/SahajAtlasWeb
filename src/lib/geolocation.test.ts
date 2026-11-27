@@ -1,18 +1,16 @@
 import type { GeoFeature, Geojson } from '@/types'
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
-  GEOLOCATION_DISMISS_KEY,
   NEARBY_RADIUS_KM,
   hasActivePlaceSearch,
   hasClassWithin,
   isLocalRegion,
   locatedPlace,
-  markGeolocationDismissed,
   nearbyBounds,
-  readGeolocationDismissed,
   guessedPlace,
+  locationLineHere,
   shouldShowGeolocationPrompt,
 } from './geolocation'
 import { approxBounds } from './geo'
@@ -128,45 +126,6 @@ describe('shouldShowGeolocationPrompt', () => {
   })
 })
 
-describe('readGeolocationDismissed / markGeolocationDismissed', () => {
-  afterEach(() => vi.unstubAllGlobals())
-
-  const stubStorage = () => {
-    const store = new Map<string, string>()
-
-    vi.stubGlobal('sessionStorage', {
-      getItem: (key: string) => store.get(key) ?? null,
-      setItem: (key: string, value: string) => store.set(key, value),
-    })
-
-    return store
-  }
-
-  it('reads false before anything is written', () => {
-    stubStorage()
-    expect(readGeolocationDismissed()).toBe(false)
-  })
-  it('round-trips the dismiss flag under the session key', () => {
-    const store = stubStorage()
-
-    markGeolocationDismissed()
-    expect(store.get(GEOLOCATION_DISMISS_KEY)).toBe('1')
-    expect(readGeolocationDismissed()).toBe(true)
-  })
-  it('degrades to "not dismissed" when storage throws (sandboxed embed / private mode)', () => {
-    vi.stubGlobal('sessionStorage', {
-      getItem: () => {
-        throw new Error('blocked')
-      },
-      setItem: () => {
-        throw new Error('blocked')
-      },
-    })
-    expect(readGeolocationDismissed()).toBe(false)
-    expect(() => markGeolocationDismissed()).not.toThrow()
-  })
-})
-
 describe('nearbyBounds', () => {
   // A [w, s, e, n] box's width/height in degrees — enough to tell "a neighbourhood" from "a
   // pinpoint" and from "half a continent" without asserting turf's exact arithmetic.
@@ -252,5 +211,21 @@ describe('guessedPlace', () => {
   // An IP guess is too coarse for its nearest classes to be the visitor's.
   it('frames a city-sized box around the guess, whatever the feed holds', () => {
     expect(guessedPlace(guess).bbox).toEqual(approxBounds(PARIS_POINT, NEARBY_RADIUS_KM))
+  })
+})
+
+describe('locationLineHere', () => {
+  it('is always on the first screen', () => {
+    expect(locationLineHere('home', 'CZ')).toBe(true)
+  })
+
+  it('is on another country’s page, whatever case its code is in', () => {
+    expect(locationLineHere({ level: 'country', countryCode: 'gb' }, 'CZ')).toBe(true)
+  })
+
+  it('is never on the visitor’s own country, a region or a city', () => {
+    expect(locationLineHere({ level: 'country', countryCode: 'cz' }, 'CZ')).toBe(false)
+    expect(locationLineHere({ level: 'region', countryCode: null }, 'CZ')).toBe(false)
+    expect(locationLineHere({ level: 'city', countryCode: null }, 'CZ')).toBe(false)
   })
 })

@@ -5,7 +5,11 @@ import type { Feature } from 'geojson'
 import { create } from 'zustand'
 
 import { deepActiveElement } from '@/lib/active-element'
-import { parseApproxLocation } from '@/lib/approx-location'
+import {
+  markGeolocationDismissed,
+  parseApproxLocation,
+  readGeolocationDismissed,
+} from '@/lib/approx-location'
 
 // ===== VIEW STATE ===== //
 
@@ -279,18 +283,29 @@ export const useReportModal = create<ReportModalState>((set) => ({
 // ===== APPROXIMATE LOCATION ===== //
 
 // Where the visitor roughly is: the default export of `/geo.js` (`lib/approx-location.ts`), or
-// `null` without one. A store because it can arrive after the first render — the module is
-// imported beside the widget, and usually lands first — and a story sets one the same way.
-type ApproxLocationState = { location: ApproxLocation | null }
+// `null` without one, set once before the first render. A store so the visitor's own answer can
+// join it (`dismissed`), and so a story can set one.
+//
+// `dismissed` is the visitor's X on the guessed town, kept for the browser session: the town is
+// not offered again, and the country list stops putting their country first.
+type ApproxLocationState = {
+  location: ApproxLocation | null
+  dismissed: boolean
+  dismiss: () => void
+}
 
-export const useApproxLocation = create<ApproxLocationState>(() => ({ location: null }))
+export const useApproxLocation = create<ApproxLocationState>((set) => ({
+  location: null,
+  dismissed: readGeolocationDismissed(),
+  dismiss: () => {
+    markGeolocationDismissed()
+    set({ dismissed: true })
+  },
+}))
 
-/** Takes the location from `/geo.js` once it has loaded; a failed import is no location. */
-export const bootApproxLocation = (geo: Promise<unknown>): void =>
-  void geo.then(
-    (value) => useApproxLocation.setState({ location: parseApproxLocation(value) }),
-    () => {},
-  )
+/** Takes the location from `/geo.js`'s default export, read before the first render. */
+export const bootApproxLocation = (geo: unknown): void =>
+  useApproxLocation.setState({ location: parseApproxLocation(geo) })
 
 // ===== NEAR ME ===== //
 

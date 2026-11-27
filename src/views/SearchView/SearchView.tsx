@@ -8,13 +8,7 @@ import { useViewState } from '@/config/store'
 import { useMapController } from '@/hooks/use-map-controller'
 import { listResetKey, parseBounds, parseCenter } from '@/lib/shape'
 import { BackButton } from '@/views/nav'
-import {
-  ExpandSheetButton,
-  FilterButton,
-  GeolocationSuggestion,
-  SearchField,
-  useFrameOnTop,
-} from '@/views/shared'
+import { ExpandSheetButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 
 // The search view, at route `/search`. It ranks events by distance from the geocoded place
@@ -62,7 +56,6 @@ export function SearchView() {
         </ListToolbar>
       </DrawerToolbar>
       <DrawerBody>
-        <GeolocationSuggestion position="above" />
         {/* The list owns the `['events', …]` read. The geocoder above it does not. Keeping a
             failed list local means the search field stays live, so the escape from a failed
             search is to run a different one — the most useful thing on the screen. `resetKeys`
@@ -74,7 +67,6 @@ export function SearchView() {
             longitude={longitude}
           />
         </ResetErrorBoundary>
-        <GeolocationSuggestion position="below" />
       </DrawerBody>
     </>
   )

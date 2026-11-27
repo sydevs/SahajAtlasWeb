@@ -218,12 +218,8 @@ describe('every key a call site asks for', () => {
  */
 const PENDING_KEYS: Record<string, string> = {
   'common.map.close': 'sydevs/SahajAtlasWeb#466',
-  'countries.locating': 'sydevs/SahajCloud#1295',
-  'countries.near_city': 'sydevs/SahajCloud#1295',
-  'countries.near_me': 'sydevs/SahajCloud#1295',
   'countries.place_title': 'sydevs/SahajAtlasWeb#466',
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
-  'search.chrome.city_or_postcode': 'sydevs/SahajCloud#1295',
 }
 
 /**
@@ -241,6 +237,7 @@ const RETIRING_KEYS: Record<string, string> = {
   'registration.form.okay': 'sydevs/SahajCloud#1294',
   'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',
   'registration.form.starting_date': 'sydevs/SahajCloud#1294',
+  'search.nearby_prompt.title': 'sydevs/SahajCloud#1296',
   'share.title': 'sydevs/SahajCloud#1290',
 }
 

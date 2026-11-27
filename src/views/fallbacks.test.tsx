@@ -46,6 +46,7 @@ vi.mock('@/views/nav', () => ({
 }))
 vi.mock('@/views/shared', () => ({
   CalendarButton: () => <i>calendar-button</i>,
+  DrawerTitle: () => <h2>title</h2>,
   ExpandSheetButton: () => null,
   FilterButton: () => <i>filter-button</i>,
   SearchField: () => <i>search-field</i>,
@@ -93,9 +94,9 @@ describe("a place page's loading and error chrome", () => {
     expect(markup).toMatch(/^<header><\/header><section>body:/)
   })
 
-  it("leaves the root's field in its header, as CountriesView has it, and the body without one", () => {
+  it("puts the root's field under its title, as CountriesView has it, and the body without one", () => {
     expect(at('/', error('server'))).toMatch(
-      /^<header><i>search-field<\/i><i>filter-button<\/i><\/header><section>body:<i>panel<\/i>/,
+      /^<header><h2>title<\/h2><i>filter-button<\/i><\/header><aside>field-toolbar:<i>search-field<\/i><\/aside><section>body:<i>panel<\/i>/,
     )
   })
 })

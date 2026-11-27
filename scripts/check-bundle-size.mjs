@@ -92,6 +92,9 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
+//   338  334.8/336.0  #531  embed only. The first screen's title, its location line
+//                           (the Alert, Near me's hook and the guess's rules) and its
+//                           sheet stop took the last of the headroom, as #435 did
 //   336  321.9/323.1  #449  framer-motion 14, merged in from `main`, +5.8 KiB;
 //                           budget held, as above
 //   336  316.1/317.2  #446  React 19: `react` + `react-dom/client` alone gzip
@@ -133,7 +136,7 @@ import { annotate, report } from './_ci-output.mjs'
 export const BUDGET_KIB = {
   standalone: 336,
   loader: 3.6,
-  embed: 336,
+  embed: 338,
 }
 
 // What `@sentry/vite-plugin`'s per-chunk debug-ID snippet adds to each graph,

@@ -49,6 +49,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The first screen opens on its title, the search, and one way to classes near the
+  visitor.** ([#531]) "Free meditation classes" heads it, and the search, which reads "Enter your
+  city or postcode" on every page, spans the panel. Under it, "Classes near Prague ›" (the visitor's
+  guessed town, with an × to remove it) or "Classes near me ›" (which asks for their location)
+  opens classes near them, and their country leads the country list. The line also shows on
+  other countries' pages. No parameter, origin or permission changes: "Classes near me" asks for
+  the same `geolocation` the map's own button does. The widget now waits for `/geo.js` before it
+  first draws, for at most 1.5 seconds, so nothing reorders once it is on screen.
 - **The sign-up form opens nearly full height on a phone, with Register always in reach.** ([#529])
   The class summary leads, the next date is already chosen in a dropdown, and one full-width
   Register stays at the bottom of the screen, saying why while the security check runs. A
@@ -1544,6 +1552,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#510]: https://github.com/sydevs/SahajAtlasWeb/pull/510
 [#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
+[#531]: https://github.com/sydevs/SahajAtlasWeb/pull/531
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
 [#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528

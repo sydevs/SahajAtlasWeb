@@ -10,10 +10,6 @@ import { geocodeCountryCode, reverseGeocode } from './geocode'
 // condition is unit-tested (the component itself is hook-heavy, and the
 // node lane cannot render it).
 
-// One session-scoped flag: dismissing the suggestion (× or clicking through)
-// hides it for the rest of the browser session. It reappears on a fresh visit.
-export const GEOLOCATION_DISMISS_KEY = 'atlas.geolocationPromptDismissed'
-
 // Only suggest when a located class is within this radius (km) of the guess — a
 // tight "genuinely near" bound so the prompt never leads to an empty search.
 export const NEARBY_MAX_KM = 100
@@ -33,24 +29,6 @@ export const NEARBY_RADIUS_KM = 25
 // and there `NEARBY_MAX_KM` bounds how far it can reach. The map's job on arrival is orientation,
 // not enumeration.
 export const NEARBY_FIT_COUNT = 5
-
-// sessionStorage can be absent or throw in sandboxed embeds / private mode, so both
-// accessors degrade to "not dismissed" rather than crashing the suggestion.
-export const readGeolocationDismissed = (): boolean => {
-  try {
-    return sessionStorage.getItem(GEOLOCATION_DISMISS_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-export const markGeolocationDismissed = (): void => {
-  try {
-    sessionStorage.setItem(GEOLOCATION_DISMISS_KEY, '1')
-  } catch {
-    // Dismissal will not persist where sessionStorage is unavailable. This is acceptable.
-  }
-}
 
 /** The searched-place params (`?center`/`?q`) that suppress the suggestion. */
 export const hasActivePlaceSearch = (params: URLSearchParams): boolean =>
@@ -227,3 +205,14 @@ export const locatedPlace = (
 
   return { place, named }
 }
+
+/**
+ * Whether a place page's search carries the location line: another country's page only, never
+ * the visitor's own country, nor a region or a city. The first screen always may.
+ */
+export const locationLineHere = (
+  near: 'home' | { level: string; countryCode?: string | null },
+  visitorCountry?: string,
+): boolean =>
+  near === 'home' ||
+  (near.level === 'country' && near.countryCode?.toUpperCase() !== visitorCountry)

@@ -170,12 +170,16 @@ describe('sheetOpening', () => {
     ])
   })
 
-  it('keeps the open stop for the lists and the root', () => {
+  it('keeps the open stop for the lists', () => {
     expect(['search', 'region', 'online'].map((kind) => sheetOpening(kind as never))).toEqual([
       'open',
       'open',
       'open',
     ])
-    expect(sheetOpening(undefined)).toBe('open')
+  })
+
+  // The first screen shows its first country below the search, its line and online classes.
+  it('opens the first screen at its own stop', () => {
+    expect(sheetOpening(undefined)).toBe('home')
   })
 })

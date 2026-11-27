@@ -17,7 +17,10 @@ test('a full-page map embed boots, lists the countries and draws its map', async
 
   const atlas = widget(page)
 
-  await expect(atlas.getByRole('heading', { name: en.countries.title })).toBeVisible()
+  // The panel's own title, beside the dialog's screen-reader name of the same words.
+  await expect(
+    atlas.getByRole('heading', { name: en.countries.title }).and(atlas.locator(':not(.sr-only)')),
+  ).toBeVisible()
   await expect(atlas.getByRole('link', { name: UNITED_KINGDOM })).toBeVisible()
 
   // The style is the map's first request, so it proves mapbox-gl constructed a map, and the
@@ -98,7 +101,9 @@ test('hostile host CSS does not restyle the widget', async ({ page }) => {
   await page.goto(hostPage('hostile-css.html'))
 
   const filters = widget(page).getByRole('button', { name: en.filters.chrome.title })
-  const heading = widget(page).getByRole('heading', { name: en.countries.title })
+  const heading = widget(page)
+    .getByRole('heading', { name: en.countries.title })
+    .and(widget(page).locator(':not(.sr-only)'))
 
   await expect(filters).toBeVisible()
 
@@ -110,6 +115,8 @@ test('hostile host CSS does not restyle the widget', async ({ page }) => {
   await expect(filters).not.toHaveCSS('border-top-style', 'dashed')
   await expect(filters).not.toHaveCSS('background-color', 'rgb(255, 0, 255)')
   // Inherited properties do cross the boundary, from the host's `div` around the element, so
-  // this one holds only because the widget's own baseline resets it.
-  await expect(heading).toHaveCSS('letter-spacing', 'normal')
+  // this one holds only because the widget's own baseline resets it. The title's own type scale
+  // sets a tracking of its own; what must not reach it is the host's 6px.
+  await expect(heading).not.toHaveCSS('letter-spacing', '6px')
+  await expect(filters).toHaveCSS('letter-spacing', 'normal')
 })
