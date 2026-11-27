@@ -11,10 +11,13 @@ import { setThemeRoot } from '@/hooks/use-theme'
  * The lightbox is a portal, so only a DOM can say what it shows: which photo opens, how the
  * controls move between them, and that it closes.
  */
+const direction = vi.hoisted(() => ({ value: 'ltr' }))
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, unknown>) =>
       values ? `${key}:${values.current}/${values.total}` : key,
+    i18n: { dir: () => direction.value },
   }),
 }))
 
@@ -33,6 +36,7 @@ afterEach(async () => {
   cleanup = null
   setThemeRoot(null)
   document.body.innerHTML = ''
+  direction.value = 'ltr'
 })
 
 async function mount(items: Slide[] = slides) {
@@ -97,6 +101,15 @@ describe('ImageGallery lightbox', () => {
     await press('ArrowLeft')
     await press('ArrowLeft')
     expect(shown()).toBe('https://example.test/c.jpg')
+  })
+
+  it('swaps the arrow keys right to left', async () => {
+    direction.value = 'rtl'
+    await mount()
+    await click(byLabel('A'))
+
+    await press('ArrowLeft')
+    expect(shown()).toBe('https://example.test/b.jpg')
   })
 
   it('closes from its close button', async () => {

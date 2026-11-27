@@ -6,7 +6,7 @@ import { ImageGallery, type Slide } from './ImageGallery'
 // Node-only SSR assertions (see `docs/testing.md`). The lightbox is a closed portal here, so it
 // renders nothing; `ImageGallery.lightbox.test.tsx` drives it in jsdom.
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => key, i18n: { dir: () => 'ltr' } }),
 }))
 
 const slides: Slide[] = [

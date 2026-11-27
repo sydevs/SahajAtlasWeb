@@ -24,9 +24,6 @@ const SWIPE_PX = 50
 const control =
   'flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white focus-ring transition-colors hover:bg-black/70'
 
-/** Whether `element` lays out right to left, so "next" is on the left. */
-const isRtl = (element: Element) => getComputedStyle(element).direction === 'rtl'
-
 /**
  * Radix starts on the first tabbable control, the ×, which reads as though Close were already
  * chosen and rings it after a tap. The dialog itself takes focus instead, which is also where the
@@ -43,7 +40,9 @@ const focusDialog = (event: Event) => {
  * up the theme and stays inside a frame.
  */
 export function Lightbox({ slides, index, onIndexChange, onClose }: LightboxProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  // Right to left, "next" sits on the left: the same reading `Widget.tsx` sets `dir` from.
+  const rtl = i18n.dir() === 'rtl'
   const open = index !== null
   const restore = useOpenerRestore<HTMLDivElement>(open)
   const swipeStart = useRef<number | null>(null)
@@ -59,7 +58,7 @@ export function Lightbox({ slides, index, onIndexChange, onClose }: LightboxProp
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!multiple || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return
     event.preventDefault()
-    const forward = (event.key === 'ArrowRight') !== isRtl(event.currentTarget)
+    const forward = (event.key === 'ArrowRight') !== rtl
 
     step(forward ? 1 : -1)
   }
@@ -78,7 +77,7 @@ export function Lightbox({ slides, index, onIndexChange, onClose }: LightboxProp
     if (Math.abs(dx) < SWIPE_PX) return
     swiped.current = true
     // A swipe drags the photo, so a leftward swipe brings in the one to its right.
-    const forward = dx < 0 !== isRtl(event.currentTarget)
+    const forward = dx < 0 !== rtl
 
     step(forward ? 1 : -1)
   }
