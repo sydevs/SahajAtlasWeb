@@ -161,7 +161,7 @@ function CloseMapButton({ beside }: { beside: boolean }) {
         'fixed z-[45] -translate-x-1/2 rtl:translate-x-1/2',
         // Beside a left panel, the middle of the MAP is the middle of what the panel leaves.
         beside
-          ? 'start-[calc(50%+var(--sy-drawer-w,352px)/2)] bottom-6'
+          ? 'start-[calc(50%+var(--sy-drawer-w,384px)/2)] bottom-6'
           : 'start-1/2 top-[max(12px,calc(var(--sy-sheet-top,var(--sy-frame-h))-56px))]',
       )}
       radius="full"
@@ -209,7 +209,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // How wide the WIDGET is, not the screen (issue #107). `container` is the inline content
   // column. In map mode there is no such element, but there
   // can be a FRAME — the expanded dialog. Where one exists, it is the honest answer to "does a
-  // 352px side panel leave usable space beside it?", because the panel sits inside it. With
+  // 384px side panel leave usable space beside it?", because the panel sits inside it. With
   // no frame, this call is `useIsWide(null)`, the viewport. This value is shared with the
   // subtree via `WidgetWidthContext` at the foot of this component, so no descendant can
   // disagree with the drawer it sits in.
@@ -242,7 +242,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // neither the calendar nor the filters view frames the map.
   const top = baseStackEntry(entries, sheeted) ?? null
   // The calendar is the one full-width view. It fills the widget, minus the floating margins,
-  // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
+  // instead of the 384px left panel (see the Drawer `wide` variant) — EXCEPT in its list
   // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
   // because the wide panel exists only above the crossing (#331). The view is read reactively, so
   // switching it resizes the drawer. Date changes do not re-render this component.

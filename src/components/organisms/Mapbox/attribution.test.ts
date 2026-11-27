@@ -53,7 +53,7 @@ describe('the Mapbox wordmark and attribution corners', () => {
   })
 
   it('keeps the wordmark out of the corner the side panel covers', () => {
-    // Bottom right, not mapbox's own bottom left, which the 352px side panel covers on a wide
+    // Bottom right, not mapbox's own bottom left, which the 384px side panel covers on a wide
     // embed — the half of #324 that hid the wordmark there. The narrow sheet covers this corner
     // too, which #330's review accepted rather than buy the measurement back for.
     expect(cornerIn(map, 'logoPosition')).toBe('bottom-right')

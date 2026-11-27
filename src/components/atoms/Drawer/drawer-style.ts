@@ -18,7 +18,7 @@ export const drawer = tv({
     // Every content band is capped at `--sy-content-max` (default 512px) and
     // centred. So on a wide surface, such as a large-mobile bottom sheet, the
     // views read as a centred column, instead of stretching edge to edge. This
-    // has no effect on the 352px anchored panel, which is already narrower.
+    // has no effect on the 384px anchored panel, which is already narrower.
     // ⚠ The wider gap and bottom padding on a touch screen are the 44px tap floor, not
     // spacing taste (#432): the header's controls are drawn at 32px and each grows an
     // invisible 44px area, 6px past its own box on every side. At the 8px gap two of those
@@ -80,7 +80,7 @@ export const drawer = tv({
       // runs the page under it). The panel widens by the inset and pads it, so its content keeps
       // the full width clear of the cut-out. Zero everywhere else.
       //
-      // **The `352px` in both variants below is paired with `DRAWER_W_PX` in
+      // **The `384px` in both variants below is paired with `DRAWER_W_PX` in
       // `hooks/use-map-controller-real.tsx`.** That constant becomes the map's
       // left camera padding, so the map knows how much of itself this panel
       // covers. Tailwind needs a literal here, and it cannot read the
@@ -93,11 +93,11 @@ export const drawer = tv({
       // Mapbox opens and closes the list on every response, and the panel would follow each one.
       left: {
         content:
-          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl lg:has-[[role=search]:focus-within_input:not(:placeholder-shown)]:h-[calc(var(--sy-frame-h)-32px)]',
+          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,384px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl lg:has-[[role=search]:focus-within_input:not(:placeholder-shown)]:h-[calc(var(--sy-frame-h)-32px)]',
       },
       right: {
         content:
-          'inset-y-0 right-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
+          'inset-y-0 right-0 w-[var(--sy-drawer-w,384px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
       },
       // Snap-point sheets must use the full viewport height. Vaul computes
       // its snap translate from the window height, so a content-sized sheet
@@ -129,7 +129,7 @@ export const drawer = tv({
         header: '[&_[data-sy-place]]:hidden',
       },
     },
-    // A full-width surface, such as CalendarView, instead of the 352px left panel, so a month
+    // A full-width surface, such as CalendarView, instead of the 384px left panel, so a month
     // grid stays legible.
     wide: { true: {}, false: {} },
   },

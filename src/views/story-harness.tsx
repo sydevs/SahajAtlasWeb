@@ -415,7 +415,7 @@ function ExpandedForm({ wide, children }: { wide: boolean; children: ReactNode }
                 fullWidth
                   ? 'inset-4 rounded-2xl border'
                   : isWide
-                    ? 'inset-y-0 start-0 w-[var(--sy-drawer-w,352px)] max-w-full border-e'
+                    ? 'inset-y-0 start-0 w-[var(--sy-drawer-w,384px)] max-w-full border-e'
                     : 'inset-x-0 bottom-0 h-[300px] max-h-[calc(100%-160px)] rounded-t-2xl border-t',
               )}
             >

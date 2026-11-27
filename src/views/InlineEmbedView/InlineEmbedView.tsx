@@ -29,6 +29,7 @@ import { fallbackUrl } from '@/lib/fallback-url'
 import { publishFit } from '@/lib/readiness'
 import { reportIntegrationWarning } from '@/lib/report'
 import { setFrame, widgetOverlayContainer } from '@/lib/overlay'
+import { resolveStack, type StackEntry } from '@/lib/shape/path'
 import { DrawerStack } from '@/views/DrawerStack/DrawerStack'
 import {
   type InterfaceProps,
@@ -237,8 +238,13 @@ function ExpandButton({ className }: { className?: string }) {
  * stacks a short map strip above the content, and it does not stick. `top` is the host header the
  * map sticks below.
  *
+ * Side by side, a list gives the map 60% and a class takes 60% itself. Neither column goes under
+ * 352px, so at the crossing (two of them and the gap) both start out even.
+ *
  * The view stories render one view in it, which is why it takes its content as children.
  */
+const CLASS_VIEWS = new Set<string>(['event', 'register', 'share'] satisfies StackEntry['kind'][])
+
 export function InlineColumns({
   map,
   top = 0,
@@ -249,9 +255,20 @@ export function InlineColumns({
   children: ReactNode
 }) {
   const { hasMap } = useWidgetMode()
+  const { pathname } = useLocation()
+  // A class's own register and share views keep its split, so opening one moves no column.
+  const classPage = CLASS_VIEWS.has(resolveStack(pathname).at(-1)?.kind ?? '')
 
   return (
-    <div className={clsx('grid gap-4', hasMap && '@min-sy-cols:grid-cols-2')}>
+    <div
+      className={clsx(
+        'grid gap-4',
+        hasMap &&
+          (classPage
+            ? '@min-sy-cols:grid-cols-[3fr_minmax(352px,2fr)]'
+            : '@min-sy-cols:grid-cols-[minmax(352px,2fr)_3fr]'),
+      )}
+    >
       {/* The page heading sets the width here, so the bands' own cap is lifted. */}
       <div className="flex min-w-0 flex-col [--sy-content-max:none]">{children}</div>
       {hasMap && (

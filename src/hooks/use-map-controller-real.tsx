@@ -19,8 +19,8 @@ import { frameElement } from '@/lib/overlay'
 // `DrawerStack` resolves from its active snap and hands over (`useSheetCover`).
 //
 // **`DRAWER_W_PX` is one half of a pair. See the other half before you change it.**
-// The drawer's actual width comes from a `352px` fallback baked into its Tailwind classes.
-// That fallback is `w-[var(--sy-drawer-w,352px)]`, in `components/atoms/Drawer/Drawer.tsx`.
+// The drawer's actual width comes from a `384px` fallback baked into its Tailwind classes.
+// That fallback is `w-[var(--sy-drawer-w,384px)]`, in `components/atoms/Drawer/Drawer.tsx`.
 // A class string cannot read a value from this file, because the Tailwind JIT scanner needs a literal.
 // So you must keep the two values in step by hand.
 // Moving only one value throws no error.
@@ -35,7 +35,7 @@ import { frameElement } from '@/lib/overlay'
 // Reading the resolved variable at runtime would cover that case.
 // This code rejects that approach, because it would put a DOM read in the map's hot path, to serve an override that is not a supported feature yet.
 // If a host is ever invited to set that variable, this is the constant that must start resolving it.
-const DRAWER_W_PX = 352
+const DRAWER_W_PX = 384
 // The phone sheet's open height is only a fallback (`SHEET_OPEN_PX`): the stack publishes what
 // the sheet actually covers. Padding for the peek alone centred a framed place on map the open
 // sheet hides, and on /fr/paris the classes listed first sat under it.

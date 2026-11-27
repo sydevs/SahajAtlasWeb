@@ -78,7 +78,7 @@ export function NavRow({ children }: { children?: ReactNode }) {
 
   return (
     // The bottom margin keeps Back from reading as part of the title below it. Back has no end
-    // padding: the controls' own padding spaces them, and in the 352px panel any more cut
+    // padding: the controls' own padding spaces them, and in the 384px panel any more cut
     // "Back to the world map" short beside four controls.
     <div className="mb-2 flex min-h-8 items-center justify-between gap-1">
       <BackButton />

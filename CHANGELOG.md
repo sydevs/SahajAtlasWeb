@@ -121,7 +121,8 @@ cover everything a host would notice since the widget was first deployed.
 - ⚠ **Every embed now opens inline, as part of your page, and the map opens over it on request.**
   ([#466]) The widget shows a heading — "Free Meditation classes in London" — above two
   columns: the classes on the left, and a square map on the right that stays in view below
-  your header. A narrow widget stacks a short map strip above the classes; `map=false` shows
+  your header. A list takes 40% of the width and the map 60%; a class takes 60% and its map
+  40%; neither column goes under 352px. A narrow widget stacks a short map strip above the classes; `map=false` shows
   the classes alone. "Expand map" opens the full map, with its panel, in a modal covering the
   screen below your header, and "Close map" brings the visitor back. See
   [Sizing the element](docs/embedding.md#sizing-the-element). What you can observe:
@@ -134,6 +135,8 @@ cover everything a host would notice since the widget was first deployed.
   - **A box too small to browse in shows the heading and "Expand map" alone**: under 280px wide,
     or under 360px tall where the widget cannot grow (a clipped box, an `<iframe>`). It logs one
     console warning naming the size.
+  - **The panel beside the expanded map is 384px wide**, up from 352px, so its larger text wraps
+    less.
   - **The readiness marker is version 3**, with a `tooSmall` field: the element's box while it is
     too small, else `null`.
   - **The standalone page opened directly with `map=false` is inline too**, as it already was in

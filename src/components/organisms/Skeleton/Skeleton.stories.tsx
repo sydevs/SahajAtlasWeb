@@ -51,7 +51,7 @@ export const SkeletonStory: Story = () => (
   <StoryWrapper>
     {PANELS.map(({ title, description, shape, cta }) => (
       <StorySection key={title} description={description} title={title}>
-        <div className="flex h-[560px] w-[352px] flex-col overflow-clip rounded-2xl border border-divider bg-background">
+        <div className="flex h-[560px] w-[384px] flex-col overflow-clip rounded-2xl border border-divider bg-background">
           <Skeleton cta={cta} shape={shape} />
         </div>
       </StorySection>
