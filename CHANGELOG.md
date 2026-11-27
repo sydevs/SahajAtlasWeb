@@ -49,6 +49,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The sign-up form opens nearly full height on a phone, with Register always in reach.** ([#529])
+  The class summary leads, the next date is already chosen in a dropdown, and one full-width
+  Register stays at the bottom of the screen, saying why while the security check runs. A
+  mistyped email is flagged on its box as soon as the visitor leaves it. The confirmation names
+  the date and the email address, keeps Add to calendar, and offers "Invite a friend along" open.
+- **The compact card's button reads "Expand map".** ([#529]) Its old label left the translations
+  with the card's retirement; the inline embed replaces the card.
 - **Filters apply as they are tapped, and close onto the matching classes.** ([#528]) There is
   no Apply button: each answer narrows the map and the count at once, and the bottom button reads
   "Show 8 classes", or Close with nothing picked. Closing by X, swipe or Esc keeps the answers and
@@ -1533,3 +1540,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
+[#529]: https://github.com/sydevs/SahajAtlasWeb/pull/529
