@@ -70,8 +70,8 @@ function entryName(
       return t('calendar.title')
     case 'filters':
       return t('filters.chrome.title')
-    // A class is named by `backLabel`, and `register` and `share` are leaves, so neither can be
-    // somewhere to go back to.
+    // A class is named by `backLabel`, and `register` is a leaf, so neither can be somewhere to
+    // go back to.
     default:
       return undefined
   }
@@ -96,7 +96,7 @@ export function backLabel(route: string, naming: NavNaming): string {
     if (place) return t('common.chrome.back_to_results_near', { place })
   }
 
-  // Only Register and Share go back to a class, which is still on screen behind them.
+  // Only Register goes back to a class, which is still on screen behind it.
   if (entry.kind === 'event') return t('common.chrome.back_to_class')
 
   const title = entryName(entry, naming)

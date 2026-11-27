@@ -14,8 +14,8 @@ import { ShareButton } from '@/components/molecules/ShareContent'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { useCopy } from '@/hooks/use-copy'
-import { MAP_PROVIDER_NAMES, directionsHref, mapProvidersForCountry } from '@/lib/maps/providers'
-import { telHref } from '@/lib/shape'
+import { type DirectionsLink, directionsLinks, mapProvidersForCountry } from '@/lib/maps/providers'
+import { telHref, whatsappHref } from '@/lib/shape'
 import { frameCollision, overlayContainer } from '@/lib/overlay'
 import { isIOS } from '@/lib/platform'
 import { Event } from '@/types'
@@ -106,9 +106,10 @@ function ActionContent({ icon, label }: ActionContentProps) {
   )
 }
 
-const { surface, row } = menuChrome()
+const { surface, row, label: caption } = menuChrome()
 const MENU = surface()
 const ITEM = row()
+const CAPTION = caption()
 
 // A menu opened from the row: the trigger is the row's button, the content portals to the theme
 // root. `modal={false}`: this opens inside a vaul drawer, whose drag and scroll fight Radix's
@@ -131,20 +132,13 @@ function ActionMenu({ trigger, children }: { trigger: ReactNode; children: React
 }
 
 /** Directions, as a menu of map services ordered for the viewer's region and device. */
-function DirectionsMenu({ event, label }: { event: Event; label: string }) {
-  const country = useViewerCountry()
-  const links = mapProvidersForCountry(country, isIOS()).flatMap((provider) => {
-    const href = directionsHref(provider, event.address, event.title)
-
-    return href ? [{ provider, href }] : []
-  })
-
+function DirectionsMenu({ links, label }: { links: DirectionsLink[]; label: string }) {
   return (
     <ActionMenu trigger={<ActionContent icon={<Navigation size={ICON_SIZE} />} label={label} />}>
-      {links.map(({ provider, href }) => (
+      {links.map(({ provider, name, href }) => (
         <DropdownMenu.Item key={provider} asChild className={ITEM}>
           <Link href={href} target="_blank">
-            {MAP_PROVIDER_NAMES[provider]}
+            {name}
           </Link>
         </DropdownMenu.Item>
       ))}
@@ -154,8 +148,9 @@ function DirectionsMenu({ event, label }: { event: Event; label: string }) {
 
 /**
  * Contact, as a menu: the host's name, then a call link showing the number, WhatsApp where the
- * number is international, and a copy row that answers in place. `tel:` reaches a dialer on a
- * phone and FaceTime or Phone Link on a desktop.
+ * number is international, and a copy row that answers in place — or, where the host refuses the
+ * clipboard, selects the number for copying by hand. `tel:` reaches a dialer on a phone and
+ * FaceTime or Phone Link on a desktop.
  */
 function ContactMenu({
   name,
@@ -168,20 +163,16 @@ function ContactMenu({
 }) {
   const { t } = useTranslation()
   const { copied, copy } = useCopy(1500)
-  // wa.me takes the number in international form, digits only.
-  const whatsapp = phone.trim().startsWith('+') ? `https://wa.me/${phone.replace(/\D/g, '')}` : null
+  const numberRef = useRef<HTMLSpanElement>(null)
+  const whatsapp = whatsappHref(phone)
 
   return (
     <ActionMenu trigger={<ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />}>
-      {name && (
-        <DropdownMenu.Label className="px-2 pt-1 pb-1.5 text-xs text-gray-11">
-          {name}
-        </DropdownMenu.Label>
-      )}
+      {name && <DropdownMenu.Label className={CAPTION}>{name}</DropdownMenu.Label>}
       <DropdownMenu.Item asChild className={ITEM}>
         <Link href={telHref(phone)}>
           <Phone aria-hidden size={16} />
-          {phone}
+          <span ref={numberRef}>{phone}</span>
         </Link>
       </DropdownMenu.Item>
       {whatsapp && (
@@ -197,13 +188,16 @@ function ContactMenu({
         onSelect={(event) => {
           // Stay open, so the row can say it worked.
           event.preventDefault()
-          void copy(phone)
+          void copy(phone, numberRef.current)
         }}
       >
         {copied ? <Check aria-hidden size={16} /> : <Copy aria-hidden size={16} />}
         {/* shortcut: English until sydevs/SahajCloud#1303 ships `event.actions.copy_number`; wire it then. */}
         {copied ? t('common.chrome.copied') : 'Copy number'}
       </DropdownMenu.Item>
+      <span aria-live="polite" className="sr-only">
+        {copied ? t('common.chrome.copied') : ''}
+      </span>
     </ActionMenu>
   )
 }
@@ -225,13 +219,18 @@ export function EventActions({ event, strings }: EventActionsProps) {
   const shareUrl = useShareUrl(event.webUrl, event.path)
   const country = useViewerCountry()
   const { display } = strings
+  const directions = directionsLinks(
+    mapProvidersForCountry(country, isIOS()),
+    event.address,
+    event.title,
+  )
 
   const buttons = display.actions.flatMap((kind) => {
     switch (kind) {
       case 'directions':
-        if (!directionsHref('google', event.address)) return []
+        if (directions.length === 0) return []
 
-        return <DirectionsMenu key={kind} event={event} label={t(LABEL.directions)} />
+        return <DirectionsMenu key={kind} label={t(LABEL.directions)} links={directions} />
       case 'website':
         if (!event.website) return []
 
@@ -258,10 +257,8 @@ export function EventActions({ event, strings }: EventActionsProps) {
           <ShareButton
             key={kind}
             className={ACTION}
-            color="neutral"
             country={country}
             label={event.title}
-            size="md"
             url={shareUrl}
             variant="flat"
           >

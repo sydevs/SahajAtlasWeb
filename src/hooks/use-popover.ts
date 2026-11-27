@@ -15,8 +15,7 @@ import {
 } from '@floating-ui/react'
 
 // This is the floating-ui setup shared by every popover surface in the app.
-// Those surfaces are the Dropdown atom's panel, EventActions' desktop contact popover and the
-// Share button's fallback networks.
+// Those surfaces are the Dropdown atom's panel and the Share button's fallback networks.
 // Both used to spell out the same `useFloating` plus `offset(8)`, `flip`, `shift`, plus click, dismiss, and role stack.
 // EventActions' copy even carried a comment conceding it was "the same pattern as the Dropdown atom."
 //
@@ -81,7 +80,7 @@ export function usePopover({
     // The calendar's modal filter drawer sets `pointer-events: none` on the body.
     // This portaled sibling would otherwise inherit that style and swallow every click.
     // This is a no-op outside a modal.
-    // So every popover surface, Dropdown and EventActions, gets the immunity for free.
+    // So every popover surface, Dropdown and Share, gets the immunity for free.
     floatingStyles: { ...floatingStyles, pointerEvents: 'auto' as const },
     context,
     getReferenceProps,

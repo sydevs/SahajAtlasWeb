@@ -31,7 +31,7 @@ describe('indexing directives', () => {
     expect(body).toMatch(/^User-agent:\s*\*$/im)
     expect(body).toMatch(/^Disallow:\s*\/$/im)
 
-    // The link-preview allowance does real work, it is not decoration. ShareView
+    // The link-preview allowance does real work, it is not decoration. The Share action
     // shares `event.webUrl ?? window.location.href`, so people do share a gated event
     // as a sahajatlas URL. Removing this group would turn those shared links into
     // bare URLs with no preview card.

@@ -1,4 +1,4 @@
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useRef } from 'react'
 import clsx from 'clsx'
 import { Check, Link } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -29,7 +29,8 @@ import {
   XShareButton,
 } from 'react-share'
 
-import { useCoarsePointer } from '@/config/responsive'
+import { CopyFailedCaption } from './CopyFailed'
+
 import { useCopy } from '@/hooks/use-copy'
 import { type PlatformKey, platformsForCountry } from '@/lib/share/platforms'
 
@@ -38,26 +39,19 @@ import { type PlatformKey, platformsForCountry } from '@/lib/share/platforms'
 // a person finds their app by its colour before its glyph.
 const ICON_PROPS = { round: true, size: 44 }
 
-// react-share writes `outline-offset: 2px` inline, which would push `focus-ring`'s outline off the
-// disc; `undefined` drops that one declaration and keeps the rest of its reset.
-const RESET_STYLE = { outlineOffset: undefined }
+// One target: its disc above its name, the whole column one button. react-share's own inline reset
+// is off (`resetButtonStyle`): it squared the corners and set the font, colour and outline offset.
+const TARGET_CLASS =
+  'focus-ring flex w-[72px] cursor-pointer flex-col items-center gap-1 rounded-lg text-xs text-gray-11'
 
-// X's disc is black, so in dark mode a hairline keeps it from melting into the panel.
-const X_DISC = 'dark:rounded-full dark:ring-1 dark:ring-white/20'
-
-// One target: its disc above its name, the whole column one button.
-const TARGET_CLASS = 'focus-ring flex w-[72px] flex-col items-center gap-1 rounded-lg'
-
-// On the label, not the button: react-share's inline reset sets the button's font and colour.
-const LABEL_CLASS = 'max-w-full truncate text-xs text-gray-11'
-
-type IconComponent = (props: typeof ICON_PROPS) => ReactNode
+type IconComponent = (props: typeof ICON_PROPS & { className?: string }) => ReactNode
 
 /** What every network's button takes alike, built once by `PlatformButton`. */
 type ButtonProps = {
   'aria-label': string
   className: string
-  style: typeof RESET_STYLE
+  resetButtonStyle: false
+  beforeOnClick?: () => void
   children: ReactNode
 }
 
@@ -70,7 +64,13 @@ type RenderArgs = { url: string; title: string; button: ButtonProps }
 // URL. Every other network takes the title as the composer's prefilled text.
 const PLATFORMS: Record<
   PlatformKey,
-  { name: string; Icon: IconComponent; render: (args: RenderArgs) => ReactNode }
+  {
+    name: string
+    Icon: IconComponent
+    /** X's disc is black, so in dark mode a hairline keeps it from melting into the panel. */
+    iconClass?: string
+    render: (args: RenderArgs) => ReactNode
+  }
 > = {
   whatsapp: {
     name: 'WhatsApp',
@@ -90,6 +90,7 @@ const PLATFORMS: Record<
   x: {
     name: 'X',
     Icon: XIcon,
+    iconClass: 'dark:rounded-full dark:ring-1 dark:ring-white/20',
     render: ({ url, title, button }) => <XShareButton {...button} title={title} url={url} />,
   },
   linkedin: {
@@ -140,6 +141,8 @@ export type PlatformButtonProps = {
   url: string
   /** The event title. This is the composer's prefilled text, and the mail subject for Email. */
   title: string
+  /** Called as the network's page or the mail app takes over. */
+  onPick?: () => void
 }
 
 /**
@@ -147,9 +150,9 @@ export type PlatformButtonProps = {
  * name below it. Brand names stay as written in every language; Email is the one generic name,
  * so it takes translated copy, in the accessible name too (WCAG 2.5.3).
  */
-export function PlatformButton({ platform, url, title }: PlatformButtonProps) {
+export function PlatformButton({ platform, url, title, onPick }: PlatformButtonProps) {
   const { t } = useTranslation()
-  const { name: brand, Icon, render } = PLATFORMS[platform]
+  const { name: brand, Icon, iconClass, render } = PLATFORMS[platform]
   // shortcut: borrows the report form's "Email" label until sydevs/SahajCloud#1303 ships `share.email`.
   const name = platform === 'email' ? t('common.report.email_label') : brand
 
@@ -159,13 +162,12 @@ export function PlatformButton({ platform, url, title }: PlatformButtonProps) {
     button: {
       'aria-label': t('share.a11y.share_on', { platform: name }),
       className: TARGET_CLASS,
-      style: RESET_STYLE,
+      resetButtonStyle: false,
+      beforeOnClick: onPick,
       children: (
         <>
-          <span className={platform === 'x' ? X_DISC : undefined}>
-            <Icon {...ICON_PROPS} />
-          </span>
-          <span className={LABEL_CLASS}>{name}</span>
+          <Icon {...ICON_PROPS} className={iconClass} />
+          <span className="max-w-full truncate">{name}</span>
         </>
       ),
     },
@@ -178,20 +180,17 @@ export function PlatformButton({ platform, url, title }: PlatformButtonProps) {
  */
 function CopyLinkTarget({ url }: { url: string }) {
   const { t } = useTranslation()
-  const touch = useCoarsePointer()
-  const { copied, copy } = useCopy(2500)
-  const [failed, setFailed] = useState(false)
+  const { copied, failed, copy } = useCopy(2500)
   const captionRef = useRef<HTMLParagraphElement>(null)
   const label = copied ? t('share.link_copied') : t('share.copy_link')
 
   return (
     <>
       <button
-        data-share-copy
         data-vaul-no-drag
         className={TARGET_CLASS}
         type="button"
-        onClick={() => void copy(url, captionRef.current).then((ok) => setFailed(!ok))}
+        onClick={() => void copy(url, captionRef.current)}
       >
         <span
           className={clsx(
@@ -205,22 +204,17 @@ function CopyLinkTarget({ url }: { url: string }) {
             <Link aria-hidden size={20} />
           )}
         </span>
-        <span className={LABEL_CLASS}>{label}</span>
+        <span className="max-w-full truncate">{label}</span>
       </button>
       <span aria-live="polite" className="sr-only">
         {copied ? t('share.link_copied') : ''}
       </span>
-      {/* One caption, kept in the DOM so a failed copy can select it, shown once it has. */}
-      <div className={failed ? 'order-last flex w-full flex-col gap-1' : 'hidden'}>
-        {failed && (
-          <p className="text-sm text-danger-11" role="alert">
-            {t(touch ? 'share.copy_failed_touch' : 'share.copy_failed_pointer')}
-          </p>
-        )}
-        <p ref={captionRef} className="text-xs break-all text-gray-11 select-all">
-          {url}
-        </p>
-      </div>
+      <CopyFailedCaption
+        captionRef={captionRef}
+        className={failed ? 'order-last w-full' : 'hidden'}
+        failed={failed}
+        url={url}
+      />
     </>
   )
 }
@@ -230,17 +224,25 @@ export type ShareTargetsProps = {
   title: string
   /** The viewer's country (ISO alpha-2), which picks and orders the targets. */
   country?: string
+  /** Called as a network's page or the mail app takes over; Copy link answers in place. */
+  onPick?: () => void
 }
 
 /**
  * The region's share targets in one wrapping grid, each named below its disc, closed by Copy link.
  * This is what the Share button offers where the device has no share sheet of its own.
  */
-export function ShareTargets({ url, title, country }: ShareTargetsProps) {
+export function ShareTargets({ url, title, country, onPick }: ShareTargetsProps) {
   return (
     <div className="flex max-w-[304px] flex-row flex-wrap justify-center gap-x-1 gap-y-3">
       {platformsForCountry(country).map((platform) => (
-        <PlatformButton key={platform} platform={platform} title={title} url={url} />
+        <PlatformButton
+          key={platform}
+          platform={platform}
+          title={title}
+          url={url}
+          onPick={onPick}
+        />
       ))}
       <CopyLinkTarget url={url} />
     </div>

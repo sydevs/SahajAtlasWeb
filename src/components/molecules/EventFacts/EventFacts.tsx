@@ -147,9 +147,9 @@ export function EventFacts({
   )
 }
 
-/** The class page's street address, which copies itself when tapped. The Directions action beside
- *  it opens one maps app from the stored point (`lib/events.ts`: Apple Maps on iOS, else Google),
- *  so the clipboard is the only route to any other. */
+/** The class page's street address, which copies itself when tapped. The Directions menu beside it
+ *  opens a handful of maps apps from the stored point (`lib/maps/providers.ts`), so the clipboard
+ *  is the route to any other, or to a message. */
 function CopyAddress({ value }: { value: string }) {
   const { t } = useTranslation()
   const { copied, copy } = useCopy(2000)

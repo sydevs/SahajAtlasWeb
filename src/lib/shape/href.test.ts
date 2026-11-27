@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
-import { hasAllowedScheme, isSafeHref, telHref } from './href'
+import { hasAllowedScheme, isSafeHref, telHref, whatsappHref } from './href'
 
 import { parseSource } from '@/test-support/source-ast'
 import { readSource, sourceFiles } from '@/test-support/source-tree'
@@ -224,5 +224,23 @@ describe('telHref', () => {
   it('drops the spaces people write a number with, which RFC 3966 does not allow', () => {
     expect(telHref('+44 7939 524096')).toBe('tel:+447939524096')
     expect(telHref('+44\u00a020 1234\t5678')).toBe('tel:+442012345678')
+  })
+})
+
+describe('whatsappHref', () => {
+  it('takes an international number as digits', () => {
+    expect(whatsappHref('+44 20 1234 5678')).toBe('https://wa.me/442012345678')
+    expect(whatsappHref('0044 20 1234 5678')).toBe('https://wa.me/442012345678')
+  })
+
+  it('drops an extension and a bracketed trunk zero', () => {
+    expect(whatsappHref('+44 20 7946 0958 x12')).toBe('https://wa.me/442079460958')
+    expect(whatsappHref('+44 20 7946 0958 ext. 12')).toBe('https://wa.me/442079460958')
+    expect(whatsappHref('+44 (0)20 7946 0958')).toBe('https://wa.me/442079460958')
+  })
+
+  it('offers nothing for a number without its country code', () => {
+    expect(whatsappHref('020 7946 0958')).toBeUndefined()
+    expect(whatsappHref('+44')).toBeUndefined()
   })
 })

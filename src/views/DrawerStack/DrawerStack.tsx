@@ -625,7 +625,7 @@ export function DrawerStack() {
                 suspend that shows `DrawerLoading` — the shared chrome (header plus Back,
                 rebuilt from the URL) over placeholders shaped like the view — and only a FAILED load
                 throws inward to the boundary. That is what keeps a first open of the
-                calendar, register, or share drawer from flashing blank or unstyled: the
+                calendar or register drawer from flashing blank or unstyled: the
                 drawer's identity is on screen from the first frame, and only its body
                 arrives late (issue #96). */}
             <Suspense fallback={<DrawerLoading />}>

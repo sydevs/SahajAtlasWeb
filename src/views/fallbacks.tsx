@@ -316,7 +316,7 @@ export function DrawerLoadingBody() {
  * search — put content at the top-left of the body, so a fallback standing in for
  * that list belongs there too. Centring it moves the sentence away from where the
  * reader is already looking, and makes the drawer read as a different kind of
- * screen. Everything else (an event, a registration, a share sheet, the calendar) is
+ * screen. Everything else (an event, a registration, the calendar) is
  * a single composed panel with no such anchor, so its fallback centres.
  *
  * This is derived from the URL, rather than passed down, because the view

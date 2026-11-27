@@ -58,12 +58,12 @@ function Panel({ event, width = 304 }: { event: Event; width?: 272 | 304 }) {
 }
 
 /**
- * EventActions — the secondary action row under an event's Register CTA: quiet grey
+ * EventActions — the secondary action row above an event's Register CTA: quiet grey
  * buttons, an icon beside each label. The display resolver chooses the set per state.
  * Contact and Website appear only when the CMS carries them. Directions appears only for
- * a physical venue. Contact is a `tel:` link on touch, and a number-and-copy popover on
- * desktop. Share opens the device's share sheet, or here the region's networks and Copy link in
- * a popover; switch the Region control to watch them reorder.
+ * a physical venue. Directions opens a menu of map services and Contact a menu with the host's
+ * number, WhatsApp and Copy number. Share opens the device's share sheet, or here the region's
+ * networks and Copy link in a popover. Switch the Region control to watch both menus reorder.
  */
 export const Default: Story<{ region: string }> = ({ region }) => {
   const code = REGIONS[region]

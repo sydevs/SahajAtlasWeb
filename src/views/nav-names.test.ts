@@ -56,7 +56,6 @@ describe('backLabel', () => {
   it('never returns an empty name', () => {
     // Whatever the caches hold, Back is a button. A button with no accessible name is a worse
     // outcome than a vague one.
-    for (const route of ['/', '/gb/london/7/register', '/gb/london/7/share'])
-      expect(backLabel(route, { t })).toBeTruthy()
+    for (const route of ['/', '/gb/london/7/register']) expect(backLabel(route, { t })).toBeTruthy()
   })
 })

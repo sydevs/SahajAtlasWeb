@@ -222,7 +222,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   height is the one exception, and it arrives rather than being read:
   `DrawerStack` resolves its active snap and publishes it through
   `useSheetCover`, so the camera reserves the peek while the sheet is collapsed
-  and a class's, a share panel's or the filters' measured height while it is
+  and a class's or the filters' measured height while it is
   open, down to a strip of `MIN_MAP_STRIP_PX` (`config/responsive.ts`). A sheet
   leaving less than that strip hides the map's control column, and the filters
   dim what is left above them.

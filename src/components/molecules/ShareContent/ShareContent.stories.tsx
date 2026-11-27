@@ -37,7 +37,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="What the Share button's popover holds where there is no share sheet: the region's networks, icons only, each in its brand colours. X's black disc carries a hairline in dark mode."
+      description="What the Share button's popover holds where there is no share sheet: the region's networks, each named under its disc in its brand colours, then Copy link. X's black disc carries a hairline in dark mode."
       title="Fallback popover"
     >
       <div className="w-max max-w-full rounded-lg border border-gray-6 bg-background p-3 shadow-xl">
