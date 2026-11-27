@@ -55,9 +55,8 @@ cover everything a host would notice since the widget was first deployed.
   - **Week:** the next seven days, each under its date ("Friday 13 Nov", with Today or Tomorrow
     beside it), each class by name with its time in the visitor's own format ("17:45–18:45" in the
     UK, "5:45 – 6:45 PM" in the US), its town, and an Online chip for an online class. The arrows
-    step a week; a link's dates open the seven days from its first, and a past week opens on
-    today's. Over the Week, Filters asks no dates and counts the seven days on screen. On a
-    computer the Week keeps the side panel, so the map stays in view; the hour-by-hour week grid
+    step a week, and a link to a past week opens on today's. A dates filter narrows the Week as it
+    does the Month, and survives switching between them. On a computer the Week keeps the side panel, so the map stays in view; the hour-by-hour week grid
     is gone.
   - **Month:** on a computer, a box per class ("18:30 Bath", or "Online"), the name on hover, and
     "+ 3 classes" on a busy day, which opens the Week from that day. On a phone, a dot per class
@@ -66,7 +65,7 @@ cover everything a host would notice since the widget was first deployed.
   - **Your root font size no longer shrinks the calendar.** It was the one part of the widget
     sized in `rem`; with its third-party grid gone, a theme that sets `html { font-size: 62.5% }`
     renders it at the same size as the rest.
-  - The view rides inside `atlas` (`/calendar?view=week&dates=…`), so a host's page writes no new
+  - The view rides inside `atlas` (`/calendar?view=week&week=2026-12-04`), so a host's page writes no new
     parameter. No origin, CSP or permission change.
 
 - **"Add to calendar" on the registration confirmation spans the panel, in your second brand

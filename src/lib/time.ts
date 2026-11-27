@@ -95,8 +95,7 @@ export function formatTimeRange(start: DateTime, end: DateTime | null, locale: s
 }
 
 /** The hour a time-of-day filter stands for, to format like any class's time. Hour 24 is midnight. */
-export const wallClock = (hour: number, minute = 0): DateTime =>
-  DateTime.utc(2000, 1, 1, hour % 24, minute)
+export const wallClock = (hour: number): DateTime => DateTime.utc(2000, 1, 1, hour % 24)
 
 /**
  * A date the way the class page writes it: "Wed 11 Nov" on a UK browser, "Wed, Nov 11" on a US

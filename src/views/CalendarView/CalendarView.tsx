@@ -1,6 +1,6 @@
 import { Suspense, useMemo, useRef } from 'react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { useLocation, useNavigate } from 'react-router'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { ChevronRight } from 'lucide-react'
@@ -17,7 +17,6 @@ import api, { regionsQuery } from '@/config/api'
 import { regionRoute } from '@/config/api/fetch'
 import { useIsWideWidget } from '@/config/responsive'
 import { useCalendarPosition } from '@/config/store'
-import { useCalendarView, useSetCalendarView } from '@/hooks/use-calendar-view'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import {
@@ -25,10 +24,10 @@ import {
   type CalendarWindow,
   type EventFilters,
   DEFAULT_FILTERS,
+  calendarViewFromParams,
+  calendarViewToParams,
   calendarWindow,
   cameFrom,
-  chosenCalendarFilters,
-  clearedCalendarFilters,
   entryDay,
   eventsToCalendarEntries,
   filtersKey,
@@ -47,6 +46,22 @@ const useFocusedDate = () => useCalendarPosition((s) => s.date) ?? todayISO()
 
 const setFocused = (day: string) => useCalendarPosition.getState().setDate(day)
 
+// The place is the calendar's title, not a filter the visitor added.
+const chosen = (filters: EventFilters): EventFilters => ({ ...filters, region: null })
+
+/** Switches the view in place, the Week opening on `week`, or on today without one. */
+function useSetCalendarView() {
+  const [, setSearchParams] = useSearchParams()
+  const location = useLocation()
+
+  return (view: CalendarViewName, week: string | null = null) =>
+    setSearchParams((prev) => calendarViewToParams(view, week, new URLSearchParams(prev)), {
+      // `state` carries the entry's depth, which a replace without it would strip.
+      replace: true,
+      state: location.state,
+    })
+}
+
 // The place the calendar is scoped to, from the cache-once region tree.
 function usePlace(slug: string | null) {
   const { data: regions } = useQuery(regionsQuery())
@@ -63,7 +78,6 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   const { formatLocale } = useLocale()
   const setView = useSetCalendarView()
   const filters = useEventFilters()
-  const { setDateRange } = useSetFilters()
   const { dismiss } = useDrawerControl()
   const navigate = useNavigate()
   const location = useLocation()
@@ -81,7 +95,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   // Nothing before today has classes, so neither view pages back past it.
   const atStart = isWeek ? week.isThisWeek : month <= DateTime.now().startOf('month')
 
-  const pick = (day: string) => (isWeek ? setDateRange(weekFrom(day, today)) : setFocused(day))
+  const pick = (day: string) => (isWeek ? setView('week', weekFrom(day, today)) : setFocused(day))
 
   // The place's own list. Opened from it, the calendar steps back to it, so flipping between the
   // two never piles up entries behind Back.
@@ -91,7 +105,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
       : navigate(place.path, { replace: true, state: location.state })
 
   const step = (direction: -1 | 1) => {
-    if (isWeek) return setDateRange(shiftWeek(week, direction, today))
+    if (isWeek) return setView('week', shiftWeek(week, direction, today))
 
     const next = month.plus({ months: direction })
 
@@ -102,7 +116,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   const switchTo = (next: string) => {
     if (next === 'list') return goToList()
     if (next !== 'month' && next !== 'week') return
-    // The Week's dates do not follow the visitor to the Month, which opens on the first of them.
+    // The Month opens on the Week's first day.
     if (next === 'month' && isWeek) setFocused(week.start)
     setView(next)
   }
@@ -112,7 +126,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
       <div className="flex w-full items-center justify-between gap-2">
         <BackButton />
         <div className="flex shrink-0 items-center gap-1">
-          <FilterButton iconOnly counted={chosenCalendarFilters(filters, view)} />
+          <FilterButton iconOnly counted={chosen(filters)} />
         </div>
       </div>
       {/* Pulled down to the peek, the way to raise the sheet again, as every other header has. */}
@@ -193,15 +207,16 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
  */
 export function CalendarView() {
   const filters = useEventFilters()
-  const view = useCalendarView()
-  const week = calendarWindow(filters.dateRange, todayISO())
+  const [params] = useSearchParams()
+  const view = calendarViewFromParams(params)
+  const week = calendarWindow(params, todayISO())
 
   return (
     <>
       <DrawerHeader className={CALENDAR_HEADER}>
         <CalendarHeader view={view} week={week} />
       </DrawerHeader>
-      <ActiveFilterPills filters={chosenCalendarFilters(filters, view)} />
+      <ActiveFilterPills filters={chosen(filters)} />
       {/* The body owns the `['calendar', …]` read, so a failed read keeps the working header
           above it rather than escalating to the drawer boundary (#89). `resetKeys` moves it on
           when the filters do (`listResetKey`, lib/shape/path.ts). */}
@@ -242,11 +257,10 @@ function CalendarBody({
     queryFn: () => api.getCalendarEvents(anyDate),
   })
 
-  // The Month keeps a dates filter as a filter; the Week cuts its own seven days. Keyed on the
-  // filters' string form, so a page of the Week does not expand the whole feed again.
-  const shownKey = view === 'week' ? anyDateKey : filtersKey(filters)
+  // Keyed on the filters' string form, so a page of the Week does not expand the whole feed again.
+  const shownKey = filtersKey(filters)
   const entries = useMemo(
-    () => eventsToCalendarEntries(source, view === 'week' ? anyDate : filters),
+    () => eventsToCalendarEntries(source, filters),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `shownKey` stands in for the filters it is built from.
     [source, shownKey],
   )
@@ -271,10 +285,10 @@ function CalendarBody({
         {view === 'week' ? (
           <WeekList
             entries={entries}
-            filtered={hasActiveFilters(chosenCalendarFilters(filters, 'week'))}
+            filtered={hasActiveFilters(chosen(filters))}
             locale={formatLocale}
             week={week}
-            onClearFilters={() => setFilters(clearedCalendarFilters(filters, 'week'))}
+            onClearFilters={() => setFilters({ ...DEFAULT_FILTERS, region: filters.region })}
             onWeekFrom={openWeek}
           />
         ) : (
