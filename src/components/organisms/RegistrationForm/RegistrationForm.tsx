@@ -581,7 +581,7 @@ export function RegistrationForm({
 /** How long the check may stay unsolved before the line under Register asks for the tick. */
 const CHECK_PATIENCE_MS = 4000
 
-/** The confirmation's way to pass the class on: the same share block as the class's Share panel. */
+/** The confirmation's way to pass the class on: Share, with the same networks as the class's own Share action, then Copy link. */
 function InviteFriend({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const headingId = useId()

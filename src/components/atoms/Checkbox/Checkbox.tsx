@@ -21,8 +21,8 @@ import { tv, type VariantProps } from '@/styles/tv'
 // opacity. A control you can see but can't use beats one faded to
 // near-invisible. The inert cue moves to the knob or box instead.
 //
-// This reads Radix's own `data-disabled` attribute, not a tv variant, as
-// Slider does. So the override beats the `color` and `isInvalid` fills by CSS
+// This reads Radix's own `data-disabled` attribute, not a tv variant. So the
+// override beats the `color` and `isInvalid` fills by CSS
 // SPECIFICITY: one more attribute in the selector. It does not depend on class
 // order or on where a variant sits in the recipe. `isInvalid`'s ring is a
 // different property, so an errored control keeps its ring while it goes grey.

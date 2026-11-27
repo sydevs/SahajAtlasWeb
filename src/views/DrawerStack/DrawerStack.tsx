@@ -85,22 +85,21 @@ import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
 import { EventView } from '@/views/EventView/EventView'
 
-// The three views most visitors never open, split out of the eager graph (issue #96). Each
+// The two views most visitors never open, split out of the eager graph (issue #96). Each
 // one is the only consumer of a large dependency the widget would otherwise pay for at first
 // paint on every host page. The calendar owns the whole Schedule-X stack — its grid, its
-// views, its theme CSS. Registration owns react-hook-form plus the resolver. Share owns
-// react-share's target composers.
+// views, its theme CSS. Registration owns react-hook-form plus the resolver.
 //
-// These are the RIGHT three to split, because none of them can be the first thing on screen
+// These are the RIGHT two to split, because neither can be the first thing on screen
 // by accident. Each is reached by pressing something — the calendar button, an event's
-// Register or Share action — or by a deep link that is already a deliberate act. The views
+// Register action — or by a deep link that is already a deliberate act. The views
 // that CAN be the entry point — the country index, a region, search, an event — stay eager,
 // so the common path still resolves inside the graph the host already fetched.
 //
 // These are minted per attempt, not once at module scope, for the reason spelled out in
 // `EventView.tsx`. React caches a lazy component's REJECTED payload forever. A module-scope
 // `lazy` would leave the drawer boundary's "Try again" re-throwing the stored rejection
-// instantly — the visibly-does-nothing button that issue #89 removed. The three are minted
+// instantly — the visibly-does-nothing button that issue #89 removed. The two are minted
 // together, because one reset serves one boundary. A fresh `lazy` for a view that did not
 // fail costs nothing, since the object stays inert until rendered, and only one of them is
 // ever mounted at a time.
@@ -112,9 +111,6 @@ const loadSecondaryViews = () => ({
     import('@/views/RegistrationView/RegistrationView').then((m) => ({
       default: m.RegistrationView,
     })),
-  ),
-  ShareView: lazy(() =>
-    import('@/views/ShareView/ShareView').then((m) => ({ default: m.ShareView })),
   ),
 })
 
@@ -130,7 +126,7 @@ type Direction = 'left' | 'bottom'
 // Dispatches the active (top) view's inner content. Only the top view renders, so each view
 // frames the map for its own level on mount.
 //
-// The three lazy views arrive as a prop, rather than being read from module scope, so
+// The lazy views arrive as a prop, rather than being read from module scope, so
 // the identity a boundary reset replaces is the one this renders — see `loadSecondaryViews`.
 function TopView({ entry, secondary }: { entry: StackEntry | null; secondary: SecondaryViews }) {
   if (!entry) return <CountriesView />
@@ -150,8 +146,6 @@ function TopView({ entry, secondary }: { entry: StackEntry | null; secondary: Se
       return <EventView basePath={entry.path} id={entry.id} />
     case 'register':
       return <secondary.RegistrationView eventPath={entry.eventPath} />
-    case 'share':
-      return <secondary.ShareView eventPath={entry.eventPath} />
   }
 }
 
@@ -665,7 +659,7 @@ export function DrawerStack() {
                 suspend that shows `DrawerLoading` — the shared chrome (header plus Back,
                 rebuilt from the URL) over placeholders shaped like the view — and only a FAILED load
                 throws inward to the boundary. That is what keeps a first open of the
-                calendar, register, or share drawer from flashing blank or unstyled: the
+                calendar or register drawer from flashing blank or unstyled: the
                 drawer's identity is on screen from the first frame, and only its body
                 arrives late (issue #96). */}
             <Suspense fallback={<DrawerLoading />}>

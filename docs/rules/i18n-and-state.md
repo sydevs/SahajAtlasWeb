@@ -347,17 +347,15 @@ two axes separate — an inner fallback must never re-throw to escalate.
   re-throws the cached error.
 - **One table covers empty states too, not only failures.** `FallbackKind` spans
   the five classified failures and the ways a screen ends up with nothing to act
-  on (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`,
-  `share-unavailable`) — a barren region and a URL that never existed leave a
+  on (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`) — a
+  barren region and a URL that never existed leave a
   viewer in the same position, so both render `FallbackPanel` and only the
   policy row differs.
   - **`unavailable`** is the row whose next step is a person: a full, ended, or
     closed class still exists, so `contact` leads with a number where one
     exists, and the recovery ladder (nearby classes) takes over otherwise. It is
     the **only** row entitled to a custom `message` — a caller may vary the
-    values a row uses, never the key itself. `share-unavailable` (#115) is
-    `unavailable` minus the onward link, because "see events nearby" would walk
-    the viewer away from the class they were trying to share.
+    values a row uses, never the key itself.
   - **A dead link is not a malfunction.** `color` is the tell: `danger`
     (`role="alert"`) for a real failure, `neutral` (`role="status"`) for a dead
     end or an empty list.

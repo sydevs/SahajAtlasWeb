@@ -15,17 +15,13 @@ import {
 } from '@floating-ui/react'
 
 // This is the floating-ui setup shared by every popover surface in the app.
-// Those surfaces are the Dropdown atom's panel, EventActions' desktop contact popover and the
-// Share button's fallback networks.
+// Those surfaces are the Dropdown atom's panel and the Share button's fallback networks.
 // Both used to spell out the same `useFloating` plus `offset(8)`, `flip`, `shift`, plus click, dismiss, and role stack.
 // EventActions' copy even carried a comment conceding it was "the same pattern as the Dropdown atom."
 //
-// This shares the BEHAVIOR, not the markup.
-// The two surfaces anchor differently on purpose.
-// Dropdown wraps a plain trigger in a focusable `role="button"` div, or hands a function trigger the
-// props to put on its own Button. The contact action is already a real Button and forwards its own ref.
-// So collapsing them into one component would have forced a nested-interactive trigger on one of them.
-// A hook leaves each free to render its own anchor.
+// This shares the BEHAVIOR, not the markup, so each surface renders its own anchor: Dropdown wraps a
+// plain trigger in a focusable `role="button"` div, or hands a function trigger the props to put on
+// its own Button, and Share's button is already a real Button.
 
 export type UsePopoverOptions = {
   /** This is where the panel prefers to open. It still flips or shifts to stay on screen. */
@@ -114,7 +110,7 @@ export function usePopover({
     // The calendar's modal filter drawer sets `pointer-events: none` on the body.
     // This portaled sibling would otherwise inherit that style and swallow every click.
     // This is a no-op outside a modal.
-    // So every popover surface, Dropdown and EventActions, gets the immunity for free.
+    // So every popover surface, Dropdown and Share, gets the immunity for free.
     floatingStyles: { ...floatingStyles, pointerEvents: 'auto' as const },
     context,
     getReferenceProps,

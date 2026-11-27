@@ -59,7 +59,7 @@ describe('sheetLadder for every other view', () => {
     expect(sheetLadder({ classView, fit: null, fold: null }).points).toBe(SNAP_POINTS)
   })
 
-  it('slots a fit (Share) between the open and near-full stops', () => {
+  it('slots a fit between the open and near-full stops', () => {
     expect(sheetLadder({ classView, fit: 600, fold: null }).points).toEqual([
       PEEK_SNAP,
       OPEN_SNAP,
@@ -162,12 +162,8 @@ describe('sheetOpening', () => {
     expect(sheetOpening('register')).toBe('tall')
   })
 
-  it('fits a class, its share panel and the filters to their content', () => {
-    expect(['event', 'share', 'filters'].map((kind) => sheetOpening(kind as never))).toEqual([
-      'fit',
-      'fit',
-      'fit',
-    ])
+  it('fits a class and the filters to their content', () => {
+    expect(['event', 'filters'].map((kind) => sheetOpening(kind as never))).toEqual(['fit', 'fit'])
   })
 
   it('keeps the open stop for the lists', () => {

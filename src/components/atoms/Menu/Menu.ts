@@ -1,7 +1,7 @@
 import { tv } from '@/styles/tv'
 
 /**
- * The skin the app's three Radix dropdown menus share.
+ * The skin the app's Radix dropdown menus share.
  *
  * Each menu used to spell the whole pair of strings itself, which made an intended difference
  * and an accidental one look identical — so the three copies could diverge with every gate green
@@ -16,6 +16,8 @@ export const menuChrome = tv({
   slots: {
     surface: 'z-50 rounded-2xl border border-divider bg-background p-1 text-foreground shadow-xl',
     row: 'flex cursor-pointer rounded-lg py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-3',
+    /** A caption over the rows, such as the person a Contact menu reaches. */
+    label: 'px-2 pt-1 pb-1.5 text-xs text-gray-11',
   },
   variants: {
     rows: {

@@ -57,7 +57,7 @@ export const mockNotFound = {
   region: atlasError('not-found', 'Region not found: atlantis'),
   /** SahajCloud answers 404 and `classifyError` reads the status — the only not-found
    *  fixture exercising the status path rather than our own tag. EventView,
-   *  RegistrationView, ShareView. */
+   *  RegistrationView. */
   event: sdkError(404, 'Not Found'),
 }
 

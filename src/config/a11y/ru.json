@@ -26,7 +26,6 @@
     "dismiss_nearby_prompt": "Скрыть"
   },
   "share": {
-    "copy_link": "Копировать ссылку",
     "share_on": "Поделиться: %{platform}",
     "qr_code": "QR-код для %{title}"
   }

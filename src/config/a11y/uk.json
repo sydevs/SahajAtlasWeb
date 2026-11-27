@@ -26,7 +26,6 @@
     "dismiss_nearby_prompt": "Приховати"
   },
   "share": {
-    "copy_link": "Копіювати посилання",
     "share_on": "Поділитися: %{platform}",
     "qr_code": "QR-код для %{title}"
   }

@@ -93,14 +93,6 @@ export type ReportIssueFormProps = {
   /** Story-only: start on the thank-you screen rather than the live form. */
   initialSubmitted?: boolean
   /**
-   * Story-only: render the send-failed state without a real failed request.
-   * This shows the generic failure. The captcha-rejection wording is a
-   * live-only path.
-   */
-  initialFailed?: boolean
-  /** Story-only: render the degraded state as if Turnstile were blocked. */
-  captchaUnavailable?: boolean
-  /**
    * Pre-fill the fields, keyed by `fieldKey` (the field's position), not by
    * the authored name. Seeded values are validated on mount, so their state shows.
    */
@@ -316,19 +308,10 @@ export function ReportIssueForm({
   context,
   onClose,
   initialSubmitted = false,
-  initialFailed = false,
-  captchaUnavailable = false,
   initialValues,
 }: ReportIssueFormProps) {
   const { t } = useTranslation()
-  const {
-    challengeRef,
-    token,
-    status,
-    reset: resetCaptcha,
-  } = useTurnstile({
-    disabled: captchaUnavailable,
-  })
+  const { challengeRef, token, status, reset: resetCaptcha } = useTurnstile()
 
   // All three are memoized because this form validates on every keystroke (`mode: 'onChange'`
   // below), and react-hook-form reads the defaults once, at mount. Rebuilding a zod schema and
@@ -425,7 +408,7 @@ export function ReportIssueForm({
 
   const failureMessage = refusalKey ? t(refusalKey) : t('common.report_errors.send_failed')
 
-  const failed = initialFailed || mutation.isError
+  const failed = mutation.isError
 
   return (
     <form

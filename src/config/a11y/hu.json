@@ -26,7 +26,6 @@
     "dismiss_nearby_prompt": "Elvetés"
   },
   "share": {
-    "copy_link": "Hivatkozás másolása",
     "share_on": "Megosztás: %{platform}",
     "qr_code": "QR-kód: %{title}"
   }

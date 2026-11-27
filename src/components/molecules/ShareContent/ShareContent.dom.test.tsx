@@ -102,6 +102,25 @@ describe('ShareContent — Share', () => {
     expect(popover()).toBeNull()
   })
 
+  // Copy link answers in place, so the popover stays for the visitor to read that it worked.
+  it('keeps the popover open after its Copy link, which says it copied', async () => {
+    const writeText = vi.fn(() => Promise.resolve())
+
+    stubNavigator('clipboard', { writeText })
+    await renderBlock()
+    await press('share.native')
+
+    const copy = [...(popover()?.querySelectorAll('button') ?? [])].find(
+      (button) => button.textContent === 'share.copy_link',
+    )
+
+    await act(async () => copy?.click())
+
+    expect(writeText).toHaveBeenCalledWith(url)
+    expect(popover()).not.toBeNull()
+    expect(copy?.textContent).toBe('share.link_copied')
+  })
+
   // Once a refusal has opened the popover, the button closes it rather than asking again.
   it('closes the open popover from the Share button', async () => {
     const share = vi.fn(() => Promise.reject(new DOMException('', 'NotAllowedError')))
