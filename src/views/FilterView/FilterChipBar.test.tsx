@@ -52,7 +52,7 @@ const render = (filters: Partial<EventFilters> = {}, search = '') => {
 }
 
 const buttons = (html: string) => html.match(/<button[^>]*>.*?<\/button>/g) ?? []
-const filled = (button: string) => button.includes('bg-primary-12')
+const filled = (button?: string) => Boolean(button?.includes('bg-primary-12'))
 
 describe('FilterChipBar — nothing chosen', () => {
   const html = render()
