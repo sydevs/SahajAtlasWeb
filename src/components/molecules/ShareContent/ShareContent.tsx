@@ -1,4 +1,4 @@
-import { type MouseEvent, useRef, useState } from 'react'
+import { type MouseEvent, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
 import clsx from 'clsx'
@@ -6,7 +6,7 @@ import { Check, Link, Share } from 'lucide-react'
 
 import { ShareTargets } from './platform-buttons'
 
-import { Button } from '@/components/atoms/Button'
+import { Button, type ButtonProps } from '@/components/atoms/Button'
 import { useCoarsePointer } from '@/config/responsive'
 import { useCopy } from '@/hooks/use-copy'
 import { usePopover } from '@/hooks/use-popover'
@@ -62,12 +62,31 @@ function CopyLinkButton({ url }: { url: string }) {
   )
 }
 
+export type ShareButtonProps = ShareContentProps & {
+  /** The trigger's skin. Defaults to the share block's full-width solid button. */
+  className?: string
+  color?: ButtonProps['color']
+  variant?: ButtonProps['variant']
+  size?: ButtonProps['size']
+  /** The trigger's content. Defaults to the share icon and "Share…". */
+  children?: ReactNode
+}
+
 /**
  * Share, as one button. It opens the device's own share sheet, which lists the apps this person
  * uses. Where there is none (most desktop browsers), or a host page refuses it, the same button
  * opens the region's share targets in a popover instead.
  */
-function ShareButton({ label, url, country }: ShareContentProps) {
+export function ShareButton({
+  label,
+  url,
+  country,
+  className = 'w-full',
+  color = 'primary',
+  variant = 'solid',
+  size = 'lg',
+  children,
+}: ShareButtonProps) {
   const { t } = useTranslation()
   const { canShare, share } = useWebShare()
   const { isOpen, setIsOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } =
@@ -78,31 +97,36 @@ function ShareButton({ label, url, country }: ShareContentProps) {
     if ((await share({ title: label, url })) === 'unavailable') setIsOpen(true)
   }
 
-  // A pick hands over to the network's page or the mail app, so the popover goes with it.
+  // A network hands over to its page or the mail app, so the popover goes with it. Copy link
+  // answers in place, so it stays.
   const closeOnPick = (event: MouseEvent) => {
-    if ((event.target as Element).closest('button')) setIsOpen(false)
+    const button = (event.target as Element).closest('button')
+
+    if (button && !button.hasAttribute('data-share-copy')) setIsOpen(false)
   }
 
   return (
     <>
       <Button
         ref={refs.setReference}
-        className="w-full"
-        color="primary"
-        size="lg"
-        variant="solid"
+        className={className}
+        color={color}
+        size={size}
+        variant={variant}
         {...getReferenceProps({ onClick: () => void onClick() })}
       >
-        <Share aria-hidden size={18} />
-        {t('share.native')}
+        {children ?? (
+          <>
+            <Share aria-hidden size={18} />
+            {t('share.native')}
+          </>
+        )}
       </Button>
       {isOpen && (
         <FloatingPortal root={overlayContainer()}>
           {/* Non-modal and focus-returning, as the contact popover is: focus goes in to the
               first network, and Esc or an outside click puts it back on Share. */}
           <FloatingFocusManager context={context} modal={false} returnFocus={true}>
-            {/* As wide as one row of targets, which can be wider than a narrow side panel's
-                button. Only a screen too narrow for the row wraps it. */}
             <div
               ref={refs.setFloating}
               className="z-50 max-w-[calc(100vw-16px)] rounded-lg border border-gray-6 bg-background p-3 shadow-xl"
@@ -130,7 +154,7 @@ export type ShareContentProps = {
 }
 
 /**
- * The one share block, on the class's Share panel and on the registration confirmation: Share
+ * The share block on the registration confirmation: Share
  * (the device's own sheet, or the region's targets in a popover), then Copy link.
  *
  * `label` and `url` pass through raw. react-share and the native sheet encode their own

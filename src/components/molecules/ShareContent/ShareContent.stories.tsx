@@ -20,7 +20,7 @@ const REGIONS: { code?: string; name: string }[] = [
 ]
 
 /**
- * ShareContent — the one share block, on the class's Share panel and the registration
+ * ShareContent — the share block on the registration
  * confirmation. Share opens the device's own share sheet (Safari, and phones); where there is
  * none, as in desktop Chrome, it opens the region's networks in a popover instead. Copy link
  * says "Link copied" on the button itself.
@@ -28,7 +28,7 @@ const REGIONS: { code?: string; name: string }[] = [
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="As on the Share panel and the registration confirmation. Press Share: a browser with a share sheet opens it; any other opens the networks in a popover."
+      description="As on the registration confirmation. Press Share: a browser with a share sheet opens it; any other opens the networks in a popover."
       title="Share Content"
     >
       <div className="max-w-sm">

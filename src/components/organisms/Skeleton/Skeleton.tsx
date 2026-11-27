@@ -100,7 +100,7 @@ export type SkeletonShape = { header: SkeletonHeaderKind; body: SkeletonBodyKind
 
 /**
  * The shape of the view a route opens, or `null` for a view not worth drawing ahead of — the
- * calendar, the forms and the share sheet, whose data is already on hand when they open, so only
+ * calendar and the forms, whose data is already on hand when they open, so only
  * their code is on its way and their own header over a spinner says so.
  *
  * `level` is the place's, once the region tree has it.

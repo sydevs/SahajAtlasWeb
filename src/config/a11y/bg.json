@@ -25,7 +25,6 @@
     "dismiss_nearby_prompt": "Скриване"
   },
   "share": {
-    "copy_link": "Копиране на връзката",
     "share_on": "Споделяне: %{platform}",
     "qr_code": "QR код за %{title}"
   }

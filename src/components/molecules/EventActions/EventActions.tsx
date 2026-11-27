@@ -1,18 +1,22 @@
 import type { EventDisplayStrings } from '@/hooks/use-event-display'
 
 import { type ReactNode, useLayoutEffect, useRef, useState } from 'react'
-import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useTranslation } from 'react-i18next'
-import { Globe, Navigation, Phone, Share } from 'lucide-react'
+import { Check, Copy, Globe, MessageCircle, Navigation, Phone, Share } from 'lucide-react'
 
-import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { Button } from '@/components/atoms/Button'
+import { Link } from '@/components/atoms/Link'
+import { menuChrome } from '@/components/atoms/Menu'
+// The leaf path, not the barrel: ShareButton owns react-share, which the interface's own download
+// must not carry (#96). EventDetails, which renders this row, is itself a lazy chunk.
+import { ShareButton } from '@/components/molecules/ShareContent'
+import { useShareUrl } from '@/hooks/use-share-url'
+import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { useCopy } from '@/hooks/use-copy'
-import { useCoarsePointer } from '@/config/responsive'
-import { usePopover } from '@/hooks/use-popover'
-import { directionsUrl } from '@/lib'
+import { MAP_PROVIDER_NAMES, directionsHref, mapProvidersForCountry } from '@/lib/maps/providers'
 import { telHref } from '@/lib/shape'
-import { overlayContainer } from '@/lib/overlay'
+import { frameCollision, overlayContainer } from '@/lib/overlay'
 import { isIOS } from '@/lib/platform'
 import { Event } from '@/types'
 
@@ -102,123 +106,132 @@ function ActionContent({ icon, label }: ActionContentProps) {
   )
 }
 
-// The desktop contact action: the button, plus a popover carrying the
-// number and a copy affordance. A raw `tel:` link is a desktop dead end.
-// This uses the same @floating-ui pattern as the Dropdown atom. It is
-// portaled, so the scrolling panel never clips it. It is viewport-aware,
-// and dismissed on outside click or Esc. This is its own component,
-// because the hook cannot run inside the action `flatMap` below.
-function ContactPopover({
-  label,
-  name,
-  phone,
-}: {
-  label: string
-  name?: string | null
-  phone: string
-}) {
-  const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
-    {
-      placement: 'top',
-      role: 'dialog',
-    },
+const { surface, row } = menuChrome()
+const MENU = surface()
+const ITEM = row()
+
+// A menu opened from the row: the trigger is the row's button, the content portals to the theme
+// root. `modal={false}`: this opens inside a vaul drawer, whose drag and scroll fight Radix's
+// modal scroll-lock.
+function ActionMenu({ trigger, children }: { trigger: ReactNode; children: ReactNode }) {
+  return (
+    <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Trigger asChild>
+        <Button className={ACTION} variant="flat">
+          {trigger}
+        </Button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal container={overlayContainer()}>
+        <DropdownMenu.Content align="start" className={MENU} sideOffset={8} {...frameCollision()}>
+          {children}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   )
-  const { t } = useTranslation()
-  const { copied, copy } = useCopy(1500)
+}
+
+/** Directions, as a menu of map services ordered for the viewer's region and device. */
+function DirectionsMenu({ event, label }: { event: Event; label: string }) {
+  const country = useViewerCountry()
+  const links = mapProvidersForCountry(country, isIOS()).flatMap((provider) => {
+    const href = directionsHref(provider, event.address, event.title)
+
+    return href ? [{ provider, href }] : []
+  })
 
   return (
-    <>
-      <Button ref={refs.setReference} className={ACTION} variant="flat" {...getReferenceProps()}>
-        <ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />
-      </Button>
-      {isOpen && (
-        <FloatingPortal root={overlayContainer()}>
-          {/* The panel is PORTALED to the theme root. So in DOM order it sits
-              nowhere near the button that opened it. Without a focus manager, a
-              keyboard or screen-reader user pressed Contact, was told a dialog
-              opened, and then tabbed on into whatever follows the map, never
-              reaching the number.
+    <ActionMenu trigger={<ActionContent icon={<Navigation size={ICON_SIZE} />} label={label} />}>
+      {links.map(({ provider, href }) => (
+        <DropdownMenu.Item key={provider} asChild className={ITEM}>
+          <Link href={href} target="_blank">
+            {MAP_PROVIDER_NAMES[provider]}
+          </Link>
+        </DropdownMenu.Item>
+      ))}
+    </ActionMenu>
+  )
+}
 
-              So unlike the Dropdown atom, this one pulls focus IN. Dropdown uses
-              `initialFocus={-1}`, because its panel is a filter surface a viewer
-              may want to leave alone. Here, the copy button is the whole reason the
-              popover opened. The rest matches Dropdown. It is non-modal, since the
-              page behind stays live and this is a phone number, not a task to
-              finish. It also sets `returnFocus`, so Esc or an outside click puts the
-              caret back on the Contact button, instead of at the top of the
-              document. Esc and outside-click themselves come from `useDismiss` in
-              `usePopover`. The manager only decides where focus goes. */}
-          <FloatingFocusManager context={context} modal={false} returnFocus={true}>
-            <div
-              ref={refs.setFloating}
-              className="z-50 flex min-w-56 flex-col gap-2 rounded-lg border border-gray-6 bg-gray-2 p-3 shadow-md"
-              style={floatingStyles}
-              {...getFloatingProps({ 'aria-label': label })}
-            >
-              {name && <div className="text-sm font-medium">{name}</div>}
-              {/* ⚠ `truncate` sits on the inner span: on the button it would clip the
-                  `touch-target` area back to the drawn box (#432). The number is the visible
-                  text, so the name carries it too (WCAG 2.5.3). */}
-              <div className="flex flex-col gap-1">
-                <button
-                  data-vaul-no-drag
-                  aria-label={`${t('share.a11y.copy_link')}: ${phone}`}
-                  className={`touch-target relative w-full rounded-lg px-3 py-2 text-start text-sm text-secondary-11 transition-colors select-all ${copied ? 'bg-secondary-5' : 'bg-secondary-3'}`}
-                  title={phone}
-                  type="button"
-                  onClick={() => void copy(phone)}
-                >
-                  <span className="block truncate">{phone}</span>
-                </button>
-                <span aria-live="polite" className="h-4 text-xs text-secondary-11">
-                  {copied ? t('common.chrome.copied') : ''}
-                </span>
-              </div>
-            </div>
-          </FloatingFocusManager>
-        </FloatingPortal>
+/**
+ * Contact, as a menu: the host's name, then a call link showing the number, WhatsApp where the
+ * number is international, and a copy row that answers in place. `tel:` reaches a dialer on a
+ * phone and FaceTime or Phone Link on a desktop.
+ */
+function ContactMenu({
+  name,
+  phone,
+  label,
+}: {
+  name?: string | null
+  phone: string
+  label: string
+}) {
+  const { t } = useTranslation()
+  const { copied, copy } = useCopy(1500)
+  // wa.me takes the number in international form, digits only.
+  const whatsapp = phone.trim().startsWith('+') ? `https://wa.me/${phone.replace(/\D/g, '')}` : null
+
+  return (
+    <ActionMenu trigger={<ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />}>
+      {name && (
+        <DropdownMenu.Label className="px-2 pt-1 pb-1.5 text-xs text-gray-11">
+          {name}
+        </DropdownMenu.Label>
       )}
-    </>
+      <DropdownMenu.Item asChild className={ITEM}>
+        <Link href={telHref(phone)}>
+          <Phone aria-hidden size={16} />
+          {phone}
+        </Link>
+      </DropdownMenu.Item>
+      {whatsapp && (
+        <DropdownMenu.Item asChild className={ITEM}>
+          <Link href={whatsapp} target="_blank">
+            <MessageCircle aria-hidden size={16} />
+            WhatsApp
+          </Link>
+        </DropdownMenu.Item>
+      )}
+      <DropdownMenu.Item
+        className={ITEM}
+        onSelect={(event) => {
+          // Stay open, so the row can say it worked.
+          event.preventDefault()
+          void copy(phone)
+        }}
+      >
+        {copied ? <Check aria-hidden size={16} /> : <Copy aria-hidden size={16} />}
+        {/* shortcut: English until sydevs/SahajCloud#1303 ships `event.actions.copy_number`; wire it then. */}
+        {copied ? t('common.chrome.copied') : 'Copy number'}
+      </DropdownMenu.Item>
+    </ActionMenu>
   )
 }
 
 export type EventActionsProps = {
   event: Event
-  /** The event's current route. The share action navigates to `${basePath}/share`. */
-  basePath: string
   /** The view's one `useEventDisplay(event)`, shared with the rest of the page (#505). */
   strings: EventDisplayStrings
 }
 
 /**
  * The secondary action row (issue #52, WS3): equal-weight labelled buttons,
- * set per resolver state. Contact is `tel:` on touch, and a popover
- * with the number and copy on desktop. A raw tel: link is a desktop dead end.
+ * set per resolver state. Directions and Contact open menus. Share opens the
+ * device's share sheet, or the region's networks and Copy link in a popover, and is left out
+ * when the class has no link to share (#115).
  */
-export function EventActions({ event, basePath, strings }: EventActionsProps) {
+export function EventActions({ event, strings }: EventActionsProps) {
   const { t } = useTranslation()
-  const navigate = useAtlasNavigate()
-  // The one responsive decision in the app that is about the DEVICE, not
-  // the space (issue #107). Whether a `tel:` link reaches anything is a
-  // property of the hardware. Narrowing a desktop window, or embedding
-  // this widget in a 320px column on one, has never given it a dialer. A
-  // phone held sideways can also be wider than any breakpoint this app
-  // would pick. So this asks the pointer, not the width.
-  const canDial = useCoarsePointer()
+  const shareUrl = useShareUrl(event.webUrl, event.path)
+  const country = useViewerCountry()
   const { display } = strings
-
-  const mapsUrl = directionsUrl(event.address, isIOS())
 
   const buttons = display.actions.flatMap((kind) => {
     switch (kind) {
       case 'directions':
-        if (!mapsUrl) return []
+        if (!directionsHref('google', event.address)) return []
 
-        return (
-          <Button key={kind} className={ACTION} href={mapsUrl} target="_blank" variant="flat">
-            <ActionContent icon={<Navigation size={ICON_SIZE} />} label={t(LABEL.directions)} />
-          </Button>
-        )
+        return <DirectionsMenu key={kind} event={event} label={t(LABEL.directions)} />
       case 'website':
         if (!event.website) return []
 
@@ -227,34 +240,33 @@ export function EventActions({ event, basePath, strings }: EventActionsProps) {
             <ActionContent icon={<Globe size={ICON_SIZE} />} label={t(LABEL.website)} />
           </Button>
         )
-      case 'contact': {
+      case 'contact':
         if (!event.contactPhone) return []
-        const label = t(LABEL.contact)
 
-        // Touch devices dial. Everything else shows the number with a copy affordance.
-        return canDial ? (
-          <Button key={kind} className={ACTION} href={telHref(event.contactPhone)} variant="flat">
-            <ActionContent icon={<Phone size={ICON_SIZE} />} label={label} />
-          </Button>
-        ) : (
-          <ContactPopover
+        return (
+          <ContactMenu
             key={kind}
-            label={label}
+            label={t(LABEL.contact)}
             name={event.contactName}
             phone={event.contactPhone}
           />
         )
-      }
       case 'share':
+        if (!shareUrl) return []
+
         return (
-          <Button
+          <ShareButton
             key={kind}
             className={ACTION}
+            color="neutral"
+            country={country}
+            label={event.title}
+            size="md"
+            url={shareUrl}
             variant="flat"
-            onClick={() => navigate(`${basePath}/share`)}
           >
             <ActionContent icon={<Share size={ICON_SIZE} />} label={t(LABEL.share)} />
-          </Button>
+          </ShareButton>
         )
     }
   })

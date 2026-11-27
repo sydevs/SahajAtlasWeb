@@ -162,12 +162,8 @@ describe('sheetOpening', () => {
     expect(sheetOpening('register')).toBe('tall')
   })
 
-  it('fits a class, its share panel and the filters to their content', () => {
-    expect(['event', 'share', 'filters'].map((kind) => sheetOpening(kind as never))).toEqual([
-      'fit',
-      'fit',
-      'fit',
-    ])
+  it('fits a class and the filters to their content', () => {
+    expect(['event', 'filters'].map((kind) => sheetOpening(kind as never))).toEqual(['fit', 'fit'])
   })
 
   it('keeps the open stop for the lists', () => {

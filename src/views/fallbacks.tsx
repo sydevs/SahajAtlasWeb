@@ -146,8 +146,6 @@ export function DrawerChrome({
         return t('filters.chrome.title', { defaultValue: 'Filters' })
       case 'register':
         return t('registration.form.title', { defaultValue: 'Register for this class' })
-      case 'share':
-        return t('share.title_class', { defaultValue: 'Share this class' })
       default:
         return undefined
     }
@@ -347,7 +345,6 @@ const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
   switch (kind) {
     case 'event':
     case 'register':
-    case 'share':
       return 'not-found-event'
     case 'region':
     case 'online':

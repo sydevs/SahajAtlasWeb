@@ -90,10 +90,9 @@ describe('ShareTargets', () => {
 
   it('rings X alone in dark mode, the one black disc', () => {
     const html = renderToStaticMarkup(<ShareTargets country="US" title={label} url={url} />)
-    const ringed = [...html.matchAll(/<button[^>]*>/g)]
-      .map(([tag]) => tag)
-      .filter((tag) => tag.includes('dark:ring-1'))
-      .map((tag) => tag.match(/aria-label="([^"]+)"/)?.[1])
+    const ringed = [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)]
+      .filter(([, inner]) => inner.includes('dark:ring-1'))
+      .map(([tag]) => tag.match(/aria-label="([^"]+)"/)?.[1])
 
     expect(ringed).toEqual(['Share on X'])
   })

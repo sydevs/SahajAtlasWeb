@@ -81,7 +81,7 @@ export type { EventListItemProps } from './EventListItem'
 // nothing imported it through it. Tree-shaking will not drop it, since its
 // imports carry side effects. Every real consumer already reaches them by
 // leaf path from inside a lazily-loaded chunk: EventActions from
-// EventDetails, ShareContent from RegistrationForm and ShareView.
+// EventDetails, ShareContent from RegistrationForm and EventActions.
 // `index.test.ts` pins it (issue #96). ⚠ Nothing else does: the interface loads behind a lazy
 // seam, outside the graphs `pnpm size` budgets.
 

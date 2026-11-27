@@ -1,14 +1,43 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { Event } from '@/types'
 
+import { useEffect } from 'react'
+
 import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventActions } from './EventActions'
 
+import { useApproxLocation } from '@/config/store'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { mockEvent } from '@/mocks/events'
 
 export default { title: 'Molecules' } satisfies StoryDefault
+
+// Share opens the device's sheet where there is one, as in Safari, so the preview drops it to show
+// the networks' popover everywhere. Scoped to this Ladle session; the shipped widget never imports
+// a story.
+try {
+  if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
+  }
+} catch {
+  // Not overridable here — the popover still opens once the native call fails.
+}
+
+// A representative viewer country per world region: the popover's networks order themselves from
+// it (`useViewerCountry`). `Default` carries none and falls back to the universal set.
+const REGIONS: Record<string, string | undefined> = {
+  Default: undefined,
+  Russia: 'RU',
+  'East Asia': 'JP',
+  'South Asia': 'IN',
+  'Southeast Asia': 'ID',
+  'Middle East': 'AE',
+  Europe: 'DE',
+  Americas: 'US',
+  Africa: 'NG',
+  Oceania: 'AU',
+}
 
 const online: Event = { ...mockEvent, id: 201, eventType: 'online' }
 const noWebsite: Event = { ...mockEvent, id: 202, website: null }
@@ -23,7 +52,7 @@ function Panel({ event, width = 304 }: { event: Event; width?: 272 | 304 }) {
     <div
       className={`${width === 272 ? 'w-[272px]' : 'w-[304px]'} rounded-lg border border-divider py-3`}
     >
-      <EventActions basePath={`/demo/${event.id}`} event={event} strings={useEventDisplay(event)} />
+      <EventActions event={event} strings={useEventDisplay(event)} />
     </div>
   )
 }
@@ -33,45 +62,63 @@ function Panel({ event, width = 304 }: { event: Event; width?: 272 | 304 }) {
  * buttons, an icon beside each label. The display resolver chooses the set per state.
  * Contact and Website appear only when the CMS carries them. Directions appears only for
  * a physical venue. Contact is a `tel:` link on touch, and a number-and-copy popover on
- * desktop.
+ * desktop. Share opens the device's share sheet, or here the region's networks and Copy link in
+ * a popover; switch the Region control to watch them reorder.
  */
-export const Default: Story = () => (
-  <StoryWrapper>
-    <StorySection
-      description="The full set — Directions · Website · Contact · Share — on one line; in the panel the icons go above the labels so none is cut."
-      title="Physical event"
-    >
-      <Panel event={mockEvent} />
-    </StorySection>
+export const Default: Story<{ region: string }> = ({ region }) => {
+  const code = REGIONS[region]
 
-    <StorySection
-      description="Online events drop Directions (no venue to route to)."
-      title="Online"
-    >
-      <Panel event={online} />
-    </StorySection>
+  useEffect(() => {
+    useApproxLocation.setState({ location: code ? { countryCode: code } : null })
+  }, [code])
 
-    <StorySection description="An event with no website in the CMS." title="Without website">
-      <Panel event={noWebsite} />
-    </StorySection>
+  return (
+    <StoryWrapper>
+      <StorySection
+        description="The full set — Directions · Website · Contact · Share — on one line; in the panel the icons go above the labels so none is cut."
+        title="Physical event"
+      >
+        <Panel event={mockEvent} />
+      </StorySection>
 
-    <StorySection description="An event with no contact phone." title="Without contact">
-      <Panel event={noContact} />
-    </StorySection>
+      <StorySection
+        description="Online events drop Directions (no venue to route to)."
+        title="Online"
+      >
+        <Panel event={online} />
+      </StorySection>
 
-    <StorySection
-      description="A 320px phone: a label that would be cut puts every icon above its label."
-      title="Narrow, without website"
-    >
-      <Panel event={noWebsite} width={272} />
-    </StorySection>
+      <StorySection description="An event with no website in the CMS." title="Without website">
+        <Panel event={noWebsite} />
+      </StorySection>
 
-    <StorySection description="Inactive: no Register exists." title="Inactive">
-      <Panel event={inactive} />
-    </StorySection>
+      <StorySection description="An event with no contact phone." title="Without contact">
+        <Panel event={noContact} />
+      </StorySection>
 
-    <div />
-  </StoryWrapper>
-)
+      <StorySection
+        description="A 320px phone: a label that would be cut puts every icon above its label."
+        title="Narrow, without website"
+      >
+        <Panel event={noWebsite} width={272} />
+      </StorySection>
+
+      <StorySection description="Inactive: no Register exists." title="Inactive">
+        <Panel event={inactive} />
+      </StorySection>
+
+      <div />
+    </StoryWrapper>
+  )
+}
 
 Default.storyName = 'Event Actions'
+Default.args = { region: 'Default' }
+Default.argTypes = {
+  region: {
+    name: 'Region',
+    options: Object.keys(REGIONS),
+    control: { type: 'select' },
+    defaultValue: 'Default',
+  },
+}

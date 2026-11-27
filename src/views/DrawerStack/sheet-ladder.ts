@@ -40,8 +40,6 @@ const SHEET_OPENING: Record<StackEntry['kind'], SheetOpening> = {
   // address and sliced the "Next session" line in half; it never opens lower than that stop,
   // and one drag down stops at its key facts (`sheetLadder`).
   event: 'fit',
-  // Its last row, the poster QR code, in view without a drag.
-  share: 'fit',
   // Every question and the bottom button, growing as a question opens.
   filters: 'fit',
   search: 'open',

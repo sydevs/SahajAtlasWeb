@@ -323,7 +323,6 @@ export type StackEntry =
   | { kind: 'region'; slug: string; path: string }
   | { kind: 'event'; id: number; path: string }
   | { kind: 'register'; eventPath: string; path: string }
-  | { kind: 'share'; eventPath: string; path: string }
   | { kind: 'online'; regionSlug: string; path: string }
 
 /**
@@ -351,7 +350,6 @@ export const resolveStack = (pathname: string): StackEntry[] => {
     else if (word === 'calendar') entries.push({ kind: 'calendar', path })
     else if (word === 'filters') entries.push({ kind: 'filters', path })
     else if (word === 'register') entries.push({ kind: 'register', eventPath: parentPath, path })
-    else if (word === 'share') entries.push({ kind: 'share', eventPath: parentPath, path })
     else if (word === 'online')
       entries.push({ kind: 'online', regionSlug: safeDecode(segments[i - 1] ?? ''), path })
     else if (RESERVED_SLUGS.has(word))
