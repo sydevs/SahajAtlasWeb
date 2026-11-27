@@ -208,7 +208,7 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   return (
     <Button size="sm" variant="ghost" onClick={open}>
       <Funnel size={18} />
-      {label}
+      <span className="literal-count">{label}</span>
     </Button>
   )
 }

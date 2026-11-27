@@ -1,10 +1,14 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
 import { useMemo } from 'react'
+import { DateTime } from 'luxon'
 
 import { SeedSearchParams } from '@/components/ladle'
 import { ViewHarness } from '@/views/story-harness'
 import { FilterView } from '@/views/FilterView/FilterView'
+import { geojsonQuery } from '@/config/api'
+import { mockEventSlim } from '@/mocks/events'
+import { mockGeojson } from '@/mocks/regions'
 
 export default { title: 'Views' } satisfies StoryDefault
 
@@ -14,9 +18,38 @@ const EXAMPLES = {
   'A pick': 'format=online',
   'No match': 'days=1&time=evening',
   'No single way out': 'days=2&time=evening',
+  'Night classes': '',
 } as const
 
 type Example = keyof typeof EXAMPLES
+
+/**
+ * The feed plus an online class starting at 02:00 on the viewer's own clock, the time an online
+ * class from far away reads in, so Night is offered whatever zone the story is opened in.
+ */
+const withNightClass = () => {
+  const start = DateTime.local().plus({ days: 1 }).set({ hour: 2, minute: 0, second: 0 })
+
+  return {
+    ...mockGeojson,
+    features: [
+      ...mockGeojson.features,
+      {
+        type: 'Feature' as const,
+        id: 199,
+        geometry: null,
+        properties: {
+          id: 199,
+          eventType: 'online' as const,
+          languages: ['en'],
+          region: mockEventSlim.region,
+          schedule: { ...mockEventSlim.schedule!, upcomingDates: [start.toJSDate()] },
+          webPath: '/united-kingdom/199',
+        },
+      },
+    ],
+  }
+}
 
 /**
  * FilterView — the filter form drawer, which applies every tap at once. With nothing picked its
@@ -36,7 +69,15 @@ export const Default: Story<{ example: Example }> = ({ example }) => {
   const params = useMemo(() => new URLSearchParams(EXAMPLES[example]), [example])
 
   return (
-    <ViewHarness path="/filters" seed={() => {}} seedKey={`filter-${example}`}>
+    <ViewHarness
+      path="/filters"
+      seed={(client) => {
+        if (example === 'Night classes') {
+          client.setQueryData(geojsonQuery().queryKey, withNightClass())
+        }
+      }}
+      seedKey={`filter-${example}`}
+    >
       <SeedSearchParams params={params}>
         <FilterView />
       </SeedSearchParams>
