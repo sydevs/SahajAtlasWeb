@@ -1181,7 +1181,7 @@ Eight honest exceptions, none of them styling your content:
   document-global by nature. They are declared under the family name **`Atlas Rethink Sans`,
   deliberately not a plain typeface name** — so if your page self-hosts the same typeface, the
   widget's faces cannot override yours. That is the whole reason for the odd name. These three
-  are the only `@font-face` rules the widget contributes. Mapbox and Swiper register none.
+  are the only `@font-face` rules the widget contributes. Mapbox registers none.
 - **One hidden `aria-live` region sits in your `<body>`** while the widget's place-search field is
   mounted, and is removed with it. The search field announces its suggestion counts through it,
   and the library that owns it looks the region up on the document, which cannot see into the
