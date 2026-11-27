@@ -224,8 +224,9 @@ export function FilterMenus({ value, onChange, onClear, where, placement }: Filt
     value.format !== 'any' ||
     Boolean(scope?.some(isOnline) && scope.some((event) => !isOnline(event)))
 
-  // Clear sits at the end the row grows from, so its arrival moves nothing already there: a
-  // button whose menu is open must not slide out from under the pointer.
+  // Clear leads a row that ends on the right, in either placement, so its arrival moves nothing
+  // already there (a button whose menu is open must not slide out from under the pointer), and in
+  // a toolbar it is not read as the view's own close button in the corner.
   const clear = hasActiveFilters({ ...value, region: null }) && (
     <HoverLabel text={t('filters.chrome.clear')}>
       <Button
@@ -249,13 +250,14 @@ export function FilterMenus({ value, onChange, onClear, where, placement }: Filt
       // (`DRAWER_W_PX`, its 16px inset and a 16px gap) and the column of buttons beside it, so it
       // wraps rather than running under the panel. `font-sans` undoes the map's own Helvetica.
       className={clsx(
-        'flex flex-wrap items-center gap-2',
-        placement === 'map' &&
-          'max-w-[calc(100cqw-var(--sy-drawer-w,352px)-96px)] justify-end font-sans',
+        'flex flex-wrap items-center justify-end gap-2',
+        placement === 'map'
+          ? 'max-w-[calc(100cqw-var(--sy-drawer-w,352px)-96px)] font-sans'
+          : 'ms-auto',
       )}
       role="group"
     >
-      {placement === 'map' && clear}
+      {clear}
       {where && (where.always || mixesFormats || value.region) && (
         <FilterMenu
           filled={where.placeAnswered || value.format !== 'any'}
@@ -282,7 +284,6 @@ export function FilterMenus({ value, onChange, onClear, where, placement }: Filt
           <MenuBody {...menu} menu="language" />
         </FilterMenu>
       )}
-      {placement === 'toolbar' && clear}
     </div>
   )
 }

@@ -119,7 +119,7 @@ describe('FilterMenus — past two answers, a count', () => {
 })
 
 describe('FilterMenus — in a toolbar', () => {
-  it('ends the row on Clear, so its arrival moves nothing already there', () => {
+  it('leads the row with Clear, as over the map, away from the view’s own close', () => {
     const shown = buttons(
       renderToStaticMarkup(
         <FilterMenus
@@ -132,7 +132,6 @@ describe('FilterMenus — in a toolbar', () => {
       ),
     )
 
-    expect(shown.at(-1)).toContain('aria-label="filters.chrome.clear"')
-    expect(shown[0]).toContain('filters.where.label')
+    expect(shown[0]).toContain('aria-label="filters.chrome.clear"')
   })
 })

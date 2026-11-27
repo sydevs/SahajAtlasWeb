@@ -163,8 +163,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
         <ToggleGroupItem value={CALENDAR_VIEW_LIST}>{t('calendar.view_list')}</ToggleGroupItem>
       </ToggleGroup>
 
-      {/* Nav + filter — wraps to a second line on narrow widths, one line on large. */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Nav + filter — wraps to a second line on narrow widths, one line on large. It takes the
+          rest of the line, so the filter menus can sit at its end. */}
+      <div className="flex flex-1 flex-wrap items-center gap-2">
         <div className="flex items-center gap-0.5">
           <Button
             isIconOnly
