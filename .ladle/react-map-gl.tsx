@@ -18,9 +18,11 @@ if (!(HTMLElement as { ladleRealms?: true }).ladleRealms) {
     value(this: { name: string }, value: unknown) {
       if (ownRealm.call(this, value)) return true
 
-      const realm = (value as Node | null | undefined)?.ownerDocument?.defaultView as
-        (Window & Record<string, unknown>) | null | undefined
-      const own = realm && realm !== window ? realm[this.name] : undefined
+      const realm = (value as Node | null | undefined)?.ownerDocument?.defaultView
+      const own =
+        realm && realm !== window
+          ? (realm as unknown as Record<string, unknown>)[this.name]
+          : undefined
 
       return typeof own === 'function' && ownRealm.call(own, value)
     },
