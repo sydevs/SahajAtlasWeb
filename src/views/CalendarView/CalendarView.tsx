@@ -104,7 +104,9 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
     if (next !== 'month' && next !== 'week') return
     // The Week's dates do not follow the visitor to the Month, which opens on the first of them.
     if (next === 'month' && isWeek) setFocused(week.start)
-    setView(next)
+    // The day in view follows them the other way too: a visitor who paged to March, or tapped a
+    // day on the phone grid, lands on that week rather than this one.
+    setView(next, next === 'week' ? weekFrom(focused, today) : undefined)
   }
 
   return (
