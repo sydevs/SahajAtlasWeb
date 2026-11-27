@@ -230,10 +230,6 @@ const PENDING_KEYS: Record<string, string> = {
   'calendar.share_title': 'sydevs/SahajAtlasWeb#538',
   'common.map.close': 'sydevs/SahajAtlasWeb#466',
   'countries.place_title': 'sydevs/SahajAtlasWeb#466',
-  'filters.language.count': 'sydevs/SahajAtlasWeb#542',
-  'filters.when.count': 'sydevs/SahajAtlasWeb#542',
-  'filters.when.label': 'sydevs/SahajAtlasWeb#542',
-  'filters.where.scope': 'sydevs/SahajAtlasWeb#542',
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
 }
 
