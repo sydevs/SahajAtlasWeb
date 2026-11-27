@@ -6,13 +6,7 @@
  */
 import { filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
 import { ancestorIds, indexRegions } from './hierarchy'
-import {
-  type PlacePathOf,
-  type StackEntry,
-  parentOf,
-  placedPathname,
-  resolveStack,
-} from './path'
+import { type PlacePathOf, type StackEntry, parentOf, placedPathname, resolveStack } from './path'
 
 /**
  * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A

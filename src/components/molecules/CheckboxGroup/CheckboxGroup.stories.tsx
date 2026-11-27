@@ -28,7 +28,7 @@ const options = (n: number): CheckboxGroupOption[] =>
   LANGUAGES.slice(0, n).map(([label, count]) => ({
     value: label,
     label,
-    meta: <span className="text-xs text-gray-11 tabular-nums">{count}</span>,
+    count,
     disabled: count === 0,
   }))
 

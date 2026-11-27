@@ -226,7 +226,7 @@ function LanguageCheckboxes(props: FilterBlockProps) {
       options={languageOptions(props).map((option) => ({
         value: option.code,
         label: languageLabel(option.code),
-        meta: <OptionCount count={option.count} />,
+        count: option.count,
         disabled: option.count === 0,
       }))}
       searchLabel={t('filters.a11y.search_languages')}
