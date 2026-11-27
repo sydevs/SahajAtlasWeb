@@ -67,7 +67,7 @@ const BODY_CASES: {
   {
     kind: 'no-results',
     actions: 'clearFilters',
-    note: 'Filters are both the explanation AND the escape, so this keeps "Clear all" alone: an onward link would compete with the one action that restores results. Rendered on SearchView, whose header already IS a geocoder — hence no field.',
+    note: 'Filters are both the explanation AND the escape, so this keeps "Clear filters" alone: an onward link would compete with the one action that restores results. Rendered on SearchView, whose header already IS a geocoder — hence no field.',
     props: { onClearFilters: () => {}, hasSearchChrome: true },
   },
   {

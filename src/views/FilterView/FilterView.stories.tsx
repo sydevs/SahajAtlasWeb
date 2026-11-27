@@ -52,8 +52,8 @@ const withNightClass = () => {
 
 /**
  * FilterView — the filter form drawer, which applies every tap at once. With nothing picked its
- * button reads Close; with an answer, "Show N classes" beside Clear all; when nothing matches it
- * says so and offers the one removal that brings the most classes back, or makes Clear all the way
+ * button reads Close; with an answer, "Show N classes" beside Clear filters; when nothing matches it
+ * says so and offers the one removal that brings the most classes back, or makes Clear filters the way
  * out when no single removal helps. The language options and counts resolve from the cached feed
  * the harness seeds. **Location refused** stands in a browser that refuses the location: press
  * Near me for the message.

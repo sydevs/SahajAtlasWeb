@@ -84,7 +84,7 @@ describe('FilterView — the bottom button', () => {
     expect(markup).not.toContain('filters.chrome.clear')
   })
 
-  it('shows the matching classes beside Clear all once an answer is picked', () => {
+  it('shows the matching classes beside Clear filters once an answer is picked', () => {
     const markup = view('/gb/filters?days=2')
 
     expect(markup).toContain('filters.chrome.show_classes(41)')

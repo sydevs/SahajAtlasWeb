@@ -603,7 +603,7 @@ export function FallbackActions({
       )}
       {actions.clearFilters && (
         <Button color="primary" variant="flat" onClick={onClearFilters}>
-          {t('filters.chrome.clear', { defaultValue: 'Clear all' })}
+          {t('filters.chrome.clear', { defaultValue: 'Clear filters' })}
         </Button>
       )}
       {/* A way to tell us, when the fault is ours rather than the link's. It
