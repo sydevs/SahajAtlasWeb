@@ -4,8 +4,7 @@ import { type KeyboardEvent, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 
-import { EntryList, entryWallClock } from './EntryList'
-import { dayHeadingParts } from './day-heading'
+import { DayClasses, entryWallClock } from './EntryList'
 
 import { Chip } from '@/components/atoms/Chip'
 import { Link } from '@/components/atoms/Link'
@@ -158,7 +157,7 @@ function MonthBox({ entry, locale }: { entry: CalendarEntry; locale: string }) {
       <Chip
         casing="none"
         className="w-full"
-        color={entry.online ? 'contrast' : 'primary'}
+        color={entry.online ? 'primary' : 'secondary'}
         variant="subtle"
       >
         {text}
@@ -194,11 +193,6 @@ function PhoneMonth({
   const { t } = useTranslation()
   const grid = useRef<HTMLTableElement>(null)
   const classes = byDay.get(focused) ?? []
-  const { heading, note } = dayHeadingParts(DateTime.fromISO(focused), {
-    count: classes.length,
-    locale,
-    t,
-  })
 
   const move = (event: KeyboardEvent) => {
     const step = STEPS[event.key]
@@ -262,7 +256,7 @@ function PhoneMonth({
                         {classes.slice(0, DOTS).map((entry) => (
                           <span
                             key={entry.id}
-                            className={`size-1.5 rounded-full ${entry.online ? 'bg-contrast-9' : 'bg-primary-9'}`}
+                            className={`size-1.5 rounded-full ${entry.online ? 'bg-primary-9' : 'bg-secondary-9'}`}
                           />
                         ))}
                       </span>
@@ -274,17 +268,10 @@ function PhoneMonth({
           ))}
         </tbody>
       </table>
-      <div aria-live="polite" className="mt-5">
-        <h3 className="text-lg">{heading}</h3>
-        {note && <p className="text-sm text-gray-11">{note}</p>}
+      {/* Live, so a screen reader hears which day the list now shows. */}
+      <div aria-live="polite" className="-mx-gutter mt-4">
+        <DayClasses counted day={focused} entries={classes} locale={locale} />
       </div>
-      {classes.length ? (
-        <div className="-mx-gutter mt-2">
-          <EntryList entries={classes} locale={locale} />
-        </div>
-      ) : (
-        <p className="mt-4 text-center text-sm text-gray-11">{t('calendar.none')}</p>
-      )}
     </>
   )
 }

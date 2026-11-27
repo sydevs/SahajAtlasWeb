@@ -304,7 +304,8 @@ function CalendarBody({
           {t('calendar.times_note', { zone: zoneCity(DateTime.local().zoneName) })}
         </p>
       )}
-      <DrawerBody className={`max-w-none py-4 ${view === 'week' ? '' : 'px-gutter'}`}>
+      {/* The Week's day bands stick to the body's own top edge, so it takes no top padding. */}
+      <DrawerBody className={`max-w-none pb-4 ${view === 'week' ? '' : 'px-gutter pt-4'}`}>
         {view === 'week' ? (
           <WeekList
             entries={entries}

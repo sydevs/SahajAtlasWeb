@@ -4,8 +4,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 
-import { EntryList } from './EntryList'
-import { dayHeadingParts } from './day-heading'
+import { DayClasses } from './EntryList'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel } from '@/components/molecules'
@@ -58,24 +57,9 @@ export function WeekList({
 
   return (
     <div className="flex flex-col pb-4">
-      {days.map((day) => {
-        const { heading, note } = dayHeadingParts(DateTime.fromISO(day), { count: 0, locale, t })
-
-        return (
-          <section key={day} aria-labelledby={`week-${day}`}>
-            {/* A band across the list, held at the top while its day scrolls, so each day reads
-                as its own section rather than one more row. */}
-            <h3
-              className="sticky top-0 z-10 flex items-baseline gap-2 bg-gray-3 px-gutter py-2 text-sm font-semibold text-gray-12"
-              id={`week-${day}`}
-            >
-              {heading}
-              {note && <span className="text-sm font-normal text-gray-11">{note}</span>}
-            </h3>
-            <EntryList entries={byDay.get(day) ?? []} locale={locale} />
-          </section>
-        )
-      })}
+      {days.map((day) => (
+        <DayClasses key={day} day={day} entries={byDay.get(day) ?? []} locale={locale} />
+      ))}
     </div>
   )
 }
