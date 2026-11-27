@@ -270,12 +270,13 @@ describe('computeDayBoundaries', () => {
   it('spans multiple non-wrapping periods from earliest to latest', () => {
     expect(computeDayBoundaries([], ['morning', 'evening'])).toEqual({
       start: '06:00',
-      end: '21:00',
+      end: '24:00',
     })
   })
 
-  it('frames an overnight (night) period as start > end', () => {
-    expect(computeDayBoundaries([], ['night'])).toEqual({ start: '21:00', end: '06:00' })
+  it('frames an overnight span (evening into night) as start > end', () => {
+    expect(computeDayBoundaries([], ['night'])).toEqual({ start: '00:00', end: '06:00' })
+    expect(computeDayBoundaries([], ['evening', 'night'])).toEqual({ start: '17:00', end: '06:00' })
   })
 
   it('is undefined when every period is selected (whole day)', () => {

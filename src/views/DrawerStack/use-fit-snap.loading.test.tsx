@@ -34,10 +34,13 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
+// The body's only child, at its top edge: jsdom lays nothing out, so the box reports where it
+// would sit.
 const box = (height: number) => {
   const node = document.createElement('div')
 
-  Object.defineProperty(node, 'offsetHeight', { value: height })
+  node.getBoundingClientRect = () => ({ top: HEADER_PX, bottom: HEADER_PX + height }) as DOMRect
+  node.getClientRects = () => [node.getBoundingClientRect()] as unknown as DOMRectList
 
   return node
 }

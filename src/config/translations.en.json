@@ -168,9 +168,14 @@
       "apply": "Apply",
       "clear": "Clear all",
       "clear_one": "Clear",
+      "no_match": "No classes match",
       "no_results_classes": "No classes match your filters.",
       "remove": "Remove %{label}",
-      "title": "Filters"
+      "show_classes_one": "Show %{count} class",
+      "show_classes_other": "Show %{count} classes",
+      "title": "Filters",
+      "widen_one": "Remove %{label} (%{count} class)",
+      "widen_other": "Remove %{label} (%{count} classes)"
     },
     "dates": {
       "from": "From",

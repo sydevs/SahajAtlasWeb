@@ -62,6 +62,7 @@ describe('SearchFilters — the questions this scope can answer', () => {
       format: { offline: 3, online: 0 },
       days: { 1: 3, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
       time: { morning: 0, afternoon: 0, evening: 3, night: 0 },
+      timeless: 0,
       cadence: { DAILY: 0, WEEKLY: 3, MONTHLY: 0, once: 0 },
       languages: [{ code: 'cs', count: 3 }],
     },
@@ -120,5 +121,37 @@ describe('SearchFilters — the questions this scope can answer', () => {
   it('opens More filters by itself when Frequency or Dates is set', () => {
     expect(render()).not.toContain('filters.cadence.label')
     expect(render({ ...DEFAULT_FILTERS, cadence: 'WEEKLY' })).toContain('filters.cadence.label')
+  })
+})
+
+describe('SearchFilters — the times of day', () => {
+  const facets = (night: number) => ({
+    counts: {
+      total: 4,
+      format: { offline: 2, online: 2 },
+      days: { 1: 4, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
+      time: { morning: 1, afternoon: 1, evening: 2 - night, night },
+      timeless: 0,
+      cadence: { DAILY: 0, WEEKLY: 4, MONTHLY: 0, once: 0 },
+      languages: [],
+    },
+    relevance: { format: true, days: false, time: true, cadence: false },
+  })
+  const html = (night: number, filters = DEFAULT_FILTERS) =>
+    renderToStaticMarkup(
+      <SearchFilters facets={facets(night)} value={filters} onChange={() => {}} />,
+    )
+
+  it('shows each period’s hours in the visitor’s own clock', () => {
+    expect(html(0)).toMatch(/filters\.time\.morning<.*?>6:00\sAM\s–\s12:00\sPM</)
+  })
+
+  it('offers Night only while some class here starts in it', () => {
+    expect(html(0)).not.toContain('filters.time.night')
+    expect(html(1)).toContain('filters.time.night')
+  })
+
+  it('keeps a chosen Night, so it can be undone', () => {
+    expect(html(0, { ...DEFAULT_FILTERS, timeOfDay: ['night'] })).toContain('filters.time.night')
   })
 })

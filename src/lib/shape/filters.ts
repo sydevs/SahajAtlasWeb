@@ -29,17 +29,14 @@ export type EventCadence = 'any' | 'once' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 export type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night'
 export const TIME_PERIODS = ['morning', 'afternoon', 'evening', 'night'] as const
 
-// Each period's local-hour half-open interval(s), `[start, end)`. Night wraps
-// midnight, so it is two intervals. `matchesFilters` tests an occurrence's start
-// hour against these. `timePeriodRanges` coalesces them for display.
+// Each period's local-hour half-open interval(s), `[start, end)`. `matchesFilters` tests an
+// occurrence's start hour against these, and `timePeriodRanges` coalesces them for display. The
+// four tile the day, so their counts add up to the total.
 export const TIME_PERIOD_HOURS: Record<TimePeriod, readonly (readonly [number, number])[]> = {
   morning: [[6, 12]],
   afternoon: [[12, 17]],
-  evening: [[17, 21]],
-  night: [
-    [21, 24],
-    [0, 6],
-  ],
+  evening: [[17, 24]],
+  night: [[0, 6]],
 }
 
 // Selected periods in canonical day order (morning to night), de-duped. This
@@ -100,8 +97,8 @@ export const isTimeRestricted = (timeOfDay: readonly TimePeriod[]): boolean => t
 /**
  * The selected periods as coalesced `[start, end)` hour ranges for display.
  * Adjacent or overlapping intervals are fused. A pair spanning midnight
- * (…-24 and 0-…) displays as one wrapping range — for example, night alone
- * becomes `[21, 6]`. This is empty when nothing is selected. The filter form's
+ * (…-24 and 0-…) displays as one wrapping range — for example, evening and
+ * night together become `[17, 6]`. This is empty when nothing is selected. The filter form's
  * readout and the active pill both use it.
  */
 export const timePeriodRanges = (periods: readonly TimePeriod[]): [number, number][] => {
@@ -153,10 +150,19 @@ export const dateWindow = (): { min: string; max: string } => {
 
 /** The subset of an event `matchesFilters` needs — so it works for `FeedEvent`, `EventSlim`, and `Event`. */
 export type FilterableEvent = Pick<FeedEvent, 'eventType' | 'languages'> & {
+  /** SahajCloud's flag for a listing that names no times ("Contact host for timings"). */
+  inactive?: boolean | null
   schedule?: EventSchedule | null
   /** The direct region (present on feed features). It enables the region-filter cut. */
   region?: { id: number } | null
 }
+
+/**
+ * Whether a listing names no times at all: SahajCloud's `inactive` flag, no schedule, or no session
+ * still to come. Such a listing reads "Contact host for timings".
+ */
+export const isTimeless = (event: FilterableEvent): boolean =>
+  event.inactive === true || !event.schedule || localOccurrences(event).length === 0
 
 /**
  * Decides whether an event falls under the region filter's selection. Built by
@@ -316,11 +322,15 @@ export function matchesFilters(
   }
 
   const dayActive = filters.daysOfWeek.length > 0
-  const timeActive = isTimeRestricted(filters.timeOfDay)
+  // A listing with no times takes part in every time of day: it never says when it meets, so no
+  // time can rule it out. Day and date still need a session to match.
+  const timeless = isTimeless(event)
+  const timeActive = isTimeRestricted(filters.timeOfDay) && !timeless
   const dateActive = isDateRestricted(filters.dateRange)
 
   if (dayActive || timeActive || dateActive) {
     const floor = dateFloor(filters, today)
+    const cut = timeless ? { ...filters, timeOfDay: [] } : filters
 
     // An event matches when SOME occurrence satisfies day, time, and date
     // together — the Monday-morning and Wednesday-evening occurrences do not
@@ -328,7 +338,7 @@ export function matchesFilters(
     // to keep only the matching ones.
     // No occurrence data means a day/time/date match cannot be verified, so it fails.
     const matches = localOccurrences(event).some((local) =>
-      occurrenceMatchesFilters(local, filters, floor),
+      occurrenceMatchesFilters(local, cut, floor),
     )
 
     if (!matches) return false

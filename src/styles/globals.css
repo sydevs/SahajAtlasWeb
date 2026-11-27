@@ -502,6 +502,12 @@ html.sy-atlas {
   @apply h-10 pointer-coarse:h-11;
 }
 
+/* A count in parentheses, such as "Filters (2)". Rethink Sans ships a standard ligature that
+   draws "(1)" to "(20)" as a circled digit ("①"), so a counter turns its common ligatures off. */
+@utility literal-count {
+  font-variant-ligatures: no-common-ligatures;
+}
+
 /* An invisible 44px tap area around a smaller control, on touch screens only, so the control
    keeps its drawn size. It needs a positioned element, so pair it with `relative`.
    The query is `useCoarsePointer`'s (`config/responsive.ts`): `(pointer: coarse)` alone is also

@@ -135,6 +135,20 @@ export const parseCenter = (value: string | null): [number, number] | undefined 
 }
 
 /**
+ * A `?bbox=w,s,e,n` param, validated to four finite numbers — a malformed or truncated hand-typed
+ * value resolves to `undefined`, so framing falls back to the centre rather than feeding NaNs into
+ * Mapbox's fitBounds.
+ */
+export const parseBounds = (value: string | null): [number, number, number, number] | undefined => {
+  if (!value) return undefined
+  const nums = value.split(',').map(Number)
+
+  return nums.length === 4 && nums.every(Number.isFinite)
+    ? (nums as [number, number, number, number])
+    : undefined
+}
+
+/**
  * The part of a search URL that decides WHAT the results query asks for —
  * everything except `?q`.
  *

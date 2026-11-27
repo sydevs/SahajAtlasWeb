@@ -6,6 +6,8 @@ import {
   type FilterableEvent,
   type TimePeriod,
   TIME_PERIODS,
+  isDateRestricted,
+  isTimeless,
   matchesFilters,
   todayISO,
 } from './filters'
@@ -30,6 +32,8 @@ export type FacetCounts = {
   format: { offline: number; online: number }
   days: Record<number, number>
   time: Record<TimePeriod, number>
+  /** Of the classes each time of day counts, those that name no times, and so count in all four. */
+  timeless: number
   cadence: Record<Exclude<EventCadence, 'any'>, number>
   /** Most-used language first. */
   languages: { code: string; count: number }[]
@@ -51,6 +55,7 @@ export const facetCounts = (
   }
 
   const codes = new Set(events.flatMap((event) => event.languages))
+  const anyTime = { ...filters, timeOfDay: [], region: null }
 
   return {
     total: count({}),
@@ -59,6 +64,10 @@ export const facetCounts = (
     time: Object.fromEntries(
       TIME_PERIODS.map((period) => [period, count({ timeOfDay: [period] })]),
     ) as FacetCounts['time'],
+    timeless: events.reduce(
+      (sum, event) => (isTimeless(event) && matchesFilters(event, anyTime, today) ? sum + 1 : sum),
+      0,
+    ),
     cadence: Object.fromEntries(
       EVENT_CADENCES.map((cadence) => [cadence, count({ cadence })]),
     ) as FacetCounts['cadence'],
@@ -66,6 +75,46 @@ export const facetCounts = (
       .map((code) => ({ code, count: count({ languages: [code] }) }))
       .sort((a, b) => b.count - a.count),
   }
+}
+
+/** One answered question, and how many classes come back once it is removed. */
+export type FilterRecovery = {
+  group: 'format' | 'days' | 'time' | 'cadence' | 'languages' | 'dates'
+  count: number
+  patch: Partial<EventFilters>
+}
+
+/**
+ * The one change that brings back the most classes when nothing matches: the answered question
+ * whose removal leaves the most. `null` when removing any single one still leaves nothing, so
+ * clearing everything is the only way out.
+ */
+export const bestRecovery = (
+  events: readonly FilterableEvent[],
+  filters: EventFilters,
+  today: string = todayISO(),
+): FilterRecovery | null => {
+  const candidates: Pick<FilterRecovery, 'group' | 'patch'>[] = [
+    filters.format !== 'any' && { group: 'format' as const, patch: { format: 'any' as const } },
+    filters.daysOfWeek.length > 0 && { group: 'days' as const, patch: { daysOfWeek: [] } },
+    filters.timeOfDay.length > 0 && { group: 'time' as const, patch: { timeOfDay: [] } },
+    filters.cadence !== 'any' && { group: 'cadence' as const, patch: { cadence: 'any' as const } },
+    filters.languages.length > 0 && { group: 'languages' as const, patch: { languages: [] } },
+    isDateRestricted(filters.dateRange) && {
+      group: 'dates' as const,
+      patch: { dateRange: { start: null, end: null } },
+    },
+  ].filter((candidate) => candidate !== false)
+
+  return candidates.reduce<FilterRecovery | null>((best, candidate) => {
+    const next = { ...filters, ...candidate.patch, region: null }
+    const count = events.reduce(
+      (sum, event) => (matchesFilters(event, next, today) ? sum + 1 : sum),
+      0,
+    )
+
+    return count > (best?.count ?? 0) ? { ...candidate, count } : best
+  }, null)
 }
 
 export type FacetRelevance = {
@@ -98,6 +147,8 @@ export const facetRelevance = (scope: FacetCounts): FacetRelevance => {
 export type FilterFacets = {
   counts: FacetCounts
   relevance: FacetRelevance
+  /** The way out when nothing matches (`bestRecovery`); absent while something does. */
+  recovery?: FilterRecovery | null
 }
 
 /** The scope's own counts and relevance, with nothing filtered. */

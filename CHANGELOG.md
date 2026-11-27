@@ -49,6 +49,18 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Filters apply as they are tapped, and close onto the matching classes.** ([#528]) There is
+  no Apply button: each answer narrows the map and the count at once, and the bottom button reads
+  "Show 8 classes", or Close with nothing picked. Closing by X, swipe or Esc keeps the answers and
+  shows the results, and never takes the host page back. When nothing matches, the filters say so
+  and offer the one change that brings the most classes back. On a phone the filters open just
+  tall enough for their questions, with the button always in view. Each time of day shows its
+  hours in the visitor's own format, and Night (midnight to 6:00) is offered only where classes
+  start then. ⚠ **Evening now runs to midnight**, so a shared link with `time=evening` takes in
+  classes starting from 21:00 to 24:00, which it used to leave to Night. A listing that names no times
+  ("Contact host for timings") counts under every time of day. The Filters button's count reads
+  "(1)" again, where the typeface had drawn it as a circled "①".
+
 - **Share opens the phone's own share sheet, and Copy link says "Link copied".** ([#518]) A
   class's Share panel and the sign-up confirmation now show the same block: the class's summary,
   as its list card shows it, then Share, then Copy link. Share opens the device's share sheet.
@@ -1520,3 +1532,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
+[#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
