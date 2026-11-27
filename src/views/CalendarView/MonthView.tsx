@@ -2,6 +2,7 @@ import type { CalendarEntry } from '@/lib/shape'
 
 import { type KeyboardEvent, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Plus } from 'lucide-react'
 import { DateTime } from 'luxon'
 
 import { DayClasses, entryWallClock } from './EntryList'
@@ -250,15 +251,18 @@ function PhoneMonth({
                       >
                         {DateTime.fromISO(day).day}
                       </span>
-                      {/* One dot a class, up to three, online ones in their own colour. The
-                          row keeps its height on a day with none. */}
-                      <span aria-hidden className="flex h-1.5 gap-0.5">
-                        {classes.slice(0, DOTS).map((entry) => (
+                      {/* One dot a class, online ones in their own colour, and past three a plus in
+                          the third's place. The row keeps its height on a day with none. */}
+                      <span aria-hidden className="flex h-1.5 items-center gap-0.5">
+                        {classes.slice(0, count > DOTS ? DOTS - 1 : DOTS).map((entry) => (
                           <span
                             key={entry.id}
                             className={`size-1.5 rounded-full ${entry.online ? 'bg-primary-9' : 'bg-secondary-9'}`}
                           />
                         ))}
+                        {count > DOTS && (
+                          <Plus className="-mx-0.5 text-gray-11" size={10} strokeWidth={3} />
+                        )}
                       </span>
                     </button>
                   </td>

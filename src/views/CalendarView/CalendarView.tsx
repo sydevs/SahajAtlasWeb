@@ -300,7 +300,7 @@ function CalendarBody({
   return (
     <>
       {hasOnline && (
-        <p className="shrink-0 px-gutter pt-3 text-xs text-gray-11">
+        <p className="shrink-0 px-gutter pt-3 pb-3 text-xs text-gray-11">
           {t('calendar.times_note', { zone: zoneCity(DateTime.local().zoneName) })}
         </p>
       )}
