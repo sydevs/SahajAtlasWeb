@@ -23,6 +23,7 @@ import { scheduleXTimeline } from './timeline'
 
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { CALENDAR_HEADER } from '@/components/organisms/Skeleton/Skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterChips, ResetErrorBoundary } from '@/components/molecules'
 import api from '@/config/api'
@@ -247,7 +248,7 @@ export function CalendarView() {
 
   return (
     <>
-      <DrawerHeader className="max-w-none flex-wrap items-center gap-x-3 gap-y-2">
+      <DrawerHeader className={CALENDAR_HEADER}>
         <CalendarControls controls={controls} />
       </DrawerHeader>
       <ActiveFilterChips />

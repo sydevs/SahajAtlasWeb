@@ -109,6 +109,9 @@ const ROUTES = [
   { name: 'a country', route: '/gb', exactRows: true },
   { name: 'search results', route: '/search', exactRows: false },
   { name: 'a class', route: SAHAJCLOUD_EVENT.path, exactRows: false },
+  { name: 'the sign-up form', route: `${SAHAJCLOUD_EVENT.path}/register`, exactRows: false },
+  { name: 'the filters', route: '/filters', exactRows: false },
+  { name: 'the calendar', route: '/calendar', exactRows: false },
 ]
 
 const STAGES = [

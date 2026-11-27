@@ -20,9 +20,9 @@ describe('skeletonShape', () => {
     ['/gb/south-east/london', { header: 'titled-field', body: 'classes' }],
     ['/gb/online', { header: 'titled', body: 'classes' }],
     ['/gb/south-east/london/1817', { header: 'class', body: 'class' }],
-    ['/calendar', { header: 'titled', body: 'calendar' }],
-    ['/filters', { header: 'titled', body: 'filters' }],
-    ['/gb/south-east/london/1817/register', { header: 'titled', body: 'form' }],
+    ['/calendar', { header: 'calendar', body: 'calendar' }],
+    ['/filters', { header: 'closable', body: 'filters' }],
+    ['/gb/south-east/london/1817/register', { header: 'titled-subtitle', body: 'form' }],
     // A retired share link opens its class.
     ['/gb/south-east/london/1817/share', { header: 'class', body: 'class' }],
   ])('%s loads as %o', (path, shape) => {

@@ -1,5 +1,18 @@
 {
   "calendar": {
+    "clear_filters": "Clear filters",
+    "day_count_one": "%{count} class",
+    "day_count_other": "%{count} classes",
+    "more_one": "+ %{count} class",
+    "more_other": "+ %{count} classes",
+    "next_7_days": "Next 7 days",
+    "next_class": "Next class: %{date}",
+    "none": "No classes",
+    "none_in_window": "No classes on these dates.",
+    "none_match_filters": "No classes match your filters on these dates.",
+    "see_calendar": "See calendar",
+    "see_list": "See list",
+    "share_title": "Meditation classes, %{dates}",
     "times_note": "Times are local to each class. Online classes show your time (%{zone}).",
     "title": "Calendar",
     "view_list": "List",
@@ -35,7 +48,6 @@
       "retry": "Try again",
       "search_label": "Or search for a place",
       "server": "Our servers are having trouble right now.",
-      "share_unavailable_class": "There is no link to share for this class yet.",
       "unavailable": "This program can’t be joined right now."
     },
     "feedback": {
@@ -85,13 +97,14 @@
     "locating": "Finding your location…",
     "near_city": "Classes near %{city}",
     "near_me": "Classes near me",
-    "place_title": "Free Meditation classes in %{place}",
+    "place_title": "Free meditation classes in %{place}",
     "title": "Free meditation classes"
   },
   "event": {
     "actions": {
       "add_calendar": "Add to calendar",
       "contact": "Contact",
+      "copy_number": "Copy number",
       "directions": "Directions",
       "download_ics": "Download .ics file",
       "share": "Share",
@@ -286,13 +299,12 @@
     "copy_failed_pointer": "Couldn’t copy it. The link below is selected: press Ctrl+C, or ⌘C on a Mac.",
     "copy_failed_touch": "Couldn’t copy it. Press and hold the link below, then choose Copy.",
     "copy_link": "Copy link",
+    "email": "Email",
     "link_copied": "Link copied",
     "native": "Share…",
     "qr_download": "Download for printing",
     "qr_failed": "The QR code didn’t load. Check your connection, then close and reopen this.",
     "qr_hint": "Print this on posters or flyers. People can point their phone camera at it to open this class.",
-    "qr_title": "QR code for posters",
-    "title": "Share Meditation",
-    "title_class": "Share this class"
+    "qr_title": "QR code for posters"
   }
 }

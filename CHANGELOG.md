@@ -49,6 +49,9 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **"Add to calendar" on the registration confirmation spans the panel, in your second brand
+  colour.** ([#549]) It was a narrower button in the first brand colour. Its menu of calendars
+  is unchanged and still opens under the button's start edge.
 - **On a computer the filters are three buttons over the map: Where, When and Language.** ([#542])
   From 1024px of widget width they sit at the top right of the map, and the full-width calendar
   (its month and week views) carries them in its header, instead of a Filters button. Each opens a small menu with the same
@@ -1579,6 +1582,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
 [#531]: https://github.com/sydevs/SahajAtlasWeb/pull/531
 [#540]: https://github.com/sydevs/SahajAtlasWeb/pull/540
+[#549]: https://github.com/sydevs/SahajAtlasWeb/pull/549
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
 [#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528

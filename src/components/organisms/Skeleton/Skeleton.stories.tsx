@@ -41,20 +41,20 @@ const PANELS: { title: string; description: string; shape: SkeletonShape; cta?: 
   {
     title: 'Registering for a class',
     description:
-      'Back and the title, then the class’s summary card over a labelled field each. Register pins to the foot, so the placeholder leaves it out.',
-    shape: { header: 'titled', body: 'form' },
+      'Back, the title and its reassurance line, then the class’s summary card over a labelled field each. Register pins to the foot, so the placeholder leaves it out.',
+    shape: { header: 'titled-subtitle', body: 'form' },
   },
   {
     title: 'Filters',
     description:
-      'The title, then the questions in their order: where, format, days, and the times of day.',
-    shape: { header: 'titled', body: 'filters' },
+      'The title beside its close button, then the questions in their order: where, format, days, and the times of day.',
+    shape: { header: 'closable', body: 'filters' },
   },
   {
     title: 'Calendar',
     description:
-      'Under the calendar’s own header (which the real view keeps): a weekday row over the month grid.',
-    shape: { header: 'titled', body: 'calendar' },
+      'The calendar’s controls — Back, the view switch, the date and Filters, wrapping where the drawer is narrow — over a weekday row and the month grid.',
+    shape: { header: 'calendar', body: 'calendar' },
   },
 ]
 
