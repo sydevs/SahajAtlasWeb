@@ -367,8 +367,8 @@ A corner that follows the layout therefore costs a measured width in React, a
 custom property, and a CSS rule that moves mapbox's container — which is the shape
 #330 shipped first and its review replaced.
 
-**The top right holds ONE control: find-me and settings in a column, with the credits to
-their left.** Mapbox's corner containers float and `clear: both`, so separate controls there
+**The top right holds ONE control: find-me and settings in a column, with the credits under
+them.** Mapbox's corner containers float and `clear: both`, so separate controls there
 stack in mount order with Mapbox's own margins, and lining them up with a control of ours would
 take exactly the stylesheet rules above. So `MapControls` is a single `useControl` whose element
 lays out its own children:
@@ -379,7 +379,9 @@ lays out its own children:
 - **The whole column hides on `useMapControls`.** Today only the phone sheet's near-full stop sets
   it, since there the sheet covers all of the column but a sliver of its top; a drawer elsewhere
   leaves it clear or covers it whole. Anything else that covers the map, or takes these controls
-  over itself, sets the same switch.
+  over itself, sets the same switch. `findMeHidden` hides find-me alone while the filter buttons
+  show over the map (`filterRowPlace`, #542): their Where menu's Near me asks the same question
+  through the same control.
 - **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
   `showButton={false}`, and our button calls its `trigger()` through `useLocate`; the blue dot, the permission flow
   and the `onError` dialog are unchanged. While the map is mounted, `useLocate` registers that
@@ -390,9 +392,9 @@ lays out its own children:
   leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
   dialog too.
 - **The credits are Mapbox's own compact `AttributionControl`, in Mapbox's own look**, created
-  inside the column's element, level with its top, rather than added to the map. Opened, it
-  grows leftward, away from the buttons. `globals.css` only resets Mapbox's corner margin and
-  float inside our element, adds the 44px touch tap area, and carries #370's dark-theme fix.
+  inside the column's element, under the buttons, rather than added to the map, so nothing else
+  on the map has to clear it sideways. Opened, it grows leftward from there. `globals.css` only resets Mapbox's corner margin and
+  float inside our element, centres it under the 40px buttons, adds the 44px touch tap area, and carries #370's dark-theme fix.
   `attribution.test.ts` pins the corner literals, the single attribution, and that the
   stylesheet still names the classes it targets.
 

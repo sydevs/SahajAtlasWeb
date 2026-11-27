@@ -55,7 +55,9 @@ cover everything a host would notice since the widget was first deployed.
   questions and live counts as the phone's filters, and a tap applies at once. A button with an
   answer fills and names it ("Tue · Evening"), and Clear leads the row; on a place page, Clear goes
   back to that page. The list shows no filter tags beside them. Narrower widgets, a map-less
-  widget's list, and phones keep the Filters button. Nothing changes in the snippet or the CSP.
+  widget's list, and phones keep the Filters button. While the buttons show, the map's own
+  find-my-location button steps aside for Where's Near me. The map's credits button now sits
+  under the map's buttons rather than beside them. Nothing changes in the snippet or the CSP.
 - **The first screen opens on its title, the search, and one way to classes near the
   visitor.** ([#531]) "Free meditation classes" heads it, and the search, which reads "Enter your
   city or postcode" on every page, spans the panel. Under it, "Classes near Prague ›" (the visitor's

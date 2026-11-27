@@ -29,14 +29,16 @@ class ControlColumn implements IControl {
   constructor(private readonly attribution: AttributionControl) {
     // The top inset clears a phone's status bar where `viewport-fit=cover` runs the map beneath
     // it. ⚠ The 10px gap is the credits' 44px tap area overhanging its 24px button on a touch
-    // screen: any less and find-me, later in the DOM, takes the shared pixels.
+    // screen: any less and the button above it takes the shared pixels.
     this.root.className =
-      'sy-map-controls pointer-events-auto mt-[calc(16px+env(safe-area-inset-top,0px))] mr-4 flex items-start gap-2.5'
+      'sy-map-controls pointer-events-auto mt-[calc(16px+env(safe-area-inset-top,0px))] mr-4 flex flex-col items-end gap-2.5'
     this.root.append(this.slot)
   }
 
+  // The credits sit under the buttons, so nothing else on the map has to clear them sideways, and
+  // open leftward from there.
   onAdd(map: MapboxMap) {
-    this.root.prepend(this.attribution.onAdd(map))
+    this.root.append(this.attribution.onAdd(map))
 
     return this.root
   }
@@ -68,6 +70,7 @@ export const MapControls = memo(function MapControls({
 }: MapControlsProps) {
   const { t } = useTranslation()
   const hidden = useMapControls((s) => s.hidden)
+  const findMeHidden = useMapControls((s) => s.findMeHidden)
   // A phone on its side is too short for a column, so the buttons run as a row there, clear of
   // the short window's sheet, which `DrawerStack` caps by the same signal.
   const short = useIsShortViewport()
@@ -85,32 +88,35 @@ export const MapControls = memo(function MapControls({
 
   return createPortal(
     <div className={short ? 'flex flex-row gap-2' : 'flex flex-col gap-2'}>
-      <HoverLabel text={locateLabel}>
-        <Button
-          ref={locateRef}
-          isIconOnly
-          aria-busy={locate === 'waiting' || undefined}
-          aria-label={locateLabel}
-          radius="full"
-          variant="floating"
-          onClick={onLocate}
-        >
-          {locate === 'waiting' ? (
-            <Spinner decorative color="current" size="sm" />
-          ) : (
-            <LocateFixed
-              className={
-                locate === 'found'
-                  ? 'text-primary-11'
-                  : locate === 'failed'
-                    ? 'text-danger-11'
-                    : undefined
-              }
-              size={20}
-            />
-          )}
-        </Button>
-      </HoverLabel>
+      {/* The filter buttons' Near me asks the same question, through the same control. */}
+      {!findMeHidden && (
+        <HoverLabel text={locateLabel}>
+          <Button
+            ref={locateRef}
+            isIconOnly
+            aria-busy={locate === 'waiting' || undefined}
+            aria-label={locateLabel}
+            radius="full"
+            variant="floating"
+            onClick={onLocate}
+          >
+            {locate === 'waiting' ? (
+              <Spinner decorative color="current" size="sm" />
+            ) : (
+              <LocateFixed
+                className={
+                  locate === 'found'
+                    ? 'text-primary-11'
+                    : locate === 'failed'
+                      ? 'text-danger-11'
+                      : undefined
+                }
+                size={20}
+              />
+            )}
+          </Button>
+        </HoverLabel>
+      )}
       <SettingsMenu labelled align="end" />
     </div>,
     column.slot,

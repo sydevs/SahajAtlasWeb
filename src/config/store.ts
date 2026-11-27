@@ -392,6 +392,9 @@ type MapControlsState = {
   /** True where something over the map leaves its control column no clean place to show. */
   hidden: boolean
   setHidden: (hidden: boolean) => void
+  /** True while the filter buttons' Where menu offers Near me, which asks the same question. */
+  findMeHidden: boolean
+  setFindMeHidden: (hidden: boolean) => void
 }
 
 /**
@@ -402,6 +405,8 @@ type MapControlsState = {
 export const useMapControls = create<MapControlsState>((set) => ({
   hidden: false,
   setHidden: (hidden) => set(() => ({ hidden })),
+  findMeHidden: false,
+  setFindMeHidden: (findMeHidden) => set(() => ({ findMeHidden })),
 }))
 
 type BrowsedCountryState = {

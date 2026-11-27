@@ -37,7 +37,7 @@ describe('the Mapbox wordmark and attribution corners', () => {
     expect(controls.match(/new mapLib\.AttributionControl\(/g)).toHaveLength(1)
     expect(controls).toContain('compact: true')
     // Created but never added to the map, so the column is what puts it on screen.
-    expect(controls).toMatch(/prepend\(this\.attribution\.onAdd\(map\)\)/)
+    expect(controls).toMatch(/append\(this\.attribution\.onAdd\(map\)\)/)
   })
 
   it('puts the attribution in the one corner no drawer covers', () => {

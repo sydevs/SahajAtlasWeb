@@ -689,8 +689,9 @@ html.sy-atlas {
    top edge, so they are reset; the column's own gap spaces it. On a touch screen it gets the 44px
    tap area every other control has, without growing the 24px button.
    `attribution.test.ts` fails if a mapbox-gl upgrade renames the classes this targets. */
+/* Centred under the 40px buttons above it while closed; open, it grows leftward from there. */
 .sy-map-controls .mapboxgl-ctrl-attrib.mapboxgl-compact {
-  margin: 0;
+  margin: 0 8px 0 0;
   float: none;
 }
 
