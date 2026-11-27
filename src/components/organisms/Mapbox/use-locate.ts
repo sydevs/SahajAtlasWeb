@@ -1,15 +1,12 @@
 import type { GeolocateControl } from 'mapbox-gl'
-import type { PositionSource } from '@/config/store'
+import type { PositionAnswer, PositionSource } from '@/hooks/use-locator'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { useLocator } from '@/config/store'
-import { devicePosition, requestPosition, useLocating } from '@/hooks/use-locator'
+import { useLocator } from '@/hooks/use-locator'
 
 /** Where the visitor's last "find me" request stands. */
 export type LocateState = 'idle' | 'waiting' | 'found' | 'failed'
-
-type Answer = Parameters<PositionSource>[0]
 
 /**
  * "Find my location", driven from our own button through Mapbox's `GeolocateControl`, rendered
@@ -17,28 +14,27 @@ type Answer = Parameters<PositionSource>[0]
  * flow; this keeps what its one-shot mode does not: the button's state, and the failure dialog
  * Mapbox never shows (#321).
  *
- * While the map is mounted its control is the locator's source (`hooks/use-locator.ts`), so the
+ * While the map is mounted its control is the locator's source (`hooks/use-locator.tsx`), so the
  * filters' Near me asks through it too, and draws the same blue dot.
  *
  * @param onLocated what a fix does — `useGeolocateToSearch`, which opens the results around it.
  */
 export function useLocate(onLocated: (position: GeolocationPosition) => void) {
+  const locator = useLocator()
   const geolocateRef = useRef<GeolocateControl>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const waiting = useLocating()
-  const [last, setLast] = useState<'idle' | 'found' | 'failed'>('idle')
+  const [state, setState] = useState<LocateState>('idle')
   const [failed, setFailed] = useState(false)
-  // The request Mapbox is answering now, if any.
-  const answer = useRef<Answer | null>(null)
-  const latest = useRef(onLocated)
-
-  latest.current = onLocated
+  // The request Mapbox is answering now, from either control.
+  const answer = useRef<PositionAnswer | null>(null)
+  // Mirrors 'waiting' for `locate`, which stays stable for the memoised controls.
+  const waiting = useRef(false)
 
   useEffect(() => {
     const source: PositionSource = (next) => {
       const control = geolocateRef.current
 
-      if (!control) return devicePosition(next)
+      if (!control) return next.reject()
 
       answer.current = next
 
@@ -59,17 +55,24 @@ export function useLocate(onLocated: (position: GeolocationPosition) => void) {
       ask()
     }
 
-    useLocator.setState({ source })
+    locator.setSource(source)
 
     return () => {
-      if (useLocator.getState().source === source) useLocator.setState({ source: null })
+      locator.setSource(null)
+      // Mapbox answers nothing once its control has left the map.
+      answer.current?.reject()
+      answer.current = null
     }
-  }, [])
+  }, [locator])
 
-  const onError = useCallback(() => {
-    answer.current?.reject()
-    answer.current = null
-  }, [])
+  const found = useCallback(
+    (position: GeolocationPosition) => {
+      setState('found')
+      setFailed(false)
+      onLocated(position)
+    },
+    [onLocated],
+  )
 
   const onGeolocate = (position: GeolocationPosition) => {
     const pending = answer.current
@@ -79,29 +82,32 @@ export function useLocate(onLocated: (position: GeolocationPosition) => void) {
 
     // An answer that arrives after a reported failure wins: the map and list are right, and an
     // error on top of them would be false.
-    setLast('found')
-    setFailed(false)
-    latest.current(position)
+    found(position)
+  }
+
+  const onError = () => {
+    answer.current?.reject()
+    answer.current = null
   }
 
   const locate = useCallback(() => {
-    // A second tap while a request is out would navigate a second time.
-    if (useLocator.getState().waiting) return
+    // A second tap while this button's request is out would navigate a second time.
+    if (waiting.current) return
 
-    requestPosition().then(
+    waiting.current = true
+    setState('waiting')
+    locator.request().then(
       (position) => {
-        setLast('found')
-        setFailed(false)
-        latest.current(position)
+        waiting.current = false
+        found(position)
       },
       () => {
-        setLast('failed')
+        waiting.current = false
+        setState('failed')
         setFailed(true)
       },
     )
-  }, [])
-
-  const state: LocateState = waiting ? 'waiting' : last
+  }, [locator, found])
 
   return { geolocateRef, buttonRef, state, locate, onError, onGeolocate, failed, setFailed }
 }

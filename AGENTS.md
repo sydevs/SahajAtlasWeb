@@ -70,7 +70,7 @@ the map requests — each one lands in that guide's CSP table.
 enumerate them.** Permissions Policy can silently deny a capability like `geolocation`
 to a cross-origin frame, and a host can deny it to a script embed with a header.
 Grepping `src/` for `navigator.geolocation` finds only the locator's map-less fallback
-(`use-locator.ts`): the map's "find my location" makes the same call inside mapbox-gl, where
+(`use-locator.tsx`): the map's "find my location" makes the same call inside mapbox-gl, where
 only `<GeolocateControl />` is ours. Enumerate capabilities from the rendered control
 list and the libraries behind it, never from a grep. `docs/embedding.md`'s
 Permissions Policy table holds the specifics.

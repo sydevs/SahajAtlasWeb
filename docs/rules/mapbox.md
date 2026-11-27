@@ -323,7 +323,7 @@ the app declines to suggest cannot widen the camera either.
 
 `<GeolocateControl />` is our JSX, but `navigator.geolocation` runs **inside
 mapbox-gl**, so grepping `src/` for it finds only the locator's map-less fallback
-(`use-locator.ts`, which Near me reaches in a map-less embed) and misses the map's own request. The widget is embedded on pages we do not own, and
+(`use-locator.tsx`, which Near me reaches in a map-less embed) and misses the map's own request. The widget is embedded on pages we do not own, and
 Permissions Policy can deny `geolocation`, `clipboard-write`, or `web-share` to
 a cross-origin frame by default (a host can also deny a script embed the same
 way with a header) — all three fail **silently**: "Find my location" does
@@ -380,8 +380,10 @@ lays out its own children:
 - **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
   `showButton={false}`, and our button calls its `trigger()` through `useLocate`; the blue dot, the permission flow
   and the `onError` dialog are unchanged. While the map is mounted, `useLocate` registers that
-  control as the one locator's source (`hooks/use-locator.ts`), so the filters' Near me asks
-  through it too and draws the same dot; one request is out at a time, and a second ask shares it. A permission denied before the map loaded used to
+  control as the locator's source (`hooks/use-locator.tsx`, one per `FullInterface`), so the
+  filters' Near me asks through it too and draws the same dot. One request is out at a time, a
+  second ask shares it, and each control acts only on its own. ⚠ Mapbox answers nothing once its
+  control has left the map, so unmounting rejects the request it was answering. A permission denied before the map loaded used to
   leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
   dialog too.
 - **The credits are Mapbox's own compact `AttributionControl`, in Mapbox's own look**, created
