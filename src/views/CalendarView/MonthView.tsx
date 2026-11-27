@@ -4,7 +4,7 @@ import { type KeyboardEvent, type ReactNode, type Ref, useMemo, useRef } from 'r
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 
-import { DayClasses } from './EntryList'
+import { DayClasses } from './DayClasses'
 
 import { Chip } from '@/components/atoms/Chip'
 import { Link } from '@/components/atoms/Link'
