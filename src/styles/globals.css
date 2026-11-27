@@ -670,6 +670,8 @@ html.sy-atlas {
   @apply border-b border-divider;
   margin: 0;
   padding: 8px 0 !important;
+  /* Our rows fill in after Schedule-X paints them, and would flash collapsed without it. */
+  min-height: 60px;
   border-radius: 0;
   cursor: pointer;
 }

@@ -242,6 +242,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 // `useCalendarPosition`.
 export function CalendarView() {
   const filters = useEventFilters()
+  const { locale } = useLocale()
   // Shared with the grid (which registers + binds it) and the header (which drives it). Stable
   // across filter-apply remounts — the grid re-binds the same plugin to each new instance.
   const controls = useMemo(() => createCalendarControlsPlugin(), [])
@@ -264,7 +265,11 @@ export function CalendarView() {
             under CalendarControls while the grid loaded. Pairs with `DrawerErrorBody` on
             the boundary, for the same reason. */}
         <Suspense fallback={<DrawerLoadingBody />}>
-          <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
+          <CalendarGrid
+            key={`${filtersKey(filters)}|${locale}`}
+            controls={controls}
+            filters={filters}
+          />
         </Suspense>
       </ResetErrorBoundary>
     </>
@@ -367,20 +372,25 @@ function CalendarGrid({
   // says. Schedule-X draws that list, so the words reach it as custom properties (globals.css),
   // and a screen reader hears them from the live line below as the day changes.
   const focused = useFocusedDate()
-  const isAgenda =
-    resolveCalendarView(
-      useCalendarPosition((s) => s.view),
-      isWide,
-    ).view === CALENDAR_VIEW_MONTH_AGENDA
-  const day = dayHeadingParts(DateTime.fromISO(focused), {
-    count: events.filter((entry) => entry.start.startsWith(focused)).length,
-    locale: formatLocale,
-    t,
-  })
-  const dayStyle = {
-    '--sy-agenda-day': JSON.stringify(day.heading),
-    '--sy-agenda-day-note': day.note ? JSON.stringify(day.note) : 'none',
-  } as CSSProperties
+  const storedView = useCalendarPosition((s) => s.view)
+  const isAgenda = resolveCalendarView(storedView, isWide).view === CALENDAR_VIEW_MONTH_AGENDA
+  // Counted as Schedule-X lists them: a class past midnight shows on both its days. Only the
+  // agenda reads it, and a custom property set on the root restyles the whole grid beneath.
+  const day = isAgenda
+    ? dayHeadingParts(DateTime.fromISO(focused), {
+        count: events.filter(
+          (entry) => entry.start <= `${focused} 24` && entry.end > `${focused} 00:00`,
+        ).length,
+        locale: formatLocale,
+        t,
+      })
+    : null
+  const dayStyle = day
+    ? ({
+        '--sy-agenda-day': JSON.stringify(day.heading),
+        '--sy-agenda-day-note': day.note ? JSON.stringify(day.note) : 'none',
+      } as CSSProperties)
+    : undefined
 
   // Says whose clock the grid is in: an in-person class reads in its own zone and an online one
   // in the viewer's (`eventTimeZone`), so a London visitor's 1:00 AM Toronto class looks like a
@@ -397,7 +407,7 @@ function CalendarGrid({
         </p>
       )}
       <DrawerBody className="max-w-none overflow-hidden px-gutter py-4">
-        {isAgenda && (
+        {day && (
           <p aria-live="polite" className="sr-only">
             {[day.heading, day.note].filter(Boolean).join(', ')}
           </p>
