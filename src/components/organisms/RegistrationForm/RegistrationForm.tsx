@@ -8,15 +8,17 @@ import {
   type FieldErrors,
   type UseFormRegister,
   type UseFormRegisterReturn,
+  type UseFormTrigger,
   Controller,
   useForm,
 } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
-import { MailCheck } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { Button } from '@/components/atoms/Button'
 import { Alert } from '@/components/atoms/Alert'
@@ -36,7 +38,7 @@ import {
 } from '@/config/api/mutate'
 import livePreview from '@/config/live-preview/protocol'
 import { classifyError } from '@/lib/report'
-import { formatDate, formatRelativeDate } from '@/lib/time'
+import { formatDate, formatLongDate, formatRelativeDate } from '@/lib/time'
 import { splitInlineLink } from '@/lib/shape'
 import { useRegistrationDraft } from '@/config/store'
 import {
@@ -219,9 +221,14 @@ export type RegistrationFormProps = {
    *  starting-date labels read in the class's own cadence ("Next week" and
    *  "Next month," for example). */
   recurrenceType?: RecurrenceType | null
-  /** This is an optional close callback. The footer also closes the
-   *  enclosing Modal via ModalClose. */
-  onClose?: () => void
+  /** Called once the registration is accepted, so the view can retitle its header. */
+  onSubmitted?: () => void
+  /**
+   * Where the Register bar renders: the drawer footer the view keeps beside its body, so the
+   * button stays on screen while the fields scroll. `null` while that footer has not mounted
+   * yet, which renders no bar. Absent, the bar ends the form itself.
+   */
+  registerSlot?: HTMLElement | null
   /** Start in the post-submit confirmation state — for previewing that screen in a
    *  story without a real submission. Defaults to false (the live form). */
   initialSubmitted?: boolean
@@ -236,9 +243,9 @@ export type RegistrationFormProps = {
 /**
  * This is the event registration form: generic and config-driven, with no
  * Event coupling. It owns the form state, the createRegistration mutation,
- * and the thank-you, error, and online-notice states. It renders as plain
+ * and the confirmation, error, and online-notice states. It renders as plain
  * content in the RegistrationView drawer body — the drawer supplies the
- * chrome. `onClose` returns to the event.
+ * chrome, and the footer the Register bar renders into.
  *
  * The drawer unmounts its content on close, so this remounts fresh on each
  * reopen. It needs no manual reset-on-close.
@@ -253,13 +260,17 @@ export function RegistrationForm({
   eventTitle,
   eventUrl,
   calendar,
-  onClose,
+  onSubmitted,
+  registerSlot,
   initialSubmitted = false,
   initialRefusal,
 }: RegistrationFormProps) {
   const [submitted, setSubmitted] = useState(initialSubmitted)
   const { t } = useTranslation()
+  const { formatLocale } = useLocale()
   const queryClient = useQueryClient()
+  // The Register bar can render outside the form, in the drawer footer, so it names its form.
+  const formId = useId()
   // The viewer's region orders the share targets on the thank-you screen (resolved
   // here so ShareContent stays a pure, prop-driven molecule).
   const country = useViewerCountry()
@@ -282,6 +293,7 @@ export function RegistrationForm({
     control,
     handleSubmit,
     setError,
+    trigger,
     watch,
     formState: { errors },
     // The three generics are what keep the coercion honest: the fields hold the INPUT shape
@@ -309,6 +321,18 @@ export function RegistrationForm({
     reset: resetChallenge,
     retry: retryChallenge,
   } = useTurnstile()
+  // The frame says when the check has passed, never that it wants a tick. A wait this long is
+  // taken to mean the visitor may have something to do, and the line under Register says so.
+  const [checkIsSlow, setCheckIsSlow] = useState(false)
+
+  useEffect(() => {
+    setCheckIsSlow(false)
+    if (token) return
+
+    const timer = window.setTimeout(() => setCheckIsSlow(true), CHECK_PATIENCE_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [token])
 
   // A refusal the visitor can fix in one field lands ON that field, the way a
   // schema error does: the sentence under it, `aria-invalid`, and focus moved
@@ -322,7 +346,10 @@ export function RegistrationForm({
 
   useEffect(() => {
     if (initialRefusal) flagRefusal(initialRefusal, false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: the story's refusal never changes
+    // A remount restores what was typed, so a mistyped address comes back flagged on its box, as
+    // leaving the field had flagged it.
+    if (defaultValues.email) void trigger('email')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: the story's refusal and the restored draft never change
   }, [])
 
   const mutation = useMutation({
@@ -332,6 +359,7 @@ export function RegistrationForm({
     },
     onSuccess: () => {
       setSubmitted(true)
+      onSubmitted?.()
       useRegistrationDraft.getState().clearDraft()
     },
     onError: (error) => {
@@ -361,6 +389,16 @@ export function RegistrationForm({
     },
   })
 
+  // The form gives way to a much shorter screen. Moving focus to its first line brings it into
+  // view from wherever Register was, and tells a screen reader what happened.
+  const confirmationRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (submitted && !initialSubmitted) confirmationRef.current?.focus()
+  }, [submitted, initialSubmitted])
+
+  const registered = mutation.variables?.registration
+
   // A refused registration renders OUR copy for the reason, never the
   // endpoint's English prose, and never the thrown message, which is
   // developer text. Anything else — offline, a 5xx, a code this build does
@@ -372,9 +410,52 @@ export function RegistrationForm({
   // A field refusal is already said, and announced, on its field.
   const showAlert = refusal != null && !refusedField(refusal, questions)
 
+  const onlineNotice = isOnline && (
+    <Alert
+      color="primary"
+      description={t('registration.form.online_notice')}
+      icon={false}
+      title={t('registration.form.online_notice_title')}
+      variant="bordered"
+    />
+  )
+
+  // No token means no registration the server would accept, so Register stays disabled until
+  // the challenge is solved — including while it is blocked and the alert offers a retry. The
+  // line under it keeps its height when empty, so Register does not move as it turns on.
+  const registerBar = (
+    <div className="flex flex-col gap-1.5">
+      <Button
+        className="w-full font-semibold"
+        color="primary"
+        disabled={isPreview || !token}
+        form={formId}
+        isLoading={mutation.isPending}
+        size="lg"
+        type="submit"
+        variant="solid"
+      >
+        {t('registration.form.submit')}
+      </Button>
+      <p aria-live="polite" className="min-h-5 text-center text-xs text-gray-11">
+        {isPreview || token
+          ? ''
+          : t(
+              challengeStatus === 'blocked'
+                ? 'registration.form.register_when_check_loads'
+                : checkIsSlow
+                  ? 'registration.form.security_check'
+                  : 'registration.form.checking',
+            )}
+      </p>
+    </div>
+  )
+
   return (
     <form
-      className="mx-auto flex w-full max-w-md flex-col gap-3"
+      noValidate
+      className="mx-auto flex w-full max-w-md flex-col gap-4"
+      id={formId}
       onSubmit={handleSubmit((data) => {
         // `token` is also what gates the submit button, so this check is an
         // extra safeguard for the Enter-key path. It is also what makes
@@ -384,26 +465,49 @@ export function RegistrationForm({
       })}
     >
       {submitted ? (
-        <div className="flex flex-col gap-3">
-          {/* One notice, right under the event summary: what arrives by email, and for an
-              online class, that the join link is part of it. */}
-          <Alert
-            color="primary"
-            description={isOnline ? t('registration.form.online_notice') : undefined}
-            icon={<MailCheck size={20} />}
-            title={t('registration.form.followup')}
-          />
+        <div className="flex flex-col gap-5">
+          <div
+            ref={confirmationRef}
+            className="flex scroll-mt-4 items-start gap-3 outline-none"
+            role="status"
+            tabIndex={-1}
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-9 text-primary-foreground">
+              <Check aria-hidden size={16} strokeWidth={3} />
+            </span>
+            <div className="flex flex-col gap-0.5 text-base">
+              {registered && (
+                <p className="font-medium">
+                  {t('registration.form.see_you', {
+                    date: formatLongDate(
+                      inClassZone(registered.startingAt, timeZone),
+                      formatLocale,
+                    ),
+                  })}
+                </p>
+              )}
+              <p className="text-gray-11">
+                {registered
+                  ? t('registration.form.confirm_email', { email: registered.email })
+                  : t('registration.form.followup')}
+              </p>
+            </div>
+          </div>
 
-          {/* This shows the heading and block together, or neither. "Invite a
-              friend" over nothing to press is a worse confirmation screen
-              than one that simply does not offer it. */}
+          {onlineNotice}
+
+          {/* `calendar` is optional, so the form stays generic: it takes export
+              primitives from RegistrationView, never an Event (issue #105). It anchors on
+              the session actually submitted, or on the next occurrence when the
+              confirmation is previewed rather than earned. */}
+          {calendar && <AddToCalendar event={{ ...calendar, from: registered?.startingAt }} />}
+
+          {/* No link, no section. "Invite a friend" over nothing to press is a worse
+              confirmation screen than one that simply does not offer it. */}
           {eventUrl && (
-            <>
-              <div className="mt-2 text-center font-semibold">
-                {t('registration.form.invite_friend')}
-              </div>
+            <InviteFriend>
               <ShareContent country={country} label={eventTitle} url={eventUrl} />
-            </>
+            </InviteFriend>
           )}
         </div>
       ) : (
@@ -415,21 +519,20 @@ export function RegistrationForm({
             recurrenceType={recurrenceType}
             register={register}
             timeZone={timeZone}
+            trigger={trigger}
             upcomingDates={upcomingDates}
           />
 
-          {/* This is the challenge itself. It renders under the fields and
-              above the error, so the one thing that can silently hold the
-              submit button disabled stays visible immediately above it,
-              rather than down in the footer. Until Cloudflare wants a click it takes no room
-              at all (`useTurnstile`). */}
+          {/* This is the challenge itself. It renders under the fields, so the one thing
+              that can hold Register disabled sits where the visitor is looking. Until
+              Cloudflare wants a click it takes no room at all (`useTurnstile`). */}
           <div
             ref={challengeRef}
             className={challengeStatus === 'blocked' ? 'hidden' : undefined}
           />
 
           {challengeStatus === 'blocked' && !isPreview && (
-            <div className="mt-4 flex flex-col items-start gap-3">
+            <div className="flex flex-col items-start gap-3">
               <Alert
                 className="w-full"
                 color="secondary"
@@ -447,64 +550,42 @@ export function RegistrationForm({
               endpoint's English message, and without the error colour. */}
           {showAlert && (
             <Alert
-              className="mt-4"
               color={refusalMessage ? 'secondary' : 'danger'}
               description={failureDescription && t(failureDescription)}
               role="alert"
               title={t(refusalMessage ?? 'registration.form.error_title')}
             />
           )}
+
+          {onlineNotice}
+
+          {registerSlot === undefined
+            ? registerBar
+            : registerSlot && createPortal(registerBar, registerSlot)}
         </>
       )}
-
-      {isOnline && !submitted && (
-        <Alert
-          className="mt-3"
-          color="primary"
-          description={t('registration.form.online_notice')}
-          icon={false}
-          title={t('registration.form.online_notice_title')}
-          variant="bordered"
-        />
-      )}
-
-      <div className="mt-2 flex justify-end gap-2">
-        {submitted ? (
-          <>
-            {/* `calendar` is optional, so the form stays generic: it takes export
-                primitives from RegistrationView, never an Event (issue #105). It anchors on
-                the session actually submitted — `mutation.variables` holds it — or on the
-                next occurrence when the confirmation is previewed rather than earned. */}
-            {calendar && (
-              <AddToCalendar
-                event={{ ...calendar, from: mutation.variables?.registration.startingAt }}
-              />
-            )}
-            <Button className="ms-auto" color="neutral" variant="flat" onClick={onClose}>
-              {t('registration.form.okay')}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button disabled={mutation.isPending} variant="flat" onClick={onClose}>
-              {t('common.chrome.cancel')}
-            </Button>
-            {/* No token means no registration the server would accept. So the
-                button stays disabled until the challenge is solved — the
-                same contract the report form has always had. */}
-            <Button
-              color="primary"
-              disabled={isPreview || !token}
-              isLoading={mutation.isPending}
-              type="submit"
-              variant="flat"
-            >
-              {t('registration.form.submit')}
-            </Button>
-          </>
-        )}
-      </div>
     </form>
+  )
+}
+
+/** How long the check may stay unsolved before the line under Register asks for the tick. */
+const CHECK_PATIENCE_MS = 4000
+
+/** The confirmation's way to pass the class on: the same share block as the class's Share panel. */
+function InviteFriend({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
+  const headingId = useId()
+
+  return (
+    <section
+      aria-labelledby={headingId}
+      className="flex flex-col gap-3 border-t border-divider pt-4"
+    >
+      <h3 className="text-base font-medium" id={headingId}>
+        {t('registration.form.invite_friend')}
+      </h3>
+      {children}
+    </section>
   )
 }
 
@@ -561,15 +642,17 @@ function LabeledTextarea({
   label,
   maxLength,
   error,
+  optional,
   registration,
 }: {
   label: ReactNode
   maxLength?: number
   error?: ReactNode
+  optional?: string
   registration: UseFormRegisterReturn
 }) {
   return (
-    <FormField error={error} htmlFor={registration.name} label={label}>
+    <FormField error={error} htmlFor={registration.name} label={label} optional={optional}>
       {(control) => <Textarea {...control} maxLength={maxLength} rows={3} {...registration} />}
     </FormField>
   )
@@ -581,6 +664,7 @@ type RegistrationFieldsProps = {
   recurrenceType?: RecurrenceType | null
   questions: RegistrationQuestionName[]
   register: UseFormRegister<RegistrationInput>
+  trigger: UseFormTrigger<RegistrationInput>
   control: Control<RegistrationInput, unknown, Registration>
   errors: FieldErrors<RegistrationInput>
 }
@@ -591,6 +675,7 @@ function RegistrationFields({
   recurrenceType,
   questions,
   register,
+  trigger,
   control,
   errors,
 }: RegistrationFieldsProps) {
@@ -601,6 +686,11 @@ function RegistrationFields({
     () => dateOptions(upcomingDates, recurrenceType, timeZone, formatLocale),
     [upcomingDates, recurrenceType, timeZone, formatLocale],
   )
+
+  // The form validates on submit, so an empty box waits for Register. A mistyped address is
+  // flagged as soon as the visitor leaves it, and once flagged, each edit re-checks it.
+  const email = register('email', { required: true })
+  const emailFlagged = Boolean(errors.email)
 
   return (
     <div className="flex flex-col gap-4">
@@ -616,11 +706,11 @@ function RegistrationFields({
             required
             error={errors.startingAt && t('registration.errors.starting_at')}
             htmlFor={field.name}
-            label={t('registration.form.starting_date')}
+            label={t('registration.form.first_class')}
           >
             {/* `field.ref` is what makes a failed submit MOVE (issue #102): react-hook-form
-                focuses the first invalid field, but only one it holds a ref for. This is the
-                first field, so without it a submit with no date moves focus nowhere. */}
+                focuses the first invalid field, but only one it holds a ref for. A dropdown,
+                so choosing a date never pushes the fields below it down. */}
             {(wiring) => (
               <Select
                 {...wiring}
@@ -657,7 +747,17 @@ function RegistrationFields({
         autoComplete="email"
         error={errorCopy(errors.email, t, 'registration.errors.email')}
         label={t('registration.form.email')}
-        registration={register('email', { required: true })}
+        registration={{
+          ...email,
+          onBlur: async (event) => {
+            await email.onBlur(event)
+            if ((event.target as HTMLInputElement).value) void trigger('email')
+          },
+          onChange: async (event) => {
+            await email.onChange(event)
+            if (emailFlagged) void trigger('email')
+          },
+        }}
         type="email"
       />
 
@@ -667,6 +767,7 @@ function RegistrationFields({
           error={errorCopy(errors.questions?.[question], t)}
           label={t(`registration.questions.${question}`)}
           maxLength={USER_SUBMISSION_VALUE_MAX}
+          optional={t('common.chrome.optional')}
           registration={register(`questions.${question}`)}
         />
       ))}
@@ -688,6 +789,10 @@ const RELATIVE_UNIT: Record<RecurrenceType, 'days' | 'weeks' | 'months'> = {
   MONTHLY: 'months',
 }
 
+/** A session in the zone its options are written in: the class's own, or the viewer's. */
+const inClassZone = (date: Date, timeZone: string | undefined) =>
+  DateTime.fromJSDate(date).setZone(timeZone ?? 'local')
+
 function dateOptions(
   dates: Date[],
   recurrenceType: RecurrenceType | null | undefined,
@@ -697,11 +802,11 @@ function dateOptions(
   const unit = recurrenceType ? RELATIVE_UNIT[recurrenceType] : undefined
 
   return dates.map((date) => {
-    const dateTime = DateTime.fromJSDate(date).setZone(timeZone ?? 'local')
+    const at = inClassZone(date, timeZone)
 
     return {
       value: date.toISOString(),
-      label: `${formatRelativeDate(dateTime, formatLocale, unit)} - ${formatDate(dateTime, formatLocale)}`,
+      label: `${formatDate(at, formatLocale)} · ${formatRelativeDate(at, formatLocale, unit)}`,
     }
   })
 }

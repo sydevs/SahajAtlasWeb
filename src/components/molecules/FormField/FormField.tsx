@@ -52,6 +52,12 @@ export type FormFieldProps = FieldTarget & {
   label: ReactNode
   /** Appends the required marker to the label. The caller still marks the control. */
   required?: boolean
+  /**
+   * The word that marks the field as one that may be left empty — "optional", already
+   * translated — shown in brackets after the label. Copy stays a prop, so the field takes the
+   * word rather than reading it.
+   */
+  optional?: string
   /** Supporting copy under the control. The error replaces it while one is showing. */
   help?: ReactNode
   error?: ReactNode
@@ -101,6 +107,7 @@ export type FormFieldProps = FieldTarget & {
 export function FormField({
   label,
   required,
+  optional,
   help,
   error,
   htmlFor,
@@ -127,6 +134,7 @@ export function FormField({
     <>
       {label}
       {required && ' *'}
+      {optional && <span className="font-normal text-gray-11"> ({optional})</span>}
     </>
   )
   const Root = group ? 'fieldset' : 'div'

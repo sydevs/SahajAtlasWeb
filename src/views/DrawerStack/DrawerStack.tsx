@@ -63,6 +63,7 @@ import {
   FIT_SNAP,
   heldFoldPx,
   OPEN_SNAP,
+  opensTall,
   PEEK_SNAP,
   resolveStop,
   sheetLadder,
@@ -496,19 +497,17 @@ export function DrawerStack() {
     }
   }, [canCollapse])
 
-  // The calendar opens at the near-full snap on mobile — its month grid AND its list
-  // both need the height — while every other view keeps the third-height open snap.
-  // Keyed on the view KIND (not `wide`), so switching the calendar between
-  // month/week/list keeps it tall, rather than collapsing the list to the short snap.
-  // This runs only when navigating to or from the calendar, so it never fights a
-  // manual drag on a non-calendar view.
+  // A few views open at the near-full snap on mobile (`opensTall`), the views that fit their
+  // content open as tall as it, and every other view keeps the third-height open snap. Keyed on
+  // the view KIND (not `wide`), so switching the calendar between month/week/list keeps it tall.
+  // This runs only when the top view changes, so it never fights a manual drag within one.
   useEffect(() => {
     if (direction !== 'bottom') return
 
     const landTall = resultsTall.current
 
     resultsTall.current = false
-    setSnap(top?.kind === 'calendar' || landTall ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
+    setSnap(opensTall(top?.kind) || landTall ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
   }, [direction, fitsContent, top?.kind, openedClass])
 
   // A new searched place lifts the sheet out of its peek, so results are never

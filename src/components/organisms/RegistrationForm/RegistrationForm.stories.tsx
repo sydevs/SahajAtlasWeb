@@ -1,6 +1,8 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { EventSchedule } from '@/types'
 
+import { useState } from 'react'
+
 // This is not in the organisms barrel — it is reached only via the
 // RegistrationView drawer. Import from the co-located file instead.
 import { StoryWrapper, StorySection } from '../../ladle'
@@ -8,10 +10,37 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { RegistrationForm } from './RegistrationForm'
 
 import { RegistrationRefusedError } from '@/config/api/mutate'
+import { useRegistrationDraft } from '@/config/store'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
-const upcomingDates = [new Date('2026-08-01T18:00:00Z'), new Date('2026-08-08T18:00:00Z')]
+// A week out and two weeks out, so the date options read "Next week" and "In 2 weeks" whenever
+// the playground is opened.
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+const upcomingDates = [new Date(Date.now() + WEEK_MS), new Date(Date.now() + 2 * WEEK_MS)]
+
+const MISTYPED_ID = 9
+
+/** A form restored from a draft holding `anna@gmail`, as a drawer remount restores one. */
+function MistypedEmail() {
+  // Seeded before the form's first render, which reads the draft once.
+  useState(() =>
+    useRegistrationDraft
+      .getState()
+      .setDraft(MISTYPED_ID, { name: 'Anna Novak', email: 'anna@gmail' }),
+  )
+
+  return (
+    <RegistrationForm
+      eventId={MISTYPED_ID}
+      eventTitle="Mistyped email demo"
+      isOnline={false}
+      questions={[]}
+      recurrenceType="WEEKLY"
+      upcomingDates={upcomingDates}
+    />
+  )
+}
 
 // This is a real weekly recurrence, so the Confirmation story's calendar
 // links carry an actual RRULE and TZID, rather than a degenerate one-off.
@@ -34,7 +63,7 @@ const weeklySchedule: EventSchedule = {
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The native form as it renders in the drawer body: date, name and email fields above the privacy note, with the Turnstile challenge between them and the buttons. Register stays disabled until the challenge is solved."
+      description="The native form as it renders in the drawer body: the first class as a dropdown on the next date, name and email, the privacy note, and one full-width Register. In the drawer, Register renders in the footer and stays on screen; here it ends the form. It stays disabled until the security check passes, with the line under it saying why."
       title="Native"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">
@@ -44,6 +73,7 @@ export const Default: Story = () => (
           eventUrl="https://atlas.example/e/1"
           isOnline={false}
           questions={[]}
+          recurrenceType="WEEKLY"
           upcomingDates={upcomingDates}
         />
       </div>
@@ -95,6 +125,15 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
+      description="An address without its ending is flagged on its own box as soon as the visitor leaves it, before Register. This one is restored from a draft, the way a drawer remount restores one, and comes back flagged. An empty box waits for Register."
+      title="Mistyped email"
+    >
+      <div className="max-w-md rounded-lg border border-divider p-4">
+        <MistypedEmail />
+      </div>
+    </StorySection>
+
+    <StorySection
       description="SahajCloud refused the address (`disposable_email`, naming `senderEmail`). A refusal the visitor can fix lands on the field it names, in the same words the report-an-issue form uses (#259). Live, editing the field clears it; here nothing has been submitted, so react-hook-form does not re-validate on change and the error stays."
       title="Refused · on a field"
     >
@@ -112,7 +151,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="A refusal about the request rather than an input (`captcha_failed`) gets its own sentence above the buttons, never the generic title or the server's English message."
+      description="A refusal about the request rather than an input (`captcha_failed`) gets its own sentence above Register, never the generic title or the server's English message."
       title="Refused · the request"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">
@@ -129,7 +168,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="The post-submit confirmation. Two blocks under the thank-you line: add-to-calendar (Apple downloads an .ics; the other four are link-outs) and the share block. The calendar block only renders when the view passes export inputs — RegistrationView builds them from the FULL event doc, since the trimmed feed omits exclusions and untilDate."
+      description="The post-submit confirmation. Live, its first line names the date chosen in the visitor's format and the next the email address; previewed without a submission, it says the confirmation was sent. Under it, the Add to calendar menu (only when the view passes export inputs, built from the FULL event doc) and Invite a friend along, open, with the share block: Share and Copy link, no QR code."
       title="Confirmation"
     >
       <div className="max-w-md rounded-lg border border-divider p-4">

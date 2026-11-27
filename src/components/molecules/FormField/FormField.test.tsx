@@ -194,3 +194,27 @@ describe('the optional Clear', () => {
     expect(field({ active: true })).not.toMatch(/\binvisible\b/)
   })
 })
+
+describe('FormField optional marker', () => {
+  it('puts the given word in brackets inside the label, after its text', () => {
+    const html = renderToStaticMarkup(
+      <FormField htmlFor="question" label="Your question" optional="optional">
+        <textarea id="question" />
+      </FormField>,
+    )
+
+    expect(html).toMatch(
+      /<label[^>]*for="question"[^>]*>Your question<span[^>]*> \(optional\)<\/span><\/label>/,
+    )
+  })
+
+  it('marks nothing without the word', () => {
+    const html = renderToStaticMarkup(
+      <FormField htmlFor="question" label="Your question">
+        <textarea id="question" />
+      </FormField>,
+    )
+
+    expect(html).not.toContain('(')
+  })
+})

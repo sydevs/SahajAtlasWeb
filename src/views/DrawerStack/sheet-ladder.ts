@@ -1,3 +1,4 @@
+import type { StackEntry } from '@/lib/shape'
 import type { SheetFit } from '@/views/DrawerStack/use-fit-snap'
 
 import { SHEET_OPEN_PX, SHEET_PEEK_PX, WIDE_SNAP, capStop } from '@/config/responsive'
@@ -14,6 +15,15 @@ export const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
 // Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
 // state holds this token and the ladder carries the live number (`useFitSnap`).
 export const FIT_SNAP = 'fit'
+
+/**
+ * The views a bottom sheet opens at its near-full snap: the calendar, whose month grid and list
+ * both need the height, and the sign-up form, whose fields and Register must show without a drag.
+ */
+const OPENS_TALL: ReadonlySet<StackEntry['kind']> = new Set(['calendar', 'register'])
+
+export const opensTall = (kind: StackEntry['kind'] | undefined): boolean =>
+  kind !== undefined && OPENS_TALL.has(kind)
 
 type Stop = number | string | null
 

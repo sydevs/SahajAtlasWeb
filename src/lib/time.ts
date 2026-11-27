@@ -116,6 +116,15 @@ export function formatDate(
   })
 }
 
+/** A date in full words: "Tuesday 17 November" in the UK, "Tuesday, November 17" in the US. */
+export const formatLongDate = (at: DateTime, locale: string): string =>
+  at.setLocale(locale).toLocaleString({
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: at.year === DateTime.now().setZone(at.zone).year ? undefined : 'numeric',
+  })
+
 /** A weekday's name: "Wednesday", or "Wed" when `short`. */
 export const formatWeekday = (
   at: DateTime,

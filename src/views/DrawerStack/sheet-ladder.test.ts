@@ -5,6 +5,7 @@ import {
   FIT_SNAP,
   heldFoldPx,
   OPEN_SNAP,
+  opensTall,
   PEEK_SNAP,
   resolveStop,
   sheetLadder,
@@ -152,5 +153,15 @@ describe('resolveStop', () => {
     expect(resolveStop(sheetLadder({ classView: false, fit: null, fold: null }), '440px')).toBe(
       OPEN_SNAP,
     )
+  })
+})
+
+describe('opensTall', () => {
+  it('opens the calendar and the sign-up form at the near-full snap, and nothing else', () => {
+    expect(opensTall('calendar')).toBe(true)
+    expect(opensTall('register')).toBe(true)
+    expect(opensTall('event')).toBe(false)
+    expect(opensTall('share')).toBe(false)
+    expect(opensTall(undefined)).toBe(false)
   })
 })
