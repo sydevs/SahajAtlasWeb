@@ -16,8 +16,9 @@ import { tv } from '@/styles/tv'
 // The loading panel: a few generic shapes, one set for every view that loads, shared by the boot
 // panel and the drawer's own loading state. Each is sized like what replaces it — a 56px place
 // row, a class card's title over two lines, the field's 38px box (46px on a touch screen) — so the
-// content lands where its placeholder stood. `tests/browser/skeleton.spec.ts` measures each
-// against the view it stands for.
+// content lands where its placeholder stood. `tests/browser/skeleton.spec.ts` measures the
+// list and class shapes against the views they stand for; the form, filters and calendar bodies
+// are sized from their views' classes and not yet measured.
 
 /**
  * Marks a loading placeholder. The phone sheet's fit (`useFitSnap`) holds its stop while one is in
@@ -93,22 +94,20 @@ export function SkeletonBlock({ className }: { className?: string }) {
  */
 export type SkeletonHeaderKind = 'home' | 'search' | 'titled' | 'titled-field' | 'class'
 
-/** What fills the panel: place rows, class cards, or a class page. */
-export type SkeletonBodyKind = 'places' | 'classes' | 'class'
+/**
+ * What fills the panel: place rows, class cards, a class page, the registration form, the filter
+ * questions, or the calendar's month grid.
+ */
+export type SkeletonBodyKind = 'places' | 'classes' | 'class' | 'form' | 'filters' | 'calendar'
 
 export type SkeletonShape = { header: SkeletonHeaderKind; body: SkeletonBodyKind }
 
 /**
- * The shape of the view a route opens, or `null` for a view not worth drawing ahead of — the
- * calendar and the forms, whose data is already on hand when they open, so only
- * their code is on its way and their own header over a spinner says so.
+ * The shape of the view a route opens, so it loads under the outline of what arrives.
  *
  * `level` is the place's, once the region tree has it.
  */
-export function skeletonShape(
-  entry: StackEntry | undefined,
-  level?: RegionLevel,
-): SkeletonShape | null {
+export function skeletonShape(entry: StackEntry | undefined, level?: RegionLevel): SkeletonShape {
   switch (entry?.kind) {
     case undefined:
       return { header: 'home', body: 'places' }
@@ -123,13 +122,19 @@ export function skeletonShape(
       return { header: 'titled', body: 'classes' }
     case 'event':
       return { header: 'class', body: 'class' }
-    default:
-      return null
+    case 'register':
+      return { header: 'titled', body: 'form' }
+    case 'filters':
+      return { header: 'titled', body: 'filters' }
+    case 'calendar':
+      return { header: 'titled', body: 'calendar' }
   }
 }
 
-const FIELD =
-  'flex h-[38px] min-w-0 flex-1 items-center gap-3 rounded-lg border border-divider bg-gray-2 ps-2 pointer-coarse:h-[46px]'
+// A field's drawn height, 46px on a touch screen (`field-height` in globals.css).
+const FIELD_HEIGHT = 'h-[38px] pointer-coarse:h-[46px]'
+
+const FIELD = `flex ${FIELD_HEIGHT} min-w-0 flex-1 items-center gap-3 rounded-lg border border-divider bg-gray-2 ps-2`
 
 /** The search field's box, greyed and holding bars, so it reads as on its way, not as a field. */
 export function SkeletonField() {
@@ -239,6 +244,81 @@ function ClassPage({ cta }: { cta: boolean }) {
   )
 }
 
+/** One question of a form: its label line over the control's box. */
+function Question({ children, width }: { children?: ReactNode; width: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <SkeletonLine className="text-sm" width={width} />
+      {children}
+    </div>
+  )
+}
+
+const CONTROL = `${FIELD_HEIGHT} w-full`
+
+/** The registration form below its title: the class's summary card, then a labelled field each. */
+function RegistrationPage() {
+  return (
+    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-gutter py-4">
+      <SkeletonBlock className="h-24 w-full" />
+      <Question width="w-24">
+        <SkeletonBlock className={CONTROL} />
+      </Question>
+      <Question width="w-32">
+        <SkeletonBlock className={CONTROL} />
+      </Question>
+      <Question width="w-20">
+        <SkeletonBlock className="h-24 w-full" />
+      </Question>
+    </div>
+  )
+}
+
+/** The filter questions in their order: where, format, days, then the times of day stacked. */
+function FilterPage() {
+  return (
+    <div className="flex flex-col gap-5 px-gutter py-4">
+      <Question width="w-16">
+        <SkeletonBlock className={CONTROL} />
+      </Question>
+      <Question width="w-24">
+        <div className="grid grid-cols-2 gap-2">
+          <SkeletonBlock className="h-11" />
+          <SkeletonBlock className="h-11" />
+        </div>
+      </Question>
+      <Question width="w-12">
+        <SkeletonBlock className="h-11 w-full" />
+      </Question>
+      <Question width="w-20">
+        <div className="flex flex-col gap-2">
+          <SkeletonBlock className="h-11 w-full" />
+          <SkeletonBlock className="h-11 w-full" />
+          <SkeletonBlock className="h-11 w-full" />
+        </div>
+      </Question>
+    </div>
+  )
+}
+
+/** The month grid below the calendar's header: a weekday row over five rows of days. */
+function CalendarPage() {
+  return (
+    <div className="flex flex-col gap-2 px-gutter py-2">
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 7 }, (_, day) => (
+          <SkeletonLine key={day} className="justify-center text-xs" width="w-6" />
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 35 }, (_, day) => (
+          <SkeletonBlock key={day} className="h-14" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /**
  * What fills a loading panel, marked loading so the phone sheet holds still until the content
  * arrives (`useFitSnap`), and announced once, in words.
@@ -252,20 +332,27 @@ export function SkeletonBody({ body, cta = true }: { body: SkeletonBodyKind; cta
   return (
     <div {...LOADING}>
       <p className="sr-only" role="status">
-        {t(body === 'class' ? 'common.a11y.loading' : 'common.a11y.finding_classes')}
+        {t(
+          body === 'places' || body === 'classes' || body === 'calendar'
+            ? 'common.a11y.finding_classes'
+            : 'common.a11y.loading',
+        )}
       </p>
       <SkeletonGroup>
         {body === 'places' && <PlaceRows />}
         {body === 'classes' && <ClassCards />}
         {body === 'class' && <ClassPage cta={cta} />}
+        {body === 'form' && <RegistrationPage />}
+        {body === 'filters' && <FilterPage />}
+        {body === 'calendar' && <CalendarPage />}
       </SkeletonGroup>
     </div>
   )
 }
 
 export interface SkeletonProps {
-  /** The view's shape (`skeletonShape`). With none, a titled header over an empty body. */
-  shape: SkeletonShape | null
+  /** The view's shape (`skeletonShape`). */
+  shape: SkeletonShape
   /** As on `SkeletonBody`. */
   cta?: boolean
   /** The drawer it stands in for: the side panel, or the phone sheet, whose header sits closer to its handle. */
@@ -278,7 +365,7 @@ export interface SkeletonProps {
  * keeps its real header and draws only `SkeletonBody`.
  */
 export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
-  const header = shape?.header ?? 'titled'
+  const { header } = shape
   const panel = drawer({ direction, mode: 'anchored' })
 
   return (
@@ -324,7 +411,7 @@ export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
         </div>
       )}
       <div className={panel.body({ className: LOADING_BODY_CLIP })} data-band="body">
-        {shape && <SkeletonBody body={shape.body} cta={cta} />}
+        <SkeletonBody body={shape.body} cta={cta} />
       </div>
     </>
   )

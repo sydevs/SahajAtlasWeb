@@ -45,7 +45,7 @@ export function LoadingFallback() {
   return (
     <div className={APP_SURFACE}>
       {/* Use `srLabel`, not `label`. Screen readers announce it, but it does not draw
-          on screen. `DrawerLoadingBody` makes the same choice. A visible "Loading…"
+          on screen. A visible "Loading…"
           text adds nothing the spinner has not already said. Its height would also
           push the spinner off centre. */}
       <Spinner color="secondary" srLabel={t('common.a11y.loading')} />

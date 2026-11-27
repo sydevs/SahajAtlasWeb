@@ -20,29 +20,25 @@ describe('skeletonShape', () => {
     ['/gb/south-east/london', { header: 'titled-field', body: 'classes' }],
     ['/gb/online', { header: 'titled', body: 'classes' }],
     ['/gb/south-east/london/1817', { header: 'class', body: 'class' }],
+    ['/calendar', { header: 'titled', body: 'calendar' }],
+    ['/filters', { header: 'titled', body: 'filters' }],
+    ['/gb/south-east/london/1817/register', { header: 'titled', body: 'form' }],
     // A retired share link opens its class.
     ['/gb/south-east/london/1817/share', { header: 'class', body: 'class' }],
   ])('%s loads as %o', (path, shape) => {
     expect(shapeAt(path)).toEqual(shape)
   })
 
-  it.each(['/calendar', '/gb/south-east/london/1817/register'])(
-    '%s has no shape: its data is on hand, so its own header over a spinner stands',
-    (path) => {
-      expect(shapeAt(path)).toBeNull()
-    },
-  )
-
   it('trusts the region tree over the route once it has the level', () => {
     const prague = resolveStack('/cz/prague').at(-1)
 
-    expect(skeletonShape(prague)?.body).toBe('places')
-    expect(skeletonShape(prague, 'city')?.body).toBe('classes')
+    expect(skeletonShape(prague).body).toBe('places')
+    expect(skeletonShape(prague, 'city').body).toBe('classes')
   })
 })
 
 describe('SkeletonBody', () => {
-  it.each(['places', 'classes', 'class'] as const)(
+  it.each(['places', 'classes', 'class', 'form', 'filters', 'calendar'] as const)(
     'says it is loading once, hides its shapes, and holds the sheet (%s)',
     (body) => {
       const html = renderToStaticMarkup(<SkeletonBody body={body} />)
@@ -84,13 +80,6 @@ describe('BootFallback', () => {
 
     expect(body).toContain('overflow-y-clip')
     expect(body).not.toContain('overflow-y-auto')
-  })
-
-  it('draws a route with no shape as an empty titled panel', () => {
-    const calendar = boot('/calendar')
-
-    expect(calendar).not.toContain('role="status"')
-    expect(calendar).not.toContain('data-sy-loading')
   })
 })
 

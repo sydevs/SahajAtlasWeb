@@ -1,5 +1,6 @@
 import type { FallbackProps } from 'react-error-boundary'
 import type { FallbackAlign, FallbackKind } from '@/components/molecules'
+import type { SkeletonBodyKind } from '@/components/organisms/Skeleton/Skeleton'
 import type { StackEntry } from '@/lib/shape'
 
 import { useEffect, useMemo } from 'react'
@@ -8,8 +9,7 @@ import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
-import { Spinner } from '@/components/atoms/Spinner'
-import { CENTERED_BODY, FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
+import { FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
@@ -260,8 +260,7 @@ function useCachedRegion(slug: string | undefined) {
 /**
  * The Suspense fallback for a view whose data is still loading: the view's own header (its way
  * back and its controls work), over the body the boot panel drew (`SkeletonBody`), so nothing
- * changes as one hands over to the other. A view with nothing worth drawing ahead of it waits
- * on the spinner.
+ * changes as one hands over to the other.
  */
 export function DrawerLoading() {
   const { hasMap } = useWidgetMode()
@@ -274,37 +273,25 @@ export function DrawerLoading() {
   return (
     <>
       <DrawerChrome loading />
-      {shape ? (
-        <DrawerBody className={LOADING_BODY_CLIP}>
-          {/* The phone sheet pins Register to its foot once the class arrives. */}
-          <SkeletonBody body={shape.body} cta={!hasMap || isWide} />
-        </DrawerBody>
-      ) : (
-        <DrawerLoadingBody />
-      )}
+      {/* The phone sheet pins Register to its foot once the class arrives. */}
+      <DrawerLoadingBody body={shape.body} cta={!hasMap || isWide} />
     </>
   )
 }
 
 /**
- * The spinner alone, for a Suspense fence that sits BELOW a view's own header — the
- * calendar's grid. The chrome-ful `DrawerLoading` there would draw a second header,
- * with a second Back button, under the one CalendarControls already renders.
+ * What fills the body of a Suspense fence that sits BELOW a view's own header — the
+ * calendar's grid — or under the shared chrome: the view's placeholder shapes. The chrome-ful
+ * `DrawerLoading` below a header would draw a second header, with a second Back button, under
+ * the one CalendarControls already renders.
  *
  * This is the loading counterpart of `DrawerErrorBody`/`ErrorPanel` — same split,
  * same reason.
  */
-export function DrawerLoadingBody() {
-  const { t } = useTranslation()
-
+export function DrawerLoadingBody({ body, cta }: { body: SkeletonBodyKind; cta?: boolean }) {
   return (
-    <DrawerBody className={CENTERED_BODY}>
-      {/* Uses `srLabel`, not `label`: the word is announced, not drawn. A visible "Loading…"
-          under the glyph says nothing a spinner does not already say, and it is what pushed
-          the glyph itself off centre — the column centres, so the label's height sits half
-          of it below the middle. Screen readers still get it through the Spinner's own
-          `role="status"`. */}
-      <Spinner color="secondary" srLabel={t('common.a11y.loading')} />
+    <DrawerBody className={LOADING_BODY_CLIP}>
+      <SkeletonBody body={body} cta={cta} />
     </DrawerBody>
   )
 }
