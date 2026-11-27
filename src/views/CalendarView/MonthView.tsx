@@ -2,7 +2,6 @@ import type { CalendarEntry } from '@/lib/shape'
 
 import { type KeyboardEvent, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus } from 'lucide-react'
 import { DateTime } from 'luxon'
 
 import { DayClasses, entryWallClock } from './EntryList'
@@ -261,7 +260,12 @@ function PhoneMonth({
                           />
                         ))}
                         {count > DOTS && (
-                          <Plus className="-mx-0.5 text-gray-11" size={10} strokeWidth={3} />
+                          // Two bars the size of a dot, drawn rather than set in a font or an
+                          // icon, so it is as crisp as the dots. It takes the colour of the last
+                          // class it stands for.
+                          <span
+                            className={`relative size-1.5 before:absolute before:inset-x-0 before:top-1/2 before:h-0.5 before:-translate-y-1/2 before:bg-current after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 after:-translate-x-1/2 after:bg-current ${classes[count - 1].online ? 'text-primary-9' : 'text-secondary-9'}`}
+                          />
                         )}
                       </span>
                     </button>
