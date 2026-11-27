@@ -1,6 +1,6 @@
 import type { CalendarEntry } from '@/lib/shape'
 
-import { type KeyboardEvent, useMemo, useRef } from 'react'
+import { type KeyboardEvent, type ReactNode, type Ref, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 
@@ -39,8 +39,23 @@ const PLUS = { primary: 'text-primary-9', secondary: 'text-secondary-9' }
 // The day of the month, read off the `yyyy-MM-dd` it is.
 const dayOfMonth = (day: string) => Number(day.slice(8))
 
-/** The days of the month on screen, in weeks, with the weekday names over them. */
-function useMonthGrid(focused: string, locale: string) {
+type MonthGridProps = {
+  /** The day in view: the grid shows the whole of its month. */
+  focused: string
+  locale: string
+  /** A phone column fits one letter of a weekday name. */
+  short?: boolean
+  cellClassName?: string
+  ref?: Ref<HTMLTableElement>
+  /** A day's contents, given its number already styled as today, outside, or neither. */
+  cell: (day: string, dayNumber: ReactNode) => ReactNode
+}
+
+/**
+ * The month's table: the weekday names, whole weeks from the one holding the 1st, and each day's
+ * number. What fills a day is the view's own, so both Months keep this grid and its keyboard order.
+ */
+function MonthGrid({ cell, cellClassName, focused, locale, ref, short = false }: MonthGridProps) {
   const month = focused.slice(0, 7)
   const start = firstWeekday(locale)
   const weeks = useMemo(() => monthGrid(month, start), [month, start])
@@ -50,8 +65,47 @@ function useMonthGrid(focused: string, locale: string) {
 
     return Array.from({ length: 7 }, (_, i) => names[(start - 1 + i) % 7])
   }, [locale, start])
+  const today = todayISO()
 
-  return { month, weeks, header }
+  return (
+    <table ref={ref} className="w-full table-fixed">
+      <thead>
+        <tr>
+          {header.map((name) => (
+            <th
+              key={name}
+              className={`text-xs font-normal text-gray-11 ${short ? 'pb-1' : 'pb-2 uppercase'}`}
+              scope="col"
+            >
+              {short ? name.slice(0, 1) : name}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {weeks.map((week) => (
+          <tr key={week[0]}>
+            {week.map((day) => (
+              <td key={day} className={cellClassName}>
+                {cell(
+                  day,
+                  <time
+                    className={dayNumber({
+                      today: day === today,
+                      outside: !day.startsWith(month) && day !== today,
+                    })}
+                    dateTime={day}
+                  >
+                    {dayOfMonth(day)}
+                  </time>,
+                )}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
 }
 
 type MonthViewProps = {
@@ -78,62 +132,38 @@ type GridProps = Omit<MonthViewProps, 'entries' | 'isWide'> & {
 
 function WideMonth({ byDay, focused, locale, onWeekFrom }: GridProps) {
   const { t } = useTranslation()
-  const { month, weeks, header } = useMonthGrid(focused, locale)
-  const today = todayISO()
 
   return (
-    <table className="w-full table-fixed">
-      <thead>
-        <tr>
-          {header.map((name) => (
-            <th key={name} className="pb-2 text-xs font-normal text-gray-11 uppercase" scope="col">
-              {name}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {weeks.map((week) => (
-          <tr key={week[0]}>
-            {week.map((day) => {
-              const classes = byDay.get(day) ?? []
-              const hidden = classes.length - BOX_ENTRIES
+    <MonthGrid
+      cell={(day, number) => {
+        const classes = byDay.get(day) ?? []
+        const hidden = classes.length - BOX_ENTRIES
 
-              return (
-                <td key={day} className="h-28 border-t border-divider px-1 pt-1 align-top">
-                  <div className="mb-1 text-center">
-                    <time
-                      className={dayNumber({
-                        today: day === today,
-                        outside: !day.startsWith(month) && day !== today,
-                      })}
-                      dateTime={day}
-                    >
-                      {dayOfMonth(day)}
-                    </time>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    {classes.slice(0, hidden > 0 ? BOX_ENTRIES - 1 : BOX_ENTRIES).map((entry) => (
-                      <MonthBox key={entry.id} entry={entry} locale={locale} />
-                    ))}
-                  </div>
-                  {hidden > 0 && (
-                    <button
-                      data-vaul-no-drag
-                      className="mt-0.5 w-full rounded-lg px-1 text-start text-xs text-gray-11 focus-ring hover:bg-gray-3"
-                      type="button"
-                      onClick={() => onWeekFrom(day)}
-                    >
-                      {t('calendar.more', { count: hidden + 1 })}
-                    </button>
-                  )}
-                </td>
-              )
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+        return (
+          <>
+            <div className="mb-1 text-center">{number}</div>
+            <div className="flex flex-col gap-0.5">
+              {classes.slice(0, hidden > 0 ? BOX_ENTRIES - 1 : BOX_ENTRIES).map((entry) => (
+                <MonthBox key={entry.id} entry={entry} locale={locale} />
+              ))}
+            </div>
+            {hidden > 0 && (
+              <button
+                data-vaul-no-drag
+                className="mt-0.5 w-full rounded-lg px-1 text-start text-xs text-gray-11 focus-ring hover:bg-gray-3"
+                type="button"
+                onClick={() => onWeekFrom(day)}
+              >
+                {t('calendar.more', { count: hidden + 1 })}
+              </button>
+            )}
+          </>
+        )
+      }}
+      cellClassName="h-28 border-t border-divider px-1 pt-1 align-top"
+      focused={focused}
+      locale={locale}
+    />
   )
 }
 
@@ -167,13 +197,7 @@ const STEPS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -
 function PhoneMonth({ byDay, focused, locale, onFocus }: GridProps) {
   const { t } = useTranslation()
   const grid = useRef<HTMLTableElement>(null)
-  const { month, weeks, header } = useMonthGrid(focused, locale)
   const today = todayISO()
-  // Named once a month: they do not change with the chosen day.
-  const dayNames = useMemo(
-    () => new Map(weeks.flat().map((day) => [day, formatLongDate(DateTime.fromISO(day), locale)])),
-    [weeks, locale],
-  )
 
   const move = (event: KeyboardEvent) => {
     const step = STEPS[event.key]
@@ -195,71 +219,51 @@ function PhoneMonth({ byDay, focused, locale, onFocus }: GridProps) {
 
   return (
     <>
-      <table ref={grid} className="w-full table-fixed">
-        <thead>
-          <tr>
-            {header.map((name) => (
-              <th key={name} className="pb-1 text-xs font-normal text-gray-11" scope="col">
-                {name.slice(0, 1)}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {weeks.map((week) => (
-            <tr key={week[0]}>
-              {week.map((day) => {
-                const dayClasses = byDay.get(day) ?? []
-                const count = dayClasses.length
-                const chosen = day === focused
+      <MonthGrid
+        ref={grid}
+        short
+        cell={(day, number) => {
+          const dayClasses = byDay.get(day) ?? []
+          const count = dayClasses.length
+          const chosen = day === focused
 
-                return (
-                  <td key={day}>
-                    <button
-                      data-vaul-no-drag
-                      aria-label={`${dayNames.get(day)}${count ? `, ${t('calendar.day_count', { count })}` : ''}`}
-                      aria-pressed={chosen}
-                      className={`mx-auto flex h-11 w-11 flex-col items-center justify-center gap-1 rounded-lg focus-ring ${chosen ? 'ring-2 ring-primary-9 ring-inset' : ''}`}
-                      data-date={day}
-                      tabIndex={chosen ? 0 : -1}
-                      type="button"
-                      onClick={() => onFocus(day)}
-                      onKeyDown={move}
-                    >
-                      <span
-                        className={dayNumber({
-                          today: day === today,
-                          outside: !day.startsWith(month) && day !== today,
-                        })}
-                      >
-                        {dayOfMonth(day)}
-                      </span>
-                      {/* A dot a class, and past three a plus in the third's place. The row keeps
-                          its height on a day with none. */}
-                      <span aria-hidden className="flex h-1.5 items-center gap-0.5">
-                        {dayClasses.slice(0, count > DOTS ? DOTS - 1 : DOTS).map((entry) => (
-                          <span
-                            key={entry.id}
-                            className={`size-1.5 rounded-full ${DOT[kindColor(entry)]}`}
-                          />
-                        ))}
-                        {count > DOTS && (
-                          // Two bars the size of a dot, drawn rather than set in a font or an
-                          // icon, so it is as crisp as the dots, in the colour of the last class
-                          // it stands for.
-                          <span
-                            className={`relative size-1.5 before:absolute before:inset-x-0 before:top-1/2 before:h-0.5 before:-translate-y-1/2 before:bg-current after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 after:-translate-x-1/2 after:bg-current ${PLUS[kindColor(dayClasses[count - 1])]}`}
-                          />
-                        )}
-                      </span>
-                    </button>
-                  </td>
-                )
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          return (
+            <button
+              data-vaul-no-drag
+              aria-label={`${formatLongDate(DateTime.fromISO(day), locale)}${count ? `, ${t('calendar.day_count', { count })}` : ''}`}
+              aria-pressed={chosen}
+              className={`mx-auto flex h-11 w-11 flex-col items-center justify-center gap-1 rounded-lg focus-ring ${chosen ? 'ring-2 ring-primary-9 ring-inset' : ''}`}
+              data-date={day}
+              tabIndex={chosen ? 0 : -1}
+              type="button"
+              onClick={() => onFocus(day)}
+              onKeyDown={move}
+            >
+              {number}
+              {/* A dot a class, and past three a plus in the third's place. The row keeps
+                  its height on a day with none. */}
+              <span aria-hidden className="flex h-1.5 items-center gap-0.5">
+                {dayClasses.slice(0, count > DOTS ? DOTS - 1 : DOTS).map((entry) => (
+                  <span
+                    key={entry.id}
+                    className={`size-1.5 rounded-full ${DOT[kindColor(entry)]}`}
+                  />
+                ))}
+                {count > DOTS && (
+                  // Two bars the size of a dot, drawn rather than set in a font or an
+                  // icon, so it is as crisp as the dots, in the colour of the last class
+                  // it stands for.
+                  <span
+                    className={`relative size-1.5 before:absolute before:inset-x-0 before:top-1/2 before:h-0.5 before:-translate-y-1/2 before:bg-current after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 after:-translate-x-1/2 after:bg-current ${PLUS[kindColor(dayClasses[count - 1])]}`}
+                  />
+                )}
+              </span>
+            </button>
+          )
+        }}
+        focused={focused}
+        locale={locale}
+      />
       <div className="-mx-gutter mt-4">
         <DayClasses counted live day={focused} entries={byDay.get(focused) ?? []} locale={locale} />
       </div>
