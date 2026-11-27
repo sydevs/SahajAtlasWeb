@@ -241,7 +241,9 @@ source of truth, so all three stay linkable and shareable:
   Serialized by `filtersToParams` / `filtersFromParams`. The map, the results
   list, the active-filter pills, and the FilterButton badge all read the same
   URL. The filter drawer keeps no draft: each tap writes the URL with `replace`,
-  so the markers behind it and its count move at once.
+  so the markers behind it and its count move at once. The filter buttons on a
+  computer (`FilterChipBar`, `usePanelFilters`) write it the same way, except
+  that their first answer over a place page pushes that place's results.
 - **List sort order** — read with `useSortOrder`, mutate with `useSetSortOrder`.
   Serialized under `?sort=` (default `recommended`, omitted). Kept **separate**
   from filters because it is presentation, not a predicate: it only re-orders

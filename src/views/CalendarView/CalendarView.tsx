@@ -30,6 +30,7 @@ import { useIsWideWidget } from '@/config/responsive'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useFilterChips } from '@/hooks/use-filter-chips'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import {
@@ -45,6 +46,7 @@ import {
   scheduleXLocale,
 } from '@/lib/shape'
 import { formatDate, formatMonth, zoneCity } from '@/lib/time'
+import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
 import { BackButton } from '@/views/nav'
 import { ExpandSheetButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
@@ -86,6 +88,7 @@ const drive = (controls: CalendarControlsPlugin, fn: (c: CalendarControlsPlugin)
 // own atoms — one consistent drawer header — and SX's header bar stays hidden in globals.css.
 function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   const { t } = useTranslation()
+  const chips = useFilterChips('calendar')
   const { formatLocale } = useLocale()
   const isWide = useIsWideWidget()
   const stored = useCalendarPosition((s) => s.view)
@@ -211,7 +214,9 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
           </Button>
         </div>
 
-        <FilterButton />
+        {/* From the buttons' width the calendar asks its filters in its own header, where the
+            phone's Filters button would sit; the map behind it is covered. */}
+        {chips ? <FilterChipBar placement="inline" /> : <FilterButton />}
       </div>
     </>
   )
@@ -235,6 +240,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
 // `useCalendarPosition`.
 export function CalendarView() {
   const filters = useEventFilters()
+  const chips = useFilterChips('calendar')
   // Shared with the grid (which registers + binds it) and the header (which drives it). Stable
   // across filter-apply remounts — the grid re-binds the same plugin to each new instance.
   const controls = useMemo(() => createCalendarControlsPlugin(), [])
@@ -244,7 +250,7 @@ export function CalendarView() {
       <DrawerHeader className="max-w-none flex-wrap items-center gap-x-3 gap-y-2">
         <CalendarControls controls={controls} />
       </DrawerHeader>
-      <ActiveFilterPills />
+      {!chips && <ActiveFilterPills />}
       {/* The grid owns the `['calendar', …]` read. The header above — month nav, view picker,
           filters, close — and the pills read none of it. So a failed grid is survivable in
           place. Escalating it to the drawer boundary would replace all that working chrome to

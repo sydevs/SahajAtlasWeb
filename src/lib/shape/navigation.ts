@@ -230,3 +230,32 @@ export const loneClassExit = (
 
   return undefined
 }
+
+/** The region a place page shows, or `null` off one: `/gb/south-east/london` → `london`. */
+export const pageRegion = (pathname: string): string | null => {
+  const entry = resolveStack(pathname).at(-1)
+
+  return entry?.kind === 'region' ? entry.slug : null
+}
+
+/**
+ * Whether clearing every filter on the results goes back to the place page they were opened from,
+ * rather than leaving that place's unfiltered list. The first answer given on a place page opens
+ * the results (`usePanelFilters`), so with that place still in scope and no place searched since
+ * (`center`), clearing undoes that step.
+ */
+export const clearsBackToPlace = (
+  location: { pathname: string; search?: string; state?: unknown },
+  region: string | null,
+): boolean => {
+  const from = stamp(location, 'from')
+
+  return (
+    location.pathname === '/search' &&
+    atlasDepth(location) > 0 &&
+    from !== undefined &&
+    region !== null &&
+    pageRegion(from.split('?')[0]) === region &&
+    !new URLSearchParams(location.search).has('center')
+  )
+}

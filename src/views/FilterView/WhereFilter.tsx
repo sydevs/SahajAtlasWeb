@@ -10,8 +10,10 @@ import { FormField } from '@/components/molecules/FormField'
 import { regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
 import { useSearchFocus } from '@/config/store'
+import { useLocale } from '@/hooks/use-locale'
 import { useNearMe, useNearVisitor } from '@/hooks/use-near-me'
-import { type PlaceSearch, parseCenter, searchedPlaceName } from '@/lib/shape'
+import { formatDistance } from '@/lib'
+import { NEARBY_KM, type PlaceSearch, parseCenter, searchedPlaceName } from '@/lib/shape'
 import { useDrawerControl } from '@/views/shared'
 
 export type WhereFilterProps = {
@@ -23,14 +25,29 @@ export type WhereFilterProps = {
   onClear: () => void
   /** Near me only makes sense where the results rank by place. */
   searchable: boolean
+  /** What a searched place's scope holds, so "near" never suggests more locality than it has. */
+  counts?: { inPerson: number; online: number }
+  /**
+   * Where "Search instead", after a failed location, takes the visitor. By default it closes the
+   * filters onto the list, whose search box then takes the focus.
+   */
+  onSearchInstead?: () => void
 }
 
 /**
  * The Where group: Near me, and the place in scope as a removable tag. There is no town field:
  * the list's own search box is the one place to type a town.
  */
-export function WhereFilter({ region, onPlace, onClear, searchable }: WhereFilterProps) {
+export function WhereFilter({
+  region,
+  onPlace,
+  onClear,
+  searchable,
+  counts,
+  onSearchInstead,
+}: WhereFilterProps) {
   const { t } = useTranslation()
+  const { formatLocale } = useLocale()
   const [searchParams] = useSearchParams()
   const { hasMap } = useWidgetMode()
   const { dismiss } = useDrawerControl()
@@ -51,7 +68,8 @@ export function WhereFilter({ region, onPlace, onClear, searchable }: WhereFilte
   // Only the top view is rendered, so the list's search box takes the focus once it mounts.
   const searchInstead = () => {
     requestSearchFocus()
-    dismiss()
+    if (onSearchInstead) onSearchInstead()
+    else dismiss()
   }
 
   return (
@@ -96,6 +114,16 @@ export function WhereFilter({ region, onPlace, onClear, searchable }: WhereFilte
           >
             {scopeLabel}
           </Chip>
+        )}
+        {/* A whole country or region counts what is in it, and its tag already names it. */}
+        {center && counts && (
+          <p className="text-sm text-gray-11">
+            {t('filters.where.scope', {
+              near: counts.inPerson,
+              distance: formatDistance(NEARBY_KM, formatLocale),
+              online: counts.online,
+            })}
+          </p>
         )}
       </div>
     </FormField>

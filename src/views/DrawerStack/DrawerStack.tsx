@@ -28,6 +28,8 @@ import {
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
   WIDE_SNAP,
+  FILTER_CHIPS_MIN_PX,
+  FilterChipsWidthContext,
   WidgetWidthContext,
   capStop,
   shortSheetCap,
@@ -56,6 +58,7 @@ import {
   resolveStack,
   viewLayerKey,
 } from '@/lib/shape'
+import { popupOwnsEscape } from '@/views/DrawerStack/escape-owner'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import {
@@ -74,6 +77,7 @@ import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
+import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
 import { FilterView } from '@/views/FilterView/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
@@ -187,6 +191,8 @@ export function DrawerStack() {
   // subtree via `WidgetWidthContext` at the foot of this component, so no descendant can
   // disagree with the drawer it sits in.
   const isWide = useIsWide(container ?? frameElement())
+  // The same box, asked whether the filters fit as buttons beside the panel (`useFilterChips`).
+  const chipsWide = useIsWide(container ?? frameElement(), undefined, FILTER_CHIPS_MIN_PX)
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   // Set by "Show N classes": the results it closes onto open at the near-full stop.
@@ -608,7 +614,7 @@ export function DrawerStack() {
        * only way out. If the host has hidden, confined, or scrolled that control away, a
        * visitor with no Escape is locked out of the page until they reload (issue #161).
        *
-       * The ladder runs innermost-first. The stack dismisses while it has somewhere to
+       * The ladder runs innermost-first. An open popup keeps the key. The stack dismisses while it has somewhere to
        * go. The sheet collapses to its peek while it can. Only then does the key belong
        * outward. `collapse()` is a no-op with no surface above this component — the
        * seam's whole point — so a normal embed reaches this line and nothing changes. At
@@ -616,6 +622,13 @@ export function DrawerStack() {
        * the sheet is either already collapsed or has no snap points left to collapse to.
        */
       onEscapeKeyDown={(event) => {
+        // Rung zero: an open popup owns Escape, so closing a filter button's menu leaves the page
+        // and its filters where they are.
+        if (popupOwnsEscape(overlayContainer())) {
+          event.preventDefault()
+
+          return
+        }
         if (step || (canCollapse && snap !== PEEK_SNAP)) return
 
         event.preventDefault()
@@ -685,44 +698,46 @@ export function DrawerStack() {
   if (!hasMap) {
     return (
       <WidgetWidthContext.Provider value={isWide}>
-        <DrawerControlContext.Provider value={control}>
-          {/* ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Nothing was
+        <FilterChipsWidthContext.Provider value={chipsWide}>
+          <DrawerControlContext.Provider value={control}>
+            {/* ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Nothing was
               measured overflowing here, since the sheet takes no snap ladder map-less — the
               invariant stated, not a defect repaired. */}
-          <div
-            className="flex w-full flex-col overflow-clip bg-background"
-            style={{ height: standalone ? '100dvh' : '100%' }}
-          >
-            <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
-              <Drawer
-                key={direction}
-                enterInPlace
-                open
-                container={container}
-                direction={direction}
-                dismissible={step !== undefined}
-                // Same as the map drawer: the left panel (≥md) has no handle, so
-                // handle-only drag would make it undraggable — dismiss stays Back only.
-                handleOnly={direction === 'left'}
-                mode="filled"
-                onOpenChange={(o) => !o && control.dismiss()}
-              >
-                {sheet}
-              </Drawer>
-            </div>
-            {/* Map-less, the drawer fills its box and its header owns the top, so the cog
+            <div
+              className="flex w-full flex-col overflow-clip bg-background"
+              style={{ height: standalone ? '100dvh' : '100%' }}
+            >
+              <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
+                <Drawer
+                  key={direction}
+                  enterInPlace
+                  open
+                  container={container}
+                  direction={direction}
+                  dismissible={step !== undefined}
+                  // Same as the map drawer: the left panel (≥md) has no handle, so
+                  // handle-only drag would make it undraggable — dismiss stays Back only.
+                  handleOnly={direction === 'left'}
+                  mode="filled"
+                  onOpenChange={(o) => !o && control.dismiss()}
+                >
+                  {sheet}
+                </Drawer>
+              </div>
+              {/* Map-less, the drawer fills its box and its header owns the top, so the cog
                 gets its own strip below the views. Floating over them, it sat on list rows and
                 form fields, and the narrower the box the more it covered. side="top" opens
                 the menu upward from there. */}
-            <div className="flex h-12 shrink-0 items-center border-t border-divider px-gutter">
-              {/* ⚠ The negative start margin pulls the control back so its 20px GLYPH, not its
+              <div className="flex h-12 shrink-0 items-center border-t border-divider px-gutter">
+                {/* ⚠ The negative start margin pulls the control back so its 20px GLYPH, not its
                   box, sits on the strip's gutter — lining the cog up with the drawer content
                   above it. The box is 32px on a fine pointer and 44px on a coarse one, so the
                   pull is half of each difference. */}
-              <SettingsMenu className="-ms-1.5 pointer-coarse:-ms-3" side="top" variant="ghost" />
+                <SettingsMenu className="-ms-1.5 pointer-coarse:-ms-3" side="top" variant="ghost" />
+              </div>
             </div>
-          </div>
-        </DrawerControlContext.Provider>
+          </DrawerControlContext.Provider>
+        </FilterChipsWidthContext.Provider>
       </WidgetWidthContext.Provider>
     )
   }
@@ -732,45 +747,51 @@ export function DrawerStack() {
 
   return (
     <WidgetWidthContext.Provider value={isWide}>
-      <DrawerControlContext.Provider value={control}>
-        {target &&
-          createPortal(
-            <>
-              <div
-                ref={sheetOriginRef}
-                aria-hidden
-                className="pointer-events-none fixed top-0 h-0 w-0"
-              />
-              {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
-            </>,
-            target,
-          )}
-        <Drawer
-          key={direction}
-          dismissible
-          enterInPlace
-          open
-          activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
-          container={target}
-          direction={direction}
-          // The left panel (≥md) has no handle and no snap points, so restricting
-          // drag to the (absent) handle makes it undraggable — dismiss stays Back
-          // only. The mobile bottom sheet keeps its full-panel snap-drag.
-          handleOnly={direction === 'left'}
-          // The box vaul measures snap points against — the frame, or the window.
-          // Deliberately NOT `target`: that is the portal target, which embedded is
-          // the `display: contents` theme root and measures 0×0. See the note in
-          // `Drawer.tsx`.
-          measureAgainst={frameElement()}
-          setActiveSnapPoint={direction === 'bottom' ? setShownSnap : undefined}
-          snapPoints={direction === 'bottom' ? shownSnapPoints : undefined}
-          wide={wide}
-          onOpenChange={(o) => !o && control.dismiss()}
-        >
-          {sheet}
-        </Drawer>
-        {filterDrawer}
-      </DrawerControlContext.Provider>
+      <FilterChipsWidthContext.Provider value={chipsWide}>
+        <DrawerControlContext.Provider value={control}>
+          {target &&
+            createPortal(
+              <>
+                <div
+                  ref={sheetOriginRef}
+                  aria-hidden
+                  className="pointer-events-none fixed top-0 h-0 w-0"
+                />
+                {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
+                {/* The calendar carries its own row, and the filters' own drawer needs none. */}
+                {chipsWide && top?.kind !== 'calendar' && top?.kind !== 'filters' && (
+                  <FilterChipBar placement="map" />
+                )}
+              </>,
+              target,
+            )}
+          <Drawer
+            key={direction}
+            dismissible
+            enterInPlace
+            open
+            activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
+            container={target}
+            direction={direction}
+            // The left panel (≥md) has no handle and no snap points, so restricting
+            // drag to the (absent) handle makes it undraggable — dismiss stays Back
+            // only. The mobile bottom sheet keeps its full-panel snap-drag.
+            handleOnly={direction === 'left'}
+            // The box vaul measures snap points against — the frame, or the window.
+            // Deliberately NOT `target`: that is the portal target, which embedded is
+            // the `display: contents` theme root and measures 0×0. See the note in
+            // `Drawer.tsx`.
+            measureAgainst={frameElement()}
+            setActiveSnapPoint={direction === 'bottom' ? setShownSnap : undefined}
+            snapPoints={direction === 'bottom' ? shownSnapPoints : undefined}
+            wide={wide}
+            onOpenChange={(o) => !o && control.dismiss()}
+          >
+            {sheet}
+          </Drawer>
+          {filterDrawer}
+        </DrawerControlContext.Provider>
+      </FilterChipsWidthContext.Provider>
     </WidgetWidthContext.Provider>
   )
 }

@@ -38,6 +38,15 @@ export type UsePopoverOptions = {
   toggleOnClick?: boolean
 }
 
+/**
+ * Marks every open popover panel. Floating UI closes a popover on Escape pressed anywhere, but the
+ * stack's drawer is a Radix layer and hears the key first, so the drawer looks for this mark to
+ * leave the key to the popover (`popupOwnsEscape`).
+ */
+export const OPEN_POPOVER_ATTRIBUTE = 'data-popover-open'
+
+const openPopoverMark = { [OPEN_POPOVER_ATTRIBUTE]: '' }
+
 export function usePopover({
   placement = 'bottom-start',
   role = 'menu',
@@ -85,6 +94,7 @@ export function usePopover({
     floatingStyles: { ...floatingStyles, pointerEvents: 'auto' as const },
     context,
     getReferenceProps,
-    getFloatingProps,
+    getFloatingProps: (props?: Parameters<typeof getFloatingProps>[0]) =>
+      getFloatingProps({ ...props, ...openPopoverMark }),
   }
 }

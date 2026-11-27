@@ -87,7 +87,7 @@ export const drawer = tv({
       // the full width clear of the cut-out. Zero everywhere else.
       //
       // **The `352px` in both variants below is paired with `DRAWER_W_PX` in
-      // `hooks/use-map-controller-real.tsx`.** That constant becomes the map's
+      // `config/responsive.ts`.** That constant becomes the map's
       // left camera padding, so the map knows how much of itself this panel
       // covers. Tailwind needs a literal here, and it cannot read the
       // constant. So changing this width means changing that one in the same

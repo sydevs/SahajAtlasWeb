@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { type ReactNode, type Ref } from 'react'
 import { FloatingPortal, FloatingFocusManager, type Placement } from '@floating-ui/react'
 
 import { tv } from '@/styles/tv'
@@ -17,9 +17,16 @@ export type DropdownAlign = 'start' | 'center' | 'end' | 'left' | 'right'
 /** ARIA role applied to the panel (and wired into the trigger). */
 export type DropdownRole = 'menu' | 'dialog' | 'listbox'
 
+/** What a render-function trigger spreads onto its own focusable element. */
+export type DropdownTriggerProps = Record<string, unknown> & { ref: Ref<HTMLElement> }
+
 export interface DropdownProps {
-  /** The trigger element that opens/closes the dropdown */
-  trigger: ReactNode
+  /**
+   * The trigger that opens and closes the dropdown. A node is wrapped in a focusable
+   * `role="button"` element. A function renders the trigger itself, as a real `Button`, by
+   * spreading the props it is given onto it, so no control nests inside another.
+   */
+  trigger: ReactNode | ((props: DropdownTriggerProps) => ReactNode)
   /** The content to display in the dropdown */
   children: ReactNode
   /**
@@ -123,15 +130,19 @@ export function Dropdown({
 
   return (
     <>
-      <div
-        ref={refs.setReference}
-        // The wrapper is the focusable button, so callers may keep their inner
-        // control out of the tab order.
-        {...getReferenceProps({ role: 'button', tabIndex: 0 })}
-        className={dropdownTrigger({ fullWidth, className })}
-      >
-        {trigger}
-      </div>
+      {typeof trigger === 'function' ? (
+        trigger({ ref: refs.setReference, ...getReferenceProps() })
+      ) : (
+        <div
+          ref={refs.setReference}
+          // The wrapper is the focusable button, so callers may keep their inner
+          // control out of the tab order.
+          {...getReferenceProps({ role: 'button', tabIndex: 0 })}
+          className={dropdownTrigger({ fullWidth, className })}
+        >
+          {trigger}
+        </div>
+      )}
 
       {isOpen && (
         <FloatingPortal root={overlayContainer()}>

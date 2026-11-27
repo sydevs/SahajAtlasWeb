@@ -49,6 +49,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **On a computer the filters are three buttons over the map: Where, When and Language.** ([#PRNUM])
+  From 1024px of widget width they sit at the top right of the map, and in the calendar's own
+  header, instead of behind a Filters button in the list. Each opens a small menu with the same
+  questions and live counts as the phone's filters, and a tap applies at once. A button with an
+  answer fills and names it ("Tue · Evening"), and Clear leads the row; on a place page, Clear goes
+  back to that page. The list shows no filter tags beside them. Narrower widgets, a map-less
+  widget's list, and phones keep the Filters button. Nothing changes in the snippet or the CSP.
 - **The first screen opens on its title, the search, and one way to classes near the
   visitor.** ([#531]) "Free meditation classes" heads it, and the search, which reads "Enter your
   city or postcode" on every page, spans the panel. Under it, "Classes near Prague ›" (the visitor's
@@ -1557,3 +1564,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
 [#529]: https://github.com/sydevs/SahajAtlasWeb/pull/529
+[#PRNUM]: https://github.com/sydevs/SahajAtlasWeb/pull/PRNUM

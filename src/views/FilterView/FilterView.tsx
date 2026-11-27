@@ -136,6 +136,12 @@ export function FilterView() {
           value={filters}
           where={
             <WhereFilter
+              counts={
+                facets && {
+                  inPerson: facets.counts.format.offline,
+                  online: facets.counts.format.online,
+                }
+              }
               region={filters.region}
               searchable={origin !== '/calendar'}
               onClear={clearWhere}

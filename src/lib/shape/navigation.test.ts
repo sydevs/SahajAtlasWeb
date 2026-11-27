@@ -5,8 +5,10 @@ import {
   atlasDepth,
   atlasPushState,
   backStep,
+  clearsBackToPlace,
   climbDestination,
   loneClassExit,
+  pageRegion,
   passablePlaces,
   sameRoute,
 } from './navigation'
@@ -253,5 +255,46 @@ describe('loneClassExit', () => {
     expect(
       loneClassExit({ state: { depth: 1, climbedFrom: '/lu/1185', from: '/lu' } }, '/lu/1185'),
     ).toBe('climbed')
+  })
+})
+
+describe('pageRegion', () => {
+  it('names the place a place page shows, and nothing off one', () => {
+    expect(pageRegion('/gb')).toBe('gb')
+    expect(pageRegion('/gb/south-east/london')).toBe('london')
+    expect(pageRegion('/search')).toBeNull()
+    expect(pageRegion('/')).toBeNull()
+  })
+})
+
+describe('clearsBackToPlace', () => {
+  // The results an answer on /gb opened: one push deep, stamped from the place page.
+  const opened = {
+    pathname: '/search',
+    search: '?days=2&region=gb',
+    state: { depth: 1, from: '/gb' },
+  }
+
+  it('goes back to the place page the results were opened from', () => {
+    expect(clearsBackToPlace(opened, 'gb')).toBe(true)
+  })
+
+  it('only clears on a fresh link, which has no page to go back to', () => {
+    expect(clearsBackToPlace({ ...opened, state: null }, 'gb')).toBe(false)
+  })
+
+  it('only clears once a place was searched since', () => {
+    expect(clearsBackToPlace({ ...opened, search: '?days=2&center=51.5,-0.1' }, 'gb')).toBe(false)
+  })
+
+  it('only clears when the place in scope is no longer the page it came from', () => {
+    expect(clearsBackToPlace(opened, 'fr')).toBe(false)
+    expect(
+      clearsBackToPlace({ ...opened, state: { depth: 1, from: '/search?days=1' } }, 'gb'),
+    ).toBe(false)
+  })
+
+  it('only applies to the results', () => {
+    expect(clearsBackToPlace({ ...opened, pathname: '/calendar' }, 'gb')).toBe(false)
   })
 })
