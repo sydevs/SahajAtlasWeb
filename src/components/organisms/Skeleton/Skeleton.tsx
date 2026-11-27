@@ -145,7 +145,7 @@ export function SkeletonField() {
 export function SkeletonLocation() {
   return (
     <SkeletonGroup>
-      <SkeletonBlock className="mt-1.5 h-10 w-full" />
+      <SkeletonBlock className="mt-1.5 h-9 w-full" />
     </SkeletonGroup>
   )
 }
