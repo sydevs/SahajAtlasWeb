@@ -1,6 +1,6 @@
 import type { EventDisplayStrings } from '@/hooks/use-event-display'
 
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EventRegisterBar } from './EventRegister'
@@ -9,7 +9,7 @@ import { sanitizeDescription } from './sanitize'
 import { Alert } from '@/components/atoms/Alert'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
-import { ImageCarousel } from '@/components/molecules/ImageCarousel'
+import { ImageGallery } from '@/components/molecules/ImageGallery'
 import { EventFacts } from '@/components/molecules/EventFacts'
 import { QrPoster } from '@/components/molecules/QrPoster'
 import { useShareUrl } from '@/hooks/use-share-url'
@@ -70,29 +70,11 @@ export function EventDetails({
 
   const descriptionHtml = lexicalToHtml(event.description)
 
-  // The image alt text doubles as the lightbox caption. This value is memoized,
-  // so the carousel and lightbox receive the same stable slides array across
-  // re-renders. getEvent already resolves each URL to its origin. Skip any
-  // image with no URL.
-  const slides = useMemo(
-    () =>
-      event.images.flatMap((image) =>
-        image.url
-          ? [{ src: image.url, alt: image.alt ?? undefined, caption: image.alt ?? undefined }]
-          : [],
-      ),
-    [event.images],
-  )
-
-  const hasImages = slides.length > 0
   // The poster code is the class's own link, so a class with nothing to share has no row (#115).
   const shareUrl = useShareUrl(event.webUrl, event.path)
-  // Full-bleed images that end the view sit flush against its bottom edge, rather than floating
-  // 40px above it. The QR row, when there is one, comes after them and keeps the padding.
-  const flushBottom = hasImages && !shareUrl
 
   return (
-    <div className={`flex flex-col gap-4 px-gutter pt-2 ${flushBottom ? '' : 'pb-10'}`}>
+    <div className="flex flex-col gap-4 px-gutter pt-2 pb-10">
       {/* The triage chips open the body. They do not sit under the title in the
           pinned header. */}
       <EventChips languages={event.languages} strings={strings} />
@@ -129,14 +111,7 @@ export function EventDetails({
         </div>
       )}
 
-      {hasImages && (
-        // This section sits full-bleed below the description. It cancels the
-        // container's `px-gutter` padding, so the carousel spans the full drawer
-        // width. The slides now carry no padding of their own.
-        <div className="-mx-gutter">
-          <ImageCarousel slides={slides} />
-        </div>
-      )}
+      <ImageGallery images={event.images} />
 
       {/* For hosts printing posters, which most visitors never need, so it closes the page. */}
       {shareUrl && <QrPoster label={event.title} url={shareUrl} />}

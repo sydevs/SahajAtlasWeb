@@ -14,7 +14,7 @@ vi.mock('@/hooks/use-share-url', () => ({ useShareUrl: () => share.url }))
 vi.mock('@/components/molecules/QrPoster', () => ({
   QrPoster: ({ url }: { url: string }) => <i>qr-slot:{url}</i>,
 }))
-vi.mock('@/components/molecules/ImageCarousel', () => ({ ImageCarousel: () => <i>images-slot</i> }))
+vi.mock('@/components/molecules/ImageGallery', () => ({ ImageGallery: () => <i>images-slot</i> }))
 vi.mock('./EventRegister', () => ({ EventRegisterBar: () => <i>register-slot</i> }))
 vi.mock('@/components/molecules/EventActions', () => ({ EventActions: () => <i>actions-slot</i> }))
 vi.mock('@/components/molecules/EventChips', () => ({ EventChips: () => <i>chips-slot</i> }))
@@ -39,17 +39,14 @@ describe('EventDetails — the poster QR code', () => {
     expect(markup).toContain('qr-slot:https://atlas.example/e/1')
     expect(markup.indexOf('images-slot')).toBeLessThan(markup.indexOf('qr-slot'))
     expect(markup.trimEnd().endsWith('</i></div>')).toBe(true)
-    // The row under the images keeps the page's bottom padding.
-    expect(markup).toMatch(/^<div class="[^"]*\bpb-10\b/)
   })
 
   // Nothing identifies the class on a host page that routes the widget off its URL (#115).
-  it('is left out when the class has no link to share, and the images end the page flush', () => {
+  it('is left out when the class has no link to share', () => {
     share.url = undefined
     const markup = panel()
 
     expect(markup).toContain('images-slot')
     expect(markup).not.toContain('qr-slot')
-    expect(markup).not.toMatch(/^<div class="[^"]*\bpb-10\b/)
   })
 })

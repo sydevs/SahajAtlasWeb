@@ -36,47 +36,6 @@ button:where(:not(:disabled)),
   cursor: pointer;
 }
 
-/* Keyed on `.sy-carousel` — a class ONLY our ImageCarousel sets — not on `.swiper`
-   or `:root`. `.swiper` is Swiper's own class, so theming it repaints every Swiper
-   instance in the widget rather than this one. The reason used to be wider: before
-   #236 the sheet landed in the embedding page, where `.swiper` roots routinely exist,
-   and white-at-0.5 bullets made a host's pagination invisible on a light background —
-   worse than the wrong-but-visible tint this used to leak. That reach is gone. The
-   narrower reason is not.
-
-   This insets the pagination INTO the bottom of the image. Bullet size and shape
-   are Swiper's own defaults (round, clickable) — no custom bar styling. The
-   bullets sit ON the photo (the carousel is full-bleed and ends flush with the
-   view), so they cannot be themed off the widget's palette — they have to survive
-   whatever image is under them. Hence white, rather than brand primary, plus the
-   halo: a white wall or a bright sky is exactly where a tinted bullet disappears. */
-.sy-carousel {
-  --swiper-pagination-bottom: 12px;
-  --swiper-theme-color: #fff;
-  --swiper-pagination-bullet-inactive-color: #fff;
-  --swiper-pagination-bullet-inactive-opacity: 0.5;
-}
-
-.sy-carousel .swiper-pagination-bullet {
-  box-shadow:
-    0 0 2px rgb(0 0 0 / 0.7),
-    0 1px 3px rgb(0 0 0 / 0.5);
-  /* An 8px dot is an 8px tap target, and a finger is not 8px (#432). The utility carries its
-     own touch-screen guard and the geometry; `relative` is the one part a
-     library-owned element forces us to supply, since there is no class to put it on. */
-  @apply touch-target relative;
-}
-
-/* The ROW has to grow with the tap areas above: at Swiper's own 4px gap two 44px areas
-   overlap, the later sibling wins every shared pixel, and each bullet but the last would
-   answer across less than it did before. 8px dot + 2 × 18px = 44, so they stay disjoint. The
-   dots themselves are unchanged at every size. */
-@media (hover: none) and (pointer: coarse) {
-  .sy-carousel {
-    --swiper-pagination-bullet-horizontal-gap: 18px;
-  }
-}
-
 /* Removed: bare `main {}` and `a {}` element rules. Both leaked into the host
    page — repainting its <main> to a hardcoded grey and forcing `color: inherit
    !important` onto every anchor on the page. This app renders no <main> at all, and

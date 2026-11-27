@@ -11,7 +11,10 @@
   },
   "event": {
     "view_photo": "Zobrazit fotku",
-    "pause_slideshow": "Pozastavit prezentaci",
+    "photo_position": "Fotka %{current} z %{total}",
+    "previous_photo": "Předchozí fotka",
+    "next_photo": "Další fotka",
+    "close_photo": "Zavřít fotku",
     "copy_address": "Kopírovat adresu"
   },
   "filters": {

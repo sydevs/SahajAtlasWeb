@@ -802,7 +802,7 @@ const getEventDoc = async (id: number): Promise<EventDoc> => {
         // So this select list must include `filename`, or `url` comes back null.
         // `thumbnailURL` does not exist on this collection.
         // Cloudflare Images flexible variants replaced fixed sizes here.
-        images: { url: true, filename: true, alt: true },
+        images: { url: true, filename: true, alt: true, width: true, height: true },
       },
     }),
     `event ${id}`,

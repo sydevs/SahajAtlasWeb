@@ -11,7 +11,10 @@
   },
   "event": {
     "view_photo": "Vezi fotografia",
-    "pause_slideshow": "Pune pe pauză prezentarea",
+    "photo_position": "Fotografia %{current} din %{total}",
+    "previous_photo": "Fotografia anterioară",
+    "next_photo": "Fotografia următoare",
+    "close_photo": "Închide fotografia",
     "copy_address": "Copiază adresa"
   },
   "filters": {

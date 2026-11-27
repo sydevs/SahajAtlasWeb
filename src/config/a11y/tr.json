@@ -11,7 +11,10 @@
   },
   "event": {
     "view_photo": "Fotoğrafı görüntüle",
-    "pause_slideshow": "Slayt gösterisini duraklat",
+    "photo_position": "Fotoğraf %{current} / %{total}",
+    "previous_photo": "Önceki fotoğraf",
+    "next_photo": "Sonraki fotoğraf",
+    "close_photo": "Fotoğrafı kapat",
     "copy_address": "Adresi kopyala"
   },
   "filters": {

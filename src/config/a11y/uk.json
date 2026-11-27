@@ -11,7 +11,10 @@
   },
   "event": {
     "view_photo": "Відкрити фото",
-    "pause_slideshow": "Призупинити слайд-шоу",
+    "photo_position": "Фото %{current} з %{total}",
+    "previous_photo": "Попереднє фото",
+    "next_photo": "Наступне фото",
+    "close_photo": "Закрити фото",
     "copy_address": "Копіювати адресу"
   },
   "filters": {
