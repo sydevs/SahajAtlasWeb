@@ -49,7 +49,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **Filters apply as they are tapped, and close onto the matching classes.** ([#FILTERS_PR]) There is
+- **Filters apply as they are tapped, and close onto the matching classes.** ([#528]) There is
   no Apply button: each answer narrows the map and the count at once, and the bottom button reads
   "Show 8 classes", or Close with nothing picked. Closing by X, swipe or Esc keeps the answers and
   shows the results, and never takes the host page back. When nothing matches, the filters say so
@@ -1532,4 +1532,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
-[#FILTERS_PR]: https://github.com/sydevs/SahajAtlasWeb/pull/FILTERS_PR
+[#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
