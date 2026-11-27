@@ -70,7 +70,6 @@ export type FallbackKind =
   | 'empty'
   | 'unavailable'
   | 'country-site'
-  | 'no-results'
   | 'no-nearby'
 
 /** The copy, the register, and the actions one state is allowed to render. */
@@ -96,8 +95,6 @@ export type FallbackPolicy = {
   onward: boolean
   /** A geocoder. It lets the viewer name a place the offer's rungs cannot guess. */
   search: boolean
-  /** Drop the active filters. Offered only when they are the reason the list is empty. */
-  clearFilters: boolean
   /**
    * Put the viewer in touch with a person. Only the registration-blocked row uses this.
    * When a class is full, or registration has closed, only the organiser can still let
@@ -123,7 +120,6 @@ const DEAD_END = {
   retry: false,
   onward: true,
   search: true,
-  clearFilters: false,
   contact: false,
   report: false,
 } as const
@@ -160,7 +156,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     retry: true,
     onward: false,
     search: false,
-    clearFilters: false,
     contact: false,
     report: false,
   },
@@ -171,7 +166,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     retry: true,
     onward: false,
     search: false,
-    clearFilters: false,
     contact: false,
     report: true,
   },
@@ -199,7 +193,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     retry: false,
     onward: false,
     search: false,
-    clearFilters: false,
     contact: false,
     report: true,
   },
@@ -215,7 +208,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     retry: true,
     onward: false,
     search: false,
-    clearFilters: false,
     contact: false,
     report: true,
   },
@@ -241,7 +233,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     retry: false,
     onward: true,
     search: false,
-    clearFilters: false,
     contact: true,
     report: false,
   },
@@ -252,20 +243,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     ...DEAD_END,
     messageKey: 'search.country_site.title',
     fallbackText: 'No classes listed in %{country} yet.',
-  },
-  // Filters are both the explanation and the way out. So this row keeps "Clear
-  // all" and nothing else. An onward link would compete with the one action that
-  // actually restores results here.
-  'no-results': {
-    messageKey: 'filters.chrome.no_results_classes',
-    fallbackText: 'No classes match your filters.',
-    color: 'neutral',
-    retry: false,
-    onward: false,
-    search: false,
-    clearFilters: true,
-    contact: false,
-    report: false,
   },
   // This is the only row that offers nothing, and the only one that should.
   // Every match is simply farther away than the boundary, and the list's own
@@ -278,7 +255,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     retry: false,
     onward: false,
     search: false,
-    clearFilters: false,
     contact: false,
     report: false,
   },
@@ -347,8 +323,6 @@ export type VisibleActions = ReturnType<typeof visibleActions>
 export type SurfaceLimits = {
   /** There is a boundary to reset. */
   canRetry: boolean
-  /** There is a filter set to drop. */
-  canClearFilters?: boolean
   /**
    * In-widget navigation reaches somewhere else. False on the app-level fallback. There
    * the drawer stack never mounted, so a route change would move the URL and nothing
@@ -389,7 +363,6 @@ export const visibleActions = (
   policy: FallbackPolicy,
   {
     canRetry,
-    canClearFilters = false,
     canNavigate = true,
     hasSearchChrome = false,
     canContact = false,
@@ -404,17 +377,14 @@ export const visibleActions = (
   // when nobody is there to call.
   const onward = policy.onward && canNavigate && !contact
   const search = policy.search && canNavigate && !hasSearchChrome
-  const clearFilters = policy.clearFilters && canClearFilters
 
-  const promised =
-    policy.retry || policy.onward || policy.search || policy.clearFilters || policy.contact
-  const offered = retry || onward || search || clearFilters || contact
+  const promised = policy.retry || policy.onward || policy.search || policy.contact
+  const offered = retry || onward || search || contact
 
   return {
     retry,
     onward,
     search,
-    clearFilters,
     contact,
     report: (policy.report || (promised && !offered)) && canReport,
   }
@@ -518,8 +488,6 @@ export type FallbackActionsProps = {
   reportContext: string
   /** Reset the boundary and re-run the failed query. */
   resetErrorBoundary?: () => void
-  /** Drop the active filters. */
-  onClearFilters?: () => void
   /** Follows the panel's posture. This stops the buttons floating centred under
    *  left-aligned copy. Defaults to `center`, matching `FallbackPanel`. */
   align?: FallbackAlign
@@ -542,7 +510,6 @@ export function FallbackActions({
   contact,
   reportContext,
   resetErrorBoundary,
-  onClearFilters,
   align = 'center',
 }: FallbackActionsProps) {
   // Like `useFallbackDisplay`, this can render before SahajCloud's copy arrives, and
@@ -555,8 +522,7 @@ export function FallbackActions({
   // `visibleActions` is the single answer for what shows. It already accounts
   // for whether a filter set exists to drop, and for whether this atlas has a report form
   // to send to at all. Nothing here re-derives that.
-  if (!actions.retry && !actions.report && !actions.clearFilters && !(actions.contact && contact))
-    return null
+  if (!actions.retry && !actions.report && !(actions.contact && contact)) return null
 
   // This is one wrappable row, not a column. These buttons are peers: a way
   // forward, and a way to tell us. Stacking short buttons vertically would read
@@ -600,11 +566,6 @@ export function FallbackActions({
           <PhoneOutgoing size={18} />
           {contact.phone}
         </Link>
-      )}
-      {actions.clearFilters && (
-        <Button color="primary" variant="flat" onClick={onClearFilters}>
-          {t('filters.chrome.clear', { defaultValue: 'Clear filters' })}
-        </Button>
       )}
       {/* A way to tell us, when the fault is ours rather than the link's. It
           carries the thrown message as report context (issue #79). Suppressed for
@@ -832,7 +793,6 @@ export type FallbackPanelProps = {
    */
   offer?: RecoveryOffer
   resetErrorBoundary?: () => void
-  onClearFilters?: () => void
   /**
    * Where the panel sits in its body. `center` (the default) suits a drawer whose
    * whole content this replaces. `start` suits the LIST views, where the fallback
@@ -880,7 +840,6 @@ export function FallbackPanel({
   offer,
   contact,
   resetErrorBoundary,
-  onClearFilters,
   align,
   hasSearchChrome,
   children,
@@ -889,7 +848,6 @@ export function FallbackPanel({
   const { enabled: reportEnabled } = useReportForm()
   const actions = visibleActions(policy, {
     canRetry: !!resetErrorBoundary,
-    canClearFilters: !!onClearFilters,
     canContact: !!contact,
     canReport: reportEnabled,
     hasSearchChrome,
@@ -902,7 +860,6 @@ export function FallbackPanel({
     contact,
     reportContext: reportContext ?? text,
     resetErrorBoundary,
-    onClearFilters,
     align,
     actions,
     offer,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { bestRecovery, facetCounts, scopeFacets, shownGroups } from './facets'
+import { bestRecovery, facetCounts, hiddenInPerson, scopeFacets, shownGroups } from './facets'
 import { DEFAULT_FILTERS, matchesFilters } from './filters'
 
 // Tuesday 2026-11-10 19:00 and Saturday 2026-11-14 10:00, London.
@@ -144,5 +144,20 @@ describe('facetCounts — a listing with no times', () => {
     for (const period of ['morning', 'afternoon', 'evening', 'night'] as const) {
       expect(counts.time[period]).toBe(without.time[period] + 1)
     }
+  })
+})
+
+describe('hiddenInPerson', () => {
+  it('counts the in-person classes the filters hide, never an online one', () => {
+    // Saturday hides the Tuesday class in person; the online one matches, and would not count.
+    expect(hiddenInPerson(feed, { ...DEFAULT_FILTERS, daysOfWeek: [6] }, today)).toBe(1)
+    // French hides the English-only class, and the online French one is never counted.
+    expect(hiddenInPerson(feed, { ...DEFAULT_FILTERS, languages: ['fr'] }, today)).toBe(1)
+    // Online only hides both in-person classes.
+    expect(hiddenInPerson(feed, { ...DEFAULT_FILTERS, format: 'online' }, today)).toBe(2)
+  })
+
+  it('hides nothing with nothing chosen', () => {
+    expect(hiddenInPerson(feed, DEFAULT_FILTERS, today)).toBe(0)
   })
 })

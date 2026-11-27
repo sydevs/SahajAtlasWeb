@@ -24,9 +24,8 @@ export default {
  * reviewer checks the CONTROLS against the table, instead of reading five
  * near-identical sentences.
  *
- * The five flags are covered as follows. Every dead-end row covers
- * `onward`. The two rows that pass a geocoder cover `search`. `no-results`
- * covers `clearFilters`. The failure kinds in the section above cover
+ * The flags are covered as follows. Every dead-end row covers
+ * `onward`. The two rows that pass a geocoder cover `search`. The failure kinds in the section above cover
  * `retry` and `report`. No dead end offers either: retrying a URL that
  * does not exist fails identically, and a wrong link is not ours to fix.
  */
@@ -63,12 +62,6 @@ const BODY_CASES: {
     actions: 'onward (no contact)',
     note: 'The same row with nobody to call. `visibleActions` swaps the number for the recovery ladder, so the viewer is pointed at another class nearby rather than left holding the reason.',
     props: { message: 'This class is full.' },
-  },
-  {
-    kind: 'no-results',
-    actions: 'clearFilters',
-    note: 'Filters are both the explanation AND the escape, so this keeps "Clear filters" alone: an onward link would compete with the one action that restores results. Rendered on SearchView, whose header already IS a geocoder — hence no field.',
-    props: { onClearFilters: () => {}, hasSearchChrome: true },
   },
   {
     kind: 'no-nearby',

@@ -13,15 +13,15 @@ import {
   List,
   ListItem,
 } from '@/components/molecules'
+import { NoFilterMatches } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
-import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
+import { useEventFilters, useFilterSearch } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
 import {
-  DEFAULT_FILTERS,
   childRoute,
   climbDestination,
   hasActiveFilters,
@@ -57,7 +57,6 @@ export function RegionView({ slug }: { slug: string }) {
   // the list, the counts and the links one level down must too, or the two disagree.
   const filters = useEventFilters()
   const filterSearch = useFilterSearch()
-  const { setFilters } = useSetFilters()
   const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
 
   // A place with one class opens it: a list of one is an extra tap. Only while this view is the
@@ -179,12 +178,11 @@ export function RegionView({ slug }: { slug: string }) {
           />
         )}
         {isEmpty ? (
-          <FallbackPanel
-            hasSearchChrome
-            align="start"
-            kind={hasActiveFilters(filters) ? 'no-results' : 'empty'}
-            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
-          />
+          hasActiveFilters(filters) ? (
+            <NoFilterMatches />
+          ) : (
+            <FallbackPanel hasSearchChrome align="start" kind="empty" />
+          )
         ) : (
           <List>
             {/* On a region with sub-regions, the online roll-up opens in its own drawer

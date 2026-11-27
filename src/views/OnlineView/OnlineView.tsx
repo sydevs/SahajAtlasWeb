@@ -3,12 +3,13 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody } from '@/components/atoms/Drawer'
-import { ActiveFilterChips, EventListItem, FallbackPanel, List } from '@/components/molecules'
+import { ActiveFilterChips, EventListItem, List } from '@/components/molecules'
+import { NoFilterMatches } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
-import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
+import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { DEFAULT_FILTERS, childRoute, hasActiveFilters } from '@/lib/shape'
+import { childRoute, hasActiveFilters } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 import { EmptyEventList, useFrameOnTop, useFrameableRegion } from '@/views/shared'
 
@@ -24,7 +25,6 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
   const { frameRegion } = useMapController()
 
   const filters = useEventFilters()
-  const { setFilters } = useSetFilters()
   const { data: region } = useSuspenseQuery(regionQuery(regionSlug, locale, filters))
   // Not `region` itself: a region whose only classes are online has no bounds, so framing it
   // moves nothing — exactly the region this drawer lists. The camera climbs to the nearest
@@ -61,11 +61,7 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
       <DrawerBody>
         <ActiveFilterChips />
         {events.length === 0 && hasActiveFilters(filters) ? (
-          <FallbackPanel
-            align="start"
-            kind="no-results"
-            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
-          />
+          <NoFilterMatches />
         ) : events.length === 0 ? (
           <EmptyEventList />
         ) : (

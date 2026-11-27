@@ -58,6 +58,10 @@ cover everything a host would notice since the widget was first deployed.
   widget's list, and phones keep the Filters button. While the buttons show, the map's own
   find-my-location button steps aside for Where's Near me. The map's credits button now sits
   under the map's buttons rather than beside them. Nothing changes in the snippet or the CSP.
+  A list the filters empty says "No classes match your filters." in one line, then offers the one
+  removal that brings classes back ("Remove Mon (3 classes)") and Clear filters as links, the same
+  on every list. A searched place's list ends on "4 more classes in this area. Clear filters"
+  when the filters hide in-person classes around it.
 - **A class's Share, Directions and Contact act in place, and Register follows them.** ([#540]) Share
   opens the device's own share sheet, or a popover of the region's networks, each named, ending
   in Copy link; it no longer opens a Share panel, and a class with no link to share has no Share

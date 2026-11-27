@@ -30,6 +30,8 @@ export const controlSurface = tv({
        * surface, and a shadow lifting it off whatever moves behind it.
        */
       floating: 'border bg-background shadow-lg',
+      /** Text that reads as a link, in a line of copy or a short stack of ways out. */
+      link: 'bg-transparent hover:underline',
     },
     /**
      * ⚠ `sm` and `md` are drawn at 44px on a touch screen, which is the tap floor (#432).
@@ -162,6 +164,13 @@ export const controlSurface = tv({
       variant: 'ghost',
       class: 'text-gray-11 hover:bg-primary-3 hover:text-foreground',
     },
+    { color: 'primary', variant: 'link', class: 'text-primary-11' },
+    { color: 'secondary', variant: 'link', class: 'text-secondary-11' },
+    { color: 'contrast', variant: 'link', class: 'text-contrast-11' },
+    { color: 'neutral', variant: 'link', class: 'text-foreground' },
+    // A link has no surface to size, so it sits on the line like text. The base's `touch-target`
+    // still gives it the 44px tap area on a touch screen.
+    { variant: 'link', class: 'h-auto px-0 pointer-coarse:h-auto' },
     // Icon-only controls are square. The width tracks the height from the size
     // scale. So the control stays square, and the circle stays round, at every size.
     { isIconOnly: true, size: 'sm', class: 'w-8 pointer-coarse:w-11' },

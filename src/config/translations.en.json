@@ -169,7 +169,9 @@
       "show_classes_other": "Show %{count} classes",
       "title": "Filters",
       "widen_one": "Remove %{label} (%{count} class)",
-      "widen_other": "Remove %{label} (%{count} classes)"
+      "widen_other": "Remove %{label} (%{count} classes)",
+      "more_area_one": "%{count} more class in this area.",
+      "more_area_other": "%{count} more classes in this area."
     },
     "dates": {
       "from": "From",

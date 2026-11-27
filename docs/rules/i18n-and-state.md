@@ -35,6 +35,7 @@ paths:
 
   The rename that established this is only worth keeping if it holds. A new symbol
   that resolves, narrows, stores or fetches a tag says `locale`, never `language`.
+
 - **Screen-reader strings are this repo's** (`src/config/a11y/`). A string that is only ever
   spoken lives in `<locale>.json`, mounted at `<group>.a11y.<key>`, machine-translated by whoever
   adds it; translators never see it. English is mounted into the boot resource
@@ -93,7 +94,7 @@ paths:
   (`src/config/api/client.ts`). The translations read names its own locale, and it is
   the one request whose locale is deliberately not the active language.
 - **Detection persists nothing** (`i18nDetectionOptions`): `order: ['querystring',
-  'hostHtmlLang', 'navigator']`, `caches: []`. The library's defaults would read
+'hostHtmlLang', 'navigator']`, `caches: []`. The library's defaults would read
   cookies and localStorage, and write `i18nextLng` onto the HOST page's own origin —
   undeclared storage on a domain that is not ours (#95). Read the active locale with
   `useLocale()`, never `i18n.language` directly. `?locale=cimode` is refused
@@ -165,7 +166,7 @@ Ten stores, each the single source of truth for its own slice:
   remounts views, and opening an event then coming back would otherwise drop the
   reader at the top of a list they had paged deep into. Read and advanced through
   `useReveal`, keyed by **`revealKey`** (built from the events query key plus the
-  sort, which that key omits) — reading under a different key simply *is* the
+  sort, which that key omits) — reading under a different key simply _is_ the
   first page, so a new search, a filter edit, or a re-sort resets the reveal **by
   construction**. The reveal advances inside a `useTransition` (`aria-busy`, not
   `disable`, since a disabled control unfocuses under keyboard use).
@@ -251,7 +252,7 @@ source of truth, so all three stay linkable and shareable:
   lights the filter badge.
 - **The searched location** — `?q` / `?center` / `?bbox`, plus **`?cc`** (the
   searched country's ISO code). Read with a local parse helper, not a codec:
-  unlike filters or sort, these are *replaced* by a new search, not merged —
+  unlike filters or sort, these are _replaced_ by a new search, not merged —
   `preserveSearchState` re-encodes from an **empty** base, so a previous country
   can never leak into the next search. The region filter (`?region=`) is a Where
   too and goes with the old place: a new place search keeps the other filters,
@@ -267,7 +268,7 @@ source of truth, so all three stay linkable and shareable:
   path does not, so there is one claimed name and one encoder in both modes.
 
 - **Navigation** — the drawer stack is a pure function of the URL
-  (`resolveStack`) — of the *router's* location, which on a host page whose
+  (`resolveStack`) — of the _router's_ location, which on a host page whose
   anchor the widget declined to take is a `MemoryRouter`'s location rather than
   the address bar's (`mountDecision`). Nothing below the router can tell, which
   is the point. Back, swipe and Esc are one `dismiss`, history-aware: a
@@ -338,7 +339,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
   `DrawerErrorBody` — never the chrome-ful pair, which would draw a second
   header.
 - **Body-level boundaries need `resetKeys`.** The drawer boundary keys on the
-  *pathname*, but a re-search or a filter change only moves the query string —
+  _pathname_, but a re-search or a filter change only moves the query string —
   without a `resetKeys` entry, one failure pins its error over every later
   attempt. Search excludes `?q` (only a label; typing never writes it — the URL
   changes when a place is picked).
@@ -347,10 +348,12 @@ two axes separate — an inner fallback must never re-throw to escalate.
   re-throws the cached error.
 - **One table covers empty states too, not only failures.** `FallbackKind` spans
   the five classified failures and the ways a screen ends up with nothing to act
-  on (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`) — a
+  on (`empty`, `no-nearby`, `country-site`, `unavailable`) — a
   barren region and a URL that never existed leave a
   viewer in the same position, so both render `FallbackPanel` and only the
-  policy row differs.
+  policy row differs. A list the filters emptied is the exception: the filters
+  are the explanation and the way out, so `NoFilterMatches` says so in one line
+  with its ways out as links, the same on every list.
   - **`unavailable`** is the row whose next step is a person: a full, ended, or
     closed class still exists, so `contact` leads with a number where one
     exists, and the recovery ladder (nearby classes) takes over otherwise. It is
@@ -392,7 +395,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
   the page's own global error events, and on a host page those belong to someone
   else.
 - **Above all of it is `RootBoundary`** (`App.tsx`, #92) — static, untranslated,
-  inline-styled. It catches failures in what the app is *built on*
+  inline-styled. It catches failures in what the app is _built on_
   (`Providers`, `BrandTheme`, the query client, the i18n boot), so it reads
   none of them: a rung that has to consult the thing that just broke is not a
   rung. It mounts twice — in `App` (both entries) and at the widget element's
@@ -410,6 +413,6 @@ two axes separate — an inner fallback must never re-throw to escalate.
 - Keep stores small and slice-focused. Add a new store rather than overloading
   an existing one.
 - Co-locate the `State` type, the `Action` type, and the `create<State &
-  Action>()` call, as the existing stores do.
+Action>()` call, as the existing stores do.
 - Read with selectors (`useViewState(s => s.zoom)` or `useShallow`) rather than
   pulling the whole store object into a component.

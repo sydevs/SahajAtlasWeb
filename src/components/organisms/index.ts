@@ -10,7 +10,7 @@ export type { MapSearchProps } from './Mapbox'
 // Only the data-connected container is public: the presentational `EventsList`
 // is consumed solely by `DynamicEventsList` and its own story, so per
 // DESIGN_SYSTEM.md's single-use rule it stays module-private.
-export { DynamicEventsList } from './EventsList'
+export { DynamicEventsList, NoFilterMatches } from './EventsList'
 export type { DynamicEventsListProps } from './EventsList'
 
 // SearchFilters — the controlled filter form FilterView drafts in: Where, Online or in person,

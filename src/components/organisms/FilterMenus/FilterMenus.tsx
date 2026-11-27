@@ -12,7 +12,6 @@ import {
   FormatFilter,
   LanguageFilter,
   MoreFilters,
-  RecoveryButton,
   TimeFilter,
 } from '@/components/organisms/SearchFilters'
 import { useFilterFacets, useFilterScope } from '@/hooks/use-filter-facets'
@@ -75,8 +74,7 @@ export type FilterMenusProps = {
 
 /**
  * One button's menu. It mounts only while open, so the live counts are taken only while someone is
- * choosing; the closed buttons need none. With nothing left, it ends on the one change that brings
- * the most classes back.
+ * choosing; the closed buttons need none.
  */
 function MenuBody({
   menu,
@@ -89,7 +87,6 @@ function MenuBody({
   onChange: (next: EventFilters) => void
   where?: FilterMenusWhere
 }) {
-  const { t } = useLocale()
   const facets = useFilterFacets(value)
   const block = {
     value,
@@ -113,21 +110,6 @@ function MenuBody({
         </>
       )}
       {menu === 'language' && <LanguageFilter {...block} layout="menu" />}
-      {facets?.counts.total === 0 && (
-        <div className="flex flex-col gap-2 border-t border-divider pt-3">
-          <p className="text-sm text-foreground" role="status">
-            {t('filters.chrome.no_match')}
-          </p>
-          {facets.recovery && (
-            <RecoveryButton
-              className="h-auto min-h-11 w-full py-2 whitespace-normal"
-              filters={value}
-              recovery={facets.recovery}
-              onApply={onChange}
-            />
-          )}
-        </div>
-      )}
     </>
   )
 }

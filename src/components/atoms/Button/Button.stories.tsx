@@ -21,7 +21,9 @@ export default {
 } satisfies StoryDefault
 
 const colors = ['primary', 'secondary', 'contrast', 'neutral'] as const
-const variants = ['solid', 'flat', 'bordered', 'ghost', 'floating'] as const
+const variants = ['solid', 'flat', 'bordered', 'ghost', 'floating', 'link'] as const
+// A glyph alone is no link: the circles leave that one out.
+const iconVariants = variants.filter((variant) => variant !== 'link')
 const sizes = ['sm', 'md', 'lg'] as const
 const radii = ['sm', 'full'] as const
 
@@ -71,7 +73,7 @@ export const Default: Story = () => (
         <StoryGridHeader>
           <StoryGridHeaderRow>
             <StoryGridHeaderCell />
-            {variants.map((variant) => (
+            {iconVariants.map((variant) => (
               <StoryGridHeaderCell key={variant}>{variant}</StoryGridHeaderCell>
             ))}
           </StoryGridHeaderRow>
@@ -80,7 +82,7 @@ export const Default: Story = () => (
           {colors.map((color) => (
             <StoryGridRow key={color}>
               <StoryGridCell isLabel>{color}</StoryGridCell>
-              {variants.map((variant) => (
+              {iconVariants.map((variant) => (
                 <StoryGridCell key={variant}>
                   <Button
                     isIconOnly

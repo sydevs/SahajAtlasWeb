@@ -41,6 +41,7 @@ vi.mock('@/components/molecules', () => ({
     <i>{hasSearchChrome ? 'panel' : 'panel-with-search-field'}</i>
   ),
 }))
+vi.mock('@/components/organisms', () => ({ NoFilterMatches: () => <i>no-filter-matches</i> }))
 vi.mock('@/views/nav', () => ({
   NavHeader: ({ title, actions }: { title: ReactNode; actions: ReactNode }) => (
     <header>

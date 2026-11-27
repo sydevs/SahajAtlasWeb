@@ -6,15 +6,16 @@ import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { MeditateFigure } from '@/components/atoms/Icons'
-import { ActiveFilterChips, FallbackPanel, List, ListItem } from '@/components/molecules'
+import { ActiveFilterChips, List, ListItem } from '@/components/molecules'
+import { NoFilterMatches } from '@/components/organisms'
 import api, { clientQuery, countriesQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
-import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
+import { useEventFilters, useFilterSearch } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useWidgetMode } from '@/config/mode'
 import { useApproxLocation } from '@/config/store'
-import { DEFAULT_FILTERS, filtersKey, filtersToParams, hasActiveFilters } from '@/lib/shape'
+import { filtersKey, filtersToParams, hasActiveFilters } from '@/lib/shape'
 import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { validateWebUrl } from '@/lib/url'
 import {
@@ -42,7 +43,6 @@ export function CountriesView() {
   // the counts and the onward links must too, or the two disagree.
   const filters = useEventFilters()
   const filterSearch = useFilterSearch()
-  const { setFilters } = useSetFilters()
 
   const { data: countries } = useSuspenseQuery(countriesQuery(filters))
   // The visitor's own country, unless they had removed the guess before this screen opened: the
@@ -126,11 +126,7 @@ export function CountriesView() {
           </h3>
         )}
         {noMatches ? (
-          <FallbackPanel
-            align="start"
-            kind="no-results"
-            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
-          />
+          <NoFilterMatches />
         ) : (
           <List>
             {sortedCountries.map((country) => (

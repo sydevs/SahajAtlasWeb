@@ -61,10 +61,8 @@ function Example({ initial, place, placeAnswered = false, variant }: ExampleProp
  * once. The row is right-aligned, and Clear (an ×, named "Clear filters") leads it once anything is
  * chosen, so its arrival moves nothing already there.
  *
- * **When nothing matches**, every menu ends the same way, whichever one is open: "No classes
- * match", then the one removal that brings the most classes back, wherever that answer lives, so
- * the Language menu can offer "Remove In person". Where no single removal brings any back, only the
- * line shows, and Clear is the way out.
+ * A set that matches nothing is not the menus' to explain: the list of classes says so, with the
+ * way out (`NoFilterMatches`).
  *
  * The browser here refuses the visitor's location, so Near me in any Where menu shows what it says
  * then.
@@ -128,26 +126,6 @@ export const Default: Story = () => {
         />
       </StorySection>
 
-      <StorySection
-        description="Open any menu: it ends on “No classes match” and the one removal that brings the most classes back."
-        title="Nothing matches"
-      >
-        <Example initial={{ timeOfDay: ['night'], languages: ['hi'] }} />
-      </StorySection>
-
-      <StorySection
-        description="No single removal brings any back, so each menu ends on the line alone, and Clear is the way out."
-        title="Nothing matches, no single way out"
-      >
-        <Example
-          initial={{
-            format: 'online',
-            daysOfWeek: [1],
-            timeOfDay: ['afternoon'],
-            languages: ['it'],
-          }}
-        />
-      </StorySection>
       <div />
     </StoryWrapper>
   )
