@@ -11,7 +11,6 @@
   },
   "event": {
     "view_photo": "Открыть фото",
-    "photo": "Фото",
     "photo_position": "Фото %{current} из %{total}",
     "previous_photo": "Предыдущее фото",
     "next_photo": "Следующее фото",

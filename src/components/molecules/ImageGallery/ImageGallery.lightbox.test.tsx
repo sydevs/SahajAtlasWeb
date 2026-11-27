@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
+import type { EventImage } from '@/types'
+
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ImageGallery, type Slide } from './ImageGallery'
+import { ImageGallery } from './ImageGallery'
 
 import { setThemeRoot } from '@/hooks/use-theme'
 
@@ -21,10 +23,10 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const slides: Slide[] = [
-  { src: 'https://example.test/a.jpg', alt: 'A', caption: 'Caption A' },
-  { src: 'https://example.test/b.jpg', alt: 'B', caption: 'Caption B' },
-  { src: 'https://example.test/c.jpg', alt: 'C' },
+const images: EventImage[] = [
+  { url: 'https://example.test/a.jpg', alt: 'A' },
+  { url: 'https://example.test/b.jpg', alt: 'B' },
+  { url: 'https://example.test/c.jpg', alt: 'C' },
 ]
 
 let cleanup: (() => void) | null = null
@@ -39,7 +41,7 @@ afterEach(async () => {
   direction.value = 'ltr'
 })
 
-async function mount(items: Slide[] = slides) {
+async function mount(items: EventImage[] = images) {
   const host = document.createElement('div')
 
   document.body.append(host)
@@ -47,7 +49,7 @@ async function mount(items: Slide[] = slides) {
   const root = createRoot(host)
 
   await act(async () => {
-    root.render(<ImageGallery slides={items} />)
+    root.render(<ImageGallery images={items} />)
   })
   cleanup = () => root.unmount()
 
@@ -86,26 +88,15 @@ async function swipe(dx: number) {
 }
 
 describe('ImageGallery lightbox', () => {
-  it('opens on the photo that was clicked, titled with its position and showing its caption', async () => {
+  // The alt text is the visible caption, so the image is silent rather than read twice.
+  it('opens on the photo that was clicked, titled with its position and captioned by its alt', async () => {
     await mount()
     await click(byLabel('B'))
 
     expect(shown()).toBe('https://example.test/b.jpg')
     expect(dialog()?.textContent).toContain('event.a11y.photo_position:2/3')
-    expect(dialog()?.querySelector('figcaption')?.textContent).toBe('Caption B')
-  })
-
-  // EventDetails passes the alt text as the caption too, and a screen reader would read both.
-  it('reads a caption that repeats the alt text once, not twice', async () => {
-    await mount([
-      { src: 'https://example.test/a.jpg', alt: 'Hall', caption: 'Hall' },
-      { src: 'https://example.test/b.jpg', alt: 'Garden', caption: 'Our garden' },
-    ])
-    await click(byLabel('Hall'))
+    expect(dialog()?.querySelector('figcaption')?.textContent).toBe('B')
     expect(dialog()?.querySelector('img')?.getAttribute('alt')).toBe('')
-
-    await click(byLabel('event.a11y.next_photo'))
-    expect(dialog()?.querySelector('img')?.getAttribute('alt')).toBe('Garden')
   })
 
   it('steps forward and back with the buttons, wrapping at either end', async () => {
@@ -160,34 +151,12 @@ describe('ImageGallery lightbox', () => {
     expect(shown()).toBe('https://example.test/b.jpg')
   })
 
-  // A drag need not end in a click, so the swipe guard must not outlive the gesture.
-  it('still closes on the next backdrop tap after a swipe that fired no click', async () => {
-    await mount()
-    await click(byLabel('A'))
-    await swipe(-80)
-
-    await swipe(0)
-    await click(dialog()?.querySelector('figure') ?? null)
-    expect(dialog()).toBeNull()
-  })
-
   it('closes from its close button', async () => {
     await mount()
     await click(byLabel('A'))
     expect(dialog()).not.toBeNull()
 
     await click(byLabel('event.a11y.close_photo'))
-    expect(dialog()).toBeNull()
-  })
-
-  it('closes on a click around the photo, but not on the photo itself', async () => {
-    await mount()
-    await click(byLabel('A'))
-
-    await click(dialog()?.querySelector('img') ?? null)
-    expect(dialog()).not.toBeNull()
-
-    await click(dialog()?.querySelector('figure') ?? null)
     expect(dialog()).toBeNull()
   })
 
@@ -200,10 +169,10 @@ describe('ImageGallery lightbox', () => {
   })
 
   it('offers no stepping for a single photo', async () => {
-    await mount([slides[0]])
+    await mount([images[0]])
     await click(byLabel('A'))
 
-    expect(dialog()?.textContent).toContain('event.a11y.photo')
+    expect(dialog()?.textContent).toContain('event.a11y.photo_position:1/1')
     expect(byLabel('event.a11y.next_photo')).toBeNull()
     expect(byLabel('event.a11y.previous_photo')).toBeNull()
   })

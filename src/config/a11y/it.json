@@ -11,7 +11,6 @@
   },
   "event": {
     "view_photo": "Visualizza foto",
-    "photo": "Foto",
     "photo_position": "Foto %{current} di %{total}",
     "previous_photo": "Foto precedente",
     "next_photo": "Foto successiva",

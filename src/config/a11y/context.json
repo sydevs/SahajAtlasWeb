@@ -11,8 +11,7 @@
   },
   "event": {
     "view_photo": "Names a photo in an event’s image gallery that has no description of its own; activating it opens the photo full size.",
-    "photo": "The accessible name of the full-size photo viewer when the class has a single photo.",
-    "photo_position": "The accessible name of the full-size photo viewer, read as it opens. `%{current}` = the photo on screen, counting from 1; `%{total}` = how many photos the class has.",
+    "photo_position": "The accessible name of the full-size photo viewer, read as it opens; a class with one photo reads “Photo 1 of 1”. `%{current}` = the photo on screen, counting from 1; `%{total}` = how many photos the class has.",
     "previous_photo": "Names the arrow button in the full-size photo viewer that shows the photo before this one.",
     "next_photo": "Names the arrow button in the full-size photo viewer that shows the photo after this one.",
     "close_photo": "Names the × button that closes the full-size photo viewer.",

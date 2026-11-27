@@ -11,7 +11,6 @@
   },
   "event": {
     "view_photo": "Vezi fotografia",
-    "photo": "Fotografie",
     "photo_position": "Fotografia %{current} din %{total}",
     "previous_photo": "Fotografia anterioară",
     "next_photo": "Fotografia următoare",

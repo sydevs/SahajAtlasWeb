@@ -11,7 +11,6 @@
   },
   "event": {
     "view_photo": "Преглед на снимката",
-    "photo": "Снимка",
     "photo_position": "Снимка %{current} от %{total}",
     "previous_photo": "Предишна снимка",
     "next_photo": "Следваща снимка",

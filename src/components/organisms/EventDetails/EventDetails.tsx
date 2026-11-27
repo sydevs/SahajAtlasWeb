@@ -1,6 +1,6 @@
 import type { EventDisplayStrings } from '@/hooks/use-event-display'
 
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EventRegisterBar } from './EventRegister'
@@ -70,29 +70,6 @@ export function EventDetails({
 
   const descriptionHtml = lexicalToHtml(event.description)
 
-  // The image alt text doubles as the lightbox caption. This value is memoized,
-  // so the gallery and lightbox receive the same stable slides array across
-  // re-renders. getEvent already resolves each URL to its origin. Skip any
-  // image with no URL.
-  const slides = useMemo(
-    () =>
-      event.images.flatMap((image) =>
-        image.url
-          ? [
-              {
-                src: image.url,
-                alt: image.alt ?? undefined,
-                caption: image.alt ?? undefined,
-                width: image.width ?? undefined,
-                height: image.height ?? undefined,
-              },
-            ]
-          : [],
-      ),
-    [event.images],
-  )
-
-  const hasImages = slides.length > 0
   // The poster code is the class's own link, so a class with nothing to share has no row (#115).
   const shareUrl = useShareUrl(event.webUrl, event.path)
 
@@ -134,7 +111,7 @@ export function EventDetails({
         </div>
       )}
 
-      {hasImages && <ImageGallery slides={slides} />}
+      <ImageGallery images={event.images} />
 
       {/* For hosts printing posters, which most visitors never need, so it closes the page. */}
       {shareUrl && <QrPoster label={event.title} url={shareUrl} />}
