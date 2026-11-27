@@ -282,12 +282,10 @@ function CalendarBody({
     queryFn: () => api.getCalendarEvents(anyDate),
   })
 
-  // The "Online" term is the one the class pages show for an online class's location.
-  const onlineLabel = t('event.display.online')
   // The Month keeps a dates filter as a filter; the Week cuts its own seven days.
   const entries = useMemo(
-    () => eventsToCalendarEntries(source, view === 'week' ? anyDate : filters, { onlineLabel }),
-    [source, view, anyDate, filters, onlineLabel],
+    () => eventsToCalendarEntries(source, view === 'week' ? anyDate : filters),
+    [source, view, anyDate, filters],
   )
   const shown =
     view === 'week'

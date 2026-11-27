@@ -117,7 +117,7 @@ describe('eventsToCalendarEntries', () => {
     ).toEqual([])
   })
 
-  it('names the class, with where it is as its detail', () => {
+  it('names the class, with the town it is in', () => {
     const evt = makeEvent({
       title: 'Evening meditation',
       regionName: 'London',
@@ -126,7 +126,7 @@ describe('eventsToCalendarEntries', () => {
     })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(entry).toMatchObject({ name: 'Evening meditation', detail: 'Camden' })
+    expect(entry).toMatchObject({ name: 'Evening meditation', place: 'Camden' })
   })
 
   it('says where by the address city, and by the region only without one', () => {
@@ -141,13 +141,11 @@ describe('eventsToCalendarEntries', () => {
       occurrences: [at('UTC', '2026-07-06T09:30')],
     })
 
-    expect(eventsToCalendarEntries([venue], DEFAULT_FILTERS, RANGE)[0].detail).toBe(
-      'Rio de Janeiro',
-    )
-    expect(eventsToCalendarEntries([noAddress], DEFAULT_FILTERS, RANGE)[0].detail).toBe('London')
+    expect(eventsToCalendarEntries([venue], DEFAULT_FILTERS, RANGE)[0].place).toBe('Rio de Janeiro')
+    expect(eventsToCalendarEntries([noAddress], DEFAULT_FILTERS, RANGE)[0].place).toBe('London')
   })
 
-  it('writes "Online" into the detail and tags its calendar', () => {
+  it('marks an online class, which has no place to name', () => {
     const evt = makeEvent({
       eventType: 'online',
       regionName: 'London',
@@ -158,21 +156,18 @@ describe('eventsToCalendarEntries', () => {
       title: 'Weekly meditation',
       occurrences: [at('UTC', '2026-07-06T18:00')],
     })
-    const [entry, bare] = eventsToCalendarEntries([evt, placeless], DEFAULT_FILTERS, {
-      ...RANGE,
-      onlineLabel: 'Online',
-    })
+    const [entry, bare] = eventsToCalendarEntries([evt, placeless], DEFAULT_FILTERS, RANGE)
 
-    expect(entry).toMatchObject({ detail: 'London · Online', online: true })
-    expect(bare).toMatchObject({ name: 'Weekly meditation', detail: 'Online' })
+    expect(entry).toMatchObject({ place: undefined, online: true })
+    expect(bare).toMatchObject({ name: 'Weekly meditation', place: undefined, online: true })
   })
 
-  it('leaves an in-person class with no place untagged, with no detail', () => {
+  it('leaves an in-person class with no place untagged, with no place', () => {
     const evt = makeEvent({ title: 'Just the title', occurrences: [at('UTC', '2026-07-06T09:30')] })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
     expect(entry.online).toBe(false)
-    expect(entry.detail).toBeUndefined()
+    expect(entry.place).toBeUndefined()
   })
 
   it('names an untitled class by its place, and says the place once', () => {
@@ -183,13 +178,13 @@ describe('eventsToCalendarEntries', () => {
     })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(entry).toMatchObject({ name: 'Harrogate', detail: undefined })
+    expect(entry).toMatchObject({ name: 'Harrogate', place: undefined })
   })
 
   it('recases a town typed all in capitals', () => {
     const evt = makeEvent({ locality: 'HARROGATE', occurrences: [at('UTC', '2026-07-06T09:30')] })
 
-    expect(eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)[0].detail).toBe('Harrogate')
+    expect(eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)[0].place).toBe('Harrogate')
   })
 
   it('builds the online end time from the event-local endTime (converted, not applied in the viewer zone)', () => {

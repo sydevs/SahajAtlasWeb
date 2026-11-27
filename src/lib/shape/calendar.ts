@@ -55,8 +55,8 @@ export type CalendarEntry = {
   /** Unique per occurrence: `${eventId}-${startMillis}`. */
   id: string
   name: string
-  /** Where it is: "Harrogate", "London · Online", or "Online" for a class with no place. */
-  detail?: string
+  /** The town it is in, left out where the name already is the place. */
+  place?: string
   start: string
   end: string
   /** The event's route, carried through so a click opens the right EventView. */
@@ -83,7 +83,7 @@ const WALL_CLOCK = 'yyyy-MM-dd HH:mm'
 export const eventsToCalendarEntries = (
   events: CalendarSourceEvent[],
   filters: EventFilters,
-  opts?: { from?: DateTime; to?: DateTime; today?: string; onlineLabel?: string },
+  opts?: { from?: DateTime; to?: DateTime; today?: string },
 ): CalendarEntry[] => {
   const from = opts?.from ?? DateTime.now().startOf('day')
   const to = opts?.to ?? from.plus({ months: 12 })
@@ -105,11 +105,6 @@ export const eventsToCalendarEntries = (
     const online = event.eventType === 'online'
     const place = placeOf(event)
     const title = event.title.trim()
-    // "Online" is written out, because a time in the visitor's clock otherwise looks wrong.
-    const detail =
-      [title ? place : undefined, online ? opts?.onlineLabel : undefined]
-        .filter(Boolean)
-        .join(' · ') || undefined
     const name = title || place || ''
 
     for (const occurrence of occurrences) {
@@ -131,7 +126,8 @@ export const eventsToCalendarEntries = (
       entries.push({
         id: `${event.id}-${start.toMillis()}`,
         name,
-        detail,
+        // An online class's region says nothing about where to be.
+        place: title && !online ? place : undefined,
         start: start.toFormat(WALL_CLOCK),
         end: finish.toFormat(WALL_CLOCK),
         path: event.path,

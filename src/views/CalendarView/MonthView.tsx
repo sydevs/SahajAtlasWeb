@@ -15,6 +15,8 @@ import { tv } from '@/styles/tv'
 
 // A desktop box fits this many classes; a busier day ends with "+ N classes".
 const BOX_ENTRIES = 3
+// A phone day shows a dot a class, up to this many.
+const DOTS = 3
 
 const dayNumber = tv({
   base: 'inline-flex size-7 items-center justify-center rounded-full text-sm',
@@ -139,15 +141,18 @@ export function MonthView({
 // A desktop box fits a time and one short word, and cut class names would read as a column of
 // identical "Evening meditation", so the box says where and its name says what.
 function MonthBox({ entry, locale }: { entry: CalendarEntry; locale: string }) {
+  const { t } = useTranslation()
   const time = formatTimeRange(entryWallClock(entry.start), null, locale)
-  const text = `${time} ${entry.detail ?? entry.name}`
+  // An online class is anywhere, so its box says so where an in-person one names its town.
+  const where = entry.online ? t('event.display.online') : (entry.place ?? entry.name)
+  const text = `${time} ${where}`
 
   return (
     <Link
-      aria-label={entry.detail ? `${text}, ${entry.name}` : text}
+      aria-label={where === entry.name ? text : `${text}, ${entry.name}`}
       className="block rounded-lg focus-ring hover:opacity-hover"
       href={entry.path}
-      title={entry.detail ? `${entry.name} · ${entry.detail}` : entry.name}
+      title={where === entry.name ? entry.name : `${entry.name} · ${where}`}
     >
       <Chip
         casing="none"
@@ -226,7 +231,8 @@ function PhoneMonth({
           {weeks.map((week) => (
             <tr key={week[0]}>
               {week.map((day) => {
-                const count = byDay.get(day)?.length ?? 0
+                const classes = byDay.get(day) ?? []
+                const count = classes.length
                 const chosen = day === focused
 
                 return (
@@ -249,10 +255,16 @@ function PhoneMonth({
                       >
                         {DateTime.fromISO(day).day}
                       </span>
-                      <span
-                        aria-hidden
-                        className={`size-1.5 rounded-full ${count ? 'bg-primary-9' : 'bg-transparent'}`}
-                      />
+                      {/* One dot a class, up to three, online ones in their own colour. The
+                          row keeps its height on a day with none. */}
+                      <span aria-hidden className="flex h-1.5 gap-0.5">
+                        {classes.slice(0, DOTS).map((entry) => (
+                          <span
+                            key={entry.id}
+                            className={`size-1.5 rounded-full ${entry.online ? 'bg-secondary-9' : 'bg-primary-9'}`}
+                          />
+                        ))}
+                      </span>
                     </button>
                   </td>
                 )

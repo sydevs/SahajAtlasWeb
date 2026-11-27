@@ -17,6 +17,8 @@ export interface ListItemProps {
    * online-classes figure, and callers pass the bare glyph.
    */
   icon?: ReactNode
+  /** A short tag after the label, such as an online class's "Online" chip. */
+  tag?: ReactNode
 }
 
 /**
@@ -25,7 +27,7 @@ export interface ListItemProps {
  * lists (its name, then its time and town). One component covers all of them.
  * Only the glyph, the line under the label and the count vary.
  */
-export function ListItem({ label, description, count, href, icon }: ListItemProps) {
+export function ListItem({ label, description, count, href, icon, tag }: ListItemProps) {
   return (
     <ListRow className="min-h-14 py-3" href={href}>
       {icon && (
@@ -34,6 +36,7 @@ export function ListItem({ label, description, count, href, icon }: ListItemProp
       )}
       <div className="flex-grow text-lg">
         {label}
+        {tag && <span className="ms-2 inline-flex align-middle">{tag}</span>}
         {description && <div className="text-sm text-gray-11">{description}</div>}
       </div>
       {/* The count steps down from the title, and ListRow's chevron one
