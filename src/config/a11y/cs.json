@@ -18,7 +18,8 @@
     "copy_address": "Kopírovat adresu"
   },
   "filters": {
-    "remove": "Odebrat: %{label}"
+    "remove": "Odebrat: %{label}",
+    "search_languages": "Hledat jazyky"
   },
   "search": {
     "results_showing": "Zobrazeno lekcí: %{shown} z %{total}",

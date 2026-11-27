@@ -18,7 +18,8 @@
     "copy_address": "Copiază adresa"
   },
   "filters": {
-    "remove": "Elimină %{label}"
+    "remove": "Elimină %{label}",
+    "search_languages": "Caută limbi"
   },
   "search": {
     "results_showing": "Se afișează %{shown} din %{total} cursuri",

@@ -34,6 +34,11 @@ export type UsePopoverOptions = {
   role?: 'menu' | 'dialog' | 'listbox'
   /** Match the panel's width to the trigger's. */
   matchTriggerWidth?: boolean
+  /**
+   * Keep to the side it opened on and cap the panel's height to the room left there, down to the
+   * frame's 16px inset (where a floating side panel ends), so a long panel scrolls inside itself.
+   */
+  fitHeight?: boolean
   /** Toggle on a click of the trigger (default). Off, the caller opens it with `setIsOpen`. */
   toggleOnClick?: boolean
 }
@@ -42,6 +47,7 @@ export function usePopover({
   placement = 'bottom-start',
   role = 'menu',
   matchTriggerWidth = false,
+  fitHeight = false,
   toggleOnClick = true,
 }: UsePopoverOptions = {}) {
   const [isOpen, setIsOpen] = useState(false)
@@ -53,13 +59,23 @@ export function usePopover({
     whileElementsMounted: autoUpdate,
     middleware: [
       offset(8),
-      flip({ padding: 8 }),
+      ...(fitHeight ? [] : [flip({ padding: 8 })]),
       shift({ padding: 8 }),
       ...(matchTriggerWidth
         ? [
             sizeMiddleware({
               apply({ rects, elements }) {
                 elements.floating.style.width = `${rects.reference.width}px`
+              },
+            }),
+          ]
+        : []),
+      ...(fitHeight
+        ? [
+            sizeMiddleware({
+              padding: 16,
+              apply({ availableHeight, elements }) {
+                elements.floating.style.maxHeight = `${Math.max(0, availableHeight)}px`
               },
             }),
           ]

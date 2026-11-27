@@ -60,6 +60,11 @@ export interface DropdownProps {
   className?: string
   /** Make the panel width match the trigger width */
   fullWidth?: boolean
+  /**
+   * Cap the panel to the room below the trigger, down to the frame's inset, so a long panel
+   * scrolls inside itself and ends where a full-height side panel does.
+   */
+  fitHeight?: boolean
 }
 
 const dropdownTrigger = tv({
@@ -71,6 +76,8 @@ const dropdownTrigger = tv({
 const dropdownPanel = tv({
   base: 'z-50 rounded-lg border border-gray-6 bg-gray-2 shadow-xl',
   variants: {
+    // The capped panel lays its one child out as a column, so the child can scroll in what is left.
+    fitHeight: { true: 'flex flex-col', false: '' },
     // `full` matches the trigger width via the floating-ui size middleware, so it
     // imposes no min-width of its own.
     width: {
@@ -121,12 +128,14 @@ export function Dropdown({
   size: sizeVariant = 'md',
   className = '',
   fullWidth = false,
+  fitHeight = false,
 }: DropdownProps) {
   const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
     {
       placement: toPlacement(side, align),
       role: roleProp,
       matchTriggerWidth: fullWidth,
+      fitHeight,
     },
   )
 
@@ -162,7 +171,7 @@ export function Dropdown({
               ref={refs.setFloating}
               style={floatingStyles}
               {...getFloatingProps({ 'aria-label': ariaLabel })}
-              className={dropdownPanel({ width: fullWidth ? 'full' : sizeVariant })}
+              className={dropdownPanel({ width: fullWidth ? 'full' : sizeVariant, fitHeight })}
             >
               {children}
             </div>

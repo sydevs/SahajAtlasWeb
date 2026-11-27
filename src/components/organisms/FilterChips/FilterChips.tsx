@@ -6,6 +6,7 @@ import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { Dropdown } from '@/components/atoms/Dropdown'
+import { HoverLabel } from '@/components/atoms/HoverLabel'
 import {
   DayFilter,
   FormatFilter,
@@ -95,7 +96,7 @@ function ChipMenu({
           <MoreFilters {...block} />
         </>
       )}
-      {menu === 'language' && <LanguageFilter {...block} layout="list" />}
+      {menu === 'language' && <LanguageFilter {...block} layout="menu" />}
       {facets?.counts.total === 0 && (
         <div className="flex flex-col gap-2 border-t border-divider pt-3">
           <p className="text-sm text-foreground" role="status">
@@ -132,6 +133,7 @@ function FilterChip({
 }) {
   return (
     <Dropdown
+      fitHeight
       align="end"
       aria-label={label}
       role="dialog"
@@ -157,7 +159,7 @@ function FilterChip({
         </Button>
       )}
     >
-      <div className="flex max-h-[calc(var(--sy-frame-h,100dvh)-96px)] w-[320px] flex-col gap-5 overflow-y-auto rounded-lg bg-background p-4 text-foreground">
+      <div className="flex min-h-0 w-[320px] flex-col gap-5 overflow-y-auto rounded-lg bg-background p-4 text-foreground">
         {children}
       </div>
     </Dropdown>
@@ -200,11 +202,13 @@ export function FilterChips({ value, onChange, onClear, where, placement }: Filt
       // Over the map the row spans the map between the panel and the map's control column, so it
       // lets every press through but its buttons' own. Physical sides, as the panel and the column
       // have. ⚠ The 352px is the panel's (`DRAWER_W_PX`); the 64px clears the control column's
-      // 40px buttons and its 16px inset (`MapControls`).
+      // 40px buttons and its 16px inset (`MapControls`). Rendered into the map's element, under
+      // that column's corner (z-20), so the column's hover labels draw over the row; `font-sans`
+      // undoes the map element's own Helvetica.
       className={clsx(
         'pointer-events-none flex flex-wrap items-center justify-end gap-2',
         placement === 'map'
-          ? 'fixed top-4 right-[64px] left-[calc(var(--sy-drawer-w,352px)+32px)] z-30'
+          ? 'fixed top-4 right-[64px] left-[calc(var(--sy-drawer-w,352px)+32px)] z-[15] font-sans'
           : 'ms-auto',
       )}
       role="group"
@@ -212,16 +216,19 @@ export function FilterChips({ value, onChange, onClear, where, placement }: Filt
       {/* First in a row that ends on the right, so its arrival moves nothing already there: a
           button whose menu is open must not slide out from under the pointer. */}
       {hasActiveFilters({ ...value, region: null }) && (
-        <Button
-          className="pointer-events-auto"
-          color="neutral"
-          radius="full"
-          variant="floating"
-          onClick={onClear}
-        >
-          <X aria-hidden size={16} />
-          {t('filters.chrome.clear_one')}
-        </Button>
+        <HoverLabel text={t('filters.chrome.clear_one')}>
+          <Button
+            isIconOnly
+            aria-label={t('filters.chrome.clear_one')}
+            className="pointer-events-auto"
+            color="neutral"
+            radius="full"
+            variant="floating"
+            onClick={onClear}
+          >
+            <X aria-hidden size={18} />
+          </Button>
+        </HoverLabel>
       )}
       {where && (where.always || mixesFormats || value.region) && (
         <FilterChip

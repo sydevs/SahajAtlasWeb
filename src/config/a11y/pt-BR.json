@@ -18,7 +18,8 @@
     "copy_address": "Copiar endereço"
   },
   "filters": {
-    "remove": "Remover %{label}"
+    "remove": "Remover %{label}",
+    "search_languages": "Buscar idiomas"
   },
   "search": {
     "results_showing": "Mostrando %{shown} de %{total} aulas",

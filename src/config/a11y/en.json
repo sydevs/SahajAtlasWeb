@@ -18,7 +18,8 @@
     "copy_address": "Copy address"
   },
   "filters": {
-    "remove": "Remove %{label}"
+    "remove": "Remove %{label}",
+    "search_languages": "Search languages"
   },
   "search": {
     "results_showing": "Showing %{shown} of %{total} classes",

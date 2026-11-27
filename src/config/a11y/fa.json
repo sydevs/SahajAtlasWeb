@@ -18,7 +18,8 @@
     "copy_address": "کپی نشانی"
   },
   "filters": {
-    "remove": "حذف %{label}"
+    "remove": "حذف %{label}",
+    "search_languages": "جستجوی زبان‌ها"
   },
   "search": {
     "results_showing": "نمایش %{shown} از %{total} کلاس",

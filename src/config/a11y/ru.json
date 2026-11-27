@@ -18,7 +18,8 @@
     "copy_address": "Копировать адрес"
   },
   "filters": {
-    "remove": "Удалить: %{label}"
+    "remove": "Удалить: %{label}",
+    "search_languages": "Поиск языков"
   },
   "search": {
     "results_showing": "Показано занятий: %{shown} из %{total}",

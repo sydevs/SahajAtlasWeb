@@ -3,8 +3,6 @@ import type { Story, StoryDefault } from '@ladle/react'
 import { useEffect, useMemo } from 'react'
 
 import { SeedSearchParams } from '@/components/ladle'
-import { geojsonQuery } from '@/config/api'
-import { mockCzechGeojson } from '@/mocks/regions'
 import { refuseGeolocation } from '@/mocks/story-geolocation'
 import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
 import { ViewHarness } from '@/views/story-harness'
@@ -15,7 +13,6 @@ export default { title: 'Organisms' } satisfies StoryDefault
 const EXAMPLES = {
   'Nothing chosen': '',
   'Tuesday evening, online': 'days=2&time=evening&format=online',
-  'Czech classes': '',
   'Location refused': '',
 } as const
 
@@ -27,7 +24,6 @@ type Example = keyof typeof EXAMPLES
  * answer is filled and names it, and Clear leads the row once anything is chosen. Over the map the
  * row sits at its top right; this story shows it on its own, as the calendar's header carries it.
  *
- * - **Czech classes**: press Language for Czech and English, each with its count.
  * - **Location refused**: this browser refuses the location. Press Where, then Near me, for the
  *   message and its way on to the search box.
  */
@@ -38,14 +34,7 @@ export const FilterChipsStory: Story<{ example: Example }> = ({ example }) => {
   useEffect(() => (example === 'Location refused' ? refuseGeolocation() : undefined), [example])
 
   return (
-    <ViewHarness
-      path="/search"
-      seed={(client) => {
-        if (example === 'Czech classes')
-          client.setQueryData(geojsonQuery().queryKey, mockCzechGeojson)
-      }}
-      seedKey={`filter-chips-${example}`}
-    >
+    <ViewHarness path="/search" seedKey={`filter-chips-${example}`}>
       <SeedSearchParams params={params}>
         <div className="flex justify-end p-4">
           <FilterChipBar placement="inline" />

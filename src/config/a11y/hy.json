@@ -18,7 +18,8 @@
     "copy_address": "Պատճենել հասցեն"
   },
   "filters": {
-    "remove": "Հեռացնել՝ %{label}"
+    "remove": "Հեռացնել՝ %{label}",
+    "search_languages": "Որոնել լեզուներ"
   },
   "search": {
     "results_showing": "Ցուցադրված՝ %{shown}, ընդամենը՝ %{total} դաս",

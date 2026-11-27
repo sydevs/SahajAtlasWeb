@@ -18,7 +18,8 @@
     "copy_address": "Copiar dirección"
   },
   "filters": {
-    "remove": "Quitar %{label}"
+    "remove": "Quitar %{label}",
+    "search_languages": "Buscar idiomas"
   },
   "search": {
     "results_showing": "Mostrando %{shown} de %{total} clases",

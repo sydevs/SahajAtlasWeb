@@ -18,7 +18,8 @@
     "copy_address": "Adres kopiëren"
   },
   "filters": {
-    "remove": "%{label} verwijderen"
+    "remove": "%{label} verwijderen",
+    "search_languages": "Talen zoeken"
   },
   "search": {
     "results_showing": "%{shown} van %{total} lessen weergegeven",

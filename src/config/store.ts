@@ -395,6 +395,13 @@ type MapControlsState = {
   /** True while the filter buttons' Where menu offers Near me, which asks the same question. */
   findMeHidden: boolean
   setFindMeHidden: (hidden: boolean) => void
+  /**
+   * The map's own element, once it is on screen. Something drawn over the map that must sit under
+   * the map's controls (the filter buttons, under the column's hover labels) renders into it, so
+   * the two share one stacking order.
+   */
+  container: HTMLElement | null
+  setContainer: (container: HTMLElement | null) => void
 }
 
 /**
@@ -407,6 +414,8 @@ export const useMapControls = create<MapControlsState>((set) => ({
   setHidden: (hidden) => set(() => ({ hidden })),
   findMeHidden: false,
   setFindMeHidden: (findMeHidden) => set(() => ({ findMeHidden })),
+  container: null,
+  setContainer: (container) => set(() => ({ container })),
 }))
 
 type BrowsedCountryState = {

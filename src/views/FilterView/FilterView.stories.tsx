@@ -8,7 +8,7 @@ import { ViewHarness } from '@/views/story-harness'
 import { FilterView } from '@/views/FilterView/FilterView'
 import { geojsonQuery } from '@/config/api'
 import { mockEventSlim } from '@/mocks/events'
-import { mockCzechGeojson, mockGeojson } from '@/mocks/regions'
+import { mockGeojson } from '@/mocks/regions'
 import { refuseGeolocation } from '@/mocks/story-geolocation'
 
 export default { title: 'Views' } satisfies StoryDefault
@@ -20,7 +20,6 @@ const EXAMPLES = {
   'No match': 'days=1&time=evening',
   'No single way out': 'days=2&time=evening',
   'Night classes': '',
-  'Czech classes': '',
   'Location refused': '',
 } as const
 
@@ -56,8 +55,8 @@ const withNightClass = () => {
  * button reads Close; with an answer, "Show N classes" beside Clear all; when nothing matches it
  * says so and offers the one removal that brings the most classes back, or makes Clear all the way
  * out when no single removal helps. The language options and counts resolve from the cached feed
- * the harness seeds. **Czech classes** offers Czech and English with their counts. **Location
- * refused** stands in a browser that refuses the location: press Near me for the message.
+ * the harness seeds. **Location refused** stands in a browser that refuses the location: press
+ * Near me for the message.
  *
  * **No error case, deliberately.** Every read here is non-suspense — `useQuery` for the feed,
  * `useRegionMatcher` over the cached region tree — so this view cannot reach an error boundary
@@ -78,8 +77,6 @@ export const Default: Story<{ example: Example }> = ({ example }) => {
         if (example === 'Night classes') {
           client.setQueryData(geojsonQuery().queryKey, withNightClass())
         }
-        if (example === 'Czech classes')
-          client.setQueryData(geojsonQuery().queryKey, mockCzechGeojson)
       }}
       seedKey={`filter-${example}`}
     >

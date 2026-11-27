@@ -4,7 +4,7 @@ import type { LocateState } from './use-locate'
 import { memo, type Ref, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { useControl } from 'react-map-gl/mapbox'
+import { useControl, useMap } from 'react-map-gl/mapbox'
 import { LocateFixed } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
@@ -83,6 +83,15 @@ export const MapControls = memo(function MapControls({
   )
 
   useEffect(() => column.hide(hidden), [column, hidden])
+
+  const { current: map } = useMap()
+  const setContainer = useMapControls((s) => s.setContainer)
+
+  useEffect(() => {
+    setContainer(map?.getContainer() ?? null)
+
+    return () => setContainer(null)
+  }, [map, setContainer])
 
   const locateLabel = t('common.map.find_my_location')
 

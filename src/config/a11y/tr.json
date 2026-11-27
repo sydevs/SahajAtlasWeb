@@ -18,7 +18,8 @@
     "copy_address": "Adresi kopyala"
   },
   "filters": {
-    "remove": "Kaldır: %{label}"
+    "remove": "Kaldır: %{label}",
+    "search_languages": "Dil ara"
   },
   "search": {
     "results_showing": "%{total} dersin %{shown} tanesi gösteriliyor",

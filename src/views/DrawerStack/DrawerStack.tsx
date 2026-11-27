@@ -251,6 +251,7 @@ export function DrawerStack() {
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
   const filterRow = filterRowPlace({ chipsWide, hasMap, top: top?.kind, calendarFullWidth: wide })
   const setFindMeHidden = useMapControls((s) => s.setFindMeHidden)
+  const mapContainer = useMapControls((s) => s.container)
 
   useEffect(() => {
     setFindMeHidden(filterRow === 'map')
@@ -775,7 +776,6 @@ export function DrawerStack() {
                 className="pointer-events-none fixed top-0 h-0 w-0"
               />
               {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
-              {filterRow === 'map' && <FilterChipBar placement="map" />}
             </>,
             target,
           )}
@@ -804,6 +804,10 @@ export function DrawerStack() {
           {sheet}
         </Drawer>
         {filterDrawer}
+        {/* In the map's own element, so the row sits under the map's controls and their labels. */}
+        {filterRow === 'map' &&
+          mapContainer &&
+          createPortal(<FilterChipBar placement="map" />, mapContainer)}
       </DrawerControlContext.Provider>
     </WidthContexts>
   )
