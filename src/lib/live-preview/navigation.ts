@@ -27,15 +27,15 @@ export function shouldBlockPreviewLink(rawHref: string | null | undefined): bool
 
 /**
  * The routes the preview is allowed to sit on, anchored at the previewed doc's own page.
- * An event may also open its register/share drawers. A region is pinned to its own page.
+ * An event may also open its register drawer. A region is pinned to its own page.
  * Anything else — a subregion, another event, a dismissed drawer landing on a parent —
  * snaps back to `previewPath`.
  */
 export function allowedLivePreviewPaths(previewPath: string, kind: 'event' | 'region'): string[] {
   if (kind === 'event') {
-    // The event's over-drawers — mirrors the register/share entries resolveStack
-    // appends (src/lib/shape/path.ts). Keep in sync if an event gains another.
-    return [previewPath, `${previewPath}/register`, `${previewPath}/share`]
+    // The event's over-drawer — mirrors the register entry resolveStack appends
+    // (src/lib/shape/path.ts). Keep in sync if an event gains another.
+    return [previewPath, `${previewPath}/register`]
   }
 
   return [previewPath]
@@ -48,7 +48,7 @@ export function allowedLivePreviewPaths(previewPath: string, kind: 'event' | 're
  * terminal segment as a region slug whatever the segment is, so `/preview` would resolve to a
  * region called "preview" and the controller would try to render it. Every routed word is
  * already enumerated in `RESERVED_SLUGS`, `'preview'` included, so one guard covers the boot
- * route and `/…/register` and `/…/share` at the same time.
+ * route and `/…/register` at the same time.
  *
  * `/preview` resolving to nothing is the CORRECT answer, not a gap: it is the boot route for
  * `user-submissions`, whose render-ready shape rides the message payload rather than the

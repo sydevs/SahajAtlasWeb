@@ -84,17 +84,20 @@ describe('isSafeHref — allows', () => {
   // any of these would be worse than the status quo it replaced, so they are pinned here in
   // the shape their producers emit rather than left to the components' specs.
   it.each([
-    // `directionsUrl` (`lib/events.ts`) — the Directions action, Google and Apple Maps.
-    'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
+    // `directionsHref` (`lib/maps/providers.ts`) — rows of the Directions menu.
+    'https://www.google.com/maps/dir/?api=1&destination=51.5,-0.12',
     'https://maps.apple.com/?daddr=51.5,-0.12',
+    'https://yandex.com/maps/?rtext=~51.5,-0.12&rtt=auto',
+    'https://www.openstreetmap.org/directions?route=%3B51.5%2C-0.12',
     // `buildGoogleCalendarUrl` (`lib/ics.ts`) — a calendar-menu row.
     'https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fcloud.example%2Ff.ics',
     // `buildFeedSubscribeUrl` (`lib/ics.ts`) — the Apple row, and the string inside `cid`.
     'webcal://cloud.example/api/events/calendar/eyJhb.eyJldg.s1gn.ics',
     // ReportIssueForm's contact Button.
     'mailto:atlas@sydevelopers.com',
-    // EventActions' contact button, and the Fallbacks contact Link.
+    // EventActions' Contact menu, and the Fallbacks contact Link.
     'tel:+4402012345678',
+    'https://wa.me/4402012345678',
   ])('%j — a real production href keeps working', (href) => {
     expect(isSafeHref(href)).toBe(true)
   })

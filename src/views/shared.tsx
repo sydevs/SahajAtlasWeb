@@ -404,7 +404,7 @@ export function useFrameableRegion(regionSlug: string | undefined): Region | und
 }
 
 /**
- * Frames an event-level view (the event, its register and share drawers) on the map.
+ * Frames an event-level view (the event, its register drawer) on the map.
  *
  * An event with no stored point, typically an online one, has nothing for `frameEvent` to fly
  * to. Without this fallback a deep link to it left the camera on the boot-time world view.
@@ -425,8 +425,8 @@ export function useFrameEventOnTop(event: Event) {
   )
 }
 
-// RegistrationView and ShareView both resolve an event from its route path, and suspense-fetch
-// it. This is shared here, so the resolvePath-plus-queryKey convention stays in one place.
+// RegistrationView resolves an event from its route path, and suspense-fetches it. This lives
+// here, so the resolvePath-plus-queryKey convention stays in one place.
 // EventView, one level up in the stack, already fetches the same event. TanStack Query's
 // `['event', id, locale]` cache serves this call from that fetch, not a fresh network round
 // trip. `resolveStack` derives `eventPath` from the raw preceding URL segment, without checking
