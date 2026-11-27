@@ -39,7 +39,7 @@ vi.mock('@/hooks/use-near-me', () => ({ useNearVisitor: () => false }))
 
 const whereFor = (filters: Partial<EventFilters>, search = '', pathname = '/search') => {
   Object.assign(state, { filters: { ...DEFAULT_FILTERS, ...filters }, search, pathname })
-  renderToStaticMarkup(<FilterMenuBar placement="map" />)
+  renderToStaticMarkup(<FilterMenuBar variant="floating" />)
 
   return state.props?.where
 }

@@ -32,12 +32,12 @@ const summarize = (parts: (string | false | null | undefined)[]): string =>
 
 type Menu = 'where' | 'when' | 'language'
 
-type Placement = 'map' | 'toolbar'
+type Variant = 'inline' | 'floating'
 
-// Over the map a button floats; in a toolbar it sits with the toolbar's own controls, smaller and
-// unlifted. Filled, it takes the primary fill either way.
-const trigger = (placement: Placement, filled: boolean) =>
-  placement === 'map'
+// Floating over the map, a button is lifted off it; inline in a toolbar it sits with the toolbar's
+// own controls, smaller and unlifted. Filled, it takes the primary fill either way.
+const trigger = (variant: Variant, filled: boolean) =>
+  variant === 'floating'
     ? ({ variant: 'floating', size: 'md', color: filled ? 'primary' : 'neutral' } as const)
     : ({
         variant: filled ? 'solid' : 'bordered',
@@ -67,10 +67,10 @@ export type FilterMenusProps = {
   /** The Where button, supplied by the view. Absent, there is none. */
   where?: FilterMenusWhere
   /**
-   * `map`: floating buttons beside the map's own controls, in Mapbox's control corner.
-   * `toolbar`: smaller bordered buttons inline in a view's toolbar, such as the calendar's.
+   * `inline` (default): smaller bordered buttons in a view's toolbar, such as the calendar's.
+   * `floating`: buttons lifted off the map, beside its own controls in Mapbox's control corner.
    */
-  placement: Placement
+  variant?: Variant
 }
 
 /**
@@ -140,13 +140,13 @@ function FilterMenu({
   label,
   summary,
   filled = summary !== '',
-  placement,
+  variant,
   children,
 }: {
   label: string
   summary: string
   filled?: boolean
-  placement: Placement
+  variant: Variant
   children: ReactNode
 }) {
   return (
@@ -158,8 +158,8 @@ function FilterMenu({
       trigger={(props) => (
         <Button
           {...props}
-          {...trigger(placement, filled)}
-          className={clsx('max-w-56', placement === 'toolbar' && !filled && 'border-gray-6')}
+          {...trigger(variant, filled)}
+          className={clsx('max-w-56', variant === 'inline' && !filled && 'border-gray-6')}
           radius="full"
         >
           <span className="truncate">
@@ -188,7 +188,13 @@ function FilterMenu({
  * own questions (`shownGroups`) from the same blocks. Fully controlled: every tap reports the next
  * answers at once. A button with an answer is filled and names it ("Tue · Evening").
  */
-export function FilterMenus({ value, onChange, onClear, where, placement }: FilterMenusProps) {
+export function FilterMenus({
+  value,
+  onChange,
+  onClear,
+  where,
+  variant = 'inline',
+}: FilterMenusProps) {
   const { t, formatLocale, languageLabel } = useLocale()
   const scope = useFilterScope(value)
   const weekdays = weekdayNames(formatLocale, 'short')
@@ -224,20 +230,20 @@ export function FilterMenus({ value, onChange, onClear, where, placement }: Filt
     value.format !== 'any' ||
     Boolean(scope?.some(isOnline) && scope.some((event) => !isOnline(event)))
 
-  // Clear leads a row that ends on the right, in either placement, so its arrival moves nothing
+  // Clear leads a row that ends on the right, in either variant, so its arrival moves nothing
   // already there (a button whose menu is open must not slide out from under the pointer), and in
   // a toolbar it is not read as the view's own close button in the corner.
   const clear = hasActiveFilters({ ...value, region: null }) && (
     <HoverLabel text={t('filters.chrome.clear')}>
       <Button
         isIconOnly
-        {...trigger(placement, false)}
+        {...trigger(variant, false)}
         aria-label={t('filters.chrome.clear')}
-        className={clsx(placement === 'toolbar' && 'border-gray-6')}
+        className={clsx(variant === 'inline' && 'border-gray-6')}
         radius="full"
         onClick={onClear}
       >
-        <X aria-hidden size={placement === 'map' ? 18 : 16} />
+        <X aria-hidden size={variant === 'floating' ? 18 : 16} />
       </Button>
     </HoverLabel>
   )
@@ -251,7 +257,7 @@ export function FilterMenus({ value, onChange, onClear, where, placement }: Filt
       // wraps rather than running under the panel. `font-sans` undoes the map's own Helvetica.
       className={clsx(
         'flex flex-wrap items-center justify-end gap-2',
-        placement === 'map'
+        variant === 'floating'
           ? 'max-w-[calc(100cqw-var(--sy-drawer-w,352px)-96px)] font-sans'
           : 'ms-auto',
       )}
@@ -262,24 +268,24 @@ export function FilterMenus({ value, onChange, onClear, where, placement }: Filt
         <FilterMenu
           filled={where.placeAnswered || value.format !== 'any'}
           label={t('filters.where.label')}
-          placement={placement}
           summary={whereSummary}
+          variant={variant}
         >
           <MenuBody {...menu} menu="where" />
         </FilterMenu>
       )}
-      <FilterMenu label={t('filters.when.label')} placement={placement} summary={whenSummary}>
+      <FilterMenu label={t('filters.when.label')} summary={whenSummary} variant={variant}>
         <MenuBody {...menu} menu="when" />
       </FilterMenu>
       {hasLanguages && (
         <FilterMenu
           label={t('filters.language.label')}
-          placement={placement}
           summary={
             value.languages.length > MAX_NAMED
               ? t('filters.language.count', { count: value.languages.length })
               : value.languages.map(languageLabel).join(', ')
           }
+          variant={variant}
         >
           <MenuBody {...menu} menu="language" />
         </FilterMenu>

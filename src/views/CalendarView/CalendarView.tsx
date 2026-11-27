@@ -216,7 +216,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
         </div>
 
         {/* Where the calendar covers the map, its filter menus are part of its toolbar. */}
-        {inHeader && <FilterMenuBar placement="toolbar" />}
+        {inHeader && <FilterMenuBar />}
         <FilterButton />
       </div>
     </>

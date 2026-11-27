@@ -4,7 +4,7 @@ import { useLocation, useSearchParams } from 'react-router'
 import { usePanelFilters } from './use-panel-filters'
 import { WhereFilter } from './WhereFilter'
 
-import { FilterMenus } from '@/components/organisms/FilterMenus'
+import { FilterMenus, type FilterMenusProps } from '@/components/organisms/FilterMenus'
 import { regionsQuery } from '@/config/api'
 import { useSearchFocus } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
@@ -24,7 +24,7 @@ const focusSearch = () => {
  * The filter buttons wired to the URL (`usePanelFilters`), with the Where menu's place half, which
  * needs the router and the geocoder.
  */
-export function FilterMenuBar({ placement }: { placement: 'map' | 'toolbar' }) {
+export function FilterMenuBar({ variant }: Pick<FilterMenusProps, 'variant'>) {
   const { t } = useLocale()
   const { filters, write, clear, pickPlace, clearWhere } = usePanelFilters()
   const [searchParams] = useSearchParams()
@@ -36,8 +36,8 @@ export function FilterMenuBar({ placement }: { placement: 'map' | 'toolbar' }) {
 
   return (
     <FilterMenus
-      placement={placement}
       value={filters}
+      variant={variant}
       where={{
         place: center
           ? nearMe

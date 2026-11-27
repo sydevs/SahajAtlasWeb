@@ -31,8 +31,8 @@ const where = (overrides: Partial<FilterMenusWhere> = {}): FilterMenusWhere => (
 const render = (value: Partial<EventFilters> = {}, whereProps?: Partial<FilterMenusWhere>) =>
   renderToStaticMarkup(
     <FilterMenus
-      placement="map"
       value={{ ...DEFAULT_FILTERS, ...value }}
+      variant="floating"
       where={where(whereProps)}
       onChange={() => {}}
       onClear={() => {}}
@@ -123,7 +123,6 @@ describe('FilterMenus — in a toolbar', () => {
     const shown = buttons(
       renderToStaticMarkup(
         <FilterMenus
-          placement="toolbar"
           value={{ ...DEFAULT_FILTERS, daysOfWeek: [2] }}
           where={where()}
           onChange={() => {}}

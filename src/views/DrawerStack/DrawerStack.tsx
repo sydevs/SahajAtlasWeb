@@ -801,7 +801,7 @@ export function DrawerStack() {
         {/* Beside the map's own buttons, in the control Mapbox places (`MapControls`). */}
         {filterRow === 'map' &&
           menuSlot &&
-          createPortal(<FilterMenuBar placement="map" />, menuSlot)}
+          createPortal(<FilterMenuBar variant="floating" />, menuSlot)}
       </DrawerControlContext.Provider>
     </WidthContexts>
   )
