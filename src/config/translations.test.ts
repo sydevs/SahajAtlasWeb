@@ -217,6 +217,8 @@ describe('every key a call site asks for', () => {
  * Delete an entry in the PR that wires it: the pin below fails until you do.
  */
 const PENDING_KEYS: Record<string, string> = {
+  'filters.language.count': 'sydevs/SahajCloud#1307',
+  'filters.when.count': 'sydevs/SahajCloud#1307',
   'event.actions.copy_number': 'sydevs/SahajCloud#1304',
   'filters.when.label': 'sydevs/SahajCloud#1302',
   'filters.where.scope': 'sydevs/SahajCloud#1302',
@@ -247,9 +249,6 @@ const RETIRING_KEYS: Record<string, string> = {
   'registration.form.okay': 'sydevs/SahajCloud#1294',
   'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',
   'registration.form.starting_date': 'sydevs/SahajCloud#1294',
-  'share.title': 'sydevs/SahajCloud#1290',
-  'common.errors.share_unavailable_class': 'sydevs/SahajCloud#1290',
-  'share.title_class': 'sydevs/SahajCloud#1290',
 }
 
 describe('every key the snapshot holds', () => {

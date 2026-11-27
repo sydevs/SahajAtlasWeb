@@ -13,7 +13,7 @@
     "see_calendar": "See calendar",
     "see_list": "See list",
     "share_title": "Meditation classes, %{dates}",
-    "times_note": "Times are local to each class. Online classes show your time (%{zone}).",
+    "times_note": "Online class times are in your time zone (%{zone}).",
     "title": "Calendar",
     "view_list": "List",
     "view_month": "Month",
@@ -48,7 +48,6 @@
       "retry": "Try again",
       "search_label": "Or search for a place",
       "server": "Our servers are having trouble right now.",
-      "share_unavailable_class": "There is no link to share for this class yet.",
       "unavailable": "This program can’t be joined right now."
     },
     "feedback": {
@@ -175,7 +174,7 @@
     "chrome": {
       "any_time": "Any time",
       "apply": "Apply",
-      "clear": "Clear all",
+      "clear": "Clear filters",
       "clear_one": "Clear",
       "no_match": "No classes match",
       "no_results_classes": "No classes match your filters.",
@@ -205,6 +204,8 @@
     },
     "language": {
       "all": "All languages",
+      "count_one": "%{count} language",
+      "count_other": "%{count} languages",
       "label": "Language"
     },
     "more": {
@@ -218,6 +219,8 @@
       "night": "Night"
     },
     "when": {
+      "count_one": "%{count} timing",
+      "count_other": "%{count} timings",
       "label": "When"
     },
     "where": {
@@ -300,8 +303,6 @@
     "qr_download": "Download for printing",
     "qr_failed": "The QR code didn’t load. Check your connection, then close and reopen this.",
     "qr_hint": "Print this on posters or flyers. People can point their phone camera at it to open this class.",
-    "qr_title": "QR code for posters",
-    "title": "Share Meditation",
-    "title_class": "Share this class"
+    "qr_title": "QR code for posters"
   }
 }
