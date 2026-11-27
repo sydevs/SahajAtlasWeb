@@ -34,9 +34,12 @@ type VagueAddress = Pick<EventAddress, 'street' | 'city'>
 
 export const isOnline = (event: EventLike): boolean => event.eventType === 'online'
 
-// Accents folded off, so a street compares against its town exactly as `streetAndCity` compares
-// them (`localeCompare` at `sensitivity: 'base'`), in a form the prefix strip below can slice.
-const fold = (text?: string | null) =>
+/**
+ * Text with its accents and case folded off and its ends trimmed, so "ces" finds "Čeština" and a
+ * street compares against its town as `localeCompare` does at `sensitivity: 'base'`, in a form a
+ * prefix strip can slice.
+ */
+export const foldAccents = (text?: string | null) =>
   (text ?? '')
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
@@ -71,7 +74,7 @@ const NO_PLACE_STREETS = new Set(
     'city center',
     'cbd',
     'downtown',
-  ].map(fold),
+  ].map(foldAccents),
 )
 
 /**
@@ -88,8 +91,8 @@ const NO_PLACE_STREETS = new Set(
 export const hasVagueAddress = (address?: VagueAddress | null): boolean => {
   if (!address) return false
 
-  const city = fold(address.city)
-  const street = fold(address.street)
+  const city = foldAccents(address.city)
+  const street = foldAccents(address.street)
   const afterCity = city && street.startsWith(city) ? street.slice(city.length) : street
 
   return NO_PLACE_STREETS.has(afterCity.replace(/^[\s,]+/, ''))

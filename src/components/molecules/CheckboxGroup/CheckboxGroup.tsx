@@ -3,6 +3,7 @@ import { Search } from 'lucide-react'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
 import { Input } from '@/components/atoms/Input'
+import { foldAccents } from '@/lib/shape'
 import { tv } from '@/styles/tv'
 
 export type CheckboxGroupOption = {
@@ -36,13 +37,6 @@ const group = tv({
   },
 })
 
-// Case- and accent-blind, so "ces" finds "Čeština".
-const fold = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-
 /**
  * A list of checkboxes, each with an optional count at its end. A long list (more than
  * `searchableAbove` options) gets a search box at its top, and keeps what is checked at its top,
@@ -66,7 +60,7 @@ export function CheckboxGroup({
       ]
     : options
   const shown = query
-    ? ordered.filter((option) => fold(option.label).includes(fold(query)))
+    ? ordered.filter((option) => foldAccents(option.label).includes(foldAccents(query)))
     : ordered
 
   const toggle = (option: string) =>
