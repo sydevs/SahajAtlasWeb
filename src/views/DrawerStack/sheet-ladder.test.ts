@@ -5,10 +5,10 @@ import {
   FIT_SNAP,
   heldFoldPx,
   OPEN_SNAP,
-  opensTall,
   PEEK_SNAP,
   resolveStop,
   sheetLadder,
+  sheetOpening,
   SNAP_POINTS,
 } from './sheet-ladder'
 
@@ -156,12 +156,26 @@ describe('resolveStop', () => {
   })
 })
 
-describe('opensTall', () => {
-  it('opens the calendar and the sign-up form at the near-full snap, and nothing else', () => {
-    expect(opensTall('calendar')).toBe(true)
-    expect(opensTall('register')).toBe(true)
-    expect(opensTall('event')).toBe(false)
-    expect(opensTall('share')).toBe(false)
-    expect(opensTall(undefined)).toBe(false)
+describe('sheetOpening', () => {
+  it('opens the calendar and the sign-up form near full', () => {
+    expect(sheetOpening('calendar')).toBe('tall')
+    expect(sheetOpening('register')).toBe('tall')
+  })
+
+  it('fits a class, its share panel and the filters to their content', () => {
+    expect(['event', 'share', 'filters'].map((kind) => sheetOpening(kind as never))).toEqual([
+      'fit',
+      'fit',
+      'fit',
+    ])
+  })
+
+  it('keeps the open stop for the lists and the root', () => {
+    expect(['search', 'region', 'online'].map((kind) => sheetOpening(kind as never))).toEqual([
+      'open',
+      'open',
+      'open',
+    ])
+    expect(sheetOpening(undefined)).toBe('open')
   })
 })

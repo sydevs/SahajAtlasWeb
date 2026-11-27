@@ -63,10 +63,10 @@ import {
   FIT_SNAP,
   heldFoldPx,
   OPEN_SNAP,
-  opensTall,
   PEEK_SNAP,
   resolveStop,
   sheetLadder,
+  sheetOpening,
 } from '@/views/DrawerStack/sheet-ladder'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
@@ -275,16 +275,10 @@ export function DrawerStack() {
 
   const canCollapse = hasMap && direction === 'bottom'
 
-  // A class opens as tall as its content and footer, up to the near-full snap. At the
-  // third-height snap the sticky Register bar covered the address, and on a small phone it
-  // sliced the "Next session" line in half. It never opens lower than that snap: the loading
-  // skeleton is short, and a sheet that dipped under it would only climb again once the class
-  // arrived. One drag down stops at its key facts (`sheetLadder`), with the class's pin above.
-  // Share opens the same way, so its last row (the poster QR code) is in view without a drag.
+  // How tall the top view opens on a phone (`sheetOpening` says why each one does).
+  const opening = sheetOpening(top?.kind)
   const classView = top?.kind === 'event'
-  // The filters open just tall enough to show every question and their bottom button, and grow
-  // as a question opens. The calendar's overlay is a drawer of its own, at full height.
-  const fitsContent = classView || top?.kind === 'share' || top?.kind === 'filters'
+  const fitsContent = opening === 'fit'
   // Keys the open stop per class, so class B tapped after class A opens at B's own fit.
   const openedClass = classView ? location.pathname : null
   const { fit, fold: measuredFold } = useFitSnap(canCollapse && fitsContent, location.pathname)
@@ -497,18 +491,17 @@ export function DrawerStack() {
     }
   }, [canCollapse])
 
-  // A few views open at the near-full snap on mobile (`opensTall`), the views that fit their
-  // content open as tall as it, and every other view keeps the third-height open snap. Keyed on
-  // the view KIND (not `wide`), so switching the calendar between month/week/list keeps it tall.
-  // This runs only when the top view changes, so it never fights a manual drag within one.
+  // Each view opens at its own height (`sheetOpening`). Keyed on the view KIND (not `wide`), so
+  // switching the calendar between month/week/list keeps it tall. This runs only when the top
+  // view changes, so it never fights a manual drag within one.
   useEffect(() => {
     if (direction !== 'bottom') return
 
     const landTall = resultsTall.current
 
     resultsTall.current = false
-    setSnap(opensTall(top?.kind) || landTall ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
-  }, [direction, fitsContent, top?.kind, openedClass])
+    setSnap(opening === 'tall' || landTall ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
+  }, [direction, opening, fitsContent, top?.kind, openedClass])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this

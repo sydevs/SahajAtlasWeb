@@ -17,13 +17,32 @@ export const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
 export const FIT_SNAP = 'fit'
 
 /**
- * The views a bottom sheet opens at its near-full snap: the calendar, whose month grid and list
- * both need the height, and the sign-up form, whose fields and Register must show without a drag.
+ * How tall a phone sheet opens: near full (`tall`), as tall as its content (`fit`), or the
+ * third-height open stop (`open`). Total over the view kinds, so a new view picks one.
  */
-const OPENS_TALL: ReadonlySet<StackEntry['kind']> = new Set(['calendar', 'register'])
+export type SheetOpening = 'tall' | 'fit' | 'open'
 
-export const opensTall = (kind: StackEntry['kind'] | undefined): boolean =>
-  kind !== undefined && OPENS_TALL.has(kind)
+const SHEET_OPENING: Record<StackEntry['kind'], SheetOpening> = {
+  // Its month grid and its list both need the height, whichever of month/week/list shows.
+  calendar: 'tall',
+  // The fields and Register show without a drag.
+  register: 'tall',
+  // Content and footer, up to near full. At the open stop the sticky Register bar covered the
+  // address and sliced the "Next session" line in half; it never opens lower than that stop,
+  // and one drag down stops at its key facts (`sheetLadder`).
+  event: 'fit',
+  // Its last row, the poster QR code, in view without a drag.
+  share: 'fit',
+  // Every question and the bottom button, growing as a question opens.
+  filters: 'fit',
+  search: 'open',
+  region: 'open',
+  online: 'open',
+}
+
+/** The opening for the top view; the root list, with no view over it, keeps the open stop. */
+export const sheetOpening = (kind: StackEntry['kind'] | undefined): SheetOpening =>
+  kind === undefined ? 'open' : SHEET_OPENING[kind]
 
 type Stop = number | string | null
 
