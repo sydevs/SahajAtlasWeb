@@ -93,17 +93,10 @@ describe('ShareContent — Share', () => {
     await renderBlock()
     await press('share.native')
 
-    // VK is in Russia's list alone, so finding it proves the popover holds the region's. The
-    // targets are their own chunk, so they arrive a moment after the popover does.
-    const vk = await vi.waitFor(() => {
-      const button = popover()?.querySelector<HTMLButtonElement>('[aria-label="Share on VK"]')
-
-      if (!button) throw new Error('the targets have not arrived')
-
-      return button
-    })
-
-    await act(async () => vk.click())
+    // VK is in Russia's list alone, so finding it proves the popover holds the region's.
+    await act(async () =>
+      popover()?.querySelector<HTMLButtonElement>('[aria-label="Share on VK"]')?.click(),
+    )
 
     expect(open).toHaveBeenCalledOnce()
     expect(popover()).toBeNull()
@@ -117,21 +110,15 @@ describe('ShareContent — Share', () => {
     await renderBlock()
     await press('share.native')
 
-    const copy = await vi.waitFor(() => {
-      const button = [...(popover()?.querySelectorAll('button') ?? [])].find(
-        (candidate) => candidate.textContent === 'share.copy_link',
-      )
+    const copy = [...(popover()?.querySelectorAll('button') ?? [])].find(
+      (button) => button.textContent === 'share.copy_link',
+    )
 
-      if (!button) throw new Error('the targets have not arrived')
-
-      return button
-    })
-
-    await act(async () => copy.click())
+    await act(async () => copy?.click())
 
     expect(writeText).toHaveBeenCalledWith(url)
     expect(popover()).not.toBeNull()
-    expect(copy.textContent).toBe('share.link_copied')
+    expect(copy?.textContent).toBe('share.link_copied')
   })
 
   // Once a refusal has opened the popover, the button closes it rather than asking again.

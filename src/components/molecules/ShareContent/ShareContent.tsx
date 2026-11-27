@@ -1,24 +1,17 @@
-import { Suspense, lazy, type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
-import { ErrorBoundary } from 'react-error-boundary'
 import { Check, Link, Share } from 'lucide-react'
 
 import { CopyFailedCaption } from './CopyFailed'
+import { CopyLinkTarget } from './CopyLinkTarget'
+import { ShareTargets } from './platform-buttons'
 
 import { Button, type ButtonProps } from '@/components/atoms/Button'
-import { Spinner } from '@/components/atoms/Spinner'
 import { useCopy } from '@/hooks/use-copy'
 import { usePopover } from '@/hooks/use-popover'
 import { useWebShare } from '@/hooks/use-web-share'
 import { overlayContainer } from '@/lib/overlay'
-import { reportInternalError } from '@/lib/report'
-
-// react-share is only drawn where the device has no share sheet, and only once Share is pressed,
-// so it is its own chunk rather than a cost on every class page (#96). Minted per failure, not
-// once: React caches a rejected `lazy` forever, so a dropped chunk would otherwise stay dropped.
-const importTargets = () => import('./platform-buttons')
-const loadTargets = () => lazy(() => importTargets().then((m) => ({ default: m.ShareTargets })))
 
 // The button itself changes, under the visitor's thumb, so the answer is where they are already
 // looking. The raw URL stays below as a caption, to show what is shared and to select by
@@ -68,7 +61,6 @@ export type ShareButtonProps = ShareContentProps &
 export function ShareButton({ label, url, country, children, ...skin }: ShareButtonProps) {
   const { t } = useTranslation()
   const { canShare, share } = useWebShare()
-  const [ShareTargets, setShareTargets] = useState(loadTargets)
   const { isOpen, setIsOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } =
     usePopover({ placement: 'bottom', role: 'dialog', toggleOnClick: false })
 
@@ -82,12 +74,7 @@ export function ShareButton({ label, url, country, children, ...skin }: ShareBut
       <Button
         ref={refs.setReference}
         {...skin}
-        {...getReferenceProps({
-          onClick: () => void onClick(),
-          // Start the targets' chunk on the way in, where the popover is what Share will open.
-          onFocus: () => void (canShare || importTargets()),
-          onPointerEnter: () => void (canShare || importTargets()),
-        })}
+        {...getReferenceProps({ onClick: () => void onClick() })}
       >
         {children}
       </Button>
@@ -102,33 +89,16 @@ export function ShareButton({ label, url, country, children, ...skin }: ShareBut
               style={floatingStyles}
               {...getFloatingProps({ 'aria-label': t('share.native') })}
             >
-              {/* Without its chunk the link itself is still something to share by hand. */}
-              <ErrorBoundary
-                fallbackRender={() => (
-                  <p className="max-w-[288px] text-xs break-all text-gray-11 select-all">{url}</p>
-                )}
-                onError={(error) => {
-                  reportInternalError(error, 'share targets')
-                  setShareTargets(() => loadTargets())
-                }}
+              {/* A network hands over to its page or the mail app, so the popover goes with it.
+                  Copy link answers in place, so it stays. */}
+              <ShareTargets
+                country={country}
+                title={label}
+                url={url}
+                onPick={() => setIsOpen(false)}
               >
-                <Suspense
-                  fallback={
-                    <div className="flex h-24 w-[288px] items-center justify-center">
-                      <Spinner color="secondary" size="sm" srLabel={t('common.a11y.loading')} />
-                    </div>
-                  }
-                >
-                  {/* A network hands over to its page or the mail app, so the popover goes with
-                      it. Copy link answers in place, so it stays. */}
-                  <ShareTargets
-                    country={country}
-                    title={label}
-                    url={url}
-                    onPick={() => setIsOpen(false)}
-                  />
-                </Suspense>
-              </ErrorBoundary>
+                <CopyLinkTarget url={url} />
+              </ShareTargets>
             </div>
           </FloatingFocusManager>
         </FloatingPortal>
