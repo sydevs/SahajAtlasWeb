@@ -82,6 +82,9 @@
   },
   "countries": {
     "browse_heading": "Or browse by country",
+    "locating": "Finding your location…",
+    "near_city": "Classes near %{city}",
+    "near_me": "Classes near me",
     "place_title": "Free Meditation classes in %{place}",
     "title": "Free meditation classes"
   },
@@ -239,7 +242,7 @@
       "starting_date": "Starting date",
       "submit": "Register",
       "subscribe": "Send me news about meditation programmes near me",
-      "title": "Register for Meditation",
+      "title": "Register for this class",
       "title_class": "Register for this class"
     },
     "questions": {
@@ -251,6 +254,7 @@
   },
   "search": {
     "chrome": {
+      "city_or_postcode": "City or postcode",
       "placeholder": "Search for events near…",
       "title": "Search"
     },

@@ -143,7 +143,7 @@ export function DrawerChrome({
       case 'filters':
         return t('filters.chrome.title', { defaultValue: 'Filters' })
       case 'register':
-        return t('registration.form.title_class', { defaultValue: 'Register for this class' })
+        return t('registration.form.title', { defaultValue: 'Register for this class' })
       case 'share':
         return t('share.title_class', { defaultValue: 'Share this class' })
       default:

@@ -111,9 +111,7 @@ export function RegistrationView({
     <>
       <NavHeader
         subtitle={submitted ? undefined : t('registration.form.reassurance')}
-        title={
-          submitted ? t('registration.form.confirmed_title') : t('registration.form.title_class')
-        }
+        title={submitted ? t('registration.form.confirmed_title') : t('registration.form.title')}
       />
       {/* The body slot's own spacer clears the pinned bar's content; focus needs the clearance. */}
       <DrawerBody
