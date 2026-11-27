@@ -49,6 +49,9 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **"Add to calendar" on the registration confirmation spans the panel, in your second brand
+  colour.** ([#549]) It was a narrower button in the first brand colour. Its menu of calendars
+  is unchanged and still opens under the button's start edge.
 - **A class's Share, Directions and Contact act in place, and Register follows them.** ([#540]) Share
   opens the device's own share sheet, or a popover of the region's networks, each named, ending
   in Copy link; it no longer opens a Share panel, and a class with no link to share has no Share
@@ -1566,6 +1569,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
 [#531]: https://github.com/sydevs/SahajAtlasWeb/pull/531
 [#540]: https://github.com/sydevs/SahajAtlasWeb/pull/540
+[#549]: https://github.com/sydevs/SahajAtlasWeb/pull/549
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
 [#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
