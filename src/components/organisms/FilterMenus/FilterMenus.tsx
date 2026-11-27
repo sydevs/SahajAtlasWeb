@@ -35,7 +35,7 @@ type Variant = 'inline' | 'floating'
 
 // Floating over the map, a button is lifted off it; inline in a toolbar it sits with the toolbar's
 // own controls, smaller and unlifted. Filled, it takes the primary fill either way.
-const trigger = (variant: Variant, filled: boolean) =>
+const buttonLook = (variant: Variant, filled: boolean) =>
   variant === 'floating'
     ? ({ variant: 'floating', size: 'md', color: filled ? 'primary' : 'neutral' } as const)
     : ({
@@ -140,7 +140,7 @@ function FilterMenu({
       trigger={(props) => (
         <Button
           {...props}
-          {...trigger(variant, filled)}
+          {...buttonLook(variant, filled)}
           className={clsx('max-w-56', variant === 'inline' && !filled && 'border-gray-6')}
           radius="full"
         >
@@ -186,24 +186,17 @@ export function FilterMenus({
     where?.place,
     value.format !== 'any' && t(`filters.format.${value.format}`),
   ])
-  const whenParts = [
-    ...value.daysOfWeek.map((day) => weekdays[day - 1]),
-    ...value.timeOfDay.map((period) => t(`filters.time.${period}`)),
-    value.cadence !== 'any' &&
-      t(`filters.cadence.${value.cadence.toLowerCase()}` as TranslationKey),
-    isDateRestricted(value.dateRange) && t('filters.dates.label'),
-  ].filter(Boolean)
+  const days = value.daysOfWeek.map((day) => weekdays[day - 1])
+  const periods = value.timeOfDay.map((period) => t(`filters.time.${period}`))
+  const cadence =
+    value.cadence !== 'any' && t(`filters.cadence.${value.cadence.toLowerCase()}` as TranslationKey)
+  const dates = isDateRestricted(value.dateRange) && t('filters.dates.label')
+  const whenCount = [...days, ...periods, cadence, dates].filter(Boolean).length
   // Past two answers a button names how many, not which: a list would not fit it.
   const whenSummary =
-    whenParts.length > MAX_NAMED
-      ? t('filters.when.count', { count: whenParts.length })
-      : summarize([
-          value.daysOfWeek.map((day) => weekdays[day - 1]).join(', '),
-          value.timeOfDay.map((period) => t(`filters.time.${period}`)).join(', '),
-          value.cadence !== 'any' &&
-            t(`filters.cadence.${value.cadence.toLowerCase()}` as TranslationKey),
-          isDateRestricted(value.dateRange) && t('filters.dates.label'),
-        ])
+    whenCount > MAX_NAMED
+      ? t('filters.when.count', { count: whenCount })
+      : summarize([days.join(', '), periods.join(', '), cadence, dates])
   // What the closed buttons need of the scope, judged without counting it (`shownGroups` asks the
   // same of the counts inside each menu).
   const hasLanguages =
@@ -219,7 +212,7 @@ export function FilterMenus({
     <HoverLabel text={t('filters.chrome.clear')}>
       <Button
         isIconOnly
-        {...trigger(variant, false)}
+        {...buttonLook(variant, false)}
         aria-label={t('filters.chrome.clear')}
         className={clsx(variant === 'inline' && 'border-gray-6')}
         radius="full"
