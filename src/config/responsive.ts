@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react'
+import {
+  type ReactNode,
+  createContext,
+  createElement,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react'
 import { useMediaQuery } from 'react-responsive'
 
 /**
@@ -275,6 +283,23 @@ export function useIsWideWidget(): boolean {
  * viewport answers, as for `useIsWideWidget`.
  */
 export const FilterChipsWidthContext = createContext<boolean | null>(null)
+
+/** Shares both of `DrawerStack`'s width answers with the subtree. */
+export function WidgetWidthProvider({
+  wide,
+  chipsWide,
+  children,
+}: {
+  wide: boolean
+  chipsWide: boolean
+  children: ReactNode
+}) {
+  return createElement(
+    WidgetWidthContext.Provider,
+    { value: wide },
+    createElement(FilterChipsWidthContext.Provider, { value: chipsWide }, children),
+  )
+}
 
 /** Whether the widget is wide enough for the filter buttons. */
 export function useIsChipsWide(): boolean {
