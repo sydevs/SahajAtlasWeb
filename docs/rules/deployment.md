@@ -34,9 +34,8 @@ move ran one site at a time, and the app's own cutover was split from building i
   rather than falling back to the asset.
   ⚠ **`public/_headers` does not reach a response the script builds**, so it sets the `/*`
   rule's CORS and `noindex` itself — without CORS a host page's import of the module fails —
-  and `private, max-age=0, no-store`, since the module is per visitor. Served at `sahajatlas.com` as a Workers Custom Domain and at its own
-Served at `sahajatlas.com` as a Workers Custom Domain and at its own
-  `workers.dev` host. Workers Builds holds the build command and the trigger's variables and
+  and `private, max-age=0, no-store`, since the module is per visitor.
+  Served at `sahajatlas.com` as a Workers Custom Domain and at its own `workers.dev` host. Workers Builds holds the build command and the trigger's variables and
   branch rules **per trigger**, not per project — which is what `docs/environment.md` works out
   for each variable. Its one trigger builds `main` alone; PR previews come from `ci.yml`'s own
   `versions upload`, never from Workers Builds (#282).
