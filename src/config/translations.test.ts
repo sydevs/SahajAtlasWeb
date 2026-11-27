@@ -217,8 +217,23 @@ describe('every key a call site asks for', () => {
  * Delete an entry in the PR that wires it: the pin below fails until you do.
  */
 const PENDING_KEYS: Record<string, string> = {
+  'calendar.clear_filters': 'sydevs/SahajAtlasWeb#538',
+  'calendar.day_count': 'sydevs/SahajAtlasWeb#538',
+  'calendar.more': 'sydevs/SahajAtlasWeb#538',
+  'calendar.next_7_days': 'sydevs/SahajAtlasWeb#538',
+  'calendar.next_class': 'sydevs/SahajAtlasWeb#538',
+  'calendar.none': 'sydevs/SahajAtlasWeb#538',
+  'calendar.none_in_window': 'sydevs/SahajAtlasWeb#538',
+  'calendar.none_match_filters': 'sydevs/SahajAtlasWeb#538',
+  'calendar.see_calendar': 'sydevs/SahajAtlasWeb#538',
+  'calendar.see_list': 'sydevs/SahajAtlasWeb#538',
+  'calendar.share_title': 'sydevs/SahajAtlasWeb#538',
   'common.map.close': 'sydevs/SahajAtlasWeb#466',
   'countries.place_title': 'sydevs/SahajAtlasWeb#466',
+  'filters.language.count': 'sydevs/SahajAtlasWeb#542',
+  'filters.when.count': 'sydevs/SahajAtlasWeb#542',
+  'filters.when.label': 'sydevs/SahajAtlasWeb#542',
+  'filters.where.scope': 'sydevs/SahajAtlasWeb#542',
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
 }
 
@@ -237,9 +252,6 @@ const RETIRING_KEYS: Record<string, string> = {
   'registration.form.okay': 'sydevs/SahajCloud#1294',
   'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',
   'registration.form.starting_date': 'sydevs/SahajCloud#1294',
-  'share.title': 'sydevs/SahajCloud#1290',
-  'common.errors.share_unavailable_class': 'sydevs/SahajCloud#1290',
-  'share.title_class': 'sydevs/SahajCloud#1290',
 }
 
 describe('every key the snapshot holds', () => {

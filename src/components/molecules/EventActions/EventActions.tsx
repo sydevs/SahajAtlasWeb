@@ -192,8 +192,7 @@ function ContactMenu({
         }}
       >
         {copied ? <Check aria-hidden size={16} /> : <Copy aria-hidden size={16} />}
-        {/* shortcut: English until sydevs/SahajCloud#1303 ships `event.actions.copy_number`; wire it then. */}
-        {copied ? t('common.chrome.copied') : 'Copy number'}
+        {copied ? t('common.chrome.copied') : t('event.actions.copy_number')}
       </DropdownMenu.Item>
       <span aria-live="polite" className="sr-only">
         {copied ? t('common.chrome.copied') : ''}
