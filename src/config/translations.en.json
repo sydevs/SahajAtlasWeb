@@ -22,6 +22,7 @@
       "copied": "Copied",
       "explore": "Explore",
       "loading": "Loading…",
+      "optional": "optional",
       "show_more": "Show more",
       "widget_label": "Free meditation classes"
     },
@@ -227,8 +228,12 @@
     "form": {
       "captcha_blocked": "We couldn't load the security check, so you can't register just yet.",
       "captcha_retry": "The security check needs doing again. Wait for it to refresh, then register once more.",
+      "checking": "Checking you’re not a robot…",
+      "confirm_email": "We’ll email a confirmation to %{email} shortly.",
+      "confirmed_title": "You’re registered",
       "email": "Your email",
       "error_title": "Something went wrong",
+      "first_class": "Your first class",
       "followup": "Email confirmation sent",
       "invite_friend": "Invite a friend along",
       "name": "Your name",
@@ -236,11 +241,16 @@
       "online_notice": "The link to join this class online will be emailed to you.",
       "online_notice_title": "Online session",
       "privacy_policy": "By registering you confirm you agree to receive follow up messages about this and similar events, in accordance with our <link>privacy policy</link>.",
+      "reassurance": "Free, with no account needed.",
+      "register_when_check_loads": "You can register once the security check loads.",
+      "security_check": "Please complete the security check above.",
+      "see_you": "See you on %{date}.",
       "show_more_dates": "Show more dates",
       "starting_date": "Starting date",
       "submit": "Register",
       "subscribe": "Send me news about meditation programmes near me",
-      "title": "Register for Meditation"
+      "title": "Register for Meditation",
+      "title_class": "Register for this class"
     },
     "questions": {
       "aspirations": "What are you hoping to get out of this?",
