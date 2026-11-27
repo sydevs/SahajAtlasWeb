@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 import ts from 'typescript'
@@ -31,7 +32,8 @@ const tracked = execFileSync('git', ['ls-files', '*.ts', '*.tsx', '*.mts', '*.ct
   encoding: 'utf8',
 })
   .split('\n')
-  .filter(Boolean)
+  // A tracked file deleted but not yet staged is in neither the tree nor a project.
+  .filter((file) => file && existsSync(join(REPO_ROOT, file)))
 
 describe('pnpm typecheck', () => {
   it('reads the tracked TypeScript it is meant to', () => {
