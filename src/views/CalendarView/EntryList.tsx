@@ -39,7 +39,7 @@ export function EntryList({
           label={entry.name}
           tag={
             entry.online ? (
-              <Chip color="secondary" variant="subtle">
+              <Chip casing="none" color="contrast" variant="subtle">
                 {t('event.display.online')}
               </Chip>
             ) : undefined

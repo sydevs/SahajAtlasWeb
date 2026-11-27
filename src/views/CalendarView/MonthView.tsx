@@ -19,7 +19,8 @@ const BOX_ENTRIES = 3
 const DOTS = 3
 
 const dayNumber = tv({
-  base: 'inline-flex size-7 items-center justify-center rounded-full text-sm',
+  // A pill wider than it is tall, so today's highlight clears the phone grid's dots below it.
+  base: 'inline-flex h-6 min-w-9 items-center justify-center rounded-full px-2 text-sm',
   variants: {
     today: {
       true: 'dark:text-primary-on bg-primary-12 font-semibold text-white dark:bg-primary-9',
@@ -157,7 +158,7 @@ function MonthBox({ entry, locale }: { entry: CalendarEntry; locale: string }) {
       <Chip
         casing="none"
         className="w-full"
-        color={entry.online ? 'secondary' : 'primary'}
+        color={entry.online ? 'contrast' : 'primary'}
         variant="subtle"
       >
         {text}
@@ -240,7 +241,7 @@ function PhoneMonth({
                     <button
                       aria-label={`${formatLongDate(DateTime.fromISO(day), locale)}${count ? `, ${t('calendar.day_count', { count })}` : ''}`}
                       aria-pressed={chosen}
-                      className={`mx-auto flex h-11 w-11 flex-col items-center justify-center rounded-lg ${chosen ? 'ring-2 ring-primary-9 ring-inset' : ''}`}
+                      className={`mx-auto flex h-11 w-11 flex-col items-center justify-center gap-1 rounded-lg ${chosen ? 'ring-2 ring-primary-9 ring-inset' : ''}`}
                       data-date={day}
                       tabIndex={chosen ? 0 : -1}
                       type="button"
@@ -261,7 +262,7 @@ function PhoneMonth({
                         {classes.slice(0, DOTS).map((entry) => (
                           <span
                             key={entry.id}
-                            className={`size-1.5 rounded-full ${entry.online ? 'bg-secondary-9' : 'bg-primary-9'}`}
+                            className={`size-1.5 rounded-full ${entry.online ? 'bg-contrast-9' : 'bg-primary-9'}`}
                           />
                         ))}
                       </span>

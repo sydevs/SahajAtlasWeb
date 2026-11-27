@@ -57,14 +57,16 @@ export function WeekList({
   }
 
   return (
-    <div className="flex flex-col gap-4 pb-4">
+    <div className="flex flex-col pb-4">
       {days.map((day) => {
         const { heading, note } = dayHeadingParts(DateTime.fromISO(day), { count: 0, locale, t })
 
         return (
           <section key={day} aria-labelledby={`week-${day}`}>
+            {/* A band across the list, held at the top while its day scrolls, so each day reads
+                as its own section rather than one more row. */}
             <h3
-              className="flex items-baseline gap-2 px-gutter text-base font-semibold"
+              className="sticky top-0 z-10 flex items-baseline gap-2 bg-gray-3 px-gutter py-2 text-sm font-semibold text-gray-12"
               id={`week-${day}`}
             >
               {heading}
