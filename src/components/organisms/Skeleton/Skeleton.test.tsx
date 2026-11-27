@@ -23,19 +23,17 @@ describe('skeletonShape', () => {
     ['/calendar', { header: 'titled', body: 'calendar' }],
     ['/filters', { header: 'titled', body: 'filters' }],
     ['/gb/south-east/london/1817/register', { header: 'titled', body: 'form' }],
+    // A retired share link opens its class.
+    ['/gb/south-east/london/1817/share', { header: 'class', body: 'class' }],
   ])('%s loads as %o', (path, shape) => {
     expect(shapeAt(path)).toEqual(shape)
-  })
-
-  it('has no shape for the share sheet: its data is on hand, so its own header over a spinner stands', () => {
-    expect(shapeAt('/gb/south-east/london/1817/share')).toBeNull()
   })
 
   it('trusts the region tree over the route once it has the level', () => {
     const prague = resolveStack('/cz/prague').at(-1)
 
-    expect(skeletonShape(prague)?.body).toBe('places')
-    expect(skeletonShape(prague, 'city')?.body).toBe('classes')
+    expect(skeletonShape(prague).body).toBe('places')
+    expect(skeletonShape(prague, 'city').body).toBe('classes')
   })
 })
 
@@ -82,13 +80,6 @@ describe('BootFallback', () => {
 
     expect(body).toContain('overflow-y-clip')
     expect(body).not.toContain('overflow-y-auto')
-  })
-
-  it('draws a route with no shape as an empty titled panel', () => {
-    const share = boot('/gb/south-east/london/1817/share')
-
-    expect(share).not.toContain('role="status"')
-    expect(share).not.toContain('data-sy-loading')
   })
 })
 

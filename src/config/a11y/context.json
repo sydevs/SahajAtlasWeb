@@ -25,7 +25,6 @@
     "dismiss_nearby_prompt": "Names the close button on the “use my location” prompt, which hides it for this visit."
   },
   "share": {
-    "copy_link": "Names the button that copies the event link; the link itself is read right after it, as “Copy link: https://…”.",
     "share_on": "Names one share button. `%{platform}` = the platform’s name, e.g. WhatsApp.",
     "qr_code": "Names the QR code image of the class link, which hosts print on posters. `%{title}` = the class title, e.g. “Evening Meditation at The Hut”."
   }

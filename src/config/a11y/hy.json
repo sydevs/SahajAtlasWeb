@@ -25,7 +25,6 @@
     "dismiss_nearby_prompt": "Անտեսել"
   },
   "share": {
-    "copy_link": "Պատճենել հղումը",
     "share_on": "Կիսվել՝ %{platform}",
     "qr_code": "QR կոդ՝ %{title}"
   }

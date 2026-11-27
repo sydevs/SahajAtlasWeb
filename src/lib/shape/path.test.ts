@@ -166,18 +166,18 @@ describe('resolveStack', () => {
     ])
   })
 
-  it('appends a register/share entry over the parent event', () => {
+  it('appends a register entry over the parent event', () => {
     expect(resolveStack('/india/pune/507/register')).toEqual([
       { kind: 'region', slug: 'india', path: '/india' },
       { kind: 'region', slug: 'pune', path: '/india/pune' },
       { kind: 'event', id: 507, path: '/india/pune/507' },
       { kind: 'register', eventPath: '/india/pune/507', path: '/india/pune/507/register' },
     ])
-    expect(resolveStack('/507/share').at(-1)).toEqual({
-      kind: 'share',
-      eventPath: '/507',
-      path: '/507/share',
-    })
+  })
+
+  // The share drawer is gone, and an old `/share` link opens its class.
+  it('resolves a retired share segment to its event', () => {
+    expect(resolveStack('/507/share')).toEqual([{ kind: 'event', id: 507, path: '/507' }])
   })
 
   it('owns /search', () => {

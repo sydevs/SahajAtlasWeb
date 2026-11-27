@@ -46,9 +46,16 @@ const EXAMPLES: Record<string, Event> = {
 
 type ExampleKey = keyof typeof EXAMPLES
 
+// `Phone sheet` is the map-mode, narrow-widget case: Register pins to the sheet's foot and the
+// action row stays in the panel. The map itself is left out, since the footer is what is previewed.
+const LAYOUTS = ['Panel', 'Phone sheet'] as const
+
+type LayoutKey = (typeof LAYOUTS)[number]
+
 /**
- * EventView — the full event panel screen: header, facts, Register, actions, images, About.
- * Switch resolver states with the Example control. The State control instead runs any of them
+ * EventView — the full event panel screen: header, facts, actions, Register, images, About.
+ * Switch resolver states with the Example control, and the phone map sheet's pinned Register
+ * with Layout. The State control instead runs any of them
  * into the drawer's fallback.
  *
  * "Not found · event" is the failure this view actually reaches. A link to an event the CMS no
@@ -61,56 +68,25 @@ type ExampleKey = keyof typeof EXAMPLES
  * drops the dead id and offers **Cambridge**, the nearest ancestor the region tree still knows,
  * with nothing configured per error.
  */
-export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = ({
-  example,
-  state,
-}) => {
+export const Default: Story<{
+  example: ExampleKey
+  layout: LayoutKey
+  state: StoryFallbackArg
+}> = ({ example, layout, state }) => {
   const { locale } = useLocale()
   const event = EXAMPLES[example] ?? mockEvent
+  const sheet = layout === 'Phone sheet'
 
   return (
-    <ViewStory
-      example={example}
-      path={event.path}
-      seed={(client: QueryClient) => client.setQueryData<Event>(['event', event.id, locale], event)}
-      state={state}
-    >
-      <EventView basePath={event.path} id={event.id} />
-    </ViewStory>
-  )
-}
-
-Default.storyName = 'Event'
-Default.meta = { width: 'xsmall' }
-Default.args = { example: 'In person', state: NO_ERROR }
-Default.argTypes = {
-  example: {
-    name: 'Example',
-    options: Object.keys(EXAMPLES),
-    control: { type: 'radio' },
-    defaultValue: 'In person',
-  },
-  state: stateControl('Not found · event'),
-}
-
-/**
- * The phone map sheet's class page: Register pins to the foot of the sheet, and the action row
- * stays in the panel after the facts. This is the map-mode, narrow-widget case EventView pins
- * Register for; the map itself is left out, since the footer is what is being previewed.
- */
-export const StickyRegister: Story<{ example: ExampleKey }> = ({ example }) => {
-  const { locale } = useLocale()
-  const event = EXAMPLES[example] ?? mockEvent
-
-  return (
-    <WidgetWidthContext.Provider value={false}>
+    <WidgetWidthContext.Provider value={sheet ? false : null}>
       <ViewStory
-        example={example}
-        mode={{ hasMap: true }}
+        example={`${example}·${layout}`}
+        mode={sheet ? { hasMap: true } : undefined}
         path={event.path}
         seed={(client: QueryClient) =>
           client.setQueryData<Event>(['event', event.id, locale], event)
         }
+        state={state}
       >
         <EventView basePath={event.path} id={event.id} />
       </ViewStory>
@@ -118,14 +94,22 @@ export const StickyRegister: Story<{ example: ExampleKey }> = ({ example }) => {
   )
 }
 
-StickyRegister.storyName = 'Event · sticky Register'
-StickyRegister.meta = { width: 'xsmall' }
-StickyRegister.args = { example: 'In person' }
-StickyRegister.argTypes = {
+Default.storyName = 'Event'
+Default.meta = { width: 'xsmall' }
+Default.args = { example: 'In person', layout: 'Panel', state: NO_ERROR }
+Default.argTypes = {
   example: {
     name: 'Example',
     options: Object.keys(EXAMPLES),
     control: { type: 'radio' },
     defaultValue: 'In person',
   },
+  // Keyed `layout` so Ladle's alphabetical order keeps it between Example and State.
+  layout: {
+    name: 'Layout',
+    options: [...LAYOUTS],
+    control: { type: 'radio' },
+    defaultValue: 'Panel',
+  },
+  state: stateControl('Not found · event'),
 }

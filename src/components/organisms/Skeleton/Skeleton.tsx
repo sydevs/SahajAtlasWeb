@@ -103,16 +103,11 @@ export type SkeletonBodyKind = 'places' | 'classes' | 'class' | 'form' | 'filter
 export type SkeletonShape = { header: SkeletonHeaderKind; body: SkeletonBodyKind }
 
 /**
- * The shape of the view a route opens, or `null` for a view not worth drawing ahead of — the
- * share sheet, whose data is already on hand when it opens, so only its code is on its way and
- * its own header over a spinner says so.
+ * The shape of the view a route opens, so it loads under the outline of what arrives.
  *
  * `level` is the place's, once the region tree has it.
  */
-export function skeletonShape(
-  entry: StackEntry | undefined,
-  level?: RegionLevel,
-): SkeletonShape | null {
+export function skeletonShape(entry: StackEntry | undefined, level?: RegionLevel): SkeletonShape {
   switch (entry?.kind) {
     case undefined:
       return { header: 'home', body: 'places' }
@@ -133,8 +128,6 @@ export function skeletonShape(
       return { header: 'titled', body: 'filters' }
     case 'calendar':
       return { header: 'titled', body: 'calendar' }
-    default:
-      return null
   }
 }
 
@@ -358,8 +351,8 @@ export function SkeletonBody({ body, cta = true }: { body: SkeletonBodyKind; cta
 }
 
 export interface SkeletonProps {
-  /** The view's shape (`skeletonShape`). With none, a titled header over an empty body. */
-  shape: SkeletonShape | null
+  /** The view's shape (`skeletonShape`). */
+  shape: SkeletonShape
   /** As on `SkeletonBody`. */
   cta?: boolean
   /** The drawer it stands in for: the side panel, or the phone sheet, whose header sits closer to its handle. */
@@ -372,7 +365,7 @@ export interface SkeletonProps {
  * keeps its real header and draws only `SkeletonBody`.
  */
 export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
-  const header = shape?.header ?? 'titled'
+  const { header } = shape
   const panel = drawer({ direction, mode: 'anchored' })
 
   return (
@@ -418,7 +411,7 @@ export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
         </div>
       )}
       <div className={panel.body({ className: LOADING_BODY_CLIP })} data-band="body">
-        {shape && <SkeletonBody body={shape.body} cta={cta} />}
+        <SkeletonBody body={shape.body} cta={cta} />
       </div>
     </>
   )

@@ -224,7 +224,7 @@ only thing judging the value it admits.
 
 Only two components render a JSX anchor, and both call it (#114): the
 `Link` atom and the `Button` atom's href form. Hrefs reaching them were once
-safe by _provenance_ alone — a `SafeUrlSchema`-parsed `event.website`, a `directionsUrl` the app builds, literal `mailto:` / `tel:`
+safe by _provenance_ alone — a `SafeUrlSchema`-parsed `event.website`, a directions link the app builds, literal `mailto:` / `tel:`
 prefixes — but provenance is not a property the next caller inherits. No live hole
 was ever found here — this predicate is defense-in-depth — but the recurrence rate
 justifies it: the `Link` atom's guard was lost and restored twice, and #100 found

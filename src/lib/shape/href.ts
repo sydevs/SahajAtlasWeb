@@ -77,3 +77,23 @@ export const isSafeHref = (href: unknown): boolean =>
  * and some dialers fail on them, so they go from the link and stay in the visible label.
  */
 export const telHref = (phone: string): string => `tel:${phone.replace(/\s+/g, '')}`
+
+/**
+ * A WhatsApp chat link for a phone number as people write it, or undefined where the number is
+ * not international: `wa.me` takes the country code and digits only, so a local number would
+ * open a chat with somebody else. An extension (`x12`, `ext. 12`) is dropped, `00` reads as `+`,
+ * and a bracketed trunk zero (`+44 (0)20`) goes, as it is never dialled from abroad.
+ */
+export const whatsappHref = (phone: string): string | undefined => {
+  const number = phone
+    .split(/\s*(?:x|ext\.?|#|;|,)\s*\d*\s*$/i)[0]
+    .replace(/\(0\)/g, '')
+    .trim()
+    .replace(/^00/, '+')
+
+  if (!number.startsWith('+')) return undefined
+
+  const digits = number.replace(/\D/g, '')
+
+  return digits.length >= 8 ? `https://wa.me/${digits}` : undefined
+}
