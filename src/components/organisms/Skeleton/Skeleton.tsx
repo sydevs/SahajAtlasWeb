@@ -16,9 +16,8 @@ import { tv } from '@/styles/tv'
 // The loading panel: a few generic shapes, one set for every view that loads, shared by the boot
 // panel and the drawer's own loading state. Each is sized like what replaces it — a 56px place
 // row, a class card's title over two lines, the field's 38px box (46px on a touch screen) — so the
-// content lands where its placeholder stood. `tests/browser/skeleton.spec.ts` measures the
-// list and class shapes against the views they stand for; the form, filters and calendar bodies
-// are sized from their views' classes and not yet measured.
+// content lands where its placeholder stood. `tests/browser/skeleton.spec.ts` measures each
+// against the view it stands for.
 
 /**
  * Marks a loading placeholder. The phone sheet's fit (`useFitSnap`) holds its stop while one is in
@@ -92,7 +91,15 @@ export function SkeletonBlock({ className }: { className?: string }) {
  * screen), the field over Filters and Sort (search results), Back and a title (with the search box
  * under it on a place), or a class's own header.
  */
-export type SkeletonHeaderKind = 'home' | 'search' | 'titled' | 'titled-field' | 'class'
+export type SkeletonHeaderKind =
+  | 'home'
+  | 'search'
+  | 'titled'
+  | 'titled-subtitle'
+  | 'titled-field'
+  | 'closable'
+  | 'class'
+  | 'calendar'
 
 /**
  * What fills the panel: place rows, class cards, a class page, the registration form, the filter
@@ -123,13 +130,16 @@ export function skeletonShape(entry: StackEntry | undefined, level?: RegionLevel
     case 'event':
       return { header: 'class', body: 'class' }
     case 'register':
-      return { header: 'titled', body: 'form' }
+      return { header: 'titled-subtitle', body: 'form' }
     case 'filters':
-      return { header: 'titled', body: 'filters' }
+      return { header: 'closable', body: 'filters' }
     case 'calendar':
-      return { header: 'titled', body: 'calendar' }
+      return { header: 'calendar', body: 'calendar' }
   }
 }
+
+/** CalendarView's header band: its controls in one row, wrapping where the drawer is narrow. */
+export const CALENDAR_HEADER = 'max-w-none flex-wrap items-center gap-x-3 gap-y-2'
 
 // A field's drawn height, 46px on a touch screen (`field-height` in globals.css).
 const FIELD_HEIGHT = 'h-[38px] pointer-coarse:h-[46px]'
@@ -159,7 +169,14 @@ export function SkeletonLocation() {
  * A header's content, for a panel with no real header yet: the field and a control, a title and a
  * control (the first screen), or Back and a title.
  */
-export function SkeletonHeader({ header }: { header: 'field' | 'home' | 'titled' }) {
+export function SkeletonHeader({
+  header,
+  subtitle = false,
+}: {
+  header: 'field' | 'home' | 'titled'
+  /** A line under the title, as the sign-up form's reassurance. */
+  subtitle?: boolean
+}) {
   if (header === 'field' || header === 'home') {
     return (
       <>
@@ -183,7 +200,27 @@ export function SkeletonHeader({ header }: { header: 'field' | 'home' | 'titled'
         <SkeletonLine className="text-sm" width="w-36" />
       </div>
       <SkeletonLine className="text-xl" width="w-1/2" />
+      {subtitle && <SkeletonLine className="text-sm" width="w-3/4" />}
     </SkeletonGroup>
+  )
+}
+
+/** The calendar's own header row (CalendarView's controls): Back, the view switch, then the date
+ *  between its arrows and Filters, which wrap to a second line where the drawer is narrow. */
+export function SkeletonCalendarControls() {
+  return (
+    <>
+      <SkeletonGroup className="flex h-8 w-40 items-center">
+        <SkeletonLine className="text-sm" width="w-full" />
+      </SkeletonGroup>
+      <SkeletonGroup>
+        <SkeletonBlock className="h-8 w-32" />
+      </SkeletonGroup>
+      <SkeletonGroup className="flex flex-wrap items-center gap-2">
+        <SkeletonBlock className="h-8 w-44" />
+        <SkeletonBlock className="h-8 w-24" />
+      </SkeletonGroup>
+    </>
   )
 }
 
@@ -381,15 +418,28 @@ export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
             className:
               header === 'search'
                 ? undefined
-                : header === 'home'
+                : header === 'home' || header === 'closable'
                   ? 'justify-between'
-                  : 'flex-col items-stretch gap-0',
+                  : header === 'calendar'
+                    ? CALENDAR_HEADER
+                    : 'flex-col items-stretch gap-0',
           })}
           data-band="header"
         >
-          <SkeletonHeader
-            header={header === 'search' ? 'field' : header === 'home' ? 'home' : 'titled'}
-          />
+          {header === 'calendar' ? (
+            <SkeletonCalendarControls />
+          ) : (
+            <SkeletonHeader
+              header={
+                header === 'search'
+                  ? 'field'
+                  : header === 'home' || header === 'closable'
+                    ? 'home'
+                    : 'titled'
+              }
+              subtitle={header === 'titled-subtitle'}
+            />
+          )}
         </div>
       )}
       {header === 'search' && (

@@ -145,8 +145,7 @@ export type PlatformButtonProps = {
 export function PlatformButton({ platform, url, title, onPick }: PlatformButtonProps) {
   const { t } = useTranslation()
   const { name: brand, Icon, iconClass, render } = PLATFORMS[platform]
-  // shortcut: borrows the report form's "Email" label until sydevs/SahajCloud#1303 ships `share.email`.
-  const name = platform === 'email' ? t('common.report.email_label') : brand
+  const name = platform === 'email' ? t('share.email') : brand
 
   return render({
     url,
