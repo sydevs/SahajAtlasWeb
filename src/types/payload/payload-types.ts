@@ -8858,7 +8858,6 @@ export interface SyAtlasTranslation {
     time?: SyAtlasTranslationsFiltersTimeStrings;
     language?: SyAtlasTranslationsFiltersLanguageStrings;
     dates?: SyAtlasTranslationsFiltersDatesStrings;
-    region?: SyAtlasTranslationsFiltersRegionStrings;
     more?: SyAtlasTranslationsFiltersMoreStrings;
   };
   online?: SyAtlasTranslationsOnlineStrings;
@@ -8937,6 +8936,10 @@ export interface SyAtlasTranslationsCommonChromeStrings {
    * Confirmation after a visitor copies a phone number, an email, or a class’s address. Copying a share link answers with `share.link_copied` instead.
    */
   copied?: string;
+  /**
+   * Marker after a form field label that may be left empty, shown in brackets: “Your question (optional)”.
+   */
+  optional?: string;
 }
 export interface SyAtlasTranslationsCommonSettingsStrings {
   /**
@@ -8990,19 +8993,11 @@ export interface SyAtlasTranslationsCommonErrorsStrings {
    */
   unavailable?: string;
   /**
-   * Message in the Share view when the event has no shareable URL. Retiring: translate `share_unavailable_class` instead, which says “class”.
-   */
-  share_unavailable?: string;
-  /**
-   * Message in the Share view when the class has no shareable link. Replaces `share_unavailable`, which said “meditation”.
+   * Message in the Share view when the class has no shareable link.
    */
   share_unavailable_class?: string;
   /**
-   * Empty-list message in the Region and Online views, when the place itself has no events. Retiring: translate `no_classes` instead, which says “class”.
-   */
-  no_events?: string;
-  /**
-   * Empty-list message in the Region and Online views, when the place itself has no classes. Replaces `no_events`.
+   * Empty-list message in the Region and Online views, when the place itself has no classes.
    */
   no_classes?: string;
   /**
@@ -9010,11 +9005,7 @@ export interface SyAtlasTranslationsCommonErrorsStrings {
    */
   back_to_region?: string;
   /**
-   * Onward link to events near the visitor. `%{city}` = detected city name. Retiring: translate `classes_near_city` instead, which says “class”.
-   */
-  near_city?: string;
-  /**
-   * Onward link to classes near the visitor. `%{city}` = detected city name. Replaces `near_city`.
+   * Onward link to classes near the visitor. `%{city}` = detected city name.
    */
   classes_near_city?: string;
   /**
@@ -9159,6 +9150,18 @@ export interface SyAtlasTranslationsCountriesStrings {
    * The inline embed’s page heading once a visitor is in a place. `%{place}` = the country, region or city name; for a venue or a class it is the city the venue sits in.
    */
   place_title?: string;
+  /**
+   * One-tap line under the search box on the atlas’s first screen, naming the town guessed for the visitor; it opens classes near that town. `%{city}` = the guessed town’s name.
+   */
+  near_city?: string;
+  /**
+   * The same line on the first screen when no town is guessed; tapping it asks the browser for the visitor’s location.
+   */
+  near_me?: string;
+  /**
+   * The same line while the browser’s location request is out.
+   */
+  locating?: string;
 }
 export interface SyAtlasTranslationsSearchChromeStrings {
   /**
@@ -9169,6 +9172,10 @@ export interface SyAtlasTranslationsSearchChromeStrings {
    * Placeholder of the geocoder input, in every header that carries one.
    */
   placeholder?: string;
+  /**
+   * Hint (placeholder) in the atlas’s place search box, on every page.
+   */
+  city_or_postcode?: string;
 }
 export interface SyAtlasTranslationsSearchResultsStrings {
   /**
@@ -9180,11 +9187,7 @@ export interface SyAtlasTranslationsSearchResultsStrings {
    */
   farther?: string;
   /**
-   * Message when a search found nothing inside the radius (ERROR_POLICY['no-nearby']). `%{km}` = radius in kilometres. Retiring: translate `no_nearby_classes` instead, which says “class”.
-   */
-  no_nearby?: string;
-  /**
-   * Message when a search found no class inside the radius (ERROR_POLICY['no-nearby']). `%{km}` = radius in kilometres. Replaces `no_nearby`.
+   * Message when a search found no class inside the radius (ERROR_POLICY['no-nearby']). `%{km}` = radius in kilometres.
    */
   no_nearby_classes?: string;
 }
@@ -9244,13 +9247,45 @@ export interface SyAtlasTranslationsFiltersChromeStrings {
    */
   any_time?: string;
   /**
-   * Empty-list message when the filters, rather than the place, excluded everything. Retiring: translate `no_results_classes` instead, which says “class”.
-   */
-  no_results?: string;
-  /**
-   * Empty-list message when the filters, rather than the place, excluded every class. Replaces `no_results`.
+   * Empty-list message when the filters, rather than the place, excluded every class.
    */
   no_results_classes?: string;
+  /**
+   * Main button at the bottom of the filters once an answer is picked, entered per plural form. `%{count}` = number of matching classes.
+   */
+  show_classes_one?: string;
+  /**
+   * Main button at the bottom of the filters once an answer is picked, entered per plural form. `%{count}` = number of matching classes.
+   */
+  show_classes_few?: string;
+  /**
+   * Main button at the bottom of the filters once an answer is picked, entered per plural form. `%{count}` = number of matching classes.
+   */
+  show_classes_many?: string;
+  /**
+   * Main button at the bottom of the filters once an answer is picked, entered per plural form. `%{count}` = number of matching classes.
+   */
+  show_classes_other?: string;
+  /**
+   * Line at the bottom of the filters when no class matches every answer picked, above the way out.
+   */
+  no_match?: string;
+  /**
+   * Button offered when no class matches, removing one answer. Entered per plural form. `%{label}` = that answer (“Sunday”, “Evening”); `%{count}` = classes that come back.
+   */
+  widen_one?: string;
+  /**
+   * Button offered when no class matches, removing one answer. Entered per plural form. `%{label}` = that answer (“Sunday”, “Evening”); `%{count}` = classes that come back.
+   */
+  widen_few?: string;
+  /**
+   * Button offered when no class matches, removing one answer. Entered per plural form. `%{label}` = that answer (“Sunday”, “Evening”); `%{count}` = classes that come back.
+   */
+  widen_many?: string;
+  /**
+   * Button offered when no class matches, removing one answer. Entered per plural form. `%{label}` = that answer (“Sunday”, “Evening”); `%{count}` = classes that come back.
+   */
+  widen_other?: string;
 }
 export interface SyAtlasTranslationsFiltersWhereStrings {
   /**
@@ -9312,10 +9347,6 @@ export interface SyAtlasTranslationsFiltersCadenceStrings {
 }
 export interface SyAtlasTranslationsFiltersDaysStrings {
   /**
-   * Section label of the day-of-week filter.
-   */
-  label?: string;
-  /**
    * Section label of the day-of-week question in the filter drawer, above the seven day buttons.
    */
   short_label?: string;
@@ -9351,10 +9382,6 @@ export interface SyAtlasTranslationsFiltersLanguageStrings {
    * Language option: no preference.
    */
   all?: string;
-  /**
-   * Shown when no class in view declares a language.
-   */
-  empty?: string;
 }
 export interface SyAtlasTranslationsFiltersDatesStrings {
   /**
@@ -9381,24 +9408,6 @@ export interface SyAtlasTranslationsFiltersDatesStrings {
    * Chip for a closed range. `%{start}` = start date, `%{end}` = end date.
    */
   pill_range?: string;
-}
-export interface SyAtlasTranslationsFiltersRegionStrings {
-  /**
-   * Section label of the region filter.
-   */
-  label?: string;
-  /**
-   * Region option: no preference.
-   */
-  all?: string;
-  /**
-   * Placeholder of the region search input.
-   */
-  search?: string;
-  /**
-   * Shown when the region search matches nothing.
-   */
-  empty?: string;
 }
 export interface SyAtlasTranslationsFiltersMoreStrings {
   /**
@@ -9450,19 +9459,11 @@ export interface SyAtlasTranslationsEventDisplayStrings {
    */
   next_session?: string;
   /**
-   * When-line and registration-blocked message for a finished event. Retiring: translate `class_ended` instead, which says “class”.
-   */
-  event_ended?: string;
-  /**
-   * When-line and registration-blocked message for a class that has finished. Replaces `event_ended`.
+   * When-line and registration-blocked message for a class that has finished.
    */
   class_ended?: string;
   /**
-   * Microcopy and registration-blocked message when the event has no places left. Retiring: translate `class_full` instead, which says “class”.
-   */
-  event_full?: string;
-  /**
-   * Microcopy and registration-blocked message when the class has no places left. Replaces `event_full`.
+   * Microcopy and registration-blocked message when the class has no places left.
    */
   class_full?: string;
   /**
@@ -9546,11 +9547,7 @@ export interface SyAtlasTranslationsEventDisplayStrings {
    */
   type_course?: string;
   /**
-   * Type label: a single occasion. Retiring: translate `type_oneoff_class` instead, which says “class”.
-   */
-  type_oneoff?: string;
-  /**
-   * Type label: a class held once. Replaces `type_oneoff`, which said “event”.
+   * Type label: a class held once.
    */
   type_oneoff_class?: string;
   /**
@@ -9700,6 +9697,10 @@ export interface SyAtlasTranslationsRegistrationFormStrings {
    */
   title?: string;
   /**
+   * Line under the registration heading, reassuring the visitor before they fill the form.
+   */
+  reassurance?: string;
+  /**
    * Label of the name field.
    */
   name?: string;
@@ -9708,9 +9709,13 @@ export interface SyAtlasTranslationsRegistrationFormStrings {
    */
   email?: string;
   /**
-   * Label of the starting-date chooser.
+   * Label of the starting-date chooser. Retiring: translate `first_class` instead; the date is now a dropdown labelled for the first class the visitor attends.
    */
   starting_date?: string;
+  /**
+   * Label of the date dropdown: the session the visitor will attend first. Replaces `starting_date`.
+   */
+  first_class?: string;
   /**
    * Control that reveals further start dates.
    */
@@ -9720,9 +9725,33 @@ export interface SyAtlasTranslationsRegistrationFormStrings {
    */
   submit?: string;
   /**
-   * Acknowledgement button that dismisses the thank-you screen.
+   * Line under the disabled Register button while the security check runs in the background.
+   */
+  checking?: string;
+  /**
+   * Line under the disabled Register button once the security check has waited a few seconds and may want a tick.
+   */
+  security_check?: string;
+  /**
+   * Line under the disabled Register button when the security check failed to load.
+   */
+  register_when_check_loads?: string;
+  /**
+   * Acknowledgement button that dismisses the thank-you screen. Retiring: the confirmation no longer has a dismiss button; the drawer closes with its own control.
    */
   okay?: string;
+  /**
+   * Registration view heading once the visitor has registered.
+   */
+  confirmed_title?: string;
+  /**
+   * Confirmation line naming the session registered for. `%{date}` = the long date in the visitor’s own format, e.g. “Tuesday 17 November”.
+   */
+  see_you?: string;
+  /**
+   * Confirmation line under `see_you`. `%{email}` = the address the visitor entered.
+   */
+  confirm_email?: string;
   /**
    * Thank-you screen line promising a confirmation email.
    */
@@ -10067,6 +10096,10 @@ export interface SyAtlasTranslationsShareStrings {
    * Label of the device’s own share sheet.
    */
   native?: string;
+  /**
+   * Button under Share that puts the class link on the clipboard.
+   */
+  copy_link?: string;
   /**
    * What the Copy link button says for a moment after it has put the class link on the clipboard.
    */
@@ -10559,7 +10592,6 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
         time?: T;
         language?: T;
         dates?: T;
-        region?: T;
         more?: T;
       };
   online?: T;
