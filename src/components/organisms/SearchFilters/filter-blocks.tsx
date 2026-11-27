@@ -1,15 +1,15 @@
 import type { TranslationKey } from '@/types/i18next'
 
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, Moon, MoonStar, Search, Sun, Sunrise } from 'lucide-react'
+import { ChevronDown, Moon, MoonStar, Sun, Sunrise } from 'lucide-react'
 
-import { Checkbox } from '@/components/atoms/Checkbox'
 import { Disclosure } from '@/components/atoms/Disclosure'
 import { Dropdown } from '@/components/atoms/Dropdown'
 import { Input } from '@/components/atoms/Input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { fieldChrome } from '@/components/atoms/Select'
+import { CheckboxGroup } from '@/components/molecules/CheckboxGroup'
 import { type FieldControlProps, FormField } from '@/components/molecules/FormField'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
@@ -215,67 +215,24 @@ const languageOptions = ({ value, facets }: FilterBlockProps) => {
   ]
 }
 
-// Past this many languages, the checkbox list gets a search box.
-const SEARCHABLE_LANGUAGES = 10
-
-// Case- and accent-blind, so "ces" finds "Čeština".
-const fold = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-
-/** The languages as a checkbox list with their counts, searchable once it is long. */
+/** The languages as a checkbox list with their counts (`CheckboxGroup`). */
 function LanguageCheckboxes(props: FilterBlockProps) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
-  const [query, setQuery] = useState('')
-  const { languages } = props.value
-  const options = languageOptions(props)
-  const shown = query
-    ? options.filter((option) => fold(languageLabel(option.code)).includes(fold(query)))
-    : options
 
   return (
-    <div className="flex flex-col gap-1">
-      {options.length > SEARCHABLE_LANGUAGES && (
-        <div className="relative mb-1">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-gray-11"
-            size={16}
-          />
-          <Input
-            aria-label={t('filters.a11y.search_languages')}
-            className="w-full ps-8"
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-      )}
-      {shown.map((option) => (
-        <Checkbox
-          key={option.code}
-          appearance="checkbox"
-          checked={languages.includes(option.code)}
-          className="w-full rounded-lg px-2 py-1.5 hover:bg-gray-3"
-          disabled={option.count === 0 && !languages.includes(option.code)}
-          onCheckedChange={() =>
-            props.patch({
-              languages: languages.includes(option.code)
-                ? languages.filter((code) => code !== option.code)
-                : [...languages, option.code],
-            })
-          }
-        >
-          <span className="flex w-full items-baseline justify-between gap-3">
-            {languageLabel(option.code)}
-            <OptionCount count={option.count} />
-          </span>
-        </Checkbox>
-      ))}
-    </div>
+    <CheckboxGroup
+      aria-label={t('filters.language.label')}
+      options={languageOptions(props).map((option) => ({
+        value: option.code,
+        label: languageLabel(option.code),
+        meta: <OptionCount count={option.count} />,
+        disabled: option.count === 0,
+      }))}
+      searchLabel={t('filters.a11y.search_languages')}
+      value={props.value.languages}
+      onChange={(languages) => props.patch({ languages })}
+    />
   )
 }
 

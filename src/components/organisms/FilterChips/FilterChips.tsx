@@ -32,6 +32,9 @@ const summarize = (parts: (string | false | null | undefined)[]): string =>
 
 type Menu = 'where' | 'when' | 'language'
 
+// How many answers a button names before it counts them instead.
+const MAX_NAMED = 2
+
 export type FilterChipsWhere = {
   /** The place in scope, as the button names it: its first part, or Near me. */
   place?: string | null
@@ -181,13 +184,24 @@ export function FilterChips({ value, onChange, onClear, where, placement }: Filt
     where?.place,
     value.format !== 'any' && t(`filters.format.${value.format}`),
   ])
-  const whenSummary = summarize([
-    value.daysOfWeek.map((day) => weekdays[day - 1]).join(', '),
-    value.timeOfDay.map((period) => t(`filters.time.${period}`)).join(', '),
+  const whenParts = [
+    ...value.daysOfWeek.map((day) => weekdays[day - 1]),
+    ...value.timeOfDay.map((period) => t(`filters.time.${period}`)),
     value.cadence !== 'any' &&
       t(`filters.cadence.${value.cadence.toLowerCase()}` as TranslationKey),
     isDateRestricted(value.dateRange) && t('filters.dates.label'),
-  ])
+  ].filter(Boolean)
+  // Past two answers a button names how many, not which: a list would not fit it.
+  const whenSummary =
+    whenParts.length > MAX_NAMED
+      ? t('filters.when.count', { count: whenParts.length })
+      : summarize([
+          value.daysOfWeek.map((day) => weekdays[day - 1]).join(', '),
+          value.timeOfDay.map((period) => t(`filters.time.${period}`)).join(', '),
+          value.cadence !== 'any' &&
+            t(`filters.cadence.${value.cadence.toLowerCase()}` as TranslationKey),
+          isDateRestricted(value.dateRange) && t('filters.dates.label'),
+        ])
   // What the closed buttons need of the scope, judged without counting it (`shownGroups` asks the
   // same of the counts inside each menu).
   const hasLanguages =
@@ -245,7 +259,11 @@ export function FilterChips({ value, onChange, onClear, where, placement }: Filt
       {hasLanguages && (
         <FilterChip
           label={t('filters.language.label')}
-          summary={value.languages.map(languageLabel).join(', ')}
+          summary={
+            value.languages.length > MAX_NAMED
+              ? t('filters.language.count', { count: value.languages.length })
+              : value.languages.map(languageLabel).join(', ')
+          }
         >
           <ChipMenu {...menu} menu="language" />
         </FilterChip>

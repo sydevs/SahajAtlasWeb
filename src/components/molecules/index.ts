@@ -22,6 +22,11 @@ export { ActiveFilterPills } from './ActiveFilterPills'
 // button, plus a SortMenu on the search results. It is a thin
 // justify-between layout. The views supply the controls.
 export { ListToolbar } from './ListToolbar'
+
+// CheckboxGroup — a list of checkboxes with counts; a long one is searchable and opens with its
+// checked options first.
+export { CheckboxGroup } from './CheckboxGroup'
+export type { CheckboxGroupOption, CheckboxGroupProps } from './CheckboxGroup'
 export type { ListToolbarProps } from './ListToolbar'
 
 // SortMenu — the results-list sort selector (Recommended, Closest,

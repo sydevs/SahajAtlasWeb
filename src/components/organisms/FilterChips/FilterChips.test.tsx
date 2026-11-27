@@ -101,3 +101,24 @@ describe('FilterChips — Where', () => {
     expect(buttons(render({}, { always: false }))).toHaveLength(1)
   })
 })
+
+describe('FilterChips — past two answers, a count', () => {
+  it('counts the When answers rather than listing them', () => {
+    const [, , when] = buttons(render({ daysOfWeek: [2, 3], timeOfDay: ['evening'] }))
+
+    expect(when).toContain('filters.when.count')
+    expect(when).not.toContain('Tue')
+  })
+
+  it('still names two', () => {
+    const [, , when] = buttons(render({ daysOfWeek: [2], timeOfDay: ['evening'] }))
+
+    expect(when).toContain('Tue · filters.time.evening')
+  })
+
+  it('counts the languages rather than listing them', () => {
+    const shown = buttons(render({ languages: ['en', 'fr', 'de'] }))
+
+    expect(shown.at(-1)).toContain('filters.language.count')
+  })
+})
