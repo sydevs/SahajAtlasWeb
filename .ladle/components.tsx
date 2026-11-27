@@ -70,6 +70,16 @@ const PALETTE_CONTROL = {
 // story, so a reviewer browsing the views in one setup stays in it.
 const viewControlValues: Record<string, unknown> = {}
 
+// A view control's value from the address, so a link such as `?arg-form=Expanded` opens in it:
+// Ladle seeds only a story's own args from the URL, and these are the decorator's.
+const addressValue = (key: string, type: string): unknown => {
+  const raw = new URLSearchParams(window.location.search).get(`arg-${key}`)
+
+  if (raw === null) return undefined
+
+  return type === 'boolean' ? raw === 'true' : decodeURI(raw)
+}
+
 // Global decorator for every story.
 //
 // This mirrors src/providers.tsx: React Query and Helmet, with no
@@ -168,7 +178,13 @@ export const Provider: GlobalProvider = ({ children }) => {
     const missing = isView
       ? Object.entries(VIEW_CONTROLS)
           .filter(([key]) => !control[key])
-          .map(([key, def]) => [key, { ...def, value: viewControlValues[key] ?? def.defaultValue }])
+          .map(([key, def]) => [
+            key,
+            {
+              ...def,
+              value: viewControlValues[key] ?? addressValue(key, def.type) ?? def.defaultValue,
+            },
+          ])
       : []
 
     if (control.palette && missing.length === 0) return

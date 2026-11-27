@@ -1,6 +1,7 @@
 import type { Geojson, RegionNode } from '@/types'
 
 import {
+  type ReactNode,
   Suspense,
   lazy,
   startTransition,
@@ -190,7 +191,13 @@ function CloseMapButton({ beside }: { beside: boolean }) {
 // `inline` is the inline embed's content column: the same stack and the same views, in the
 // page's own flow, with no drawer and no sheet. Its map, where it has one, sits beside it rather
 // than under it.
-export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
+//
+// `view` stands in for the routed view while the route is its `path`: a story previewing one view
+// with its own props, in the real sheet. Anywhere else the stack routes as usual.
+export function DrawerStack({
+  inline = false,
+  view,
+}: { inline?: boolean; view?: { path: string; node: ReactNode } } = {}) {
   const location = useLocation()
   // Reads off the location rather than through `useSearchParams`, which would add a
   // second subscription for a value this component already re-renders on.
@@ -621,7 +628,11 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
         onReset={() => setSecondary(loadSecondaryViews())}
       >
         <ClientGate />
-        <TopView entry={top} secondary={secondary} />
+        {view && location.pathname === view.path ? (
+          view.node
+        ) : (
+          <TopView entry={top} secondary={secondary} />
+        )}
       </ResetErrorBoundary>
     </Suspense>
   )

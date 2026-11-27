@@ -135,8 +135,8 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
 
   return (
     <ViewStory
-      wide
       example={example}
+      path="/calendar"
       seed={(client: QueryClient) => {
         // Seed the default key (initial render) AND the active-filter key (once the params are
         // seeded into the URL) so the calendar resolves from cache either way.

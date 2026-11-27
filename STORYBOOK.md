@@ -19,14 +19,14 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 
 ## How it's wired
 
-| Piece                   | What it does                                                                        |
-| ----------------------- | -------------------------------------------------------------------------------------- |
-| `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`, and the story order: Atoms, Molecules, Organisms, Views, Interactive, then any other group, each alphabetical inside. |
-| `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root). Points the app's SahajCloud origin at Ladle's own, serves the Turnstile challenge there, and swaps in `react-map-gl.tsx`. |
-| `.ladle/backend.ts`     | Answers every SahajCloud read from the browser lane's fixtures (`src/mocks/sahajcloud.ts`), and seeds the visitor's approximate location as Cambridge. Ladle talks to no API. |
+| Piece                     | What it does                                                                                                                                                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.ladle/config.mjs`       | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`, and the story order: Atoms, Molecules, Organisms, Views, Interactive, then any other group, each alphabetical inside.                              |
+| `.ladle/vite.config.ts`   | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root). Points the app's SahajCloud origin at Ladle's own, serves the Turnstile challenge there, and swaps in `react-map-gl.tsx`.                              |
+| `.ladle/backend.ts`       | Answers every SahajCloud read from the browser lane's fixtures (`src/mocks/sahajcloud.ts`), and seeds the visitor's approximate location as Cambridge. Ladle talks to no API.                                           |
 | `.ladle/react-map-gl.tsx` | react-map-gl as a story needs it: `reuseMaps` off (a map carried between Ladle's iframe and its page drew nothing), a canvas that follows its own box, and the realm bridge mapbox-gl needs inside the viewport iframe. |
-| `.ladle/i18n.ts`        | Self-contained i18next over the committed English snapshot and the screen-reader strings, English only. |
-| `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` (fresh per story) + `<I18nextProvider>`. |
+| `.ladle/i18n.ts`          | Self-contained i18next over the committed English snapshot and the screen-reader strings, English only.                                                                                                                 |
+| `.ladle/components.tsx`   | The **global decorator**: React Query + Helmet + a `MemoryRouter` (fresh per story) + `<I18nextProvider>`.                                                                                                              |
 
 **Theme and canvas.** Ladle's theme toggle drives the **whole canvas** — the
 decorator calls `applyTheme()` with the toggle's state and stamps the `dark`
@@ -116,12 +116,18 @@ free, and their values hold as you move between views.
 
 - **Form**: `Inline`, the view in the inline embed's page (its heading, and
   `InlineColumns` with the map beside it), or `Expanded`, the expanded map's
-  frame with the view's panel over the map — a side panel where the frame is
-  wide, a bottom sheet where it is not.
+  frame with the real `DrawerStack` over the map, showing the story's view at
+  its `path` — a side panel where the frame is wide, a bottom sheet where it is
+  not, which drags and snaps as the app's does. Back and the view's links
+  navigate for real, into the routed views, so a view story passes the `path`
+  it lives at.
 - **Map**, on by default: the live map, with a real `MapController`, so a view
   frames it as it does in the app. Off is a `map=false` embed, which is always
   inline whatever **Form** says, since there is no map to expand. It needs
   `VITE_MAPBOX_ACCESSTOKEN`, and without one every view renders map-less.
+
+Both read from the address too, so a link opens in its form:
+`?story=views--event&arg-form=Expanded`.
 
 A view sets no viewport of its own, so it fills Ladle's main area, with
 Ladle's padding taken away (`.ladle/components.tsx`); narrow the window or
@@ -169,7 +175,9 @@ export default { title: 'Atoms' } satisfies StoryDefault
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection title="Variants">{/* ... */}</StorySection>
-    <StorySection title="Examples" inContext={true}>{/* ... */}</StorySection>
+    <StorySection title="Examples" inContext={true}>
+      {/* ... */}
+    </StorySection>
     <div />
   </StoryWrapper>
 )

@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import type { Client } from '@/types'
 
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import clsx from 'clsx'
 import { useLocation, useNavigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useLadleContext } from '@ladle/react'
@@ -16,8 +15,7 @@ import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
-import { useApproxLocation, useCalendarPosition } from '@/config/store'
-import { calendarFillsWidth } from '@/lib/shape/calendar'
+import { useApproxLocation } from '@/config/store'
 import { setFrame } from '@/lib/overlay'
 import { usePublishedNode } from '@/hooks/use-published-node'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
@@ -26,6 +24,7 @@ import { mockApproxLocation, mockGeojson, mockRegionNodes } from '@/mocks/region
 import { MapLayer, MapProviders } from '@/views/FullInterface'
 import { InlineColumns, PlaceHeading } from '@/views/InlineEmbedView/InlineEmbedView'
 import { VIEW_CONTROLS } from '@/views/story-controls'
+import { DrawerStack } from '@/views/DrawerStack/DrawerStack'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
 // stories (Region / Online / Search) build their lists from ONE shared source.
@@ -90,13 +89,6 @@ export type ViewHarnessProps = {
    * ("Browse all countries"), and none would show what the app actually offers.
    */
   path?: string
-  /**
-   * The view is the full-width calendar surface: over a wide map, outside its list view, it fills
-   * the frame less a margin instead of taking the side panel, as `DrawerStack` sizes it.
-   */
-  wide?: boolean
-  /** The expanded map's panel whatever the Form control says, for a story about the sheet. */
-  expanded?: boolean
   children: ReactNode
 }
 
@@ -279,21 +271,13 @@ function useViewControls() {
   }
 }
 
-export function ViewHarness({
-  seedKey,
-  seed,
-  mode,
-  path,
-  wide = false,
-  expanded = false,
-  children,
-}: ViewHarnessProps) {
+export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarnessProps) {
   const controls = useViewControls()
   // A token-less environment gets the map-less arm: a canvas that cannot load tiles
   // previews nothing and fills the console with Mapbox errors.
   const withMap = controls.map && Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
   // A map-less atlas is always inline, as `App` renders it: there is no map to expand.
-  const inline = (controls.inline && !expanded) || !withMap
+  const inline = controls.inline || !withMap
 
   const client = useMemo(() => {
     const c = new QueryClient({
@@ -321,9 +305,7 @@ export function ViewHarness({
   // DrawerErrorFallback and DrawerLoading render a DrawerBody and need the drawer context.
   const view = (
     <Suspense key={seedKey} fallback={<DrawerLoading />}>
-      <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
-        {path ? <SeedPath path={path}>{children}</SeedPath> : children}
-      </ErrorBoundary>
+      <ErrorBoundary FallbackComponent={DrawerErrorFallback}>{children}</ErrorBoundary>
     </Suspense>
   )
 
@@ -339,11 +321,13 @@ export function ViewHarness({
             set (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
         <DrawerControlContext.Provider value={storyDrawerControl(path)}>
           <MapProviders inline={inline}>
-            {inline ? (
-              <InlineForm>{view}</InlineForm>
-            ) : (
-              <ExpandedForm wide={wide}>{view}</ExpandedForm>
-            )}
+            <SeedPath path={path ?? '/'}>
+              {inline ? (
+                <InlineForm>{view}</InlineForm>
+              ) : (
+                <ExpandedForm path={path ?? '/'}>{view}</ExpandedForm>
+              )}
+            </SeedPath>
           </MapProviders>
         </DrawerControlContext.Provider>
       </WidgetModeContext.Provider>
@@ -380,52 +364,21 @@ function InlineForm({ children }: { children: ReactNode }) {
 }
 
 /**
- * The expanded map's frame around one view: the canvas filling it, and the view's panel over it.
- * The panel takes the shape `DrawerStack` gives it at the frame's width — the side panel where it
- * is wide, a bottom sheet where it is not, the calendar's full-width surface. The frame takes the
- * containing block with `contain: layout`, as the expanded dialog does, so the fixed canvas fills
- * it rather than the window.
- *
- * The header and body take the side panel's slots whatever the shape: no vaul root sits around
- * them here to give a sheet its handle, and the sheet's header leaves the handle its room.
+ * The expanded map's frame around one view: the canvas filling it, and the real `DrawerStack`
+ * over it, showing the story's view at its path, so the sheet drags, snaps and pins as the app's
+ * does. Back and the view's links navigate for real, into the routed views. The frame takes the
+ * containing block with `contain: layout`, as the expanded dialog does, so the fixed canvas and
+ * sheet fill it rather than the window.
  */
-function ExpandedForm({ wide, children }: { wide: boolean; children: ReactNode }) {
-  // Published as the widget's frame, as the dialog is, so the camera's padding measures the
-  // panel this frame's width gives it, and a view's own dialogs portal into the frame.
+function ExpandedForm({ path, children }: { path: string; children: ReactNode }) {
+  // Published as the widget's frame, as the dialog is, so the stack measures this frame's width
+  // and portals its sheet into it.
   const { node: frame, adopt } = usePublishedNode<HTMLDivElement>(setFrame)
-  const isWide = useIsWide(frame)
-  const calendarView = useCalendarPosition((s) => s.view)
-  const fullWidth = wide && calendarFillsWidth(isWide, calendarView)
 
   return (
     <div ref={adopt} className="relative h-screen overflow-clip [contain:layout]" data-sy-frame="">
       {frame && <MapLayer />}
-      {frame && (
-        <WidgetWidthContext.Provider value={isWide}>
-          <DrawerSlotsProvider direction="left">
-            <div
-              className={clsx(
-                // ⚠ Every shape is `absolute`, and only this line positions the panel: a
-                // positioned panel paints above the canvas whatever the DOM order, and a second
-                // position class from a branch once won the cascade (`relative` is emitted
-                // after `absolute`) and let the column grow past its frame. Clip, never hidden
-                // — this hand-copies the panel's own chrome, so `overflow-hidden` would
-                // preview #326.
-                'absolute z-10 flex flex-col overflow-clip border-divider bg-background text-foreground shadow-2xl',
-                // The sheet is at its open snap, which the camera's padding assumes until a real
-                // sheet reports its height.
-                fullWidth
-                  ? 'inset-4 rounded-2xl border'
-                  : isWide
-                    ? 'inset-y-0 start-0 w-[var(--sy-drawer-w,384px)] max-w-full border-e'
-                    : 'inset-x-0 bottom-0 h-[300px] max-h-[calc(100%-160px)] rounded-t-2xl border-t',
-              )}
-            >
-              {children}
-            </div>
-          </DrawerSlotsProvider>
-        </WidgetWidthContext.Provider>
-      )}
+      {frame && <DrawerStack view={{ path, node: children }} />}
     </div>
   )
 }
