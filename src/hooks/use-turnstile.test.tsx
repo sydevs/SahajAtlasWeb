@@ -159,20 +159,6 @@ describe('useTurnstile', () => {
     expect(slot()?.style.position).toBe('absolute')
   })
 
-  it('takes the empty slot out of its column when disabled', async () => {
-    function Disabled() {
-      const turnstile = useTurnstile({ disabled: true })
-
-      return <div ref={turnstile.challengeRef} data-testid="slot" />
-    }
-
-    await mount(<Disabled />)
-
-    expect(container.querySelector<HTMLElement>('[data-testid="slot"]')?.style.position).toBe(
-      'absolute',
-    )
-  })
-
   it('refuses an empty token, which would enable Submit and then fail verification', async () => {
     await mount()
     fromFrame({ type: 'ready' })
@@ -285,21 +271,6 @@ describe('useTurnstile', () => {
     cleanup = null
 
     expect(messages(removed)).toBe(1)
-  })
-
-  it('reports blocked and mounts nothing when disabled', async () => {
-    function Disabled() {
-      const turnstile = useTurnstile({ disabled: true })
-
-      hook = turnstile
-
-      return <div ref={turnstile.challengeRef} />
-    }
-
-    await mount(<Disabled />)
-
-    expect(hook.status).toBe('blocked')
-    expect(frame()).toBeNull()
   })
 
   it('re-mounts the frame on a theme change, dropping the unsolved token with it', async () => {

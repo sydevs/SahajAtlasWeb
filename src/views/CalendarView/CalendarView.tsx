@@ -255,8 +255,9 @@ export function CalendarView() {
         {/* `DrawerLoadingBody`, not `DrawerLoading` — this fence sits BELOW the header
             above, so the chrome-ful one drew a second header (and a second Back button)
             under CalendarControls while the grid loaded. Pairs with `DrawerErrorBody` on
-            the boundary, for the same reason. */}
-        <Suspense fallback={<DrawerLoadingBody />}>
+            the boundary, for the same reason. The month grid's shape is the same one the
+            drawer's own fallback draws, so the two hand over without a change. */}
+        <Suspense fallback={<DrawerLoadingBody body="calendar" />}>
           <CalendarGrid key={filtersKey(filters)} controls={controls} filters={filters} />
         </Suspense>
       </ResetErrorBoundary>

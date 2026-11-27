@@ -38,14 +38,32 @@ const PANELS: { title: string; description: string; shape: SkeletonShape; cta?: 
     shape: { header: 'class', body: 'class' },
     cta: true,
   },
+  {
+    title: 'Registering for a class',
+    description:
+      'Back and the title, then the class’s summary card over a labelled field each. Register pins to the foot, so the placeholder leaves it out.',
+    shape: { header: 'titled', body: 'form' },
+  },
+  {
+    title: 'Filters',
+    description:
+      'The title, then the questions in their order: where, format, days, and the times of day.',
+    shape: { header: 'titled', body: 'filters' },
+  },
+  {
+    title: 'Calendar',
+    description:
+      'Under the calendar’s own header (which the real view keeps): a weekday row over the month grid.',
+    shape: { header: 'titled', body: 'calendar' },
+  },
 ]
 
 /**
  * Skeleton — the loading panel: a few generic shapes every view draws while its data, or the
  * interface's code, is on its way. The boot panel draws a whole one before the code arrives; a
  * view loading inside the drawer keeps its real header (Back, Calendar and Filters work) over the
- * body. The calendar, the forms and the share sheet have none: their data is on hand when they
- * open, so their own header over a spinner stands for the moment their code takes.
+ * body. The share sheet has none: its data is on hand when it opens, so its own header over a
+ * spinner stands for the moment its code takes.
  */
 export const SkeletonStory: Story = () => (
   <StoryWrapper>

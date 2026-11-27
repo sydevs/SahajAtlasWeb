@@ -412,24 +412,18 @@ surface's collapse control, and `.mapboxgl-ctrl-top-right` takes the right-hand 
 area. Both are older than the column and move the whole corner as one; neither is a
 per-layout rule.
 
-## A geocoder lookup whose answer is STORED asks for `permanent`
+## A geocoder lookup is temporary, and nothing stores its answer
 
 Mapbox's terms allow keeping a feature id only when the lookup that returned it carried
-`permanent=true`, and such lookups bill separately. SahajCloud stores the ids a client sends with
-a class proposal, so its client contract requires them (sydevs/SahajCloud#893).
+`permanent=true`, and such lookups bill separately. No mount of `MapSearch` sets it, because
+nothing the geocoder answers reaches a row SahajCloud stores; `reverseGeocode` (`lib/geocode.ts`)
+is temporary for the same reason. Storing an id means adding the option on the mount that submits
+it (sydevs/SahajCloud#893 is the contract that would require it).
 
-So permanence is a **`MapSearch` prop**, absent by default, not a constant inside the control: one
-component serves both plain map browsing and the submit flow, and only the second may store what
-it gets back. Set `permanent` on a mount whose answer is submitted, and on no other.
-`reverseGeocode` (`lib/geocode.ts`) stays temporary — its answer fills the search field and `?cc`,
-never a stored row.
-
-⚠ **An option that may be absent is spread conditionally, and a spec is the only thing holding
-it.** `GeocodingCore` drops a `null` or `undefined` option but serializes a `false`, so `country`
-and `permanent` are both spread rather than passed as themselves — and a spread's keys escape
-TypeScript's excess-property check, which a plainly written key does not. Give every option you
-spread a case in `MapSearch.permanent.test.tsx`, which asserts what each mount hands
-`<Geocoder options>`.
+⚠ **An option that may be absent is spread conditionally.** `GeocodingCore` drops a `null` or
+`undefined` option but serializes a `false`, so `country` is spread rather than passed as itself —
+and a spread's keys escape TypeScript's excess-property check, which a plainly written key does
+not.
 
 ## Geo helpers
 

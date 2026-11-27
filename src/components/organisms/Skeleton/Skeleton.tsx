@@ -93,15 +93,18 @@ export function SkeletonBlock({ className }: { className?: string }) {
  */
 export type SkeletonHeaderKind = 'home' | 'search' | 'titled' | 'titled-field' | 'class'
 
-/** What fills the panel: place rows, class cards, or a class page. */
-export type SkeletonBodyKind = 'places' | 'classes' | 'class'
+/**
+ * What fills the panel: place rows, class cards, a class page, the registration form, the filter
+ * questions, or the calendar's month grid.
+ */
+export type SkeletonBodyKind = 'places' | 'classes' | 'class' | 'form' | 'filters' | 'calendar'
 
 export type SkeletonShape = { header: SkeletonHeaderKind; body: SkeletonBodyKind }
 
 /**
  * The shape of the view a route opens, or `null` for a view not worth drawing ahead of — the
- * calendar, the forms and the share sheet, whose data is already on hand when they open, so only
- * their code is on its way and their own header over a spinner says so.
+ * share sheet, whose data is already on hand when it opens, so only its code is on its way and
+ * its own header over a spinner says so.
  *
  * `level` is the place's, once the region tree has it.
  */
@@ -123,6 +126,12 @@ export function skeletonShape(
       return { header: 'titled', body: 'classes' }
     case 'event':
       return { header: 'class', body: 'class' }
+    case 'register':
+      return { header: 'titled', body: 'form' }
+    case 'filters':
+      return { header: 'titled', body: 'filters' }
+    case 'calendar':
+      return { header: 'titled', body: 'calendar' }
     default:
       return null
   }
@@ -239,6 +248,81 @@ function ClassPage({ cta }: { cta: boolean }) {
   )
 }
 
+/** One question of a form: its label line over the control's box. */
+function Question({ children, width }: { children?: ReactNode; width: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <SkeletonLine className="text-sm" width={width} />
+      {children}
+    </div>
+  )
+}
+
+const CONTROL = 'h-[38px] w-full pointer-coarse:h-[46px]'
+
+/** The registration form below its title: the class's summary card, then a labelled field each. */
+function RegistrationPage() {
+  return (
+    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-gutter py-4">
+      <SkeletonBlock className="h-24 w-full" />
+      <Question width="w-24">
+        <SkeletonBlock className={CONTROL} />
+      </Question>
+      <Question width="w-32">
+        <SkeletonBlock className={CONTROL} />
+      </Question>
+      <Question width="w-20">
+        <SkeletonBlock className="h-24 w-full" />
+      </Question>
+    </div>
+  )
+}
+
+/** The filter questions in their order: where, format, days, then the times of day stacked. */
+function FilterPage() {
+  return (
+    <div className="flex flex-col gap-5 px-gutter py-4">
+      <Question width="w-16">
+        <SkeletonBlock className={CONTROL} />
+      </Question>
+      <Question width="w-24">
+        <div className="grid grid-cols-2 gap-2">
+          <SkeletonBlock className="h-11" />
+          <SkeletonBlock className="h-11" />
+        </div>
+      </Question>
+      <Question width="w-12">
+        <SkeletonBlock className="h-11 w-full" />
+      </Question>
+      <Question width="w-20">
+        <div className="flex flex-col gap-2">
+          <SkeletonBlock className="h-11 w-full" />
+          <SkeletonBlock className="h-11 w-full" />
+          <SkeletonBlock className="h-11 w-full" />
+        </div>
+      </Question>
+    </div>
+  )
+}
+
+/** The month grid below the calendar's header: a weekday row over five rows of days. */
+function CalendarPage() {
+  return (
+    <div className="flex flex-col gap-2 px-gutter py-2">
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 7 }, (_, day) => (
+          <SkeletonLine key={day} className="justify-center text-xs" width="w-6" />
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 35 }, (_, day) => (
+          <SkeletonBlock key={day} className="h-14" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /**
  * What fills a loading panel, marked loading so the phone sheet holds still until the content
  * arrives (`useFitSnap`), and announced once, in words.
@@ -252,12 +336,19 @@ export function SkeletonBody({ body, cta = true }: { body: SkeletonBodyKind; cta
   return (
     <div {...LOADING}>
       <p className="sr-only" role="status">
-        {t(body === 'class' ? 'common.a11y.loading' : 'common.a11y.finding_classes')}
+        {t(
+          body === 'places' || body === 'classes' || body === 'calendar'
+            ? 'common.a11y.finding_classes'
+            : 'common.a11y.loading',
+        )}
       </p>
       <SkeletonGroup>
         {body === 'places' && <PlaceRows />}
         {body === 'classes' && <ClassCards />}
         {body === 'class' && <ClassPage cta={cta} />}
+        {body === 'form' && <RegistrationPage />}
+        {body === 'filters' && <FilterPage />}
+        {body === 'calendar' && <CalendarPage />}
       </SkeletonGroup>
     </div>
   )

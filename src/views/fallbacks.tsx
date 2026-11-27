@@ -1,5 +1,6 @@
 import type { FallbackProps } from 'react-error-boundary'
 import type { FallbackAlign, FallbackKind } from '@/components/molecules'
+import type { SkeletonBodyKind } from '@/components/organisms/Skeleton/Skeleton'
 import type { StackEntry } from '@/lib/shape'
 
 import { useEffect, useMemo } from 'react'
@@ -276,28 +277,31 @@ export function DrawerLoading() {
   return (
     <>
       <DrawerChrome loading />
-      {shape ? (
-        <DrawerBody className={LOADING_BODY_CLIP}>
-          {/* The phone sheet pins Register to its foot once the class arrives. */}
-          <SkeletonBody body={shape.body} cta={!hasMap || isWide} />
-        </DrawerBody>
-      ) : (
-        <DrawerLoadingBody />
-      )}
+      {/* The phone sheet pins Register to its foot once the class arrives. */}
+      <DrawerLoadingBody body={shape?.body} cta={!hasMap || isWide} />
     </>
   )
 }
 
 /**
- * The spinner alone, for a Suspense fence that sits BELOW a view's own header — the
- * calendar's grid. The chrome-ful `DrawerLoading` there would draw a second header,
- * with a second Back button, under the one CalendarControls already renders.
+ * What fills the body of a Suspense fence that sits BELOW a view's own header — the
+ * calendar's grid — or under the shared chrome: the view's placeholder shapes (`body`), or the
+ * spinner alone for a view with none. The chrome-ful `DrawerLoading` below a header would draw a
+ * second header, with a second Back button, under the one CalendarControls already renders.
  *
  * This is the loading counterpart of `DrawerErrorBody`/`ErrorPanel` — same split,
  * same reason.
  */
-export function DrawerLoadingBody() {
+export function DrawerLoadingBody({ body, cta }: { body?: SkeletonBodyKind; cta?: boolean }) {
   const { t } = useTranslation()
+
+  if (body) {
+    return (
+      <DrawerBody className={LOADING_BODY_CLIP}>
+        <SkeletonBody body={body} cta={cta} />
+      </DrawerBody>
+    )
+  }
 
   return (
     <DrawerBody className={CENTERED_BODY}>

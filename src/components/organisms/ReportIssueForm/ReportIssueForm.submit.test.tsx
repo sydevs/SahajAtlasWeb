@@ -10,8 +10,7 @@
 // called `window.alert(JSON.stringify(payload))` and then
 // `setSubmitted(true)`, so every report showed the thank-you screen, and
 // none of them reached a server. Its sibling spec can only drive the story
-// props (`initialSubmitted` or `initialFailed`), and both short-circuit
-// the derivation. So with that spec alone, restoring the bug keeps the
+// prop (`initialSubmitted`), which short-circuits the derivation. So with that spec alone, restoring the bug keeps the
 // lane green. Here the ONLY way to the thank-you screen is a resolved
 // POST.
 import { act } from 'react'
@@ -22,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ReportIssueForm } from './ReportIssueForm'
 
 import { queryClient } from '@/config/query-client'
-import { challengeFrameStub } from '@/test-support/turnstile-frame'
+import { challengeFrameStub, sendFromFrame } from '@/test-support/turnstile-frame'
 import { type ReportContext } from '@/lib/report'
 import { mockReportForm } from '@/mocks/report-form'
 
@@ -49,6 +48,7 @@ vi.mock('react-i18next', () => ({
         'common.report_errors.send_failed': 'SEND_FAILED',
         'common.report_errors.captcha': 'CAPTCHA_FAILED',
         'common.report.submit': 'Send report',
+        'common.report.blocked': 'CAPTCHA_BLOCKED',
       })[key] ?? key,
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
   }),
@@ -175,8 +175,38 @@ describe('ReportIssueForm submit', () => {
     expect(sdk.request).toHaveBeenCalledTimes(1)
     expect(container.textContent).not.toContain('THANKYOU')
     expect(container.textContent).toContain('SEND_FAILED')
+    // An assertive alert, tied to THIS sentence: a bare `role="alert"` is also satisfied by
+    // FormField's own error span.
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('SEND_FAILED')
     // The typed message survives, so the retry costs nothing to compose.
     expect(container.querySelector<HTMLTextAreaElement>('#report-field-0')?.value).toBe(MESSAGE)
+
+    await act(async () => root.unmount())
+  })
+
+  // A blocked captcha used to publish `contact@sydevelopers.com` as a `mailto:` link on any host
+  // page whose CSP blocked the challenge (#182). The form's job is to explain the dead button,
+  // not to offer another way to send.
+  it('says why Send is dead when the challenge frame reports an error, and offers no inbox', async () => {
+    const root = createRoot(container)
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={new QueryClient()}>
+          <ReportIssueForm context={context} form={mockReportForm} onClose={() => {}} />
+        </QueryClientProvider>,
+      )
+    })
+
+    const frame = container.querySelector('iframe')
+
+    if (!frame) throw new Error('no Turnstile challenge frame')
+
+    await act(async () => sendFromFrame(frame, { type: 'error' }))
+
+    expect(container.textContent).toContain('CAPTCHA_BLOCKED')
+    expect(container.querySelector('button[type="submit"]')?.hasAttribute('disabled')).toBe(true)
+    expect(container.querySelector('a[href^="mailto:"]')).toBeNull()
 
     await act(async () => root.unmount())
   })

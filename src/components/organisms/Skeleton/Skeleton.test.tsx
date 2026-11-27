@@ -20,16 +20,16 @@ describe('skeletonShape', () => {
     ['/gb/south-east/london', { header: 'titled-field', body: 'classes' }],
     ['/gb/online', { header: 'titled', body: 'classes' }],
     ['/gb/south-east/london/1817', { header: 'class', body: 'class' }],
+    ['/calendar', { header: 'titled', body: 'calendar' }],
+    ['/filters', { header: 'titled', body: 'filters' }],
+    ['/gb/south-east/london/1817/register', { header: 'titled', body: 'form' }],
   ])('%s loads as %o', (path, shape) => {
     expect(shapeAt(path)).toEqual(shape)
   })
 
-  it.each(['/calendar', '/gb/south-east/london/1817/register', '/gb/south-east/london/1817/share'])(
-    '%s has no shape: its data is on hand, so its own header over a spinner stands',
-    (path) => {
-      expect(shapeAt(path)).toBeNull()
-    },
-  )
+  it('has no shape for the share sheet: its data is on hand, so its own header over a spinner stands', () => {
+    expect(shapeAt('/gb/south-east/london/1817/share')).toBeNull()
+  })
 
   it('trusts the region tree over the route once it has the level', () => {
     const prague = resolveStack('/cz/prague').at(-1)
@@ -40,7 +40,7 @@ describe('skeletonShape', () => {
 })
 
 describe('SkeletonBody', () => {
-  it.each(['places', 'classes', 'class'] as const)(
+  it.each(['places', 'classes', 'class', 'form', 'filters', 'calendar'] as const)(
     'says it is loading once, hides its shapes, and holds the sheet (%s)',
     (body) => {
       const html = renderToStaticMarkup(<SkeletonBody body={body} />)
@@ -85,10 +85,10 @@ describe('BootFallback', () => {
   })
 
   it('draws a route with no shape as an empty titled panel', () => {
-    const calendar = boot('/calendar')
+    const share = boot('/gb/south-east/london/1817/share')
 
-    expect(calendar).not.toContain('role="status"')
-    expect(calendar).not.toContain('data-sy-loading')
+    expect(share).not.toContain('role="status"')
+    expect(share).not.toContain('data-sy-loading')
   })
 })
 
