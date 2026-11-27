@@ -191,6 +191,8 @@
     },
     "language": {
       "all": "All languages",
+      "count_one": "%{count} language",
+      "count_other": "%{count} languages",
       "label": "Language"
     },
     "more": {
@@ -204,6 +206,8 @@
       "night": "Night"
     },
     "when": {
+      "count_one": "%{count} timing",
+      "count_other": "%{count} timings",
       "label": "When"
     },
     "where": {
