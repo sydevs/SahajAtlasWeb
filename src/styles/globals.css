@@ -498,14 +498,14 @@ html.sy-atlas {
    `field-size`'s zoom one, so a narrow desktop window keeps 40px fields. One utility rather than
    the class pair, so `@/styles/tv` can register it as a height and a textarea's `h-auto` replaces
    both arms at once. */
+@utility field-height {
+  @apply h-10 pointer-coarse:h-11;
+}
+
 /* A count in parentheses, such as "Filters (2)". Rethink Sans ships a standard ligature that
    draws "(1)" to "(20)" as a circled digit ("①"), so a counter turns its common ligatures off. */
 @utility literal-count {
   font-variant-ligatures: no-common-ligatures;
-}
-
-@utility field-height {
-  @apply h-10 pointer-coarse:h-11;
 }
 
 /* An invisible 44px tap area around a smaller control, on touch screens only, so the control
