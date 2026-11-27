@@ -49,7 +49,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **A class's Share, Directions and Contact act in place, and Register follows them.** Share
+- **A class's Share, Directions and Contact act in place, and Register follows them.** ([#540]) Share
   opens the device's own share sheet, or a popover of the region's networks, each named, ending
   in Copy link; it no longer opens a Share panel, and a class with no link to share has no Share
   button. Directions opens a menu of map services ordered for the visitor's region (Yandex,
@@ -792,7 +792,7 @@ no-referrer`.
 
 ### Fixed
 
-- **The loading spinner turns, and loading placeholders pulse.** Both had stood still: the
+- **The loading spinner turns, and loading placeholders pulse.** ([#540]) Both had stood still: the
   build renamed their animations and left the old names behind. Both stay still for a visitor
   who asks their device for reduced motion.
 
@@ -1565,6 +1565,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
 [#531]: https://github.com/sydevs/SahajAtlasWeb/pull/531
+[#540]: https://github.com/sydevs/SahajAtlasWeb/pull/540
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
 [#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
