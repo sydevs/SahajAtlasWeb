@@ -658,7 +658,7 @@ function LabeledTextarea({
   label: ReactNode
   maxLength?: number
   error?: ReactNode
-  optional?: string
+  optional?: boolean
   registration: UseFormRegisterReturn
 }) {
   return (
@@ -777,10 +777,10 @@ function RegistrationFields({
       {questions.map((question, index) => (
         <LabeledTextarea
           key={index}
+          optional
           error={errorCopy(errors.questions?.[question], t)}
           label={t(`registration.questions.${question}`)}
           maxLength={USER_SUBMISSION_VALUE_MAX}
-          optional={t('common.chrome.optional')}
           registration={register(`questions.${question}`)}
         />
       ))}
