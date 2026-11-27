@@ -11,7 +11,11 @@
   },
   "event": {
     "view_photo": "Открыть фото",
-    "pause_slideshow": "Приостановить слайд-шоу",
+    "photo": "Фото",
+    "photo_position": "Фото %{current} из %{total}",
+    "previous_photo": "Предыдущее фото",
+    "next_photo": "Следующее фото",
+    "close_photo": "Закрыть фото",
     "copy_address": "Копировать адрес"
   },
   "filters": {

@@ -11,7 +11,11 @@
   },
   "event": {
     "view_photo": "Visualizza foto",
-    "pause_slideshow": "Metti in pausa la presentazione",
+    "photo": "Foto",
+    "photo_position": "Foto %{current} di %{total}",
+    "previous_photo": "Foto precedente",
+    "next_photo": "Foto successiva",
+    "close_photo": "Chiudi foto",
     "copy_address": "Copia indirizzo"
   },
   "filters": {

@@ -49,6 +49,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A class's photos show as a grid instead of a slideshow.** ([#PRNUM]) They sit in two columns
+  below the description, each at its own shape with rounded corners, and nothing moves on its own.
+  Tapping one still opens it full screen, where arrows, the arrow keys and a swipe step through
+  the rest. The full-screen view no longer zooms or shows a thumbnail strip; pinch-zoom is left to
+  the browser.
+
 - **Filters apply as they are tapped, and close onto the matching classes.** ([#528]) There is
   no Apply button: each answer narrows the map and the count at once, and the bottom button reads
   "Show 8 classes", or Close with nothing picked. Closing by X, swipe or Esc keeps the answers and

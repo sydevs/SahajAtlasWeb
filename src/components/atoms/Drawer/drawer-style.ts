@@ -40,8 +40,7 @@ export const drawer = tv({
     // it. Content wraps at the source instead (see EventDetails'
     // `break-words`). This class only means the next such string degrades to
     // a clipped edge, instead of a horizontal scrollbar across the view. It
-    // is safe for the full-bleed carousel, which is exactly the body's width,
-    // and for popovers, which portal out of the body entirely.
+    // is safe for popovers, which portal out of the body entirely.
     // The trailing spacer clears a `sticky` footer, which is out of flow, so
     // the body runs underneath it and the end of the content is otherwise
     // unreachable. The length is the footer's own, published by `DrawerFooter`,

@@ -11,7 +11,11 @@
   },
   "event": {
     "view_photo": "Преглед на снимката",
-    "pause_slideshow": "Пауза на слайдшоуто",
+    "photo": "Снимка",
+    "photo_position": "Снимка %{current} от %{total}",
+    "previous_photo": "Предишна снимка",
+    "next_photo": "Следваща снимка",
+    "close_photo": "Затваряне на снимката",
     "copy_address": "Копиране на адреса"
   },
   "filters": {

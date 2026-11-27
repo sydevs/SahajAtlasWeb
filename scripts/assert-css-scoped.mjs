@@ -145,10 +145,9 @@ export function extractInjectedCss(source) {
 // selector. `@font-face` carries no selector, so the scoping pass cannot
 // touch it, and `assertScoped` cannot see it. But the font-family name is
 // document-global, and the last definition wins — the same property that
-// made a bare `@keyframes` a leak. Our own font family is namespaced.
-// Swiper's icon font belongs to that upstream library. This script allows
-// it through by name, so the exemption stays visible instead of silent.
-const ALLOWED_FONT_FAMILIES = new Set(['Atlas Rethink Sans', 'swiper-icons'])
+// made a bare `@keyframes` a leak. Our own font family is namespaced, and
+// allowed through by name, so the exemption stays visible instead of silent.
+const ALLOWED_FONT_FAMILIES = new Set(['Atlas Rethink Sans'])
 
 // `@property` is the third document-global namespace, beside `@keyframes`
 // and `@font-face`, and it arrived with Tailwind 4: the utilities compose
@@ -156,7 +155,7 @@ const ALLOWED_FONT_FAMILIES = new Set(['Atlas Rethink Sans', 'swiper-icons'])
 // host document imposes `inherits: false` and a typed initial value on it
 // there, so a host page using the same name gets our semantics. Unlike a
 // keyframe, these cannot be namespaced — Tailwind writes the `var()` refs
-// itself. So the prefix is allowed by name, the way Swiper's font family
+// itself. So the prefix is allowed by name, the way our font family
 // is, and anything else fails loudly rather than shipping unnoticed.
 const ALLOWED_PROPERTY = /^--tw-[a-z0-9-]+$/
 
@@ -184,8 +183,6 @@ const REM_LENGTH = /(?<![\w.-])-?(?:\d*\.)?\d+rem\b/i
 const RUNTIME_SET_PROPERTY = new RegExp(
   [
     '^--sx-', // Schedule-X — event-modal position, draw-plugin spacer
-    '^--yarl__', // yet-another-react-lightbox — carousel slide count
-    '^--swiper-', // Swiper — slide and centered offsets
     '^--radix-', // Radix UI — trigger width, measured when the surface opens
   ].join('|'),
 )

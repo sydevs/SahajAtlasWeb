@@ -283,17 +283,13 @@ describe('check 5: every fallbackless var() names a declared property', () => {
       '@property --tw-ring-color{syntax:"*";inherits:false}' +
       '.a{color:var(--undeclared,red)}' +
       '.b{outline-color:var(--tw-ring-color)}' +
-      '.c{width:var(--radix-popover-trigger-width)}' +
-      '.d{left:var(--swiper-centered-offset-before)}' +
-      '.e{flex:var(--yarl__carousel_slides_count)}'
+      '.c{width:var(--radix-popover-trigger-width)}'
     const { declared, refs } = collectVars(parse(css))
 
     // The fallback form is not a reference at all: it cannot go invalid.
     expect(refs.map(({ name }) => name)).toEqual([
       '--tw-ring-color',
       '--radix-popover-trigger-width',
-      '--swiper-centered-offset-before',
-      '--yarl__carousel_slides_count',
     ])
     expect(varFailures([{ file: SHEET, refs }], declared)).toEqual([])
   })
@@ -380,10 +376,10 @@ describe('@font-face families', () => {
     ])
   })
 
-  it('accepts our own namespaced family and Swiper’s icon font, quoted or not', () => {
+  it('accepts our own namespaced family, quoted or not', () => {
     const css =
       '@font-face{font-family:"Atlas Rethink Sans";src:url(/assets/rethink.woff2)}' +
-      '@font-face{font-family:swiper-icons;src:url(data:application/font-woff;base64,d09G)}'
+      "@font-face{font-family:'Atlas Rethink Sans';src:url(/assets/rethink-bold.woff2)}"
 
     expect(fontFaceFailures(parse(css))).toEqual([])
     expect(audit(withApp(css)).failures).toEqual([])

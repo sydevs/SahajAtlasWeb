@@ -24,14 +24,11 @@ import * as molecules from './index'
  * it.
  */
 const LEAF_PATH_ONLY = [
-  // Swiper.
-  'ImageCarousel',
   // react-share.
   'ShareContent',
   // The class page's action row, which the lazy EventDetails chunk reaches by leaf path.
   'EventActions',
-  // The iCalendar builder (issue #105). This is lighter than the two
-  // above: luxon is already in the shell, so the leak would be
+  // The iCalendar builder (issue #105). This is lighter than react-share: luxon is already in the shell, so the leak would be
   // `lib/ics.ts` alone.
   'AddToCalendar',
   // The QR encoder's loader. The encoder itself is a dynamic import either way.

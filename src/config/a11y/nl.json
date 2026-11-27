@@ -11,7 +11,11 @@
   },
   "event": {
     "view_photo": "Foto bekijken",
-    "pause_slideshow": "Diavoorstelling pauzeren",
+    "photo": "Foto",
+    "photo_position": "Foto %{current} van %{total}",
+    "previous_photo": "Vorige foto",
+    "next_photo": "Volgende foto",
+    "close_photo": "Foto sluiten",
     "copy_address": "Adres kopiëren"
   },
   "filters": {

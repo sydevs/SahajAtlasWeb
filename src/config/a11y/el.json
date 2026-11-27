@@ -11,7 +11,11 @@
   },
   "event": {
     "view_photo": "Προβολή φωτογραφίας",
-    "pause_slideshow": "Παύση προβολής διαφανειών",
+    "photo": "Φωτογραφία",
+    "photo_position": "Φωτογραφία %{current} από %{total}",
+    "previous_photo": "Προηγούμενη φωτογραφία",
+    "next_photo": "Επόμενη φωτογραφία",
+    "close_photo": "Κλείσιμο φωτογραφίας",
     "copy_address": "Αντιγραφή διεύθυνσης"
   },
   "filters": {

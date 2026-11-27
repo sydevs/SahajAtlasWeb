@@ -11,7 +11,11 @@
   },
   "event": {
     "view_photo": "مشاهده عکس",
-    "pause_slideshow": "توقف نمایش اسلاید",
+    "photo": "عکس",
+    "photo_position": "عکس %{current} از %{total}",
+    "previous_photo": "عکس قبلی",
+    "next_photo": "عکس بعدی",
+    "close_photo": "بستن عکس",
     "copy_address": "کپی نشانی"
   },
   "filters": {
