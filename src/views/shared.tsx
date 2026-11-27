@@ -187,18 +187,18 @@ export function ExpandSheetButton() {
 // the other header controls.
 export function FilterButton({
   iconOnly = false,
-  counted,
+  filters,
 }: {
   iconOnly?: boolean
   /** What the badge counts, where the view names some filters itself (the calendar's place). */
-  counted?: EventFilters
+  filters?: EventFilters
 }) {
   // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
   const applied = useEventFilters()
-  const count = activeFilterCount(counted ?? applied)
+  const count = activeFilterCount(filters ?? applied)
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`

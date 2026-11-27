@@ -18,20 +18,20 @@ export function DayClasses({
   day,
   entries,
   locale,
-  counted = false,
-  live = false,
+  chosen = false,
 }: {
   day: string
   entries: readonly CalendarEntry[]
   locale: string
-  /** Says how many classes the day holds beside the date, where no list says it already. */
-  counted?: boolean
-  /** Announces the heading as it changes, where the visitor changes the day from a grid. */
-  live?: boolean
+  /**
+   * The one day a grid picked, rather than one of a week's listed in order: the heading counts
+   * its classes, and announces itself as the visitor moves between days.
+   */
+  chosen?: boolean
 }) {
   const { t } = useTranslation()
   const { heading, note } = dayHeadingParts(DateTime.fromISO(day), {
-    count: counted ? entries.length : 0,
+    count: chosen ? entries.length : 0,
     locale,
     t,
   })
@@ -39,7 +39,7 @@ export function DayClasses({
   return (
     <section aria-labelledby={`day-${day}`}>
       <h3
-        aria-live={live ? 'polite' : undefined}
+        aria-live={chosen ? 'polite' : undefined}
         className="sticky top-0 z-10 flex items-baseline gap-2 bg-gray-3 px-gutter py-2 text-sm font-semibold text-gray-12"
         id={`day-${day}`}
       >

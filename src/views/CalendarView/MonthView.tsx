@@ -265,7 +265,7 @@ function PhoneMonth({ byDay, focused, locale, onFocus }: GridProps) {
         locale={locale}
       />
       <div className="-mx-gutter mt-4">
-        <DayClasses counted live day={focused} entries={byDay.get(focused) ?? []} locale={locale} />
+        <DayClasses chosen day={focused} entries={byDay.get(focused) ?? []} locale={locale} />
       </div>
     </>
   )

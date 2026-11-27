@@ -112,7 +112,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
       <div className="flex w-full items-center justify-between gap-2">
         <BackButton />
         <div className="flex shrink-0 items-center gap-1">
-          <FilterButton iconOnly counted={chosenCalendarFilters(filters, view)} />
+          <FilterButton iconOnly filters={chosenCalendarFilters(filters, view)} />
         </div>
       </div>
       {/* Pulled down to the peek, the way to raise the sheet again, as every other header has. */}
