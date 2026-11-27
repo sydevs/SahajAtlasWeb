@@ -64,6 +64,9 @@ export function Lightbox({ slides, index, onIndexChange, onClose }: LightboxProp
   }
 
   const onPointerDown = (event: PointerEvent<HTMLElement>) => {
+    // Cleared here as well as on click: a browser need not fire a click after a drag, and a flag
+    // left standing would swallow the next real tap on the backdrop.
+    swiped.current = false
     swipeStart.current = event.pointerType === 'mouse' ? null : event.clientX
   }
 

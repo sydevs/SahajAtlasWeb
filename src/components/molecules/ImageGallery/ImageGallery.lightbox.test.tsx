@@ -70,6 +70,21 @@ async function press(key: string) {
   })
 }
 
+async function swipe(dx: number) {
+  const target = dialog()?.querySelector('figure')
+
+  await act(async () => {
+    for (const [type, clientX] of [
+      ['pointerdown', 200],
+      ['pointerup', 200 + dx],
+    ] as const) {
+      target?.dispatchEvent(
+        new PointerEvent(type, { bubbles: true, clientX, pointerType: 'touch' }),
+      )
+    }
+  })
+}
+
 describe('ImageGallery lightbox', () => {
   it('opens on the photo that was clicked, titled with its position and showing its caption', async () => {
     await mount()
@@ -110,6 +125,37 @@ describe('ImageGallery lightbox', () => {
 
     await press('ArrowLeft')
     expect(shown()).toBe('https://example.test/b.jpg')
+  })
+
+  it('steps with a sideways swipe, ignoring a short one', async () => {
+    await mount()
+    await click(byLabel('A'))
+
+    await swipe(-80)
+    expect(shown()).toBe('https://example.test/b.jpg')
+
+    await swipe(20)
+    expect(shown()).toBe('https://example.test/b.jpg')
+  })
+
+  it('mirrors the swipe right to left', async () => {
+    direction.value = 'rtl'
+    await mount()
+    await click(byLabel('A'))
+
+    await swipe(80)
+    expect(shown()).toBe('https://example.test/b.jpg')
+  })
+
+  // A drag need not end in a click, so the swipe guard must not outlive the gesture.
+  it('still closes on the next backdrop tap after a swipe that fired no click', async () => {
+    await mount()
+    await click(byLabel('A'))
+    await swipe(-80)
+
+    await swipe(0)
+    await click(dialog()?.querySelector('figure') ?? null)
+    expect(dialog()).toBeNull()
   })
 
   it('closes from its close button', async () => {
