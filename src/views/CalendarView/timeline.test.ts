@@ -14,6 +14,7 @@ let id = 0
 const entry = (start: string, end: string): CalendarEntry => ({
   id: String(++id),
   title: 'Meditation',
+  name: 'Meditation',
   start,
   end,
   path: '/1',

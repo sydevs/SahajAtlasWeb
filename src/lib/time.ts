@@ -125,6 +125,15 @@ export const formatLongDate = (at: DateTime, locale: string): string =>
     year: at.year === DateTime.now().setZone(at.zone).year ? undefined : 'numeric',
   })
 
+/** A day as a heading: "Thursday 12 Nov" in the UK, "Thursday, Nov 12" in the US. */
+export const formatDayHeading = (at: DateTime, locale: string): string =>
+  at.setLocale(locale).toLocaleString({
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+    year: at.year === DateTime.now().setZone(at.zone).year ? undefined : 'numeric',
+  })
+
 /** A weekday's name: "Wednesday", or "Wed" when `short`. */
 export const formatWeekday = (
   at: DateTime,

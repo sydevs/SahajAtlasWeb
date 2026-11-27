@@ -1,4 +1,7 @@
-import { Suspense, useMemo, useRef } from 'react'
+import type { TFunction } from 'i18next'
+import type { CalendarConfig } from '@schedule-x/calendar'
+
+import { type CSSProperties, Suspense, useMemo, useRef } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
@@ -19,6 +22,8 @@ import { Temporal } from 'temporal-polyfill'
 import '@schedule-x/theme-default/dist/index.css'
 
 import { CalendarMount } from './CalendarMount'
+import { dayHeadingParts } from './day-heading'
+import { calendarRenderers } from './renderers'
 import { scheduleXTimeline } from './timeline'
 
 import { Button } from '@/components/atoms/Button'
@@ -57,11 +62,30 @@ import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
 const ONLINE_COLORS = {
   main: 'hsl(var(--secondary-9))',
   container: 'hsl(var(--secondary-4))',
-  onContainer: 'hsl(var(--secondary-11))',
+  // Plain text: the -11 step measured under 3:1 on its own tint.
+  onContainer: 'var(--gray-12)',
 }
 const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
 }
+
+// Schedule-X's own words for what it lists, in ours and in every language: "+ 3 classes", not
+// "+ 3 events". The patched core asks this before its own table (`src/components/AGENTS.md`
+// § Patch register), and a key missing here keeps Schedule-X's wording.
+const SCHEDULE_X_WORDS: Record<string, (t: TFunction, vars: Record<string, unknown>) => string> = {
+  '+ 1 event': (t) => t('calendar.more', { count: 1 }),
+  '+ {{n}} events': (t, { n }) => t('calendar.more', { count: Number(n) }),
+  // A spoken name starts with the words on screen, so the button is named by its own text.
+  'Link to 1 more event on {{date}}': (t, { date }) =>
+    `${t('calendar.more', { count: 1 })}, ${String(date)}`,
+  'Link to {{n}} more events on {{date}}': (t, { n, date }) =>
+    `${t('calendar.more', { count: Number(n) })}, ${String(date)}`,
+  'No events': (t) => t('calendar.none'),
+}
+
+const scheduleXWords = (t: TFunction) => ({
+  sydevs: (key: string, vars: Record<string, unknown>) => SCHEDULE_X_WORDS[key]?.(t, vars),
+})
 
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
 
@@ -329,6 +353,8 @@ function CalendarGrid({
       // token overrides (globals.css) carry the light/dark and accent theming regardless of
       // `isDark`.
       locale: scheduleXLocale(formatLocale),
+      // The patched core takes a function beside its languages, which its types cannot say.
+      translations: scheduleXWords(t) as unknown as CalendarConfig['translations'],
       callbacks: {
         // Each entry carries its event's route. This opens the matching EventView — the atlas
         // navigate stamps camera and depth like every other in-widget push.
@@ -352,25 +378,51 @@ function CalendarGrid({
     [controls],
   )
 
+  const renderers = useMemo(() => calendarRenderers(formatLocale), [formatLocale])
+  const perDay = useMemo(() => {
+    const counts = new Map<string, number>()
+
+    for (const entry of events) {
+      const day = entry.start.slice(0, 10)
+
+      counts.set(day, (counts.get(day) ?? 0) + 1)
+    }
+
+    return counts
+  }, [events])
+
+  // The phone month list names the day it shows, which otherwise only an outline in the grid
+  // says. Schedule-X draws that list, so the words reach it as custom properties (globals.css).
+  const focused = useCalendarPosition((s) => s.date) ?? DateTime.now().toISODate() ?? ''
+  const day = dayHeadingParts(DateTime.fromISO(focused), {
+    count: perDay.get(focused) ?? 0,
+    locale: formatLocale,
+    t,
+  })
+  const dayStyle = {
+    '--sy-agenda-day': JSON.stringify(day.heading),
+    '--sy-agenda-day-note': day.note ? JSON.stringify(day.note) : 'none',
+  } as CSSProperties
+
   // Says whose clock the grid is in: an in-person class reads in its own zone and an online one
   // in the viewer's (`eventTimeZone`), so a London visitor's 1:00 AM Toronto class looks like a
-  // mistake without it (#25). It sits under the grid, costing no first-screen rows. Any online
-  // entry in the expansion earns it: gating on the focused month would hide it from a week
-  // straddling two months, and from the list view, which pages past the month it starts in.
+  // mistake without it (#25). It sits above the times it explains, so it is read before them. Any
+  // online entry in the expansion earns it: gating on the focused month would hide it from a
+  // week straddling two months, and from the list view, which pages past the month it starts in.
   const hasOnline = events.some((entry) => entry.calendarId === 'online')
 
   return (
     <>
-      <DrawerBody className="max-w-none overflow-hidden px-gutter py-4">
-        <div className="sx-calendar">
-          <CalendarMount calendar={calendar} />
-        </div>
-      </DrawerBody>
       {hasOnline && (
-        <p className="shrink-0 border-t border-divider px-gutter py-2 text-xs text-gray-11">
+        <p className="shrink-0 px-gutter pt-3 text-xs text-gray-11">
           {t('calendar.times_note', { zone: zoneCity(DateTime.local().zoneName) })}
         </p>
       )}
+      <DrawerBody className="max-w-none overflow-hidden px-gutter py-4">
+        <div className="sx-calendar" style={dayStyle}>
+          <CalendarMount calendar={calendar} renderers={renderers} />
+        </div>
+      </DrawerBody>
     </>
   )
 }

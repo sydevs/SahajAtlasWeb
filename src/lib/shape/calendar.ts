@@ -26,42 +26,54 @@ export type CalendarSourceEvent = {
   path: string
   eventType: EventType
   schedule?: EventSchedule | null
-  /** The event's parent region name — the default (concise) calendar label. */
+  /** The event's parent region name — where it is when it has no address. */
   regionName?: string | null
-  /** The event's locality (address city) — the label when the calendar is region-scoped. */
+  /** The event's locality (address city) — where it is. */
   locality?: string | null
 }
 
-// The event's place (parent region name, or — when the calendar is already scoped to a
-// region so every entry shares it — the finer-grained address locality). No title fallback
-// here: the caller decides what a placeless entry reads as.
-const placeOf = (event: CalendarSourceEvent, regionScoped: boolean): string | undefined => {
-  const region = event.regionName?.trim() || undefined
-  const locality = event.locality?.trim() || undefined
+// Words that stay lower case inside a recased town's name: Stratford-upon-Avon, Le Mans.
+const NAME_JOINERS = new Set(['upon', 'on', 'under', 'in', 'by', 'the', 'and', 'de', 'la', 'le'])
 
-  return regionScoped ? locality || region : region || locality
+/**
+ * A town typed all in capitals ("HARROGATE") reads as shouting beside the rest, so it is recased.
+ * Any other name keeps the case it was given, so "McLean" stays as it is.
+ */
+export const tidyPlaceCase = (name: string): string =>
+  name !== name.toUpperCase() || name === name.toLowerCase()
+    ? name
+    : name
+        .toLowerCase()
+        .replace(/(^|[\s'’-])(\p{L}+)/gu, (_, before: string, word: string, offset: number) =>
+          offset > 0 && NAME_JOINERS.has(word)
+            ? before + word
+            : before + word[0].toUpperCase() + word.slice(1),
+        )
+
+// The address city first: a region can be one venue ("R. do Catete, 311"), which says nothing next
+// to the class name. A class with no address, as most online ones are, falls back to its region.
+const placeOf = (event: CalendarSourceEvent): string | undefined => {
+  const place = event.locality?.trim() || event.regionName?.trim()
+
+  return place ? tidyPlaceCase(place) : undefined
 }
-
-// The concise label a calendar entry shows instead of the (often long) event title: the
-// event's place (see `placeOf`), or the title itself when it has no place. The "Online"
-// designation is NOT folded in here — it rides the SX `location` field (see the expansion).
-const calendarLabel = (event: CalendarSourceEvent, regionScoped: boolean): string =>
-  placeOf(event, regionScoped) || event.title
 
 /** One occurrence, as the wall clock of its display zone (`YYYY-MM-DD HH:mm`, no zone). */
 export type CalendarEntry = {
   /** Unique per occurrence: `${eventId}-${startMillis}`. */
   id: string
+  /** What Schedule-X writes itself, in the week grid and the list: the name, then the detail. */
   title: string
+  /** The class's own name. */
+  name: string
+  /** Where it is: "Harrogate", "London · Online", or "Online" for a class with no place. */
+  detail?: string
   start: string
   end: string
   /** The event's route, carried through so a click opens the right EventView. */
   path: string
   /** Schedule-X calendar id — set to `online` for online programs so they get their own colour. */
   calendarId?: string
-  /** Schedule-X `location` (shown with a pin in the week/day views): the "Online" term for
-   *  online programs. The month/list views distinguish them by colour instead. */
-  location?: string
 }
 
 // The occurrence already resolved into its display zone, so what the grid shows is the local
@@ -88,9 +100,6 @@ export const eventsToCalendarEntries = (
   const from = opts?.from ?? DateTime.now().startOf('day')
   const to = opts?.to ?? from.plus({ months: 12 })
   const floor = dateFloor(filters, opts?.today ?? from.toISODate() ?? undefined)
-  // When a region is selected every entry sits under it, so the region name would be the
-  // same for all — show the finer-grained locality instead (computed per event below).
-  const regionScoped = filters.region != null
   const entries: CalendarEntry[] = []
 
   for (const event of events) {
@@ -105,10 +114,13 @@ export const eventsToCalendarEntries = (
     const displayZone = eventTimeZone(event)
     const eventZone = event.schedule ? scheduleTimeZone(event.schedule) : 'UTC'
     const endTime = event.schedule?.endTime
-    const label = calendarLabel(event, regionScoped)
-    // Online programs carry a distinct colour + the "Online" term in the SX `location` field.
     const online = event.eventType === 'online'
-    const location = online ? opts?.onlineLabel : undefined
+    const name = event.title.trim() || placeOf(event) || ''
+    // "Online" is written out, because a time in the visitor's clock otherwise looks wrong.
+    const detail =
+      [placeOf(event), online ? opts?.onlineLabel : undefined].filter(Boolean).join(' · ') ||
+      undefined
+    const title = detail ? `${name}\n${detail}` : name
     const calendarId = online ? 'online' : undefined
 
     for (const occurrence of occurrences) {
@@ -129,12 +141,13 @@ export const eventsToCalendarEntries = (
 
       entries.push({
         id: `${event.id}-${start.toMillis()}`,
-        title: label,
+        title,
+        name,
+        detail,
         start: start.toFormat(WALL_CLOCK),
         end: finish.toFormat(WALL_CLOCK),
         path: event.path,
         calendarId,
-        location,
       })
     }
   }

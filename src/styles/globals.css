@@ -570,15 +570,16 @@ html.sy-atlas {
   --sx-color-primary: hsl(var(--primary-12));
   --sx-color-on-primary: #ffffff;
   --sx-color-primary-container: hsl(var(--primary-4));
-  --sx-color-on-primary-container: hsl(var(--primary-11));
+  /* Plain text on the tints: a brand's -11 step measured under 3:1 on its own tint. */
+  --sx-color-on-primary-container: var(--gray-12);
   --sx-color-secondary: hsl(var(--secondary-9));
   --sx-color-on-secondary: hsl(var(--secondary-on));
   --sx-color-secondary-container: hsl(var(--secondary-4));
-  --sx-color-on-secondary-container: hsl(var(--secondary-11));
+  --sx-color-on-secondary-container: var(--gray-12);
   --sx-color-tertiary: hsl(var(--primary-12));
   --sx-color-on-tertiary: #ffffff;
   --sx-color-tertiary-container: hsl(var(--primary-4));
-  --sx-color-on-tertiary-container: hsl(var(--primary-11));
+  --sx-color-on-tertiary-container: var(--gray-12);
   --sx-color-surface: hsl(var(--background));
   --sx-color-surface-bright: hsl(var(--background));
   --sx-color-surface-dim: var(--gray-2);
@@ -590,7 +591,7 @@ html.sy-atlas {
   --sx-color-on-background: var(--gray-12);
   --sx-color-outline: var(--gray-7);
   --sx-color-outline-variant: var(--gray-6);
-  --sx-color-neutral: var(--gray-9);
+  --sx-color-neutral: var(--gray-11);
   --sx-color-neutral-variant: var(--gray-8);
   --sx-internal-color-text: var(--gray-12);
   --sx-internal-color-light-gray: var(--gray-4);
@@ -650,6 +651,86 @@ html.sy-atlas {
 .sx-calendar .sx__time-grid-event.is-event-new,
 .sx-calendar .sx__date-grid-event.is-event-new {
   animation: none;
+}
+
+/* An entry Schedule-X writes itself, in the week grid and the list, is the class name and then
+   where it is, on two lines (`title` in `eventsToCalendarEntries`). */
+.sx-calendar .sx__time-grid-event-title,
+.sx-calendar .sx__list-event-title {
+  white-space: pre-line;
+}
+
+/* The phone month list is a plain list, the way the widget's own lists are, rather than tinted
+   boxes. Schedule-X zeroes a custom row's padding inline. */
+.sx-calendar .sx__month-agenda-events {
+  padding-inline: 0;
+}
+
+.sx-calendar .sx__month-agenda-event {
+  margin: 0;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid var(--gray-5);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.sx-calendar .sy-entry-name {
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  font-weight: 600;
+  color: var(--gray-12);
+}
+
+.sx-calendar .sy-entry-meta {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  color: var(--gray-11);
+}
+
+/* The phone month list's heading names the day it shows: the date, then "Today · 4 classes" on
+   a quieter line. Schedule-X draws the grid and the list as siblings, so CalendarView hands the
+   words over as custom properties, the heading closing the grid and the note opening the list. */
+.sx-calendar .sx__month-agenda-weeks::after {
+  content: var(--sy-agenda-day, none);
+  display: block;
+  padding-top: 20px;
+  font-size: var(--text-lg);
+  line-height: var(--text-lg--line-height);
+  font-weight: 600;
+  color: var(--gray-12);
+}
+
+.sx-calendar .sx__month-agenda-events::before {
+  content: var(--sy-agenda-day-note, none);
+  display: block;
+  padding-bottom: 4px;
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  color: var(--gray-11);
+}
+
+/* A desktop month box: its time and where, on the entry's tint. */
+.sx-calendar .sy-entry-cell {
+  width: 100%;
+  overflow: hidden;
+  padding-inline: 4px;
+  border-radius: 4px;
+  background: hsl(var(--primary-3));
+  color: var(--gray-12);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sx-calendar .sy-entry-cell[data-online='true'] {
+  background: hsl(var(--secondary-3));
+}
+
+/* Every day with classes gets the same solid dot. Schedule-X tints each by its entry's colour
+   and then brightens it in light mode, which left an online class's day looking empty. */
+.sx-calendar .sx__month-agenda-day__event-icon {
+  background-color: hsl(var(--primary-9)) !important;
+  filter: none;
 }
 
 /* Inside a frame the fixed layer is contained by it, so the frame IS the box to fill.

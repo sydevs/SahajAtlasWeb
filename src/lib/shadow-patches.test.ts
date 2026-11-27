@@ -101,8 +101,17 @@ const PATCHES: Record<string, Patch> = {
         'an end already in the calendar’s zone is read as is',
         'if (this._end.timeZoneId === this._config.timezone.value) return this._end;',
       ],
+      ['a word the widget supplies is asked for first', 'const sydevsWords = languages.value.sydevs;'],
+      [
+        'the widget’s translations join the built-in languages',
+        '.withTranslations(Object.assign({}, translations, config.translations))',
+      ],
     ],
     gone: [
+      [
+        'the widget’s translations replace every built-in language',
+        '.withTranslations(config.translations || translations)',
+      ],
       [
         'the view container lookup reads only the document',
         'document.getElementById(viewContainerId)',
@@ -498,6 +507,56 @@ describe('Schedule-X through a shadow boundary', () => {
     expect(other.start.timeZoneId).toBe('UTC')
     expect(other.end.timeZoneId).toBe('UTC')
     expect(other.start.equals(meditation.start)).toBe(true)
+  })
+
+  // Unpatched, a key's words are one string per language with `{{n}}` filled in, so "+ 2 classes"
+  // could not take a plural form, and passing any table replaced every language Schedule-X ships.
+  it('asks the widget for a word first, and keeps its own languages for the rest', async () => {
+    const root = mountShadowHost()
+    const container = document.createElement('div')
+
+    root.append(container)
+
+    const asked: [string, Record<string, unknown>][] = []
+    const sydevs = (key: string, vars: Record<string, unknown>) => {
+      asked.push([key, vars])
+
+      return key === '+ {{n}} events' ? `+ ${String(vars.n)} Kurse` : undefined
+    }
+    const calendar = createCalendar({
+      views: [createViewMonthGrid()],
+      isResponsive: false,
+      locale: 'de-DE',
+      timezone: 'UTC',
+      selectedDate: Temporal.PlainDate.from('2026-10-19'),
+      events: [10, 11, 12, 13, 14, 15].map((hour) => ({
+        id: hour,
+        title: 'Meditation',
+        start: Temporal.ZonedDateTime.from(`2026-10-20T${hour}:00[UTC]`),
+        end: Temporal.ZonedDateTime.from(`2026-10-20T${hour}:30[UTC]`),
+      })),
+      // The patched core takes a function beside its languages, which its types cannot say.
+      translations: { sydevs } as unknown as Parameters<typeof createCalendar>[0]['translations'],
+    })
+
+    await act(async () => {
+      calendar.render(container)
+    })
+
+    await vi.waitFor(() => {
+      expect(root.querySelector('.sx__month-grid-day__events-more')).not.toBeNull()
+    })
+
+    const more = root.querySelector('.sx__month-grid-day__events-more')
+
+    expect(more?.textContent).toBe('+ 2 Kurse')
+    expect(asked).toContainEqual(['+ {{n}} events', { n: 2 }])
+    // A key the widget leaves alone keeps Schedule-X's own German.
+    expect(more?.getAttribute('aria-label')).toMatch(/^Link zu 2 weiteren /)
+
+    await act(async () => {
+      calendar.destroy()
+    })
   })
 
   // No consumer pin below: only `@schedule-x/react` reaches this package besides us, as a peer,

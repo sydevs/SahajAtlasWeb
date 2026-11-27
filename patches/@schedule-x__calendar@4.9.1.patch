@@ -1,5 +1,5 @@
 diff --git a/dist/core.cjs.js b/dist/core.cjs.js
-index cb3eedc71366782dba660d1681b2b45a6b0c3708..a929989772e95901a11961da25e9be5b3e8a14f4 100644
+index cb3eedc71366782dba660d1681b2b45a6b0c3708..53d93af338b5613eb76cdc7586a18d523a55d921 100644
 --- a/dist/core.cjs.js
 +++ b/dist/core.cjs.js
 @@ -6,6 +6,43 @@ var hooks = require('preact/hooks');
@@ -193,7 +193,21 @@ index cb3eedc71366782dba660d1681b2b45a6b0c3708..a929989772e95901a11961da25e9be5b
          }
      }
      setTheme(theme) {
-@@ -5145,9 +5193,9 @@ class EventColors {
+@@ -5020,6 +5068,13 @@ const translate = (locale, languages) => (key, translationVariables) => {
+         'sr-Latn-RS' !== locale.value) {
+         throw new InvalidLocaleError(locale.value);
+     }
++    // sydevs: the SahajAtlasWeb calendar words a few of these strings its own way, in every
++    // language and plural form ("+ 3 classes"), so a `sydevs` function in `translations` is
++    // asked first, with the variables. It answers undefined for a key it leaves to this table.
++    const sydevsWords = languages.value.sydevs;
++    const sydevsWord = typeof sydevsWords === 'function' ? sydevsWords(key, translationVariables || {}) : undefined;
++    if (typeof sydevsWord === 'string')
++        return sydevsWord;
+     const deHyphenatedLocale = locale.value.replaceAll('-', '');
+     const language = languages.value[deHyphenatedLocale];
+     if (!language)
+@@ -5145,9 +5200,9 @@ class EventColors {
          });
      }
      setColors(colorName, colorDefinition) {
@@ -206,7 +220,17 @@ index cb3eedc71366782dba660d1681b2b45a6b0c3708..a929989772e95901a11961da25e9be5b
      }
  }
  
-@@ -6523,7 +6571,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+@@ -5764,7 +5819,8 @@ const createInternalConfig = (config, plugins) => {
+         .withYearGridOptions(config.yearGridOptions)
+         .withBackgroundEvents(config.backgroundEvents)
+         .withTheme(config.theme)
+-        .withTranslations(config.translations || translations)
++        // sydevs: joins the built-in languages rather than replacing every one of them.
++        .withTranslations(Object.assign({}, translations, config.translations))
+         .withWeekNumbers(config.showWeekNumbers)
+         .withTimezone(config.timezone)
+         .withResources(config.resources)
+@@ -6523,7 +6579,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
      hooks.useEffect(() => {
          if (!monthGridDayNameCustomComponent)
              return;
@@ -215,7 +239,7 @@ index cb3eedc71366782dba660d1681b2b45a6b0c3708..a929989772e95901a11961da25e9be5b
          if (!(dayNameEl instanceof HTMLElement)) {
              return;
          }
-@@ -6536,7 +6584,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+@@ -6536,7 +6592,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
      hooks.useEffect(() => {
          if (!monthGridDateCustomComponent)
              return;
@@ -224,7 +248,7 @@ index cb3eedc71366782dba660d1681b2b45a6b0c3708..a929989772e95901a11961da25e9be5b
          if (!(dateEl instanceof HTMLElement))
              return;
          monthGridDateCustomComponent(dateEl, {
-@@ -6717,7 +6765,7 @@ function MonthAgendaDay({ day, isActive, setActiveDate, isLeadingOrTrailing, })
+@@ -6717,7 +6773,7 @@ function MonthAgendaDay({ day, isActive, setActiveDate, isLeadingOrTrailing, })
      hooks.useEffect(() => {
          if (!monthAgendaDateDotsCustomComponent)
              return;
@@ -233,7 +257,7 @@ index cb3eedc71366782dba660d1681b2b45a6b0c3708..a929989772e95901a11961da25e9be5b
          if (!(dotsEl instanceof HTMLElement))
              return;
          monthAgendaDateDotsCustomComponent(dotsEl, {
-@@ -6907,7 +6955,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
+@@ -6907,7 +6963,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
                      mutatedElement.focus();
              });
          });
@@ -242,7 +266,7 @@ index cb3eedc71366782dba660d1681b2b45a6b0c3708..a929989772e95901a11961da25e9be5b
          observer.observe(monthViewElement, {
              childList: true,
              subtree: true,
-@@ -6958,7 +7006,7 @@ const WeekAgendaWrapper = ({ $app, id }) => {
+@@ -6958,7 +7014,7 @@ const WeekAgendaWrapper = ({ $app, id }) => {
                      mutatedElement.focus();
              });
          });
@@ -252,7 +276,7 @@ index cb3eedc71366782dba660d1681b2b45a6b0c3708..a929989772e95901a11961da25e9be5b
              childList: true,
              subtree: true,
 diff --git a/dist/core.js b/dist/core.js
-index 156906c11625f3a200af9d48c54aa09d449f3bcb..09c13cf0d0fbd66eee3c395f002a14da15dfb570 100644
+index 156906c11625f3a200af9d48c54aa09d449f3bcb..8ce5bead0c232e606eb6bfbafd97151b983032a3 100644
 --- a/dist/core.js
 +++ b/dist/core.js
 @@ -4,6 +4,43 @@ import { useContext, useState, useEffect, useMemo, useRef as useRef$1, useLayout
@@ -446,7 +470,21 @@ index 156906c11625f3a200af9d48c54aa09d449f3bcb..09c13cf0d0fbd66eee3c395f002a14da
          }
      }
      setTheme(theme) {
-@@ -5143,9 +5191,9 @@ class EventColors {
+@@ -5018,6 +5066,13 @@ const translate = (locale, languages) => (key, translationVariables) => {
+         'sr-Latn-RS' !== locale.value) {
+         throw new InvalidLocaleError(locale.value);
+     }
++    // sydevs: the SahajAtlasWeb calendar words a few of these strings its own way, in every
++    // language and plural form ("+ 3 classes"), so a `sydevs` function in `translations` is
++    // asked first, with the variables. It answers undefined for a key it leaves to this table.
++    const sydevsWords = languages.value.sydevs;
++    const sydevsWord = typeof sydevsWords === 'function' ? sydevsWords(key, translationVariables || {}) : undefined;
++    if (typeof sydevsWord === 'string')
++        return sydevsWord;
+     const deHyphenatedLocale = locale.value.replaceAll('-', '');
+     const language = languages.value[deHyphenatedLocale];
+     if (!language)
+@@ -5143,9 +5198,9 @@ class EventColors {
          });
      }
      setColors(colorName, colorDefinition) {
@@ -459,7 +497,17 @@ index 156906c11625f3a200af9d48c54aa09d449f3bcb..09c13cf0d0fbd66eee3c395f002a14da
      }
  }
  
-@@ -6521,7 +6569,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+@@ -5762,7 +5817,8 @@ const createInternalConfig = (config, plugins) => {
+         .withYearGridOptions(config.yearGridOptions)
+         .withBackgroundEvents(config.backgroundEvents)
+         .withTheme(config.theme)
+-        .withTranslations(config.translations || translations)
++        // sydevs: joins the built-in languages rather than replacing every one of them.
++        .withTranslations(Object.assign({}, translations, config.translations))
+         .withWeekNumbers(config.showWeekNumbers)
+         .withTimezone(config.timezone)
+         .withResources(config.resources)
+@@ -6521,7 +6577,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
      useEffect(() => {
          if (!monthGridDayNameCustomComponent)
              return;
@@ -468,7 +516,7 @@ index 156906c11625f3a200af9d48c54aa09d449f3bcb..09c13cf0d0fbd66eee3c395f002a14da
          if (!(dayNameEl instanceof HTMLElement)) {
              return;
          }
-@@ -6534,7 +6582,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
+@@ -6534,7 +6590,7 @@ function MonthGridDay({ day, isFirstWeek, isLastWeek }) {
      useEffect(() => {
          if (!monthGridDateCustomComponent)
              return;
@@ -477,7 +525,7 @@ index 156906c11625f3a200af9d48c54aa09d449f3bcb..09c13cf0d0fbd66eee3c395f002a14da
          if (!(dateEl instanceof HTMLElement))
              return;
          monthGridDateCustomComponent(dateEl, {
-@@ -6715,7 +6763,7 @@ function MonthAgendaDay({ day, isActive, setActiveDate, isLeadingOrTrailing, })
+@@ -6715,7 +6771,7 @@ function MonthAgendaDay({ day, isActive, setActiveDate, isLeadingOrTrailing, })
      useEffect(() => {
          if (!monthAgendaDateDotsCustomComponent)
              return;
@@ -486,7 +534,7 @@ index 156906c11625f3a200af9d48c54aa09d449f3bcb..09c13cf0d0fbd66eee3c395f002a14da
          if (!(dotsEl instanceof HTMLElement))
              return;
          monthAgendaDateDotsCustomComponent(dotsEl, {
-@@ -6905,7 +6953,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
+@@ -6905,7 +6961,7 @@ const MonthAgendaWrapper = ({ $app, id }) => {
                      mutatedElement.focus();
              });
          });
@@ -495,7 +543,7 @@ index 156906c11625f3a200af9d48c54aa09d449f3bcb..09c13cf0d0fbd66eee3c395f002a14da
          observer.observe(monthViewElement, {
              childList: true,
              subtree: true,
-@@ -6956,7 +7004,7 @@ const WeekAgendaWrapper = ({ $app, id }) => {
+@@ -6956,7 +7012,7 @@ const WeekAgendaWrapper = ({ $app, id }) => {
                      mutatedElement.focus();
              });
          });
@@ -505,7 +553,7 @@ index 156906c11625f3a200af9d48c54aa09d449f3bcb..09c13cf0d0fbd66eee3c395f002a14da
              childList: true,
              subtree: true,
 diff --git a/dist/core.umd.js b/dist/core.umd.js
-index 961a9bffb3897f072023fcd98cf2552da8aaa3c8..8758465d8d7011c7f53122b39261e6439dfcddc4 100644
+index 961a9bffb3897f072023fcd98cf2552da8aaa3c8..08eecb87f44d03158011c009bfd1fa35d73b8ccc 100644
 --- a/dist/core.umd.js
 +++ b/dist/core.umd.js
 @@ -1,8 +1,44 @@
@@ -704,7 +752,21 @@ index 961a9bffb3897f072023fcd98cf2552da8aaa3c8..8758465d8d7011c7f53122b39261e643
            }
        }
        setTheme(theme) {
-@@ -5143,9 +5190,9 @@
+@@ -5018,6 +5065,13 @@
+           'sr-Latn-RS' !== locale.value) {
+           throw new InvalidLocaleError(locale.value);
+       }
++      // sydevs: the SahajAtlasWeb calendar words a few of these strings its own way, in every
++      // language and plural form ("+ 3 classes"), so a `sydevs` function in `translations` is
++      // asked first, with the variables. It answers undefined for a key it leaves to this table.
++      const sydevsWords = languages.value.sydevs;
++      const sydevsWord = typeof sydevsWords === 'function' ? sydevsWords(key, translationVariables || {}) : undefined;
++      if (typeof sydevsWord === 'string')
++          return sydevsWord;
+       const deHyphenatedLocale = locale.value.replaceAll('-', '');
+       const language = languages.value[deHyphenatedLocale];
+       if (!language)
+@@ -5143,9 +5197,9 @@
            });
        }
        setColors(colorName, colorDefinition) {
@@ -717,7 +779,17 @@ index 961a9bffb3897f072023fcd98cf2552da8aaa3c8..8758465d8d7011c7f53122b39261e643
        }
    }
  
-@@ -6521,7 +6568,7 @@
+@@ -5762,7 +5816,8 @@
+           .withYearGridOptions(config.yearGridOptions)
+           .withBackgroundEvents(config.backgroundEvents)
+           .withTheme(config.theme)
+-          .withTranslations(config.translations || translations)
++          // sydevs: joins the built-in languages rather than replacing every one of them.
++          .withTranslations(Object.assign({}, translations, config.translations))
+           .withWeekNumbers(config.showWeekNumbers)
+           .withTimezone(config.timezone)
+           .withResources(config.resources)
+@@ -6521,7 +6576,7 @@
        hooks.useEffect(() => {
            if (!monthGridDayNameCustomComponent)
                return;
@@ -726,7 +798,7 @@ index 961a9bffb3897f072023fcd98cf2552da8aaa3c8..8758465d8d7011c7f53122b39261e643
            if (!(dayNameEl instanceof HTMLElement)) {
                return;
            }
-@@ -6534,7 +6581,7 @@
+@@ -6534,7 +6589,7 @@
        hooks.useEffect(() => {
            if (!monthGridDateCustomComponent)
                return;
@@ -735,7 +807,7 @@ index 961a9bffb3897f072023fcd98cf2552da8aaa3c8..8758465d8d7011c7f53122b39261e643
            if (!(dateEl instanceof HTMLElement))
                return;
            monthGridDateCustomComponent(dateEl, {
-@@ -6715,7 +6762,7 @@
+@@ -6715,7 +6770,7 @@
        hooks.useEffect(() => {
            if (!monthAgendaDateDotsCustomComponent)
                return;
@@ -744,7 +816,7 @@ index 961a9bffb3897f072023fcd98cf2552da8aaa3c8..8758465d8d7011c7f53122b39261e643
            if (!(dotsEl instanceof HTMLElement))
                return;
            monthAgendaDateDotsCustomComponent(dotsEl, {
-@@ -6905,7 +6952,7 @@
+@@ -6905,7 +6960,7 @@
                        mutatedElement.focus();
                });
            });
@@ -753,7 +825,7 @@ index 961a9bffb3897f072023fcd98cf2552da8aaa3c8..8758465d8d7011c7f53122b39261e643
            observer.observe(monthViewElement, {
                childList: true,
                subtree: true,
-@@ -6956,7 +7003,7 @@
+@@ -6956,7 +7011,7 @@
                        mutatedElement.focus();
                });
            });

@@ -456,10 +456,10 @@ whenever a patched package has a release.
 | `vaul@1.1.2` | Stops vaul injecting its unscoped `<style>` (global `@keyframes`) into the host's `<head>`; forwards `modal` to Radix so `modal={false}` is really non-modal (#30, #91). ⚠ The `modal` hunk is in `dist/index.mjs` alone — the build every consumer loads (bundle, dev pre-bundle, Ladle, both lane environments); the `require` build has only the CSS hunk | [vaul#497](https://github.com/emilkowalski/vaul/issues/497), [vaul#192](https://github.com/emilkowalski/vaul/issues/192). **Unmaintained**: the upstream README says so, and 1.1.2 (2024-12-14) was still the newest release on 2026-11-19. Re-check with `npm view vaul version time.modified` and the note atop the README at github.com/emilkowalski/vaul | A vaul release forwards `modal` and stops injecting CSS, or we move off vaul |
 | `@radix-ui/react-focus-scope@1.3.1` | `focusin`/`focusout`/`activeElement` retarget to the shadow host, so the modal trap, Tab cycle and mount auto-focus break (#236) | [primitives#3353](https://github.com/radix-ui/primitives/issues/3353) (open) | FocusScope resolves `composedPath()` and the deep active element itself |
 | `aria-hidden@1.2.6` | `hideOthers` cannot cross a shadow boundary, so a modal never hides the background (#236) | [aria-hidden#14](https://github.com/theKashey/aria-hidden/issues/14) is the related closed report; 1.2.6 is the newest release | A release that climbs `ShadowRoot.host` and descends into kept roots |
-| `@schedule-x/calendar@4.9.1` | Looks up ids and selectors on `document` and writes CSS variables on `<html>`; breaks inside a shadow root (#236). Also reads a global `Temporal`, which the polyfill only provides by overwriting the host page's `Temporal`, `Intl.DateTimeFormat` and `Date.prototype.toTemporalInstant`. And re-zones an event on every read of its start or end, which made a full feed several times slower to lay out than 2.36 | [schedule-x#1223](https://github.com/schedule-x/schedule-x/issues/1223) (open, no fix linked; 4.9.1 is the newest release). Nothing filed for `Temporal` or the re-zoning | A release whose lookups and variables are scoped to the rendered root; for `Temporal`, one that imports it or takes it in config; for the re-zoning, one that skips it for an event already in the calendar's zone |
+| `@schedule-x/calendar@4.9.1` | Looks up ids and selectors on `document` and writes CSS variables on `<html>`; breaks inside a shadow root (#236). Also reads a global `Temporal`, which the polyfill only provides by overwriting the host page's `Temporal`, `Intl.DateTimeFormat` and `Date.prototype.toTemporalInstant`. And re-zones an event on every read of its start or end, which made a full feed several times slower to lay out than 2.36. And words each string once per language with `{{n}}` filled in, so "+ 2 classes" cannot take a plural form, while a `translations` table replaces every language it ships | [schedule-x#1223](https://github.com/schedule-x/schedule-x/issues/1223) (open, no fix linked; 4.9.1 is the newest release). Nothing filed for `Temporal`, the re-zoning or the words | A release whose lookups and variables are scoped to the rendered root; for `Temporal`, one that imports it or takes it in config; for the re-zoning, one that skips it for an event already in the calendar's zone; for the words, a translator that takes a function or plural forms |
 
 **The Schedule-X patch** is made in all three builds (`core.js`, `core.cjs.js`, `core.umd.js`)
-and re-derived with `pnpm patch` on every upgrade. Its hunks do four things:
+and re-derived with `pnpm patch` on every upgrade. Its hunks do five things:
 
 - **`Temporal` is the `temporal-polyfill` module**, bound once at the top, so the core never reads
   the page's global. ⚠ CalendarView imports the same module: the core's `instanceof` checks fail
@@ -473,6 +473,10 @@ and re-derived with `pnpm patch` on every upgrade. Its hunks do four things:
 - **An event's `start` and `end` getters return an event already in the calendar's `timezone` as
   is**, rather than re-zoning it on every read. CalendarView anchors every entry in that zone
   (`timeline.ts`), so none is re-zoned.
+- **`translate` asks a `sydevs` function in `translations` first**, with the key and its
+  variables, so CalendarView words "+ 2 classes" and "No classes" from SahajCloud's copy in every
+  language and plural form (`SCHEDULE_X_WORDS`). A key it answers undefined for keeps Schedule-X's
+  own words, and `translations` joins the built-in languages rather than replacing them.
 
 Deliberately left on `document`: `getDirection`, which reads the HOST page's `<html dir>`, and
 UI this app hides or never registers — the date picker, the view dropdown, the year grid's day

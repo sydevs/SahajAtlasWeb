@@ -735,8 +735,7 @@ const getCalendarEvents = async (
     path: safePath(feature.properties.webPath) ?? `/${feature.properties.id}`,
     eventType: feature.properties.eventType,
     schedule: feature.properties.schedule,
-    // This supplies the concise calendar label.
-    // It uses the parent region name, or the address locality when the calendar is scoped to a region. See `eventsToCalendarEntries`.
+    // Where the class is: its address city, or its region without one (`eventsToCalendarEntries`).
     regionName: feature.properties.region?.name ?? null,
     locality: feature.properties.address?.city ?? null,
   }))

@@ -11,6 +11,7 @@ import {
   isCalendarViewOption,
   resolveCalendarView,
   scheduleXLocale,
+  tidyPlaceCase,
   type CalendarEntry,
   type CalendarSourceEvent,
 } from './calendar'
@@ -119,70 +120,68 @@ describe('eventsToCalendarEntries', () => {
     ).toEqual([])
   })
 
-  it('labels entries with the parent region name (not the event title) by default', () => {
+  it('names the class, with where it is as its detail', () => {
     const evt = makeEvent({
-      title: 'Weekly Sahaja Yoga meditation for beginners',
+      title: 'Evening meditation',
       regionName: 'London',
       locality: 'Camden',
       occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')],
     })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(entry.title).toBe('London')
-  })
-
-  it('labels entries with the locality when the calendar is scoped to a region', () => {
-    const evt = makeEvent({
-      title: 'Weekly Sahaja Yoga meditation for beginners',
-      regionName: 'London',
-      locality: 'Camden',
-      occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')],
+    expect(entry).toMatchObject({
+      name: 'Evening meditation',
+      detail: 'Camden',
+      title: 'Evening meditation\nCamden',
     })
-    const scoped: EventFilters = { ...DEFAULT_FILTERS, region: 'london' }
-
-    const [entry] = eventsToCalendarEntries([evt], scoped, RANGE)
-
-    expect(entry.title).toBe('Camden')
   })
 
-  it('puts the "Online" term in the location (not the title) and tags its calendar', () => {
+  it('says where by the address city, and by the region only without one', () => {
+    // A region can be a single venue, named for its street.
+    const venue = makeEvent({
+      regionName: 'R. do Catete, 311',
+      locality: 'Rio de Janeiro',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
+    })
+    const noAddress = makeEvent({ regionName: 'London', occurrences: [at('UTC', '2026-07-06T09:30')] })
+
+    expect(eventsToCalendarEntries([venue], DEFAULT_FILTERS, RANGE)[0].detail).toBe('Rio de Janeiro')
+    expect(eventsToCalendarEntries([noAddress], DEFAULT_FILTERS, RANGE)[0].detail).toBe('London')
+  })
+
+  it('writes "Online" into the detail and tags its calendar', () => {
     const evt = makeEvent({
       eventType: 'online',
       regionName: 'London',
       occurrences: [at('UTC', '2026-07-06T18:00')],
     })
-    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, {
-      ...RANGE,
-      onlineLabel: 'Online',
-    })
-
-    // The title is the place. "Online" rides the location field (the colour
-    // distinguishes it in the month/list views, which do not render location).
-    expect(entry.title).toBe('London')
-    expect(entry.location).toBe('Online')
-    expect(entry.calendarId).toBe('online')
-
-    // Placeless online → the title falls back to the event title. The location still flags it.
     const placeless = makeEvent({
       eventType: 'online',
       title: 'Weekly meditation',
       occurrences: [at('UTC', '2026-07-06T18:00')],
     })
-    const [bare] = eventsToCalendarEntries([placeless], DEFAULT_FILTERS, {
+    const [entry, bare] = eventsToCalendarEntries([evt, placeless], DEFAULT_FILTERS, {
       ...RANGE,
       onlineLabel: 'Online',
     })
 
-    expect(bare.title).toBe('Weekly meditation')
-    expect(bare.location).toBe('Online')
+    expect(entry).toMatchObject({ detail: 'London · Online', calendarId: 'online' })
+    expect(bare).toMatchObject({ name: 'Weekly meditation', detail: 'Online' })
   })
 
-  it('leaves offline entries untagged (no calendarId, no location)', () => {
-    const evt = makeEvent({ regionName: 'London', occurrences: [at('UTC', '2026-07-06T09:30')] })
+  it('leaves an in-person class with no place untagged, titled by its name alone', () => {
+    const evt = makeEvent({ title: 'Just the title', occurrences: [at('UTC', '2026-07-06T09:30')] })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
     expect(entry.calendarId).toBeUndefined()
-    expect(entry.location).toBeUndefined()
+    expect(entry.detail).toBeUndefined()
+    expect(entry.title).toBe('Just the title')
+  })
+
+  it('recases a town typed all in capitals', () => {
+    const evt = makeEvent({ locality: 'HARROGATE', occurrences: [at('UTC', '2026-07-06T09:30')] })
+
+    expect(eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)[0].detail).toBe('Harrogate')
   })
 
   it('builds the online end time from the event-local endTime (converted, not applied in the viewer zone)', () => {
@@ -200,22 +199,6 @@ describe('eventsToCalendarEntries', () => {
     const end = DateTime.fromFormat(entry.end, 'yyyy-MM-dd HH:mm')
 
     expect(end.diff(start, 'minutes').minutes).toBe(60)
-  })
-
-  it('falls back through region → locality → title when a source is missing', () => {
-    // Region-scoped but no locality → the region name. Neither present → the title.
-    const noLocality = makeEvent({
-      regionName: 'London',
-      occurrences: [at('UTC', '2026-07-06T09:30')],
-    })
-    const bare = makeEvent({
-      title: 'Just the title',
-      occurrences: [at('UTC', '2026-07-06T09:30')],
-    })
-    const scoped: EventFilters = { ...DEFAULT_FILTERS, region: 'london' }
-
-    expect(eventsToCalendarEntries([noLocality], scoped, RANGE)[0].title).toBe('London')
-    expect(eventsToCalendarEntries([bare], DEFAULT_FILTERS, RANGE)[0].title).toBe('Just the title')
   })
 
   it('trims occurrences to the active day filter (not just event-level match)', () => {
@@ -239,6 +222,7 @@ describe('computeDayBoundaries', () => {
   const entry = (start: string, end: string): CalendarEntry => ({
     id: start,
     title: 'x',
+    name: 'x',
     start,
     end,
     path: '/1',
@@ -386,5 +370,21 @@ describe('scheduleXLocale', () => {
   it('falls back to en-US for a language Schedule-X lacks', () => {
     expect(scheduleXLocale('hu')).toBe('en-US')
     expect(scheduleXLocale('hu-HU')).toBe('en-US')
+  })
+})
+
+describe('tidyPlaceCase', () => {
+  it('recases a name typed all in capitals, keeping its joining words lower case', () => {
+    expect(tidyPlaceCase('HARROGATE')).toBe('Harrogate')
+    expect(tidyPlaceCase('STRATFORD-UPON-AVON')).toBe('Stratford-upon-Avon')
+    expect(tidyPlaceCase('LE MANS')).toBe('Le Mans')
+    expect(tidyPlaceCase("L'AQUILA")).toBe("L'Aquila")
+    expect(tidyPlaceCase('SÃO PAULO')).toBe('São Paulo')
+  })
+
+  it('leaves any other name as it was given', () => {
+    expect(tidyPlaceCase('McLean')).toBe('McLean')
+    expect(tidyPlaceCase('coventry')).toBe('coventry')
+    expect(tidyPlaceCase('東京')).toBe('東京')
   })
 })
