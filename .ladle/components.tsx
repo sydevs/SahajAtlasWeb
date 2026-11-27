@@ -1,4 +1,4 @@
-import type { GlobalProvider } from '@ladle/react'
+import type { GlobalProvider, GlobalState } from '@ladle/react'
 
 import { useEffect, useRef } from 'react'
 import { ActionType, ThemeState, useLadleContext } from '@ladle/react'
@@ -148,7 +148,9 @@ export const Provider: GlobalProvider = ({ children }) => {
       value: {
         ...globalState.control,
         palette: {
-          type: 'select',
+          // Ladle exports this union only as strings; its state is typed by an enum it keeps
+          // private, holding the same values.
+          type: 'select' as GlobalState['control'][string]['type'],
           name: 'Brand palette',
           options: PALETTE_NAMES,
           defaultValue: DEFAULT_PALETTE,

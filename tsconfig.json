@@ -23,5 +23,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", ".ladle"]
+  // `.ladle/*`, not `.ladle`: a bare directory expands through a wildcard that skips a dot-named
+  // directory, so it matched nothing. The Ladle Vite config is node code, checked by
+  // tsconfig.test.json.
+  "include": ["src", ".ladle/*"],
+  "exclude": [".ladle/vite.config.ts"]
 }
