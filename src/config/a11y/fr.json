@@ -25,7 +25,6 @@
     "dismiss_nearby_prompt": "Fermer"
   },
   "share": {
-    "copy_link": "Copier le lien",
     "share_on": "Partager sur %{platform}",
     "qr_code": "Code QR pour %{title}"
   }

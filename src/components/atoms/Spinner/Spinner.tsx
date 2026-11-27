@@ -11,7 +11,7 @@ import { tv, type VariantProps } from '@/styles/tv'
 const spinner = tv({
   slots: {
     base: 'flex flex-col items-center justify-center gap-2',
-    icon: 'animate-spin',
+    icon: 'motion-safe:animate-spin',
     label: 'text-sm text-gray-11',
   },
   variants: {

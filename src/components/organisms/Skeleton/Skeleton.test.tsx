@@ -20,11 +20,13 @@ describe('skeletonShape', () => {
     ['/gb/south-east/london', { header: 'titled-field', body: 'classes' }],
     ['/gb/online', { header: 'titled', body: 'classes' }],
     ['/gb/south-east/london/1817', { header: 'class', body: 'class' }],
+    // A retired share link opens its class.
+    ['/gb/south-east/london/1817/share', { header: 'class', body: 'class' }],
   ])('%s loads as %o', (path, shape) => {
     expect(shapeAt(path)).toEqual(shape)
   })
 
-  it.each(['/calendar', '/gb/south-east/london/1817/register', '/gb/south-east/london/1817/share'])(
+  it.each(['/calendar', '/gb/south-east/london/1817/register'])(
     '%s has no shape: its data is on hand, so its own header over a spinner stands',
     (path) => {
       expect(shapeAt(path)).toBeNull()

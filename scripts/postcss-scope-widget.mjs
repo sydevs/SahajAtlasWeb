@@ -469,7 +469,8 @@ function namespaceKeyframes(root, scope) {
     'g',
   )
 
-  root.walkDecls(/^(-\w+-)?animation(-name)?$/i, (decl) => {
+  // `--animate-*` too: Tailwind's animation utilities read the keyframe name from that token.
+  root.walkDecls(/^((-\w+-)?animation(-name)?|--animate-[\w-]+)$/i, (decl) => {
     decl.value = decl.value.replace(pattern, (_match, lead, name) => `${lead}${renamed.get(name)}`)
   })
 }

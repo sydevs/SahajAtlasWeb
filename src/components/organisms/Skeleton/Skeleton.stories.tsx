@@ -44,7 +44,7 @@ const PANELS: { title: string; description: string; shape: SkeletonShape; cta?: 
  * Skeleton — the loading panel: a few generic shapes every view draws while its data, or the
  * interface's code, is on its way. The boot panel draws a whole one before the code arrives; a
  * view loading inside the drawer keeps its real header (Back, Calendar and Filters work) over the
- * body. The calendar, the forms and the share sheet have none: their data is on hand when they
+ * body. The calendar and the forms have none: their data is on hand when they
  * open, so their own header over a spinner stands for the moment their code takes.
  */
 export const SkeletonStory: Story = () => (

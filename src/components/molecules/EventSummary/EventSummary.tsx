@@ -34,14 +34,14 @@ export type EventSummaryProps = {
   distance?: ReactNode
   /** Drops the facts' faded second lines, for a summary above a form that asks for the date. */
   hideSubtext?: boolean
-  /** The tinted box the Share, Register and confirmation panels open on. */
+  /** The tinted box the Register and confirmation panels open on. */
   boxed?: boolean
   className?: string
 }
 
 /**
  * A class at a glance: its title (with the Online tag), when and where, and the triage chips.
- * The list card renders it inside its link, and the Share, Register and confirmation panels
+ * The list card renders it inside its link, and the Register and confirmation panels
  * render it boxed at their top, so a class reads the same wherever it is acted on.
  */
 export function EventSummary({

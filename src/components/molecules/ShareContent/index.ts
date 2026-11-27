@@ -1,2 +1,2 @@
-export { ShareContent } from './ShareContent'
-export type { ShareContentProps } from './ShareContent'
+export { ShareButton, ShareContent } from './ShareContent'
+export type { ShareButtonProps, ShareContentProps } from './ShareContent'

@@ -49,6 +49,14 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **A class's Share, Directions and Contact act in place, and Register follows them.** ([#540]) Share
+  opens the device's own share sheet, or a popover of the region's networks, each named, ending
+  in Copy link; it no longer opens a Share panel, and a class with no link to share has no Share
+  button. Directions opens a menu of map services ordered for the visitor's region (Yandex,
+  Kakao, Amap or Baidu join Google Maps, Apple Maps, Waze and OpenStreetMap), and Contact a menu
+  with the host's number, WhatsApp and Copy number, on every device. A link ending in `/share`
+  opens the class itself. No parameter, origin or permission changes: Copy number uses the same
+  `clipboard-write` as Copy link.
 - **The first screen opens on its title, the search, and one way to classes near the
   visitor.** ([#531]) "Free meditation classes" heads it, and the search, which reads "Enter your
   city or postcode" on every page, spans the panel. Under it, "Classes near Prague ›" (the visitor's
@@ -783,6 +791,10 @@ no-referrer`.
   opens — so there was no way to discover this from the widget. See [Permissions Policy].
 
 ### Fixed
+
+- **The loading spinner turns, and loading placeholders pulse.** ([#540]) Both had stood still: the
+  build renamed their animations and left the old names behind. Both stay still for a visitor
+  who asks their device for reduced motion.
 
 - **The place-search box is its normal height on touch screens.** ([#485]) On a phone or tablet
   it drew about three times as tall as intended (132px instead of 44px), pushing the list below
@@ -1553,6 +1565,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
 [#531]: https://github.com/sydevs/SahajAtlasWeb/pull/531
+[#540]: https://github.com/sydevs/SahajAtlasWeb/pull/540
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
 [#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528

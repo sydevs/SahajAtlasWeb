@@ -69,7 +69,6 @@ export type FallbackKind =
   | 'not-found-region'
   | 'empty'
   | 'unavailable'
-  | 'share-unavailable'
   | 'country-site'
   | 'no-results'
   | 'no-nearby'
@@ -241,36 +240,6 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
     color: 'neutral',
     retry: false,
     onward: true,
-    search: false,
-    clearFilters: false,
-    contact: true,
-    report: false,
-  },
-  // The share screen for a class with no link to give out. It has no
-  // canonical page on the main site, and the host page routes the widget off-URL.
-  // So the address bar names the host's article, not this meditation (issue #115).
-  // Nothing is broken, and nothing is missing from the class. Only the link is
-  // missing. So this row uses the neutral register.
-  //
-  // This row is its own, not `unavailable`'s, which it briefly borrowed. The
-  // reason is the one `FallbackValues` states: a state that needs a different
-  // sentence gets a different row. This keeps every sentence under the test that
-  // pins `fallbackText` to the shipped English copy. `unavailable` also grants
-  // `onward`. Here that would answer "you can't share this" with "see events in
-  // Cambridgeshire" — sending the viewer away from the class they meant to share.
-  //
-  // This row grants `contact` alone. That is the one thing that still works
-  // without a URL: telling a person about a class, even where a link cannot. With
-  // nobody to call, `visibleActions`' promised-but-not-offered rule shows the
-  // report action instead. This is accepted, not designed around. A class with
-  // neither a public page nor a contact IS a gap worth a report. That beats a
-  // sentence with nothing else beside it.
-  'share-unavailable': {
-    messageKey: 'common.errors.share_unavailable_class',
-    fallbackText: 'There is no link to share for this class yet.',
-    color: 'neutral',
-    retry: false,
-    onward: false,
     search: false,
     clearFilters: false,
     contact: true,

@@ -25,11 +25,10 @@ describe('shouldBlockPreviewLink', () => {
 })
 
 describe('allowedLivePreviewPaths', () => {
-  it('lets an event stay on its page plus register/share', () => {
+  it('lets an event stay on its page plus register', () => {
     expect(allowedLivePreviewPaths('/india/pune/507', 'event')).toEqual([
       '/india/pune/507',
       '/india/pune/507/register',
-      '/india/pune/507/share',
     ])
   })
 

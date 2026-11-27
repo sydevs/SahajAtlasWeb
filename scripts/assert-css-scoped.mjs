@@ -26,7 +26,8 @@
  *   1. every top-level selector is scoped to the widget class,
  *   2. every `@keyframes` name carries the widget namespace — keyframe
  *      names are document-global, and the last definition wins, so a bare
- *      `fadeIn` would hijack a host page's animation,
+ *      `fadeIn` would hijack a host page's animation — and some declaration
+ *      names it, or the animation it was renamed from never runs,
  *   3. no request to a third-party font CDN survives (a Raleway `@import`
  *      once disclosed every visitor's IP address to Google — LG München I
  *      3 O 17493/20),
@@ -306,14 +307,32 @@ export function scopeFailures(root) {
  */
 export function keyframeFailures(root) {
   const failures = []
+  /** @type {string[]} */
+  const scoped = []
 
   root.walkAtRules(/^(-\w+-)?keyframes$/i, (atRule) => {
-    if (!atRule.params.trim().startsWith(`${WIDGET_SCOPE}-`)) {
-      failures.push(
-        `@keyframes ${atRule.params} is not namespaced — it would override a host animation`,
-      )
-    }
+    const name = atRule.params.trim()
+
+    if (name.startsWith(`${WIDGET_SCOPE}-`)) scoped.push(name)
+    else failures.push(`@keyframes ${name} is not namespaced — it would override a host animation`)
   })
+
+  // A renamed keyframe no declaration names is one whose users still name the OLD word: the
+  // animation silently never runs. Tailwind's `--animate-*` tokens did this to the spinner and the
+  // skeleton pulse, unseen, until the pass learned to rewrite them.
+  const values = []
+
+  root.walkDecls((decl) => {
+    values.push(decl.value)
+  })
+
+  for (const name of scoped) {
+    const used = new RegExp(`(^|[\\s,])${name}(?=$|[\\s,])`)
+
+    if (!values.some((value) => used.test(value))) {
+      failures.push(`@keyframes ${name} is never referenced — its users still name the old word`)
+    }
+  }
 
   return failures
 }
