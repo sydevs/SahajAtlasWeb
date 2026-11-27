@@ -16,10 +16,9 @@ import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import {
+  DEFAULT_FILTERS,
   type EventFilters,
   type PlaceSearch,
-  chosenCalendarFilters,
-  clearedCalendarFilters,
   filterOriginRegion,
   filtersToParams,
   hasActiveFilters,
@@ -53,11 +52,12 @@ export function FilterView() {
     () => ({ ...applied, region: applied.region ?? originRegion }),
     [applied, originRegion],
   )
+  const facets = useFilterFacets(filters)
+  const count = facets?.counts.total
+
   // The view beneath. Only the calendar and the search list show filtered classes, so over any
   // other view a place search moves the filters onto a search.
   const origin = parentOf(location.pathname)
-  const facets = useFilterFacets(filters)
-  const count = facets?.counts.total
   const filtersOrigin = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
   const moveTo = (to: { pathname: string; search: string } | string) =>
@@ -112,8 +112,8 @@ export function FilterView() {
   )
 
   // Clear resets the answers, not the Where: the visitor is still looking in the same place.
-  const answered = hasActiveFilters(chosenCalendarFilters(filters))
-  const clear = () => write(clearedCalendarFilters(filters))
+  const answered = hasActiveFilters({ ...filters, region: null })
+  const clear = () => write({ ...DEFAULT_FILTERS, region: filters.region })
   const recovery = count === 0 ? facets?.recovery : undefined
   // Nothing matches, and removing any one answer still finds nothing: Clear is the way out.
   const clearLeads = count === 0 && !recovery
