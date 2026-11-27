@@ -27,6 +27,12 @@ export default defineConfig({
     // The full Chromium in its new headless mode, not the headless shell, so a local run and CI
     // render through the same browser.
     channel: 'chromium',
+    // ⚠ **A running CSS animation stalls the map's WebGL under SwiftShader.** Software
+    // compositing puts the skeleton's pulse and the spinner's turn in the same GPU process as the
+    // map's GL calls, and each call waits behind those frames: mapbox-gl's `supported()` probe
+    // blocked the main thread for 4–5s in about half the runs, so a deep link missed its 5s
+    // budget, against none of 30 with motion reduced (#550). No scenario asserts an animation.
+    reducedMotion: 'reduce',
     launchOptions: {
       // For a machine whose Chromium is not the one this Playwright pins, such as a sandbox with
       // its own browsers preinstalled. Unset, Playwright launches the browser it installed.
