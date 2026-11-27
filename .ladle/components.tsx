@@ -109,18 +109,12 @@ export const Provider: GlobalProvider = ({ children }) => {
   const wrapperRef = useRef<HTMLElement>(null)
   const { theme } = useTheme()
 
-  // View stories are full-view drawer pages. Each one owns the whole
-  // canvas through the ViewHarness. So view stories drop the usual
-  // component-preview padding, and fill their width-xsmall frame edge to
-  // edge. The whole widget's story is a host page, so it drops Ladle's own
-  // padding around it too, and fills the main area. Every other tier keeps
-  // the padded gutter.
-  const isView = globalState.story?.startsWith('views--')
+  // Ladle's own gutter is padding on its `main`, outside this wrapper, so in the dark theme it
+  // drew a light frame round every story. The gutter moves inside, onto the wrapper that paints
+  // the theme's background. The whole widget's story is a host page, so it fills the area.
   const isWidget = globalState.story?.startsWith('interactive--')
 
   useEffect(() => {
-    if (!isWidget) return
-
     const root = document.documentElement.style
 
     root.setProperty('--ladle-main-padding', '0')
@@ -130,7 +124,7 @@ export const Provider: GlobalProvider = ({ children }) => {
       root.removeProperty('--ladle-main-padding')
       root.removeProperty('--ladle-main-padding-mobile')
     }
-  }, [isWidget])
+  }, [])
 
   // The brand palette is a first-class Ladle control, in the Controls
   // panel, not a custom <select>. Ladle wipes control state on each
@@ -197,7 +191,7 @@ export const Provider: GlobalProvider = ({ children }) => {
               WIDGET_SCOPE_CLASS,
               theme,
               'min-h-screen bg-background text-foreground',
-              !isView && !isWidget && 'p-6',
+              !isWidget && 'p-4 md:p-12',
             )}
           >
             <BrandPaletteContext.Provider value={palette}>{children}</BrandPaletteContext.Provider>

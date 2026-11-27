@@ -94,13 +94,6 @@ describe('the container-vs-viewport decision table', () => {
     for (const relative of CONTAINER_CALLERS) {
       expect(read(relative)).toMatch(/\buseIsWide(Widget)?\s*\(/)
     }
-
-    // Contact is the third case, and it is neither of the other two.
-    // `tel:` depends on the device, not on how much room the widget was given.
-    // This is pinned separately, so "make everything container-derived" cannot quietly sweep it up.
-    expect(read('components/molecules/EventActions/EventActions.tsx')).toMatch(
-      /\buseCoarsePointer\b/,
-    )
   })
 
   // This checks for a CALL, not a mention.

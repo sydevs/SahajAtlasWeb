@@ -39,7 +39,7 @@ const inject = (css: string) => `${SINK}(\`${css.replace(/[\\`]|\$\{/g, '\\$&')}
 /** The app's sheet in miniature: one of everything the gate reads, as the minifier spells it. */
 const APP =
   '@property --tw-shadow{syntax:"*";inherits:false;initial-value:0 0 #0000}' +
-  ':where(.sy-atlas){--color-primary-9:#3e63dd}' +
+  ':where(.sy-atlas){--color-primary-9:#3e63dd;--animate-spin:sy-atlas-spin 1s linear infinite}' +
   ':where(.sy-atlas) .shadow{box-shadow:var(--tw-shadow)}' +
   ':where(.sy-atlas) .text-primary{color:var(--color-primary-9)}' +
   '@media (width>=40rem){:where(.sy-atlas) .sm\\:w-80{width:320px}}' +
@@ -140,7 +140,20 @@ describe('check 2: every @keyframes name is namespaced', () => {
   })
 
   it('accepts the namespace the scoping pass writes', () => {
-    expect(keyframeFailures(parse('@keyframes sy-atlas-fadeIn{to{opacity:1}}'))).toEqual([])
+    expect(
+      keyframeFailures(
+        parse('@keyframes sy-atlas-fadeIn{to{opacity:1}}.a{animation:sy-atlas-fadeIn 1s}'),
+      ),
+    ).toEqual([])
+  })
+
+  // The spinner and the skeleton pulse: the keyframe was renamed, the token naming it was not.
+  it('refuses a namespaced keyframe nothing names', () => {
+    expect(
+      keyframeFailures(
+        parse(':root{--animate-pulse:pulse 2s infinite}@keyframes sy-atlas-pulse{50%{opacity:.5}}'),
+      ),
+    ).toEqual([expect.stringContaining('@keyframes sy-atlas-pulse is never referenced')])
   })
 })
 

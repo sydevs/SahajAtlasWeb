@@ -222,7 +222,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   height is the one exception, and it arrives rather than being read:
   `DrawerStack` resolves its active snap and publishes it through
   `useSheetCover`, so the camera reserves the peek while the sheet is collapsed
-  and a class's, a share panel's or the filters' measured height while it is
+  and a class's or the filters' measured height while it is
   open, down to a strip of `MIN_MAP_STRIP_PX` (`config/responsive.ts`). A sheet
   leaving less than that strip hides the map's control column, and the filters
   dim what is left above them.
@@ -412,24 +412,18 @@ surface's collapse control, and `.mapboxgl-ctrl-top-right` takes the right-hand 
 area. Both are older than the column and move the whole corner as one; neither is a
 per-layout rule.
 
-## A geocoder lookup whose answer is STORED asks for `permanent`
+## A geocoder lookup is temporary, and nothing stores its answer
 
 Mapbox's terms allow keeping a feature id only when the lookup that returned it carried
-`permanent=true`, and such lookups bill separately. SahajCloud stores the ids a client sends with
-a class proposal, so its client contract requires them (sydevs/SahajCloud#893).
+`permanent=true`, and such lookups bill separately. No mount of `MapSearch` sets it, because
+nothing the geocoder answers reaches a row SahajCloud stores; `reverseGeocode` (`lib/geocode.ts`)
+is temporary for the same reason. Storing an id means giving `MapSearch` a `permanent` option again,
+on the mount that submits it (sydevs/SahajCloud#893 is the contract that would require it).
 
-So permanence is a **`MapSearch` prop**, absent by default, not a constant inside the control: one
-component serves both plain map browsing and the submit flow, and only the second may store what
-it gets back. Set `permanent` on a mount whose answer is submitted, and on no other.
-`reverseGeocode` (`lib/geocode.ts`) stays temporary — its answer fills the search field and `?cc`,
-never a stored row.
-
-⚠ **An option that may be absent is spread conditionally, and a spec is the only thing holding
-it.** `GeocodingCore` drops a `null` or `undefined` option but serializes a `false`, so `country`
-and `permanent` are both spread rather than passed as themselves — and a spread's keys escape
-TypeScript's excess-property check, which a plainly written key does not. Give every option you
-spread a case in `MapSearch.permanent.test.tsx`, which asserts what each mount hands
-`<Geocoder options>`.
+⚠ **An option that may be absent is spread conditionally.** `GeocodingCore` drops a `null` or
+`undefined` option but serializes a `false`, so `country` is spread rather than passed as itself —
+and a spread's keys escape TypeScript's excess-property check, which a plainly written key does
+not.
 
 ## Geo helpers
 

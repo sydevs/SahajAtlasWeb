@@ -6,7 +6,8 @@ export interface ListItemProps {
   label: string
   /** A short line under the label, for a row whose label alone does not say what it leads to. */
   description?: string
-  count: number
+  /** How many classes the row leads to; left out where the row is one class. */
+  count?: number
   href: string
   /**
    * Leading glyph. This is named, not `children`, because its position is
@@ -19,10 +20,10 @@ export interface ListItemProps {
 }
 
 /**
- * A navigable row in a region list: the country to region to area
- * drill-down, and the online-classes entry that belongs to no region. One
- * component covers all of them. Only the glyph in the icon slot and an
- * optional line under the label vary.
+ * A navigable row in a list: the country to region to area drill-down, the
+ * online-classes entry that belongs to no region, and a class in the calendar's
+ * lists (its name, then its time and town). One component covers all of them.
+ * Only the glyph, the line under the label and the count vary.
  */
 export function ListItem({ label, description, count, href, icon }: ListItemProps) {
   return (
@@ -40,7 +41,7 @@ export function ListItem({ label, description, count, href, icon }: ListItemProp
           gray-11, the ramp's readable low-contrast TEXT step — gray-10 is
           a hover solid and measured under 4.5:1 here (#432). The title
           stays `text-foreground` (gray-12), the loudest thing in the row. */}
-      <div className="me-1 text-end text-sm text-gray-11">{count}</div>
+      {count !== undefined && <div className="me-1 text-end text-sm text-gray-11">{count}</div>}
     </ListRow>
   )
 }

@@ -18,7 +18,7 @@ const chip = tv({
     // the wrapped row below took it, so every row but the last measured short.
     base: 'inline-flex max-w-full items-center gap-1 pointer-coarse:min-h-11',
     // Body text carries no letter spacing; uppercase needs a little to stay legible.
-    content: 'min-w-0 truncate leading-none tracking-[0.3px] uppercase',
+    content: 'min-w-0 truncate leading-none',
     // The close button carries the app's standard focus ring, not only the
     // opacity lift it used to have on its own (issue #102). Opacity is also
     // what HOVER does. So on a chip the pointer happens to rest on, a
@@ -49,6 +49,11 @@ const chip = tv({
       sm: { base: 'rounded-lg' },
       full: { base: 'rounded-full' },
     },
+    // A label reads in capitals; a chip carrying a name or a place keeps its own case.
+    casing: {
+      upper: { content: 'tracking-[0.3px] uppercase' },
+      none: {},
+    },
   },
   compoundVariants: [
     // `flat` and `subtle` share the soft tint. They differ only in weight (above).
@@ -78,6 +83,7 @@ const chip = tv({
     variant: 'flat',
     size: 'sm',
     radius: 'sm',
+    casing: 'upper',
   },
 })
 
@@ -104,11 +110,12 @@ export function Chip({
   variant,
   size,
   radius,
+  casing,
   onClose,
   closeLabel,
   className,
 }: ChipProps) {
-  const slots = chip({ color, variant, size, radius })
+  const slots = chip({ color, variant, size, radius, casing })
 
   return (
     <span className={slots.base({ className })}>

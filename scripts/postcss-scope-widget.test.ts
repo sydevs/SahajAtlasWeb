@@ -169,6 +169,18 @@ describe('scopeWidgetCss', () => {
     expect(css).toContain('content: "fade"')
   })
 
+  // Tailwind 4 writes `.animate-spin { animation: var(--animate-spin) }` and puts the keyframe name
+  // in the token, so a pass that rewrote `animation` alone left every utility animation naming a
+  // keyframe that no longer existed: the spinner stood still and the skeleton never pulsed.
+  it('rewrites the keyframe name inside an --animate-* token', async () => {
+    const css = await run(
+      ':root { --animate-pulse: pulse 2s infinite } @keyframes pulse { 50% { opacity: .5 } } .x { animation: var(--animate-pulse) }',
+    )
+
+    expect(css).toContain(`--animate-pulse: ${WIDGET_SCOPE}-pulse 2s infinite`)
+    expect(css).toContain('animation: var(--animate-pulse)')
+  })
+
   it('leaves a nested rule to its parent rather than emitting invalid :is(> …)', async () => {
     const css = await run('.a { color: red; & > .b { color: blue } }')
 

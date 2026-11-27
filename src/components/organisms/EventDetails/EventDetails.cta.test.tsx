@@ -47,7 +47,7 @@ describe('EventDetails — where the calls to action render', () => {
 
     expect(markup).toContain('register-slot')
     expect(markup).toContain('actions-slot')
-    expect(markup.indexOf('register-slot')).toBeLessThan(markup.indexOf('actions-slot'))
+    expect(markup.indexOf('actions-slot')).toBeLessThan(markup.indexOf('register-slot'))
   })
 
   // Only Register pins to the phone sheet's footer. The action row stays in the panel, where

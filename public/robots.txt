@@ -43,7 +43,7 @@ Disallow: /
 # group is the difference between a generic-titled card and a bare link — NOT a rich
 # per-event unfurl, which a sahajatlas.* URL cannot produce today with or without this
 # file. Rich unfurls come from the canonical `webUrl` on WeMeditate, which is what
-# ShareView hands out whenever the event has one; the fallback
+# the Share action hands out whenever the event has one; the fallback
 # (`event.webUrl ?? window.location.href`, for an unpublished or gated event) is the
 # case that lands here. If prerendering is ever added, this group is what makes it
 # visible; see .claude/reports/RELEASE_READINESS.md §6.

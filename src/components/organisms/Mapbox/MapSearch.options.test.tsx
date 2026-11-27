@@ -11,7 +11,7 @@ import { SearchField } from '@/views/shared'
 
 // Node-only SSR assertions (see `docs/testing.md`). The geocoder is a custom element that cannot
 // mount here, so it is stood in for by a stub recording the options it was handed — the request
-// Mapbox will receive, which is the only place `permanent` is observable.
+// Mapbox will receive.
 const geocoder = vi.hoisted(() => ({ mounts: [] as Partial<GeocodingOptions>[], locale: 'en' }))
 
 vi.mock('@mapbox/search-js-react', () => ({
@@ -50,19 +50,12 @@ const optionsOf = (element: ReactNode, route = '/') => {
 }
 
 // A spread key escapes the excess-property check, so every option spread into `<Geocoder options>`
-// needs a case here. Mapbox also bills a permanent lookup separately, and allows storing an id
-// only from one.
+// needs a case here.
 describe('MapSearch — the options a mount hands the geocoder', () => {
-  it('asks for a permanent answer where the caller says the answer is submitted', () => {
-    expect(optionsOf(<MapSearch permanent onSelect={() => {}} />).permanent).toBe(true)
-  })
-
-  // Absent, not `false` — the geocoder serializes what it is given.
-  it('sends no permanent option by default', () => {
+  // Mapbox bills a permanent lookup separately, and allows storing an id only from one; nothing
+  // here stores one (docs/rules/mapbox.md).
+  it('asks for a temporary answer, from both mounts', () => {
     expect(optionsOf(<MapSearch onSelect={() => {}} />)).not.toHaveProperty('permanent')
-  })
-
-  it('leaves the header search field temporary', () => {
     expect(optionsOf(<SearchField />)).not.toHaveProperty('permanent')
   })
 

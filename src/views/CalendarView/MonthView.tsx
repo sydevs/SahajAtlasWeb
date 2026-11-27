@@ -7,6 +7,7 @@ import { DateTime } from 'luxon'
 import { EntryList, entryWallClock } from './EntryList'
 import { dayHeadingParts } from './day-heading'
 
+import { Chip } from '@/components/atoms/Chip'
 import { Link } from '@/components/atoms/Link'
 import { entriesByDay, monthGrid, todayISO } from '@/lib/shape'
 import { firstWeekday, formatLongDate, formatTimeRange, weekdayNames } from '@/lib/time'
@@ -144,11 +145,18 @@ function MonthBox({ entry, locale }: { entry: CalendarEntry; locale: string }) {
   return (
     <Link
       aria-label={entry.detail ? `${text}, ${entry.name}` : text}
-      className={`block truncate rounded-lg px-1 text-xs leading-5 text-gray-12 hover:underline ${entry.online ? 'bg-secondary-4' : 'bg-primary-4'}`}
+      className="block rounded-lg focus-ring hover:opacity-hover"
       href={entry.path}
       title={entry.detail ? `${entry.name} · ${entry.detail}` : entry.name}
     >
-      {text}
+      <Chip
+        casing="none"
+        className="w-full"
+        color={entry.online ? 'secondary' : 'primary'}
+        variant="subtle"
+      >
+        {text}
+      </Chip>
     </Link>
   )
 }

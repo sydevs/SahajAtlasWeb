@@ -237,12 +237,16 @@ const PENDING_KEYS: Record<string, string> = {
  * Delete an entry in the sync PR that drops the key: the pin below fails until you do.
  */
 const RETIRING_KEYS: Record<string, string> = {
-  'calendar.view_list': 'sydevs/SahajAtlasWeb#538',
+  'calendar.see_calendar': 'sydevs/SahajAtlasWeb#538',
+  'calendar.see_list': 'sydevs/SahajAtlasWeb#538',
+  'calendar.share_title': 'sydevs/SahajAtlasWeb#538',
   'filters.chrome.apply': 'sydevs/SahajCloud#1293',
   'registration.form.okay': 'sydevs/SahajCloud#1294',
   'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',
   'registration.form.starting_date': 'sydevs/SahajCloud#1294',
   'share.title': 'sydevs/SahajCloud#1290',
+  'common.errors.share_unavailable_class': 'sydevs/SahajCloud#1290',
+  'share.title_class': 'sydevs/SahajCloud#1290',
 }
 
 describe('every key the snapshot holds', () => {

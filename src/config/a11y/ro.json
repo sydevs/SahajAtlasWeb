@@ -25,7 +25,6 @@
     "dismiss_nearby_prompt": "Respinge"
   },
   "share": {
-    "copy_link": "Copiază linkul",
     "share_on": "Distribuie pe %{platform}",
     "qr_code": "Cod QR pentru %{title}"
   }

@@ -99,20 +99,26 @@ const mockCalendarEvents = (): CalendarSourceEvent[] => [
 // the calendar data regardless of the filters, so these are for the pill UI, not to cut events.
 const activeFilters = {
   ...DEFAULT_FILTERS,
+  region: 'gb',
   format: 'offline' as const,
   timeOfDay: ['evening' as const],
 }
 const activeParams = filtersToParams(activeFilters)
-// The Week, scoped to a place, with nothing else chosen: the list as a visitor first sees it.
-const weekFilters = { ...DEFAULT_FILTERS, region: 'gb' }
-const weekParams = new URLSearchParams('view=week&region=gb')
+// The calendar fetches once per set of filters, so every set a visitor reaches by removing a pill
+// is seeded too, each with the same classes.
+const seededFilters = [
+  activeFilters,
+  { ...activeFilters, format: 'any' as const },
+  { ...activeFilters, timeOfDay: [] },
+  { ...activeFilters, format: 'any' as const, timeOfDay: [] },
+]
 
 // "Grid failure" stays on the EXAMPLE axis rather than moving to the State control,
 // because the two throw at different depths and that is the whole point of the case: this
 // one trips the boundary BELOW the header (issue #89), so the month nav, the view picker,
 // the filter button, the close control and the pills all stay put and stay usable. The
 // State control throws at the view level, replacing all of that. Compare the two.
-const EXAMPLES = ['Month', 'Week', 'Grid failure'] as const
+const EXAMPLES = ['Calendar', 'Grid failure'] as const
 
 // Not an array — `eventsToCalendarEntries` iterates it, so this throws during the grid's
 // render rather than at fetch time. Deliberately unlike the seeded feed: what is being
@@ -142,7 +148,7 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
       seed={(client: QueryClient) => {
         // Seed the default key (initial render) AND the active-filter key (once the params are
         // seeded into the URL) so the calendar resolves from cache either way.
-        for (const filters of [DEFAULT_FILTERS, activeFilters, weekFilters]) {
+        for (const filters of seededFilters) {
           client.setQueryData<CalendarSourceEvent[]>(
             ['calendar', filtersKey(filters), locale],
             // The error case seeds a shape the expansion cannot consume, so the throw happens
@@ -155,20 +161,20 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
       }}
       state={state}
     >
-      <SeedSearchParams params={example === 'Week' ? weekParams : activeParams}>
+      <SeedSearchParams params={activeParams}>
         <CalendarView />
       </SeedSearchParams>
     </ViewStory>
   )
 }
 
-Default.args = { example: 'Month', state: NO_ERROR }
+Default.args = { example: 'Calendar', state: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
     options: [...EXAMPLES],
     control: { type: 'radio' },
-    defaultValue: 'Month',
+    defaultValue: 'Calendar',
   },
   state: stateControl(),
 }

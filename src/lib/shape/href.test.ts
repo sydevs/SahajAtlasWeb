@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
-import { hasAllowedScheme, isSafeHref, telHref } from './href'
+import { hasAllowedScheme, isSafeHref, telHref, whatsappHref } from './href'
 
 import { parseSource } from '@/test-support/source-ast'
 import { readSource, sourceFiles } from '@/test-support/source-tree'
@@ -84,17 +84,20 @@ describe('isSafeHref — allows', () => {
   // any of these would be worse than the status quo it replaced, so they are pinned here in
   // the shape their producers emit rather than left to the components' specs.
   it.each([
-    // `directionsUrl` (`lib/events.ts`) — the Directions action, Google and Apple Maps.
-    'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
+    // `directionsHref` (`lib/maps/providers.ts`) — rows of the Directions menu.
+    'https://www.google.com/maps/dir/?api=1&destination=51.5,-0.12',
     'https://maps.apple.com/?daddr=51.5,-0.12',
+    'https://yandex.com/maps/?rtext=~51.5,-0.12&rtt=auto',
+    'https://www.openstreetmap.org/directions?route=%3B51.5%2C-0.12',
     // `buildGoogleCalendarUrl` (`lib/ics.ts`) — a calendar-menu row.
     'https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fcloud.example%2Ff.ics',
     // `buildFeedSubscribeUrl` (`lib/ics.ts`) — the Apple row, and the string inside `cid`.
     'webcal://cloud.example/api/events/calendar/eyJhb.eyJldg.s1gn.ics',
     // ReportIssueForm's contact Button.
     'mailto:atlas@sydevelopers.com',
-    // EventActions' contact button, and the Fallbacks contact Link.
+    // EventActions' Contact menu, and the Fallbacks contact Link.
     'tel:+4402012345678',
+    'https://wa.me/4402012345678',
   ])('%j — a real production href keeps working', (href) => {
     expect(isSafeHref(href)).toBe(true)
   })
@@ -221,5 +224,23 @@ describe('telHref', () => {
   it('drops the spaces people write a number with, which RFC 3966 does not allow', () => {
     expect(telHref('+44 7939 524096')).toBe('tel:+447939524096')
     expect(telHref('+44\u00a020 1234\t5678')).toBe('tel:+442012345678')
+  })
+})
+
+describe('whatsappHref', () => {
+  it('takes an international number as digits', () => {
+    expect(whatsappHref('+44 20 1234 5678')).toBe('https://wa.me/442012345678')
+    expect(whatsappHref('0044 20 1234 5678')).toBe('https://wa.me/442012345678')
+  })
+
+  it('drops an extension and a bracketed trunk zero', () => {
+    expect(whatsappHref('+44 20 7946 0958 x12')).toBe('https://wa.me/442079460958')
+    expect(whatsappHref('+44 20 7946 0958 ext. 12')).toBe('https://wa.me/442079460958')
+    expect(whatsappHref('+44 (0)20 7946 0958')).toBe('https://wa.me/442079460958')
+  })
+
+  it('offers nothing for a number without its country code', () => {
+    expect(whatsappHref('020 7946 0958')).toBeUndefined()
+    expect(whatsappHref('+44')).toBeUndefined()
   })
 })

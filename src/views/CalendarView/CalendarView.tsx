@@ -6,7 +6,6 @@ import { DateTime } from 'luxon'
 import { ChevronRight } from 'lucide-react'
 
 import { MonthView } from './MonthView'
-import { ShareWeek } from './ShareWeek'
 import { WeekList } from './WeekList'
 
 import { Button } from '@/components/atoms/Button'
@@ -61,15 +60,6 @@ export const chosenCalendarFilters = (
   dateRange: view === 'week' ? NO_DATES : filters.dateRange,
 })
 
-/** The address a shared week opens: this place, these filters, the Week, and its seven days. */
-export const shareWeekRoute = (filters: EventFilters, week: CalendarWindow): string => {
-  const params = filtersToParams({ ...filters, dateRange: { start: week.start, end: week.end } })
-
-  params.set('view', CALENDAR_WEEK_PARAM)
-
-  return `/calendar?${params}`
-}
-
 /** Opens the Week on the seven days from a day, in place. */
 function useOpenWeek() {
   const [, setSearchParams] = useSearchParams()
@@ -100,30 +90,19 @@ function usePlace(slug: string | null) {
 }
 
 /**
- * "See list": the place's own list. Opened from that list, this steps back to it, so flipping
- * between the two never piles up entries behind Back.
+ * The list a calendar stands beside: its place's own page, or the first screen. Opened from that
+ * list, the calendar steps back to it, so flipping between the two never piles up entries behind
+ * Back.
  */
-function SeeListButton({ path }: { path: string }) {
-  const { t } = useTranslation()
+function useGoToList(path: string) {
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: string } | null)?.from
 
-  return (
-    <Button
-      className="shrink-0"
-      color="primary"
-      size="sm"
-      variant="flat"
-      onClick={() =>
-        from?.split('?')[0] === path
-          ? navigate(-1)
-          : navigate(path, { replace: true, state: location.state })
-      }
-    >
-      {t('calendar.see_list')}
-    </Button>
-  )
+  return () =>
+    from?.split('?')[0] === path
+      ? navigate(-1)
+      : navigate(path, { replace: true, state: location.state })
 }
 
 function CalendarHeader({ view, week }: { view: CalendarViewName; week: CalendarWindow }) {
@@ -134,6 +113,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   const { setDateRange } = useSetFilters()
   const focused = useFocusedDate()
   const place = usePlace(filters.region)
+  const goToList = useGoToList(place.path ?? '/')
   const dateInputRef = useRef<HTMLInputElement>(null)
   const today = todayISO()
   const isWeek = view === 'week'
@@ -164,6 +144,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   }
 
   const switchTo = (next: string) => {
+    if (next === 'list') return goToList()
     if (next !== 'month' && next !== 'week') return
     // The Week's dates do not follow the visitor to the Month, which opens on the first of them.
     if (next === 'month' && isWeek) setFocused(week.start)
@@ -175,16 +156,12 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
       <div className="flex w-full items-center justify-between gap-2">
         <BackButton />
         <div className="flex shrink-0 items-center gap-1">
-          {isWeek && <ShareWeek dates={weekDates} route={shareWeekRoute(filters, week)} />}
           <FilterButton iconOnly counted={chosenCalendarFilters(filters, view)} />
         </div>
       </div>
       {/* Pulled down to the peek, the way to raise the sheet again, as every other header has. */}
       <ExpandSheetButton />
-      <div className="flex w-full items-center justify-between gap-2">
-        <DrawerTitle title={place.name ?? t('calendar.title')} />
-        {place.path && <SeeListButton path={place.path} />}
-      </div>
+      <DrawerTitle title={place.name ?? t('calendar.title')} />
 
       <div className="flex w-full flex-wrap items-center gap-2">
         <ToggleGroup
@@ -196,6 +173,8 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
         >
           <ToggleGroupItem value="month">{t('calendar.view_month')}</ToggleGroupItem>
           <ToggleGroupItem value="week">{t('calendar.view_week')}</ToggleGroupItem>
+          {/* The place's own list, so a visitor moves between the two from the one switch. */}
+          <ToggleGroupItem value="list">{t('calendar.view_list')}</ToggleGroupItem>
         </ToggleGroup>
 
         <div className="flex items-center gap-0.5">
@@ -271,7 +250,9 @@ export function CalendarView() {
           above it rather than escalating to the drawer boundary (#89). `resetKeys` moves it on
           when the filters do (`listResetKey`, lib/shape/path.ts). */}
       <ResetErrorBoundary FallbackComponent={DrawerErrorBody} resetKeys={[filtersKey(filters)]}>
-        <Suspense fallback={<DrawerLoadingBody />}>
+        {/* Below the header, so the body's placeholder alone: the drawer's own fallback draws
+            the same month, so the two hand over without a change. */}
+        <Suspense fallback={<DrawerLoadingBody body={view === 'week' ? 'classes' : 'calendar'} />}>
           <CalendarBody filters={filters} view={view} week={week} />
         </Suspense>
       </ResetErrorBoundary>

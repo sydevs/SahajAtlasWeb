@@ -32,7 +32,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Boxed, as the Share panel opens. The whole title shows: it is the one class on screen."
+      description="Boxed, as the sign-up form and its confirmation open. The whole title shows: it is the one class on screen."
       title="Boxed"
     >
       <div className="flex max-w-md flex-col gap-4">

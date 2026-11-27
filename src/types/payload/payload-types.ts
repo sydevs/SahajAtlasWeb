@@ -8851,6 +8851,7 @@ export interface SyAtlasTranslation {
   filters?: {
     chrome?: SyAtlasTranslationsFiltersChromeStrings;
     where?: SyAtlasTranslationsFiltersWhereStrings;
+    when?: SyAtlasTranslationsFiltersWhenStrings;
     format?: SyAtlasTranslationsFiltersFormatStrings;
     cadence?: SyAtlasTranslationsFiltersCadenceStrings;
     days?: SyAtlasTranslationsFiltersDaysStrings;
@@ -9285,6 +9286,16 @@ export interface SyAtlasTranslationsFiltersWhereStrings {
    * Button in the Where question that lists the classes around the visitor’s location.
    */
   near_me?: string;
+  /**
+   * Line under a searched place or Near me in the Where question, saying what the results hold. `%{near}` = in-person classes nearby; `%{distance}` = the radius, already formatted (“16 mi”, “25 km”); `%{online}` = online classes.
+   */
+  scope?: string;
+}
+export interface SyAtlasTranslationsFiltersWhenStrings {
+  /**
+   * Label of the When button above the map on a computer, which opens the days, times of day and More filters.
+   */
+  label?: string;
 }
 export interface SyAtlasTranslationsFiltersFormatStrings {
   /**
@@ -9589,6 +9600,10 @@ export interface SyAtlasTranslationsEventActionsStrings {
    * Add-to-calendar menu item that downloads an .ics file.
    */
   download_ics?: string;
+  /**
+   * Last row of an event’s Contact menu: copies the host’s phone number. The row then reads `common.chrome.copied`.
+   */
+  copy_number?: string;
 }
 export interface SyAtlasTranslationsEventRecurrenceStrings {
   /**
@@ -9715,6 +9730,38 @@ export interface SyAtlasTranslationsCalendarStrings {
    * Phone month view and list: a day with no classes.
    */
   none?: string;
+  /**
+   * Week view: the dates label when the week shown is today and the six days after it.
+   */
+  next_7_days?: string;
+  /**
+   * Week view: shown when the place has no classes in the seven days on screen.
+   */
+  none_in_window?: string;
+  /**
+   * Week view: shown when the chosen filters hide every class in the seven days on screen.
+   */
+  none_match_filters?: string;
+  /**
+   * Week view: button under the no-match line that removes the chosen filters.
+   */
+  clear_filters?: string;
+  /**
+   * Week view: button under an empty week that opens the week of the next class. `%{date}` = that class’s date (“Tue 8 Dec”).
+   */
+  next_class?: string;
+  /**
+   * Title of the shared link for the week on screen. `%{dates}` = those dates (“16 – 22 Nov”).
+   */
+  share_title?: string;
+  /**
+   * Button on a place page that opens the calendar for that place.
+   */
+  see_calendar?: string;
+  /**
+   * Button on the calendar that goes back to the place’s list of classes.
+   */
+  see_list?: string;
 }
 export interface SyAtlasTranslationsRegistrationFormStrings {
   /**
@@ -10153,6 +10200,10 @@ export interface SyAtlasTranslationsShareStrings {
    * Shown in place of the QR code when it could not be made, usually because the connection dropped. Closing and reopening the row tries again.
    */
   qr_failed?: string;
+  /**
+   * Label under the email icon in the Share popover. Brand names such as WhatsApp stay untranslated, so this is the only label there that needs copy.
+   */
+  email?: string;
 }
 export interface SyAtlasTranslationsSeoStrings {
   /**
@@ -10610,6 +10661,7 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
     | {
         chrome?: T;
         where?: T;
+        when?: T;
         format?: T;
         cadence?: T;
         days?: T;
