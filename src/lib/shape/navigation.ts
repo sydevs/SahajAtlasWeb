@@ -150,7 +150,41 @@ export const backStep = (
   const entries = resolveStack(location.pathname)
 
   if (entries.length === 0) return undefined
-  if (entries.at(-1)?.kind === 'filters') return filtersCloseStep(location, climb)
+  if (entries.at(-1)?.kind === 'filters') {
+    // Where closing the filters lands, by X, swipe or Esc alike. Every tap already wrote the URL, so
+    // closing shows the answers rather than undoing them. Over the search or the calendar it returns
+    // there with the query as it now stands. Over a view that lists no filtered classes, answers open
+    // the search, scoped to the place the filters were opened over; with none, the filters close
+    // like any other view.
+    //
+    // A step back says where it lands, query included, and the drawer rewrites the landed entry's
+    // query where the answers changed it, so no stale results entry is left behind. Anything else
+    // replaces the filters' own entry: Back from the results still leads to the view before the
+    // filters, and a fresh link never takes the host page back.
+    const { pathname, search = '' } = location
+    const origin = parentOf(pathname) ?? '/'
+    const params = new URLSearchParams(search)
+    const filters = filtersFromParams(params)
+    const listsFiltered = origin === '/search' || origin === '/calendar'
+    const from = atlasDepth(location) > 0 ? stamp(location, 'from') : undefined
+    const answered = listsFiltered || hasActiveFilters(filters)
+    const to = answered
+      ? withQuery(
+          listsFiltered ? origin : '/search',
+          listsFiltered
+            ? params
+            : filtersToParams(
+                { ...filters, region: filters.region ?? filterOriginRegion(pathname) },
+                params,
+              ),
+        )
+      : withQuery(origin, params)
+
+    if (from && from.split('?')[0] === to.split('?')[0]) return { to, how: 'history' }
+    if (answered) return { to, how: 'replace' }
+
+    return { to: climbDestination(pathname, climb), how: 'climb' }
+  }
 
   const from = stamp(location, 'from')
 
@@ -163,47 +197,6 @@ export const backStep = (
     to: parent === '/search' ? withQuery(parent, location.search ?? '') : parent,
     how: 'climb',
   }
-}
-
-/**
- * Where closing the filters lands, by X, swipe or Esc alike. Every tap already wrote the URL, so
- * closing shows the answers rather than undoing them. Over the search or the calendar it returns
- * there with the query as it now stands. Over a view that lists no filtered classes, answers open
- * the search, scoped to the place the filters were opened over; with none, the filters close
- * like any other view.
- *
- * A step back says where it lands, query included, and the drawer rewrites the landed entry's
- * query where the answers changed it, so no stale results entry is left behind. Anything else
- * replaces the filters' own entry: Back from the results still leads to the view before the
- * filters, and a fresh link never takes the host page back.
- */
-const filtersCloseStep = (
-  location: { pathname: string; search?: string; state?: unknown },
-  climb?: ClimbInputs,
-): BackStep => {
-  const { pathname, search = '' } = location
-  const origin = parentOf(pathname) ?? '/'
-  const params = new URLSearchParams(search)
-  const filters = filtersFromParams(params)
-  const listsFiltered = origin === '/search' || origin === '/calendar'
-  const from = atlasDepth(location) > 0 ? stamp(location, 'from') : undefined
-  const answered = listsFiltered || hasActiveFilters(filters)
-  const to = answered
-    ? withQuery(
-        listsFiltered ? origin : '/search',
-        listsFiltered
-          ? params
-          : filtersToParams(
-              { ...filters, region: filters.region ?? filterOriginRegion(pathname) },
-              params,
-            ),
-      )
-    : withQuery(origin, params)
-
-  if (from && from.split('?')[0] === to.split('?')[0]) return { to, how: 'history' }
-  if (answered) return { to, how: 'replace' }
-
-  return { to: climbDestination(pathname, climb), how: 'climb' }
 }
 
 // The class a route shows, or sits on (its Register or Share), by id: a class's own `webPath` and
