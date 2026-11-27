@@ -21,6 +21,7 @@ import {
   MapPin,
   Monitor,
   Moon,
+  MoonStar,
   Navigation,
   Pause,
   Phone,
@@ -29,6 +30,7 @@ import {
   Settings,
   Share,
   Sun,
+  Sunrise,
   X,
 } from 'lucide-react'
 
@@ -76,6 +78,7 @@ const ICONS = [
   { name: 'MapPin', Icon: MapPin },
   { name: 'Monitor', Icon: Monitor },
   { name: 'Moon', Icon: Moon },
+  { name: 'MoonStar', Icon: MoonStar },
   { name: 'Navigation', Icon: Navigation },
   { name: 'Pause', Icon: Pause },
   { name: 'Phone', Icon: Phone },
@@ -84,6 +87,7 @@ const ICONS = [
   { name: 'Settings', Icon: Settings },
   { name: 'Share', Icon: Share },
   { name: 'Sun', Icon: Sun },
+  { name: 'Sunrise', Icon: Sunrise },
   { name: 'X', Icon: X },
 ] as const
 

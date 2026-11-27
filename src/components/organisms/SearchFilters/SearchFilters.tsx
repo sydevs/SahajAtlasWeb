@@ -2,7 +2,7 @@ import type { TranslationKey } from '@/types/i18next'
 
 import { type ReactNode, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Moon, MoonStar, Sun, Sunrise } from 'lucide-react'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
 import { Disclosure } from '@/components/atoms/Disclosure'
@@ -37,6 +37,13 @@ const INLINE_LANGUAGES = 4
 // swallowed it, leaving these questions settable but not unsettable from the control itself.
 const FORMAT_OPTIONS: Exclude<EventFormat, 'any'>[] = ['offline', 'online']
 
+const TIME_ICONS: Record<TimePeriod, ReactNode> = {
+  morning: <Sunrise aria-hidden className="shrink-0" size={18} />,
+  afternoon: <Sun aria-hidden className="shrink-0" size={18} />,
+  evening: <Moon aria-hidden className="shrink-0" size={18} />,
+  night: <MoonStar aria-hidden className="shrink-0" size={18} />,
+}
+
 /** A quiet live count beside an option. It takes the option's colour once selected. */
 function OptionCount({ count }: { count: number | undefined }) {
   if (count === undefined) return null
@@ -51,7 +58,9 @@ function OptionCount({ count }: { count: number | undefined }) {
 type Choice = {
   value: string
   label: ReactNode
-  /** Faded text under the label, such as the hours a time of day means. */
+  /** A glyph before the label. */
+  icon?: ReactNode
+  /** Faded text after the label, such as the hours a time of day means. */
   hint?: string
   count?: number
   title?: string
@@ -97,24 +106,14 @@ function Choices({
           title={option.title}
           value={option.value}
         >
-          {option.hint ? (
-            // The hint runs the tile's full width on a line of its own, so a 12-hour range still
-            // fits a half-width tile in the narrow side panel.
-            <span className="flex w-full min-w-0 flex-col gap-0.5 text-start leading-tight">
-              <span className="flex items-baseline justify-between gap-2">
-                {option.label}
-                {!hideCounts && <OptionCount count={option.count} />}
-              </span>
-              <span className="text-xs font-normal whitespace-nowrap text-gray-11 in-data-[state=on]:text-inherit">
-                {option.hint}
-              </span>
+          {option.icon}
+          {option.label}
+          {option.hint && (
+            <span className="truncate text-xs font-normal text-gray-11 in-data-[state=on]:text-inherit">
+              {option.hint}
             </span>
-          ) : (
-            <>
-              {option.label}
-              {!hideCounts && <OptionCount count={option.count} />}
-            </>
           )}
+          {!hideCounts && <OptionCount count={option.count} />}
         </ToggleGroupItem>
       ))}
     </ToggleGroup>
@@ -291,6 +290,7 @@ function MoreFilters({ value, patch, facets }: ControlProps) {
 
   return (
     <Disclosure
+      className="border-t-0"
       defaultOpen={cadence !== 'any' || isDateRestricted(dateRange)}
       title={t('filters.more.label')}
     >
@@ -465,11 +465,12 @@ export function SearchFilters({ value, onChange, where, facets }: SearchFiltersP
         >
           {(control) => (
             <Choices
-              className="grid grid-cols-2"
+              className="grid grid-cols-1"
               control={control}
-              itemClassName="h-auto! px-3 py-2"
+              itemClassName="justify-start gap-2.5 px-4 [&>span:last-child]:ms-auto"
               options={timePeriods.map((period) => ({
                 value: period,
+                icon: TIME_ICONS[period],
                 label: t(`filters.time.${period}`),
                 hint: formatTimePeriods(formatLocale, [period]),
                 count: counts?.time[period],
