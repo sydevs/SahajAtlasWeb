@@ -129,7 +129,9 @@ export function Lightbox({ slides, index, onIndexChange, onClose }: LightboxProp
             {slide && (
               <img
                 key={slide.src}
-                alt={slide.alt ?? ''}
+                // A caption repeating the alt text already names the photo; saying it twice
+                // reads the same words out back to back.
+                alt={slide.alt && slide.alt !== slide.caption ? slide.alt : ''}
                 className="min-h-0 max-w-full flex-1 object-contain"
                 draggable={false}
                 src={slide.src}

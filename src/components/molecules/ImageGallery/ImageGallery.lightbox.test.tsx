@@ -95,6 +95,19 @@ describe('ImageGallery lightbox', () => {
     expect(dialog()?.querySelector('figcaption')?.textContent).toBe('Caption B')
   })
 
+  // EventDetails passes the alt text as the caption too, and a screen reader would read both.
+  it('reads a caption that repeats the alt text once, not twice', async () => {
+    await mount([
+      { src: 'https://example.test/a.jpg', alt: 'Hall', caption: 'Hall' },
+      { src: 'https://example.test/b.jpg', alt: 'Garden', caption: 'Our garden' },
+    ])
+    await click(byLabel('Hall'))
+    expect(dialog()?.querySelector('img')?.getAttribute('alt')).toBe('')
+
+    await click(byLabel('event.a11y.next_photo'))
+    expect(dialog()?.querySelector('img')?.getAttribute('alt')).toBe('Garden')
+  })
+
   it('steps forward and back with the buttons, wrapping at either end', async () => {
     await mount()
     await click(byLabel('C'))
