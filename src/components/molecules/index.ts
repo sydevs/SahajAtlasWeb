@@ -73,19 +73,16 @@ export type { ListItemProps } from './ListItem'
 export { EventListItem } from './EventListItem'
 export type { EventListItemProps } from './EventListItem'
 
-// NOTE: ImageCarousel, EventActions, ShareContent, and
-// AddToCalendar are deliberately NOT re-exported. The organisms barrel
-// states the same rule for EventDetails and RegistrationForm. Between
-// them, these own Swiper and react-share. The interface's views import
-// this barrel, so the re-export edge alone would put both in the download
-// every opened interface waits for (about 45 KiB gz), even though nothing
-// imported them through it. Tree-shaking will not drop them, since their
-// `swiper/*` and react-share imports carry side effects. Every real
-// consumer already reaches them by leaf path from inside a lazily-loaded
-// chunk: EventActions and ImageCarousel from EventDetails, ShareContent
-// from RegistrationForm and ShareView. That is the
-// readiness report's "Swiper bundled twice" finding. `index.test.ts` pins
-// it (issue #96). ⚠ Nothing else does: the interface loads behind a lazy
+// NOTE: EventActions, ShareContent, and AddToCalendar are deliberately NOT
+// re-exported. The organisms barrel states the same rule for EventDetails
+// and RegistrationForm. Between them, these own react-share. The
+// interface's views import this barrel, so the re-export edge alone would
+// put it in the download every opened interface waits for, even though
+// nothing imported it through it. Tree-shaking will not drop it, since its
+// imports carry side effects. Every real consumer already reaches them by
+// leaf path from inside a lazily-loaded chunk: EventActions from
+// EventDetails, ShareContent from RegistrationForm and ShareView.
+// `index.test.ts` pins it (issue #96). ⚠ Nothing else does: the interface loads behind a lazy
 // seam, outside the graphs `pnpm size` budgets.
 
 export { EventMetadata } from './EventMetadata'

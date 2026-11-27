@@ -11,7 +11,10 @@
   },
   "event": {
     "view_photo": "Դիտել լուսանկարը",
-    "pause_slideshow": "Դադարեցնել սլայդ-շոուն",
+    "photo_position": "Լուսանկար %{current}՝ %{total}-ից",
+    "previous_photo": "Նախորդ լուսանկարը",
+    "next_photo": "Հաջորդ լուսանկարը",
+    "close_photo": "Փակել լուսանկարը",
     "copy_address": "Պատճենել հասցեն"
   },
   "filters": {

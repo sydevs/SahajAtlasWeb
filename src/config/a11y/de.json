@@ -11,7 +11,10 @@
   },
   "event": {
     "view_photo": "Foto ansehen",
-    "pause_slideshow": "Diashow anhalten",
+    "photo_position": "Foto %{current} von %{total}",
+    "previous_photo": "Vorheriges Foto",
+    "next_photo": "Nächstes Foto",
+    "close_photo": "Foto schließen",
     "copy_address": "Adresse kopieren"
   },
   "filters": {

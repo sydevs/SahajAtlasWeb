@@ -57,7 +57,7 @@ pipeline or its check.
   the shadow root; `scripts/postcss-scope-widget.mjs` owns that argument. It runs
   last in the PostCSS chain and rewrites every emitted selector to `:where(.sy-atlas)`
   — Preflight, generated utilities, and the third-party sheets we `@import` (mapbox-gl,
-  swiper, vaul, Radix Colors) included — and it namespaces every `@keyframes`.
+  vaul, Radix Colors) included — and it namespaces every `@keyframes`.
   `scripts/assert-css-scoped.mjs` reads the CSS back out of the built bundle and
   fails `pnpm build` if anything escapes. Write plain selectors in `globals.css`.
   Hand-scoping is not required. Three namespaces are document-global and carry no
@@ -642,9 +642,8 @@ section's panel) needs step 12 or a lighter surface — measure it, do not assum
 for more than five seconds needs a visible, keyboard-operable control to stop it, and
 must not move at all under `prefers-reduced-motion: reduce` — read live via
 **`usePrefersReducedMotion`** (`src/hooks/use-reduced-motion.ts`), not a one-shot
-read at mount. The image carousel is the worked example: its pause/play toggle keeps
-one accessible name while `aria-pressed` carries the state, and it renders only when
-the carousel actually autoplays.
+read at mount. A toggle for it keeps one accessible name while `aria-pressed` carries the
+state, and renders only when the thing actually moves.
 
 **The rest of the app's motion is off under that preference too, through four
 seams — one per animation technology** (issue #102):
@@ -684,4 +683,4 @@ can render in a Suspense fallback before translation bundles load.
 **A control on the drawer needs `data-vaul-no-drag`.** vaul reads a tap carrying any
 micro-movement as a drag and swallows the click, so a control without this attribute
 fires only intermittently on touch. The `Button` atom sets it for you. Anything
-hand-rolled (the carousel's pause button) must carry it itself.
+hand-rolled (the image gallery's tiles) must carry it itself.

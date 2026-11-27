@@ -11,7 +11,10 @@
   },
   "event": {
     "view_photo": "View photo",
-    "pause_slideshow": "Pause slideshow",
+    "photo_position": "Photo %{current} of %{total}",
+    "previous_photo": "Previous photo",
+    "next_photo": "Next photo",
+    "close_photo": "Close photo",
     "copy_address": "Copy address"
   },
   "filters": {

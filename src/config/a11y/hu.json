@@ -11,7 +11,10 @@
   },
   "event": {
     "view_photo": "Fotó megtekintése",
-    "pause_slideshow": "Diavetítés szüneteltetése",
+    "photo_position": "%{current}. fotó / %{total}",
+    "previous_photo": "Előző fotó",
+    "next_photo": "Következő fotó",
+    "close_photo": "Fotó bezárása",
     "copy_address": "Cím másolása"
   },
   "filters": {

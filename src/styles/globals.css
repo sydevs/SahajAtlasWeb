@@ -23,9 +23,6 @@
  * declared with a runtime-resolved URL.
  */
 @import 'mapbox-gl/dist/mapbox-gl.css';
-@import 'swiper/css';
-@import 'swiper/css/a11y';
-@import 'swiper/css/pagination';
 /* vaul drawer slide/snap transforms + handle — vendored (see src/styles/vaul.css header) */
 @import './vaul.css';
 

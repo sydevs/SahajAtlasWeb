@@ -10,8 +10,11 @@
     "settings": "Names the settings cog button."
   },
   "event": {
-    "view_photo": "Names a photo in an event’s image carousel that has no description of its own; activating it opens the photo full size.",
-    "pause_slideshow": "Names the toggle button that stops the image carousel advancing on its own. The name stays the same whether paused or not; the button’s pressed state carries that.",
+    "view_photo": "Names a photo in an event’s image gallery that has no description of its own; activating it opens the photo full size.",
+    "photo_position": "The accessible name of the full-size photo viewer, read as it opens; a class with one photo reads “Photo 1 of 1”. `%{current}` = the photo on screen, counting from 1; `%{total}` = how many photos the class has.",
+    "previous_photo": "Names the arrow button in the full-size photo viewer that shows the photo before this one.",
+    "next_photo": "Names the arrow button in the full-size photo viewer that shows the photo after this one.",
+    "close_photo": "Names the × button that closes the full-size photo viewer.",
     "copy_address": "Names the button on a class page that copies the venue’s street, town and postcode; the address itself is read right after it, as “Copy address: 120 Heath St, London NW3 1DR”."
   },
   "filters": {

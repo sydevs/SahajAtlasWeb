@@ -139,6 +139,19 @@ describe('EventDocSchema images', () => {
     expect(parsed.images[0].alt).toBe('Hall')
   })
 
+  it('keeps the stored width and height, and tolerates an image without them', () => {
+    const parsed = EventDocSchema.parse({
+      ...mockEvent,
+      images: [
+        { id: 2, url: '/a.jpg', alt: 'Hall', width: 1200, height: 800 },
+        { id: 3, url: '/b.jpg', alt: 'Garden', width: null },
+      ],
+    })
+
+    expect(parsed.images[0]).toMatchObject({ width: 1200, height: 800 })
+    expect(parsed.images[1].width).toBeNull()
+  })
+
   it('tolerates a null image url so a file-less image cannot crash the event read', () => {
     const parsed = EventDocSchema.parse({
       ...mockEvent,
