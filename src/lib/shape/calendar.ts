@@ -213,6 +213,17 @@ export const CALENDAR_VIEW_MONTH_AGENDA = 'month-agenda'
 export const CALENDAR_VIEW_WEEK = 'week'
 export const CALENDAR_VIEW_LIST = 'list'
 
+/**
+ * Whether the calendar on top fills the widget rather than the 352px panel: its month or week
+ * grid, above the wide crossing (#331). Its list is one narrow column that reads better at the
+ * panel's width. The drawer's size and the filter row both read this.
+ */
+export const isCalendarFullWidth = (
+  top: string | undefined,
+  isWide: boolean,
+  view: string | null,
+): boolean => top === 'calendar' && isWide && view !== CALENDAR_VIEW_LIST
+
 /** Every Schedule-X view this app registers. */
 export type CalendarViewName =
   | typeof CALENDAR_VIEW_MONTH

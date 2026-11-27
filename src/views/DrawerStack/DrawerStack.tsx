@@ -48,11 +48,11 @@ import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type FilterRowPlace,
   type StackEntry,
-  CALENDAR_VIEW_LIST,
   backStep,
   sameRoute,
   baseStackEntry,
   filterRowPlace,
+  isCalendarFullWidth,
   isFilterOverlay,
   isOnline,
   isoCountryCode,
@@ -242,7 +242,7 @@ export function DrawerStack() {
   // because the wide panel exists only above the crossing (#331). The view is read reactively, so
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
-  const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
+  const wide = isCalendarFullWidth(top?.kind, isWide, calendarView)
   const filterRow = filterRowPlace({ chipsWide, hasMap, top: top?.kind, calendarFullWidth: wide })
   const setFindMeHidden = useMapControls((s) => s.setFindMeHidden)
   const menuSlot = useMapControls((s) => s.menuSlot)

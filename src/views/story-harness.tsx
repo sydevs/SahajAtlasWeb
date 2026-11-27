@@ -21,7 +21,7 @@ import { Mapbox } from '@/components/organisms/Mapbox/Map'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
-import { CALENDAR_VIEW_LIST, filterRowPlace, parentOf, resolveStack } from '@/lib/shape'
+import { filterRowPlace, isCalendarFullWidth, parentOf, resolveStack } from '@/lib/shape'
 import { mockApproxLocation, mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
@@ -307,7 +307,7 @@ export function ViewHarness({
     chipsWide: false,
     hasMap: withMap,
     top,
-    calendarFullWidth: top === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST,
+    calendarFullWidth: isCalendarFullWidth(top, isWide, calendarView),
   })
 
   const client = useMemo(() => {

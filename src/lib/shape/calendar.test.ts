@@ -8,6 +8,7 @@ import {
   CALENDAR_VIEW_WEEK,
   computeDayBoundaries,
   eventsToCalendarEntries,
+  isCalendarFullWidth,
   isCalendarViewOption,
   resolveCalendarView,
   scheduleXLocale,
@@ -386,5 +387,18 @@ describe('scheduleXLocale', () => {
   it('falls back to en-US for a language Schedule-X lacks', () => {
     expect(scheduleXLocale('hu')).toBe('en-US')
     expect(scheduleXLocale('hu-HU')).toBe('en-US')
+  })
+})
+
+describe('isCalendarFullWidth', () => {
+  it('is the calendar on top, wide, in its month or week grid', () => {
+    expect(isCalendarFullWidth('calendar', true, CALENDAR_VIEW_MONTH)).toBe(true)
+    expect(isCalendarFullWidth('calendar', true, CALENDAR_VIEW_WEEK)).toBe(true)
+  })
+
+  it('keeps the list, a narrow widget and every other view at the panel width', () => {
+    expect(isCalendarFullWidth('calendar', true, CALENDAR_VIEW_LIST)).toBe(false)
+    expect(isCalendarFullWidth('calendar', false, CALENDAR_VIEW_MONTH)).toBe(false)
+    expect(isCalendarFullWidth('region', true, CALENDAR_VIEW_MONTH)).toBe(false)
   })
 })
