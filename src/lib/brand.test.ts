@@ -11,7 +11,7 @@ import { readRepoSource } from '@/test-support/repo-source'
  * attribute added for clarity.
  *
  * So the enumeration IS the enforcement, the same arrangement `href.test.ts` uses for the app's
- * three JSX anchors and `responsive.test.ts` uses for its viewport call sites. A brand string
+ * JSX anchors and `responsive.test.ts` uses for its viewport call sites. A brand string
  * reappearing turns the unit lane red with instructions, rather than shipping.
  *
  * **What this deliberately does NOT catch**, because none of it is visitor-facing:

@@ -8,6 +8,12 @@ import { tv } from '@/styles/tv'
 // which drifted: the error chrome mounts a live field (`views/fallbacks.tsx`).
 export const RESULTS_BAND = 'sy-results-band'
 
+// The scroll padding a body needs beside a `sticky` footer, so focus never parks a field behind
+// the bar: the footer's published height, plus the sheet's live top, since the body's bottom
+// edge sits that far below the viewport where the bar paints (#326).
+export const STICKY_FOOTER_CLEARANCE =
+  'scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))]'
+
 export const drawer = tv({
   slots: {
     // ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). The panel's own
@@ -39,8 +45,7 @@ export const drawer = tv({
     // it. Content wraps at the source instead (see EventDetails'
     // `break-words`). This class only means the next such string degrades to
     // a clipped edge, instead of a horizontal scrollbar across the view. It
-    // is safe for the full-bleed carousel, which is exactly the body's width,
-    // and for popovers, which portal out of the body entirely.
+    // is safe for popovers, which portal out of the body entirely.
     // The trailing spacer clears a `sticky` footer, which is out of flow, so
     // the body runs underneath it and the end of the content is otherwise
     // unreachable. The length is the footer's own, published by `DrawerFooter`,

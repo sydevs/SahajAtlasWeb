@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest'
-import { DateTime } from 'luxon'
+import { afterAll, beforeAll, describe, it, expect } from 'vitest'
+import { DateTime, Settings } from 'luxon'
 
-import { formatTimeRange, sameWallClock, zoneCity } from './time'
+import {
+  formatDate,
+  formatLongDate,
+  formatMonth,
+  formatRelativeDate,
+  formatTimeRange,
+  formatWeekday,
+  regionalLocale,
+  sameWallClock,
+  wallClock,
+  zoneCity,
+} from './time'
 
 // All fixtures are built in a fixed zone so each endpoint's wall clock — and a
 // cross-zone end's conversion into the start's zone — stays deterministic
@@ -12,11 +23,38 @@ const at = (iso: string, zone = 'Europe/London') => DateTime.fromISO(iso, { zone
 // spaces around it — normalize whitespace so assertions stay readable.
 const norm = (value: string) => value.replace(/\s+/g, ' ').trim()
 
+// "This year" for the year rule: every date below sits in 2026 unless it names another year.
+const realNow = Settings.now
+
+beforeAll(() => {
+  Settings.now = () => Date.UTC(2026, 10, 6, 12)
+})
+afterAll(() => {
+  Settings.now = realNow
+})
+
 describe('formatTimeRange', () => {
-  it('drops :00 for whole hours and collapses a shared meridiem', () => {
+  // Never our own am/pm: each locale reads its own clock, as Intl writes it.
+  it('writes each locale its own clock: am/pm in the US, 24-hour in the UK and Germany', () => {
+    const at = DateTime.fromISO('2026-07-01T19:30', { zone: 'Europe/London' })
+
+    expect(norm(formatTimeRange(at, null, 'en-US'))).toBe('7:30 PM')
+    expect(formatTimeRange(at, null, 'en-GB')).toBe('19:30')
+    expect(formatTimeRange(at, null, 'de')).toBe('19:30')
+  })
+
+  it('writes a class time the visitor’s way: 24-hour in the UK, am/pm in the US', () => {
+    const start = at('2026-11-18T17:45')
+    const end = at('2026-11-18T18:45')
+
+    expect(formatTimeRange(start, end, 'en-GB')).toBe('17:45–18:45')
+    expect(norm(formatTimeRange(start, end, 'en-US'))).toBe('5:45 – 6:45 PM')
+  })
+
+  it('keeps minutes on whole hours and collapses a shared meridiem', () => {
     const out = norm(formatTimeRange(at('2026-07-04T18:00'), at('2026-07-04T19:00'), 'en-US'))
 
-    expect(out).toBe('6 – 7 PM')
+    expect(out).toBe('6:00 – 7:00 PM')
   })
 
   it('keeps minutes when either endpoint has them', () => {
@@ -33,14 +71,14 @@ describe('formatTimeRange', () => {
   })
 
   it('formats a lone start time (no end)', () => {
-    expect(norm(formatTimeRange(at('2026-07-04T18:00'), null, 'en-US'))).toBe('6 PM')
+    expect(norm(formatTimeRange(at('2026-07-04T18:00'), null, 'en-US'))).toBe('6:00 PM')
     expect(norm(formatTimeRange(at('2026-07-04T18:30'), null, 'en-US'))).toBe('6:30 PM')
   })
 
   it('collapses a zero-length range to a single time', () => {
     const start = at('2026-07-04T18:00')
 
-    expect(norm(formatTimeRange(start, start, 'en-US'))).toBe('6 PM')
+    expect(norm(formatTimeRange(start, start, 'en-US'))).toBe('6:00 PM')
   })
 
   it('renders 24-hour locales in their own convention (no AM/PM)', () => {
@@ -88,11 +126,71 @@ describe('formatTimeRange', () => {
     expect(out).toBe('9:30 PM – 12:30 AM')
   })
 
+  it('keeps both day periods on a range past midnight of twelve hours or more', () => {
+    // An evening-and-morning filter, 5 PM to noon: `formatRange` alone writes "5:00 – 12:00 PM",
+    // which reads as a morning start.
+    expect(norm(formatTimeRange(wallClock(17), wallClock(12), 'en-US'))).toBe('5:00 PM – 12:00 PM')
+    expect(formatTimeRange(wallClock(17), wallClock(12), 'en-GB')).toBe('17:00–12:00')
+    // A 24-hour clock has no day period to lose, so the locale keeps its own range and suffix.
+    expect(norm(formatTimeRange(wallClock(17), wallClock(12), 'de'))).toBe('17:00–12:00 Uhr')
+  })
+
   it('formats in the event zone, not the machine zone', () => {
     // 18:00 in London is 19:00 in Prague — the DateTime's own zone wins.
     const prague = at('2026-07-04T19:00', 'Europe/Prague')
 
-    expect(norm(formatTimeRange(prague, null, 'en-US'))).toBe('7 PM')
+    expect(norm(formatTimeRange(prague, null, 'en-US'))).toBe('7:00 PM')
+  })
+})
+
+describe('wallClock', () => {
+  it('reads hour 24 as midnight, so a range can end there', () => {
+    expect(norm(formatTimeRange(wallClock(17), wallClock(24), 'en-US'))).toBe('5:00 PM – 12:00 AM')
+    expect(formatTimeRange(wallClock(17), wallClock(24), 'en-GB')).toBe('17:00–00:00')
+  })
+})
+
+describe('formatDate', () => {
+  it('writes the class page date the visitor’s way', () => {
+    const date = at('2026-11-11T19:30')
+
+    expect(formatDate(date, 'en-GB')).toBe('Wed 11 Nov')
+    expect(formatDate(date, 'en-US')).toBe('Wed, Nov 11')
+    expect(formatDate(date, 'en-GB', { weekday: false })).toBe('11 Nov')
+  })
+
+  it('adds the year only when it is not this one', () => {
+    expect(formatDate(at('2022-12-21T19:30'), 'en-GB')).toBe('Wed, 21 Dec 2022')
+    expect(formatDate(at('2027-01-06T19:30'), 'en-GB', { weekday: false })).toBe('6 Jan 2027')
+  })
+})
+
+describe('formatLongDate', () => {
+  it('writes the date in full words, the visitor’s way', () => {
+    const date = at('2026-11-17T19:30')
+
+    expect(formatLongDate(date, 'en-GB')).toBe('Tuesday 17 November')
+    expect(formatLongDate(date, 'en-US')).toBe('Tuesday, November 17')
+    expect(formatLongDate(at('2027-01-05T19:30'), 'en-GB')).toBe('Tuesday, 5 January 2027')
+  })
+})
+
+describe('the calendar’s dates', () => {
+  const day = at('2026-11-12T00:00')
+
+  it('names a weekday and a month', () => {
+    expect(formatWeekday(day, 'en-GB')).toBe('Thursday')
+    expect(formatWeekday(day, 'en-GB', 'short')).toBe('Thu')
+    expect(formatWeekday(day, 'de')).toBe('Donnerstag')
+    expect(formatMonth(day, 'en-GB')).toBe('November 2026')
+  })
+
+  it('says how far off a date is to lead a phrase', () => {
+    const today = DateTime.now().setZone('Europe/London')
+
+    expect(formatRelativeDate(today, 'en-GB', 'days')).toBe('Today')
+    expect(formatRelativeDate(today.plus({ days: 1 }), 'en-GB', 'days')).toBe('Tomorrow')
+    expect(formatRelativeDate(today.plus({ weeks: 1 }), 'en-GB', 'weeks')).toBe('Next week')
   })
 })
 
@@ -129,5 +227,50 @@ describe('zoneCity', () => {
   it('is empty for a missing zone', () => {
     expect(zoneCity(null)).toBe('')
     expect(zoneCity(undefined)).toBe('')
+  })
+})
+
+describe('regionalLocale', () => {
+  it("uses the browser's region when its language is the one on screen", () => {
+    expect(regionalLocale('en', ['en-GB', 'en'])).toBe('en-GB')
+    expect(regionalLocale('pt-BR', ['pt-PT'])).toBe('pt-PT')
+  })
+
+  // Chrome and Firefox list en-US after the visitor's own language by default, so an English entry
+  // further down says nothing about the clock they read.
+  it("follows the browser's first language, not an English one further down", () => {
+    const time = (browsers: string[]) =>
+      norm(formatTimeRange(at('2026-11-13T17:45'), null, regionalLocale('en', browsers)))
+
+    expect(regionalLocale('en', ['fr-FR', 'en-AU'])).toBe('en-FR')
+    expect(regionalLocale('en', ['de-DE', 'de', 'en-US', 'en'])).toBe('en-DE')
+    expect(time(['de-DE', 'de', 'en-US', 'en'])).toBe('17:45')
+    expect(time(['fr-FR', 'fr', 'en-US', 'en'])).toBe('17:45')
+    expect(time(['de', 'en-US', 'en'])).toBe('17:45')
+    expect(time(['en-US', 'de-DE'])).toBe('5:45 PM')
+  })
+
+  it('keeps the interface locale when the browser names no language', () => {
+    expect(regionalLocale('en', [])).toBe('en')
+  })
+
+  // The format familiar for the visitor's locale, as `toLocaleTimeString` gives it: a browser in
+  // another language keeps its own clock and date order, in English words.
+  it("reads another language's clock and date order, in the interface's words", () => {
+    const time = (browser: string) =>
+      norm(formatTimeRange(at('2026-11-13T17:45'), null, regionalLocale('en', [browser])))
+    const day = (browser: string) =>
+      formatDate(DateTime.fromISO('2026-11-13'), regionalLocale('en', [browser]))
+
+    expect(time('cs-CZ')).toBe('17:45')
+    expect(day('cs-CZ')).toBe('Fri, 13 Nov')
+    // CLDR has no English for Brazil, which would fall back to US English and its 12-hour clock.
+    expect(time('pt-BR')).toBe('17:45')
+    expect(day('pt-BR')).toMatch(/^Fri/)
+    expect(time('es-MX')).toBe('5:45 PM')
+  })
+
+  it('keeps the interface locale for a browser tag Intl refuses', () => {
+    expect(regionalLocale('en', ['x'])).toBe('en')
   })
 })

@@ -28,7 +28,7 @@ type ExampleKey = keyof typeof EXAMPLES
 
 /**
  * OnlineView — a region's online classes as a flat list, with no places. Reached from the
- * "Online Classes" card. Every event is online, so cards show the screen icon.
+ * "Online classes" card. Every event is online, so cards show the screen icon.
  *
  * `Empty` sits on the State control, rather than existing as an example of its own. It is the
  * roll-up with nothing in it — a state any of these examples can be in. It renders the same

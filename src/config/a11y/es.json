@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Ver foto",
-    "pause_slideshow": "Pausar presentación",
+    "photo_position": "Foto %{current} de %{total}",
+    "previous_photo": "Foto anterior",
+    "next_photo": "Foto siguiente",
+    "close_photo": "Cerrar foto",
     "copy_address": "Copiar dirección"
   },
   "filters": {
     "remove": "Quitar %{label}"
   },
   "search": {
-    "results_showing": "Mostrando %{shown} de %{total} eventos",
+    "results_showing": "Mostrando %{shown} de %{total} clases",
     "dismiss_nearby_prompt": "Cerrar"
   },
   "share": {

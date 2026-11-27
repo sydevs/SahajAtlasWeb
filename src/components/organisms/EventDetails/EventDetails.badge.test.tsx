@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { EventDetails } from './EventDetails'
 
 import { EventListItem } from '@/components/molecules/EventListItem'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { mockEvent, mockEventSlim } from '@/mocks/events'
 
 // Node-only SSR assertions (see `docs/testing.md`). The panel and the card are asserted
@@ -18,7 +19,12 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', languageCode: 'en', languageLabel: (code: string) => code }),
+  useLocale: () => ({
+    locale: 'en',
+    formatLocale: 'en-US',
+    languageCode: 'en',
+    languageLabel: (code: string) => code,
+  }),
 }))
 vi.mock('@/hooks/use-map-controller', () => ({
   useMapController: () => ({ highlightEvent: () => {} }),
@@ -48,12 +54,20 @@ vi.mock('./sanitize', () => ({
 const TITLE_KEY = 'event.display.unverified_title'
 const NOTE_KEY = 'event.display.unverified_note'
 
-const panel = (verificationStage: string | null) =>
-  renderToStaticMarkup(
-    <EventDetails basePath="/gb/london/1" event={{ ...mockEvent, verificationStage }} />,
-  )
+// EventView resolves the page's strings once and hands them down.
+const Page = ({ event, registerInline }: { event: typeof mockEvent; registerInline?: boolean }) => (
+  <EventDetails
+    basePath="/gb/london/1"
+    event={event}
+    registerInline={registerInline}
+    strings={useEventDisplay(event)}
+  />
+)
 
-// ⚠ The card's chips are `compact`, and that variant drops the plain weekly type and the
+const panel = (verificationStage: string | null) =>
+  renderToStaticMarkup(<Page event={{ ...mockEvent, verificationStage }} />)
+
+// ⚠ A card's chips drop the plain weekly type and the
 // viewer's own language — for the stock fixture it renders NOTHING, which would make the
 // absence assertion below pass against a badge that really was there. A second language
 // is what puts chips on screen for it to miss.
@@ -100,11 +114,7 @@ describe('unverified badge', () => {
   // is absent. The caveat is not the button's, and must survive without it.
   it('renders with Register pinned to the sheet footer', () => {
     const markup = renderToStaticMarkup(
-      <EventDetails
-        basePath="/gb/london/1"
-        ctaInline={false}
-        event={{ ...mockEvent, verificationStage: 'unverified' }}
-      />,
+      <Page event={{ ...mockEvent, verificationStage: 'unverified' }} registerInline={false} />,
     )
 
     expect(markup).toContain(TITLE_KEY)

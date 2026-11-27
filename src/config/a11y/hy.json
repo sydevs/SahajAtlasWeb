@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Դիտել լուսանկարը",
-    "pause_slideshow": "Դադարեցնել սլայդ-շոուն",
+    "photo_position": "Լուսանկար %{current}՝ %{total}-ից",
+    "previous_photo": "Նախորդ լուսանկարը",
+    "next_photo": "Հաջորդ լուսանկարը",
+    "close_photo": "Փակել լուսանկարը",
     "copy_address": "Պատճենել հասցեն"
   },
   "filters": {
     "remove": "Հեռացնել՝ %{label}"
   },
   "search": {
-    "results_showing": "Ցուցադրված՝ %{shown}, ընդամենը՝ %{total} միջոցառում",
+    "results_showing": "Ցուցադրված՝ %{shown}, ընդամենը՝ %{total} դաս",
     "dismiss_nearby_prompt": "Անտեսել"
   },
   "share": {

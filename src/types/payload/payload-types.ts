@@ -8851,6 +8851,7 @@ export interface SyAtlasTranslation {
   };
   filters?: {
     chrome?: SyAtlasTranslationsFiltersChromeStrings;
+    where?: SyAtlasTranslationsFiltersWhereStrings;
     format?: SyAtlasTranslationsFiltersFormatStrings;
     cadence?: SyAtlasTranslationsFiltersCadenceStrings;
     days?: SyAtlasTranslationsFiltersDaysStrings;
@@ -8858,6 +8859,7 @@ export interface SyAtlasTranslation {
     language?: SyAtlasTranslationsFiltersLanguageStrings;
     dates?: SyAtlasTranslationsFiltersDatesStrings;
     region?: SyAtlasTranslationsFiltersRegionStrings;
+    more?: SyAtlasTranslationsFiltersMoreStrings;
   };
   online?: SyAtlasTranslationsOnlineStrings;
   event?: {
@@ -8932,7 +8934,7 @@ export interface SyAtlasTranslationsCommonChromeStrings {
    */
   all_classes_free?: string;
   /**
-   * Confirmation after a visitor copies a share link, a phone number, an email, or a class’s address.
+   * Confirmation after a visitor copies a phone number, an email, or a class’s address. Copying a share link answers with `share.link_copied` instead.
    */
   copied?: string;
 }
@@ -8988,21 +8990,33 @@ export interface SyAtlasTranslationsCommonErrorsStrings {
    */
   unavailable?: string;
   /**
-   * Message in the Share view when the event has no shareable URL.
+   * Message in the Share view when the event has no shareable URL. Retiring: translate `share_unavailable_class` instead, which says “class”.
    */
   share_unavailable?: string;
   /**
-   * Empty-list message in the Region and Online views, when the place itself has no events.
+   * Message in the Share view when the class has no shareable link. Replaces `share_unavailable`, which said “meditation”.
+   */
+  share_unavailable_class?: string;
+  /**
+   * Empty-list message in the Region and Online views, when the place itself has no events. Retiring: translate `no_classes` instead, which says “class”.
    */
   no_events?: string;
+  /**
+   * Empty-list message in the Region and Online views, when the place itself has no classes. Replaces `no_events`.
+   */
+  no_classes?: string;
   /**
    * Onward link back to the containing region. `%{region}` = region name.
    */
   back_to_region?: string;
   /**
-   * Onward link to events near the visitor. `%{city}` = detected city name.
+   * Onward link to events near the visitor. `%{city}` = detected city name. Retiring: translate `classes_near_city` instead, which says “class”.
    */
   near_city?: string;
+  /**
+   * Onward link to classes near the visitor. `%{city}` = detected city name. Replaces `near_city`.
+   */
+  classes_near_city?: string;
   /**
    * Onward link to the country list — the last rung of every error fallback.
    */
@@ -9166,9 +9180,13 @@ export interface SyAtlasTranslationsSearchResultsStrings {
    */
   farther?: string;
   /**
-   * Message when a search found nothing inside the radius (ERROR_POLICY['no-nearby']). `%{km}` = radius in kilometres.
+   * Message when a search found nothing inside the radius (ERROR_POLICY['no-nearby']). `%{km}` = radius in kilometres. Retiring: translate `no_nearby_classes` instead, which says “class”.
    */
   no_nearby?: string;
+  /**
+   * Message when a search found no class inside the radius (ERROR_POLICY['no-nearby']). `%{km}` = radius in kilometres. Replaces `no_nearby`.
+   */
+  no_nearby_classes?: string;
 }
 export interface SyAtlasTranslationsSearchSortStrings {
   /**
@@ -9226,9 +9244,23 @@ export interface SyAtlasTranslationsFiltersChromeStrings {
    */
   any_time?: string;
   /**
-   * Empty-list message when the filters, rather than the place, excluded everything.
+   * Empty-list message when the filters, rather than the place, excluded everything. Retiring: translate `no_results_classes` instead, which says “class”.
    */
   no_results?: string;
+  /**
+   * Empty-list message when the filters, rather than the place, excluded every class. Replaces `no_results`.
+   */
+  no_results_classes?: string;
+}
+export interface SyAtlasTranslationsFiltersWhereStrings {
+  /**
+   * Section label of the Where question, above Near me and the tag naming the place in scope.
+   */
+  label?: string;
+  /**
+   * Button in the Where question that lists the classes around the visitor’s location.
+   */
+  near_me?: string;
 }
 export interface SyAtlasTranslationsFiltersFormatStrings {
   /**
@@ -9247,6 +9279,10 @@ export interface SyAtlasTranslationsFiltersFormatStrings {
    * Format option: classes held online.
    */
   online?: string;
+  /**
+   * Section label of the format question in the filter drawer, above its Online and In person options. `format.label` stays the one-word name.
+   */
+  question?: string;
 }
 export interface SyAtlasTranslationsFiltersCadenceStrings {
   /**
@@ -9279,6 +9315,10 @@ export interface SyAtlasTranslationsFiltersDaysStrings {
    * Section label of the day-of-week filter.
    */
   label?: string;
+  /**
+   * Section label of the day-of-week question in the filter drawer, above the seven day buttons.
+   */
+  short_label?: string;
 }
 export interface SyAtlasTranslationsFiltersTimeStrings {
   /**
@@ -9360,6 +9400,12 @@ export interface SyAtlasTranslationsFiltersRegionStrings {
    */
   empty?: string;
 }
+export interface SyAtlasTranslationsFiltersMoreStrings {
+  /**
+   * Disclosure at the bottom of the filter drawer that reveals the less-used questions.
+   */
+  label?: string;
+}
 export interface SyAtlasTranslationsOnlineStrings {
   /**
    * Online view heading, its row on the Countries list, its link on a Region, and the name Back says for it.
@@ -9388,23 +9434,11 @@ export interface SyAtlasTranslationsEventDisplayStrings {
    */
   unverified_note?: string;
   /**
-   * Status chip: the event has no places left.
-   */
-  chip_full?: string;
-  /**
-   * Status chip and when-line: the next session is today.
+   * The Today chip on a list card, and the when-line: the next session is today.
    */
   chip_today?: string;
   /**
-   * Status chip: the event is over.
-   */
-  chip_ended?: string;
-  /**
-   * Status chip for an event that has not begun. `%{date}` = start date.
-   */
-  chip_starts?: string;
-  /**
-   * Status chip and when-line for a series already under way. `%{date}` = start date.
+   * When-line for a series already under way. `%{date}` = start date.
    */
   started_on?: string;
   /**
@@ -9416,13 +9450,21 @@ export interface SyAtlasTranslationsEventDisplayStrings {
    */
   next_session?: string;
   /**
-   * When-line and registration-blocked message for a finished event.
+   * When-line and registration-blocked message for a finished event. Retiring: translate `class_ended` instead, which says “class”.
    */
   event_ended?: string;
   /**
-   * Microcopy and registration-blocked message when the event has no places left.
+   * When-line and registration-blocked message for a class that has finished. Replaces `event_ended`.
+   */
+  class_ended?: string;
+  /**
+   * Microcopy and registration-blocked message when the event has no places left. Retiring: translate `class_full` instead, which says “class”.
    */
   event_full?: string;
+  /**
+   * Microcopy and registration-blocked message when the class has no places left. Replaces `event_full`.
+   */
+  class_full?: string;
   /**
    * Register-slot label and blocked message when registration has closed.
    */
@@ -9504,9 +9546,13 @@ export interface SyAtlasTranslationsEventDisplayStrings {
    */
   type_course?: string;
   /**
-   * Type label: a single occasion.
+   * Type label: a single occasion. Retiring: translate `type_oneoff_class` instead, which says “class”.
    */
   type_oneoff?: string;
+  /**
+   * Type label: a class held once. Replaces `type_oneoff`, which said “event”.
+   */
+  type_oneoff_class?: string;
   /**
    * Session count beside a course’s schedule, entered per plural form. `%{count}` = number of sessions.
    */
@@ -10014,11 +10060,27 @@ export interface SyAtlasTranslationsShareStrings {
    */
   title?: string;
   /**
+   * Heading of the Share view for one class.
+   */
+  title_class?: string;
+  /**
    * Label of the device’s own share sheet.
    */
   native?: string;
   /**
-   * Closed row under the share buttons that opens a QR code of the class link, for hosts printing posters.
+   * What the Copy link button says for a moment after it has put the class link on the clipboard.
+   */
+  link_copied?: string;
+  /**
+   * Shown on a phone or tablet when the page refused the clipboard: how to copy the link by hand.
+   */
+  copy_failed_touch?: string;
+  /**
+   * Shown on a computer when the page refused the clipboard. The link is already selected; this says which keys copy it.
+   */
+  copy_failed_pointer?: string;
+  /**
+   * Closed row at the bottom of a class page that opens a QR code of the class link, for hosts printing posters.
    */
   qr_title?: string;
   /**
@@ -10490,6 +10552,7 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
     | T
     | {
         chrome?: T;
+        where?: T;
         format?: T;
         cadence?: T;
         days?: T;
@@ -10497,6 +10560,7 @@ export interface SyAtlasTranslationsSelect<T extends boolean = true> {
         language?: T;
         dates?: T;
         region?: T;
+        more?: T;
       };
   online?: T;
   event?:

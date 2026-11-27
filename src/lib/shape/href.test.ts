@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
-import { hasAllowedScheme, isSafeHref } from './href'
+import { hasAllowedScheme, isSafeHref, telHref } from './href'
 
 import { parseSource } from '@/test-support/source-ast'
 import { readSource, sourceFiles } from '@/test-support/source-tree'
@@ -84,15 +84,16 @@ describe('isSafeHref — allows', () => {
   // any of these would be worse than the status quo it replaced, so they are pinned here in
   // the shape their producers emit rather than left to the components' specs.
   it.each([
-    // `directionsUrl` (`lib/events.ts`) — the ActionCircle directions action.
+    // `directionsUrl` (`lib/events.ts`) — the Directions action, Google and Apple Maps.
     'https://www.google.com/maps/search/?api=1&query=51.5,-0.12',
+    'https://maps.apple.com/?daddr=51.5,-0.12',
     // `buildGoogleCalendarUrl` (`lib/ics.ts`) — a calendar-menu row.
     'https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fcloud.example%2Ff.ics',
     // `buildFeedSubscribeUrl` (`lib/ics.ts`) — the Apple row, and the string inside `cid`.
     'webcal://cloud.example/api/events/calendar/eyJhb.eyJldg.s1gn.ics',
     // ReportIssueForm's contact Button.
     'mailto:atlas@sydevelopers.com',
-    // EventActions' contact circle, and the Fallbacks contact Link.
+    // EventActions' contact button, and the Fallbacks contact Link.
     'tel:+4402012345678',
   ])('%j — a real production href keeps working', (href) => {
     expect(isSafeHref(href)).toBe(true)
@@ -147,11 +148,7 @@ describe('hasAllowedScheme', () => {
 // so it is executable here instead. Precedent: `config/i18n-options.test.ts`
 // pins the locale directories the same way.
 describe('the JSX anchor inventory', () => {
-  const GATED_ANCHORS = [
-    'components/atoms/Button/Button.tsx',
-    'components/atoms/Link/Link.tsx',
-    'components/molecules/ActionRow/ActionRow.tsx',
-  ]
+  const GATED_ANCHORS = ['components/atoms/Button/Button.tsx', 'components/atoms/Link/Link.tsx']
 
   // Only `.tsx` — JSX is the sink this predicate guards. `lexicalToHtml` (`lexical.ts`) also
   // emits `<a href>`, but as an HTML *string* sanitized by DOMPurify downstream: a different
@@ -194,10 +191,10 @@ describe('the JSX anchor inventory', () => {
     expect(sources.length).toBeGreaterThan(50)
   })
 
-  it('is exactly the three components that call isSafeHref', () => {
+  it('is exactly the two components that call isSafeHref', () => {
     const withAnchor = sources.filter(rendersJsxAnchor)
 
-    // A fourth file here renders an anchor. Route its href through
+    // A third file here renders an anchor. Route its href through
     // `isSafeHref` (`lib/shape/href.ts`), then add it below. Adding it below
     // on its own defeats the test.
     //
@@ -217,5 +214,12 @@ describe('the JSX anchor inventory', () => {
       expect(source).toMatch(/import\s*\{[^}]*\bisSafeHref\b[^}]*\}\s*from/)
       expect(source).toContain('isSafeHref(href)')
     }
+  })
+})
+
+describe('telHref', () => {
+  it('drops the spaces people write a number with, which RFC 3966 does not allow', () => {
+    expect(telHref('+44 7939 524096')).toBe('tel:+447939524096')
+    expect(telHref('+44\u00a020 1234\t5678')).toBe('tel:+442012345678')
   })
 })

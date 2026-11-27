@@ -1,3 +1,4 @@
+import type { StackEntry } from '@/lib/shape'
 import type { SheetFit } from '@/views/DrawerStack/use-fit-snap'
 
 import { SHEET_OPEN_PX, SHEET_PEEK_PX, WIDE_SNAP, capStop } from '@/config/responsive'
@@ -14,6 +15,34 @@ export const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
 // Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
 // state holds this token and the ladder carries the live number (`useFitSnap`).
 export const FIT_SNAP = 'fit'
+
+/**
+ * How tall a phone sheet opens: near full (`tall`), as tall as its content (`fit`), or the
+ * third-height open stop (`open`). Total over the view kinds, so a new view picks one.
+ */
+export type SheetOpening = 'tall' | 'fit' | 'open'
+
+const SHEET_OPENING: Record<StackEntry['kind'], SheetOpening> = {
+  // Its month grid and its list both need the height, whichever of month/week/list shows.
+  calendar: 'tall',
+  // The fields and Register show without a drag.
+  register: 'tall',
+  // Content and footer, up to near full. At the open stop the sticky Register bar covered the
+  // address and sliced the "Next session" line in half; it never opens lower than that stop,
+  // and one drag down stops at its key facts (`sheetLadder`).
+  event: 'fit',
+  // Its last row, the poster QR code, in view without a drag.
+  share: 'fit',
+  // Every question and the bottom button, growing as a question opens.
+  filters: 'fit',
+  search: 'open',
+  region: 'open',
+  online: 'open',
+}
+
+/** The opening for the top view; the root list, with no view over it, keeps the open stop. */
+export const sheetOpening = (kind: StackEntry['kind'] | undefined): SheetOpening =>
+  kind === undefined ? 'open' : SHEET_OPENING[kind]
 
 type Stop = number | string | null
 

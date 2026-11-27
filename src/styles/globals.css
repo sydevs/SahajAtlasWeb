@@ -23,9 +23,6 @@
  * declared with a runtime-resolved URL.
  */
 @import 'mapbox-gl/dist/mapbox-gl.css';
-@import 'swiper/css';
-@import 'swiper/css/a11y';
-@import 'swiper/css/pagination';
 /* vaul drawer slide/snap transforms + handle — vendored (see src/styles/vaul.css header) */
 @import './vaul.css';
 
@@ -505,10 +502,27 @@ html.sy-atlas {
   @apply text-[16px] md:pointer-fine:text-sm;
 }
 
+/* The one field height every form shares: 40px with a mouse, 44px on a touch screen, where the
+   field is a thumb's target (#432). It asks the tap-floor question (`pointer-coarse`), not
+   `field-size`'s zoom one, so a narrow desktop window keeps 40px fields. One utility rather than
+   the class pair, so `@/styles/tv` can register it as a height and a textarea's `h-auto` replaces
+   both arms at once. */
+@utility field-height {
+  @apply h-10 pointer-coarse:h-11;
+}
+
+/* A count in parentheses, such as "Filters (2)". Rethink Sans ships a standard ligature that
+   draws "(1)" to "(20)" as a circled digit ("①"), so a counter turns its common ligatures off. */
+@utility literal-count {
+  font-variant-ligatures: no-common-ligatures;
+}
+
 /* An invisible 44px tap area around a smaller control, on touch screens only, so the control
-   keeps its drawn size. It needs a positioned element, so pair it with `relative`. */
+   keeps its drawn size. It needs a positioned element, so pair it with `relative`.
+   The query is `useCoarsePointer`'s (`config/responsive.ts`): `(pointer: coarse)` alone is also
+   true on a touchscreen laptop, whose mouse would then hit an area it cannot see. */
 @utility touch-target {
-  @media (pointer: coarse) {
+  @media (hover: none) and (pointer: coarse) {
     &::after {
       content: '';
       position: absolute;
@@ -518,6 +532,20 @@ html.sy-atlas {
       height: max(100%, 44px);
       transform: translate(-50%, -50%);
     }
+  }
+}
+
+/* The one keyboard-focus outline (`src/components/AGENTS.md` § Accessibility). Inset, so an
+   `overflow` clip cannot cut it, with a band of the panel's colour inside the line: the line alone
+   measured 1:1 on Register in dark mode. */
+@utility focus-outline {
+  @apply outline-2 -outline-offset-2 outline-focus inset-ring-4 inset-ring-background;
+}
+
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    @apply focus-outline;
   }
 }
 
@@ -618,6 +646,12 @@ html.sy-atlas {
   display: none;
 }
 
+/* The month agenda's selected day is its grid's one Tab stop, and Schedule-X marks selection with
+   an inset ring that focus leaves unchanged — so Tab into the grid showed nothing (#515). */
+.sx-calendar .sx__month-agenda-day:focus-visible {
+  @apply focus-outline;
+}
+
 /* Suppresses Schedule-X's per-event "grow in" animation (`sx-grow-event` on
    `.is-event-new`). The CalendarGrid remounts when the filters change (to
    refresh events and dayBoundaries), which otherwise replays this grow on
@@ -664,6 +698,19 @@ html.sy-atlas {
    anchors the tap area as well, and `relative` would unpin it. */
 .sy-map-controls .mapboxgl-ctrl-attrib-button {
   @apply touch-target;
+}
+
+/* Mapbox draws its own blue halo on its credits button, even for a mouse click. It and the rest of
+   Mapbox's focusable parts take the widget's outline instead. */
+.sy-map-controls .mapboxgl-ctrl-attrib-button:focus {
+  box-shadow: none;
+}
+
+.sy-map-controls .mapboxgl-ctrl-attrib-button:focus-visible,
+.sy-map-controls .mapboxgl-ctrl-attrib a:focus-visible,
+.mapboxgl-canvas:focus-visible,
+.mapboxgl-ctrl-logo:focus-visible {
+  @apply focus-outline;
 }
 
 /* Mapbox paints its credits white, with a glyph drawn in a fixed colour, so in the dark theme it

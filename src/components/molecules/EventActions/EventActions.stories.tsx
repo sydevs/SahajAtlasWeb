@@ -5,6 +5,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 
 import { EventActions } from './EventActions'
 
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { mockEvent } from '@/mocks/events'
 
 export default { title: 'Molecules' } satisfies StoryDefault
@@ -14,29 +15,30 @@ const noWebsite: Event = { ...mockEvent, id: 202, website: null }
 const noContact: Event = { ...mockEvent, id: 203, contactPhone: null, contactName: null }
 const inactive: Event = { ...mockEvent, id: 204, inactive: true }
 
-// The drawer panel is about 384px wide, with a 24px gutter. So its content
-// box is about 336px. This previews at exactly that width, the real case.
-// The row must fit its full action set on one line there, without wrapping
-// or scrolling.
-function Panel({ event }: { event: Event }) {
+// The drawer panel is about 384px wide, with a 24px gutter, so its content box is about 336px:
+// the default width here. 272px is a 320px phone's sheet less its gutters. The row must fit its
+// set on one line at both, never wrapping.
+function Panel({ event, width = 336 }: { event: Event; width?: 272 | 336 }) {
   return (
-    <div className="w-[336px] rounded-lg border border-divider py-3">
-      <EventActions basePath={`/demo/${event.id}`} event={event} />
+    <div
+      className={`${width === 272 ? 'w-[272px]' : 'w-[336px]'} rounded-lg border border-divider py-3`}
+    >
+      <EventActions basePath={`/demo/${event.id}`} event={event} strings={useEventDisplay(event)} />
     </div>
   )
 }
 
 /**
- * EventActions — the secondary action row under an event's Register CTA. The
- * display resolver chooses the set per state. Contact and Website appear only
- * when the CMS carries them. Directions appears only for a physical venue.
- * Contact is a `tel:` link on touch, and a number-and-copy popover on
+ * EventActions — the secondary action row under an event's Register CTA: quiet grey
+ * buttons, an icon beside each label. The display resolver chooses the set per state.
+ * Contact and Website appear only when the CMS carries them. Directions appears only for
+ * a physical venue. Contact is a `tel:` link on touch, and a number-and-copy popover on
  * desktop.
  */
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection
-      description="The full set — Directions · Website · Contact · Share — on one line."
+      description="The full set — Directions · Website · Contact · Share — on one line; in the panel the icons go above the labels so none is cut."
       title="Physical event"
     >
       <Panel event={mockEvent} />
@@ -58,9 +60,13 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="Inactive: no Register exists, so Contact is the emphasized action."
-      title="Inactive"
+      description="A 320px phone: a label that would be cut puts every icon above its label."
+      title="Narrow, without website"
     >
+      <Panel event={noWebsite} width={272} />
+    </StorySection>
+
+    <StorySection description="Inactive: no Register exists." title="Inactive">
       <Panel event={inactive} />
     </StorySection>
 

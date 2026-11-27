@@ -1,7 +1,16 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
-import { FormField, fieldDescribedBy, fieldErrorId, fieldHelpId } from '.'
+import {
+  type FieldControlProps,
+  FormField,
+  fieldErrorId,
+  fieldHelpId,
+  fieldLabelId,
+} from './FormField'
+
+// Every key renders as itself, so the marker's copy is visible by name.
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 
 // Node-only SSR assertions (see `docs/testing.md`). This pins the pair of
 // contracts every form atom in the app leans on: the describedby ids, and,
@@ -73,15 +82,142 @@ describe('FormField error semantics', () => {
   })
 })
 
-describe('the describedby id convention', () => {
-  it('joins help and error into one attribute value', () => {
-    expect(fieldDescribedBy({ name: 'email', help: true, error: true })).toBe(
-      'email-help email-error',
+describe('the control wiring a field hands its control', () => {
+  it('passes the id, the describedby ids, the required flag and the error state', () => {
+    const html = renderToStaticMarkup(
+      <FormField required error="Enter a date" help="Any day" htmlFor="date" label="Date">
+        {({ isInvalid, ...control }) => <input aria-invalid={isInvalid} {...control} />}
+      </FormField>,
+    )
+
+    expect(html).toContain('id="date"')
+    // The error replaces the help, so only the error is pointed at.
+    expect(html).toContain('aria-describedby="date-error"')
+    expect(html).toContain('aria-required="true"')
+    expect(html).toContain('aria-invalid="true"')
+  })
+
+  it('points at the help while there is no error, and says the field is valid', () => {
+    let wired: FieldControlProps | undefined
+
+    renderToStaticMarkup(
+      <FormField help="Any day" htmlFor="date" label="Date">
+        {(control) => {
+          wired = control
+
+          return <input id="date" />
+        }}
+      </FormField>,
+    )
+
+    expect(wired).toEqual({
+      id: 'date',
+      'aria-labelledby': undefined,
+      'aria-describedby': 'date-help',
+      'aria-required': undefined,
+      isInvalid: false,
+    })
+  })
+})
+
+describe('a field for a group of controls', () => {
+  it('is a fieldset named by its legend, which its control points back at', () => {
+    let wired: FieldControlProps | undefined
+    const html = renderToStaticMarkup(
+      <FormField required as="fieldset" error="Choose a day" label="On which day?" name="day">
+        {(control) => {
+          wired = control
+
+          return <div role="radiogroup" />
+        }}
+      </FormField>,
+    )
+
+    expect(html).toMatch(/^<fieldset/)
+    expect(html).toContain(`<legend class="mb-1 text-sm font-medium" id="${fieldLabelId('day')}">`)
+    expect(html).not.toContain('<label')
+    // The error is keyed by the group's name, as a control's is by its id.
+    expect(html).toContain(`id="${fieldErrorId('day')}"`)
+    expect(wired).toMatchObject({
+      id: undefined,
+      'aria-labelledby': 'day-label',
+      'aria-describedby': 'day-error',
+      isInvalid: true,
+    })
+  })
+})
+
+describe('a field around a control that labels itself', () => {
+  it('keys its help and error by `name`, and hands the control no id', () => {
+    let wired: FieldControlProps | undefined
+
+    const html = renderToStaticMarkup(
+      <FormField error="Tick to continue" label="Consent" name="consent">
+        {(control) => {
+          wired = control
+
+          return <button type="button" />
+        }}
+      </FormField>,
+    )
+
+    expect(html).toContain(`id="${fieldErrorId('consent')}"`)
+    // Its own label sits beside the box, so the field adds no second one.
+    expect(html).not.toContain('<label')
+    expect(wired).toMatchObject({ id: undefined, 'aria-describedby': 'consent-error' })
+  })
+})
+
+describe('the optional Clear', () => {
+  const field = (clear?: { active: boolean }) =>
+    renderToStaticMarkup(
+      <FormField
+        as="fieldset"
+        clear={clear && { label: 'Clear', active: clear.active, onClear: () => {} }}
+        label="Day"
+        name="days"
+      >
+        <span />
+      </FormField>,
+    )
+
+  it('is absent unless asked for', () => {
+    expect(field()).not.toContain('<button')
+  })
+
+  it('sits outside the legend, so the group keeps the question as its name', () => {
+    const html = field({ active: true })
+
+    expect(html).toMatch(/<legend[^>]*>Day<\/legend>/)
+    expect(html).toMatch(/<button[^>]*>Clear<\/button>/)
+  })
+
+  it('keeps its place while the field is empty, hidden rather than unmounted', () => {
+    expect(field({ active: false })).toMatch(/<button[^>]*\binvisible\b[^>]*>Clear<\/button>/)
+    expect(field({ active: true })).not.toMatch(/\binvisible\b/)
+  })
+})
+
+describe('FormField optional marker', () => {
+  it('puts the translated word in brackets inside the label, after its text', () => {
+    const html = renderToStaticMarkup(
+      <FormField optional htmlFor="question" label="Your question">
+        <textarea id="question" />
+      </FormField>,
+    )
+
+    expect(html).toMatch(
+      /<label[^>]*for="question"[^>]*>Your question<span[^>]*> \(common\.chrome\.optional\)<\/span><\/label>/,
     )
   })
 
-  it('collapses to undefined when there is nothing to point at', () => {
-    expect(fieldDescribedBy({ name: 'email' })).toBeUndefined()
-    expect(fieldErrorId(undefined)).toBeUndefined()
+  it('marks nothing without the word', () => {
+    const html = renderToStaticMarkup(
+      <FormField htmlFor="question" label="Your question">
+        <textarea id="question" />
+      </FormField>,
+    )
+
+    expect(html).not.toContain('(')
   })
 })

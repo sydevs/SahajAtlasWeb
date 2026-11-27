@@ -78,9 +78,17 @@ describe('every wrangler config', () => {
 // Each of these is a property of a static-assets Worker in this repo, not of one target, and
 // each is a key the dry run accepts either way. #266 refuses previews being switched off on
 // any of them, so asserting them per config is what stops one target drifting alone.
-describe.each([...CONFIGS])('%s', (_file, config) => {
-  it('serves assets only, with no Worker script', () => {
-    expect('main' in config).toBe(false)
+describe.each([...CONFIGS])('%s', (file, config) => {
+  // The app runs one script, for the visitor's approximate location (`worker/index.ts`), and only
+  // on the module that carries it: a wider list would bill every asset as a Worker request.
+  it('runs a Worker script only where the app needs one', () => {
+    if (file === APP_CONFIG) {
+      expect(config.main).toBe('worker/index.ts')
+      expect(config.assets?.binding).toBe('ASSETS')
+      expect(config.assets?.run_worker_first).toEqual(['/geo.js'])
+    } else {
+      expect('main' in config).toBe(false)
+    }
   })
 
   it('names a Worker and an output directory', () => {
@@ -101,7 +109,7 @@ describe.each([...CONFIGS])('%s', (_file, config) => {
     expect(config.previews).toBeTruthy()
   })
 
-  it('declares a compatibility date, which is required with no `main`', () => {
+  it('declares a compatibility date', () => {
     expect(config.compatibility_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })

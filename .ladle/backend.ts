@@ -1,7 +1,7 @@
 import type { Json } from '@/mocks/sahajcloud'
 
-import { IP_LOCATION_ENDPOINT } from '@/hooks/use-ip-location'
-import { mockIpLocation } from '@/mocks/regions'
+import { useApproxLocation } from '@/config/store'
+import { mockApproxLocation } from '@/mocks/regions'
 import { SAHAJCLOUD_API_KEY, answerSahajCloud, sahajCloud } from '@/mocks/sahajcloud'
 
 /**
@@ -9,14 +9,15 @@ import { SAHAJCLOUD_API_KEY, answerSahajCloud, sahajCloud } from '@/mocks/sahajc
  * lane's fixtures (`src/mocks/sahajcloud.ts`), over the bigger atlas `sahajcloud-demo.ts` adds, through
  * the app's real fetchers. So the interactive widget can browse, open and register with lists long
  * enough to scroll, and a view's own idle prefetch never reaches production.
- * The IP lookup gets the guess the view stories seed. Mapbox and picsum go out as normal.
+ * The approximate location is the one the view stories seed, standing in for the app Worker's
+ * `/geo.js`. Mapbox and picsum go out as normal.
  *
  * It patches `fetch` rather than mocking a module, because the app's SDK calls the global one
  * (`interceptFetch`, `config/api/client.ts`), and a patched module would skip the parse.
  */
 export function installBackend() {
+  useApproxLocation.setState({ location: mockApproxLocation })
   const api = new URL(`${import.meta.env.VITE_SAHAJCLOUD_URL}/api/`, window.location.href).href
-  const ipLookup = new URL(IP_LOCATION_ENDPOINT).origin
   // The browser's own, kept across reloads of this module, so each install replaces the last
   // rather than wrapping it.
   const network = ((window as { ladleNetwork?: typeof fetch }).ladleNetwork ??=
@@ -42,8 +43,6 @@ export function installBackend() {
 
       return respond(answer?.status ?? 404, answer?.json ?? sahajCloud.notFound)
     }
-
-    if (url.origin === ipLookup) return respond(200, { success: true, ...mockIpLocation })
 
     return network(input, init)
   }

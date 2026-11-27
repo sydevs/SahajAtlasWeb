@@ -18,8 +18,7 @@ describe('Chip close button focus', () => {
       </Chip>,
     )
 
-    expect(html).toContain('focus-visible:ring-2')
-    expect(html).toContain('focus-visible:ring-focus')
+    expect(html.match(/<button[^>]*>/)?.[0]).toContain('focus-ring')
   })
 
   it('still pairs the close button with its accessible name', () => {

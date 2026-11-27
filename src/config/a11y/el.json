@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Προβολή φωτογραφίας",
-    "pause_slideshow": "Παύση προβολής διαφανειών",
+    "photo_position": "Φωτογραφία %{current} από %{total}",
+    "previous_photo": "Προηγούμενη φωτογραφία",
+    "next_photo": "Επόμενη φωτογραφία",
+    "close_photo": "Κλείσιμο φωτογραφίας",
     "copy_address": "Αντιγραφή διεύθυνσης"
   },
   "filters": {
     "remove": "Αφαίρεση: %{label}"
   },
   "search": {
-    "results_showing": "Εμφανίζονται %{shown} από %{total} εκδηλώσεις",
+    "results_showing": "Εμφανίζονται %{shown} από %{total} μαθήματα",
     "dismiss_nearby_prompt": "Απόρριψη"
   },
   "share": {

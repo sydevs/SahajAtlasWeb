@@ -1,116 +1,191 @@
-import { useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useMemo } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
+import { RecoveryButton } from './RecoveryButton'
+import { WhereFilter } from './WhereFilter'
+
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
-import { SearchFilters } from '@/components/molecules'
-import { geojsonQuery } from '@/config/api'
+import { SearchFilters } from '@/components/organisms'
+import { regionQuery } from '@/config/api'
+import { useIsWideWidget } from '@/config/responsive'
 import { useEventFilters } from '@/hooks/use-filters'
-import { useRegionMatcher } from '@/hooks/use-region-matcher'
+import { useFilterFacets } from '@/hooks/use-filter-facets'
+import { useLocale } from '@/hooks/use-locale'
+import { useMapController } from '@/hooks/use-map-controller'
 import {
   DEFAULT_FILTERS,
   type EventFilters,
+  type PlaceSearch,
   filterOriginRegion,
-  filtersKey,
   filtersToParams,
   hasActiveFilters,
-  matchesFilters,
+  noPlaceSearch,
   parentOf,
-  todayISO,
+  parseBounds,
+  parseCenter,
+  placeFiltersPath,
 } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
+import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 
-// The event-filters drawer, at route `/filters`, `/search/filters` when stacked over a
-// search, or `<region-path>/filters` over a region. This is a normal drawer view, with
-// standard header and close chrome, and the usual stacking. Filters are NOT applied live —
-// the form edits a local draft. "Apply (N)" shows only when the draft differs from what is
-// applied. It commits the draft into the /search query — the single source of truth that
-// drives the list and the map — and closes the drawer, showing how many events the draft
-// matches. "Clear all" resets everything, applies, and closes. The per-filter clears inside
-// the form stay draft-only.
-// `initialDraft` seeds the form's draft for previews and tests, so a story can open in a
-// filled, unapplied "dirty" state. The app itself renders `<FilterView />` starting from the
-// applied filters.
-export function FilterView({ initialDraft }: { initialDraft?: EventFilters } = {}) {
+// The event-filters drawer, at route `/filters`, `/search/filters` when stacked over a search, or
+// `<region-path>/filters` over a region. There is no draft: every tap writes the URL, the single
+// source of truth the list, the map and the counts all read, so the markers behind the sheet and
+// the footer's number move with each tap. Closing, by the footer's button, the X, a swipe or Esc,
+// shows the matching classes (`backStep`).
+export function FilterView() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const { locale } = useLocale()
+  const control = useDrawerControl()
   const applied = useEventFilters()
+  const originRegion = filterOriginRegion(location.pathname)
 
-  // Start from the applied filters. This draft is discarded on close, unless the user
-  // applies it. Opened over a region, the draft starts scoped to it — see
-  // `filterOriginRegion` — so "Apply" offers that region's count straight away.
-  const [draft, setDraft] = useState(
-    () =>
-      initialDraft ?? {
-        ...applied,
-        region: applied.region ?? filterOriginRegion(location.pathname),
-      },
+  // Opened over a region, the filters are scoped to it without saying so in the URL, so an
+  // untouched `/gb/filters` still reads as nothing chosen and closes back onto `/gb`.
+  const filters = useMemo(
+    () => ({ ...applied, region: applied.region ?? originRegion }),
+    [applied, originRegion],
   )
-  // Region cut for the live count, from the draft's selected region (see matchesFilters).
-  const matchesRegion = useRegionMatcher(draft.region)
+  const facets = useFilterFacets(filters)
+  const count = facets?.counts.total
 
-  const { data: geojson } = useQuery(geojsonQuery())
+  // The view beneath. Only the calendar and the search list show filtered classes, so over any
+  // other view a place search moves the filters onto a search.
+  const origin = parentOf(location.pathname)
+  const filtersOrigin = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
-  // A live preview of how many events the draft filters match. Skip the full-feed
-  // predicate scan when the draft is all-default (every event matches).
-  const count = useMemo(() => {
-    if (!geojson) return undefined
-    if (!hasActiveFilters(draft)) return geojson.features.length
+  const moveTo = (to: { pathname: string; search: string } | string) =>
+    navigate(to, { replace: true, state: location.state })
 
-    const today = todayISO()
+  const write = (next: EventFilters) => {
+    const region = next.region === originRegion ? null : next.region
 
-    return geojson.features.filter((f) => matchesFilters(f.properties, draft, today, matchesRegion))
-      .length
-  }, [geojson, draft, matchesRegion])
-
-  const hasChanges = filtersKey(draft) !== filtersKey(applied)
-  const draftActive = hasActiveFilters(draft)
-
-  // Applying or clearing returns to the ORIGIN view — the drawer beneath the filters — with
-  // the filters written into its query. So filtering from the calendar returns to the
-  // calendar, and filtering from search returns to search, each still framed by its own
-  // q/center/bbox/region. When opened over a view that does not itself reflect the filters,
-  // such as the country list or a region, apply instead jumps to /search to show the filtered
-  // events. There is no filtered surface to return to in that case. Either way, this REPLACES
-  // the filter-drawer entry, carrying its depth over, rather than stacking a new one. So the
-  // drawer does not linger in history, and a chronological back lands on the pre-filter view.
-  const commit = (filters: typeof draft) => {
-    // Nothing here resets the results list's reveal, and nothing needs to: the filters
-    // are part of `revealKey`, so a new set is a new result set and the list is back at
-    // its first page by construction (see `use-reveal`).
-    const search = filtersToParams(filters, new URLSearchParams(location.search)).toString()
-    const origin = parentOf(location.pathname)
-    const target = origin === '/calendar' || origin === '/search' ? origin : '/search'
-
-    navigate({ pathname: target, search }, { replace: true, state: location.state })
+    moveTo({
+      pathname: location.pathname,
+      search: filtersToParams({ ...next, region }, new URLSearchParams(location.search)).toString(),
+    })
   }
+
+  // A place replaces any region, and the drawer moves over that search.
+  const pickPlace = (place: PlaceSearch) =>
+    moveTo(
+      placeFiltersPath(
+        filtersToParams({ ...filters, region: null }, new URLSearchParams(location.search)),
+        place,
+      ),
+    )
+
+  // Drops the place and the region, and keeps every other answer. Over a region's own page the
+  // drawer moves onto the unscoped search, so the list behind it no longer names that region.
+  const clearWhere = () =>
+    moveTo({
+      pathname: `${filtersOrigin}/filters`,
+      search: noPlaceSearch(
+        filtersToParams({ ...filters, region: null }, new URLSearchParams(location.search)),
+      ),
+    })
+
+  // A fresh link to the filters has no view beneath that framed the map, so the filters frame
+  // their own place, once.
+  const { frameRegion, frameSearch, hasMap } = useMapController()
+  const { data: place } = useQuery({
+    ...regionQuery(originRegion ?? '', locale),
+    enabled: originRegion !== null && !control.overlay,
+  })
+  const center = searchParams.get('center')
+  const bbox = searchParams.get('bbox')
+
+  useFrameOnTop(
+    ({ isEntry }) => {
+      if (!isEntry || control.overlay) return
+      if (place) frameRegion(place)
+      else if (center) frameSearch({ bbox: parseBounds(bbox), center: parseCenter(center) })
+    },
+
+    [place],
+  )
+
+  // Clear resets the answers, not the Where: the visitor is still looking in the same place.
+  const answered = hasActiveFilters({ ...filters, region: null })
+  const clear = () => write({ ...DEFAULT_FILTERS, region: filters.region })
+  const recovery = count === 0 ? facets?.recovery : undefined
+  // Nothing matches, and removing any one answer still finds nothing: Clear is the way out.
+  const clearLeads = count === 0 && !recovery
+  // On the phone sheet the bar is pinned to the screen's bottom edge, so the way out stays in
+  // reach whatever the sheet's height. The calendar's overlay fills the screen, so its own end is
+  // already there.
+  const isWide = useIsWideWidget()
+  const sticky = hasMap && !isWide && !control.overlay
 
   return (
     <>
       {/* The filters sit over the page they narrow, so they close back onto it with an X. */}
       <NavHeader close title={t('filters.chrome.title')} />
-      <DrawerBody className="px-gutter py-4">
-        <SearchFilters value={draft} onChange={setDraft} />
+      <DrawerBody
+        fitSheet
+        className={`px-gutter py-4 ${sticky ? 'scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))]' : ''}`}
+      >
+        <SearchFilters
+          facets={facets}
+          value={filters}
+          where={
+            <WhereFilter
+              region={filters.region}
+              searchable={origin !== '/calendar'}
+              onClear={clearWhere}
+              onPlace={pickPlace}
+            />
+          }
+          onChange={write}
+        />
       </DrawerBody>
-      {(draftActive || hasChanges) && (
-        <DrawerFooter className="flex items-center gap-2 px-gutter py-3">
-          {draftActive && (
-            <Button className="flex-1" variant="flat" onClick={() => commit(DEFAULT_FILTERS)}>
+      <DrawerFooter className="border-t border-divider px-gutter py-3" sticky={sticky}>
+        {/* A wrapper, so the pinned bar's safe-area spacer takes no gap of its own. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {count === 0 && (
+            <p className="w-full text-sm text-foreground" role="status">
+              {t('filters.chrome.no_match')}
+            </p>
+          )}
+          {answered && (
+            <Button
+              className={clearLeads ? 'flex-1' : undefined}
+              color={clearLeads ? 'primary' : 'neutral'}
+              variant={clearLeads ? 'solid' : 'flat'}
+              onClick={clear}
+            >
               {t('filters.chrome.clear')}
             </Button>
           )}
-          {hasChanges && (
-            <Button className="flex-1" color="primary" onClick={() => commit(draft)}>
-              {count === undefined
-                ? t('filters.chrome.apply')
-                : `${t('filters.chrome.apply')} (${count})`}
-            </Button>
+          {recovery ? (
+            <RecoveryButton
+              className="min-w-0 flex-1"
+              filters={filters}
+              recovery={recovery}
+              onApply={write}
+            />
+          ) : (
+            !clearLeads && (
+              <Button
+                className="flex-1"
+                color={answered ? 'primary' : 'neutral'}
+                variant={answered ? 'solid' : 'flat'}
+                onClick={answered ? control.showResults : control.dismiss}
+              >
+                {answered && count !== undefined
+                  ? t('filters.chrome.show_classes', { count })
+                  : t('common.chrome.close')}
+              </Button>
+            )
           )}
-        </DrawerFooter>
-      )}
+        </div>
+      </DrawerFooter>
     </>
   )
 }

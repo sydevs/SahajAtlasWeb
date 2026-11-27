@@ -135,6 +135,20 @@ export const parseCenter = (value: string | null): [number, number] | undefined 
 }
 
 /**
+ * A `?bbox=w,s,e,n` param, validated to four finite numbers — a malformed or truncated hand-typed
+ * value resolves to `undefined`, so framing falls back to the centre rather than feeding NaNs into
+ * Mapbox's fitBounds.
+ */
+export const parseBounds = (value: string | null): [number, number, number, number] | undefined => {
+  if (!value) return undefined
+  const nums = value.split(',').map(Number)
+
+  return nums.length === 4 && nums.every(Number.isFinite)
+    ? (nums as [number, number, number, number])
+    : undefined
+}
+
+/**
  * The part of a search URL that decides WHAT the results query asks for —
  * everything except `?q`.
  *
@@ -225,6 +239,14 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
 
   return `/search?${next.toString()}`
 }
+
+/** The same place search, with the filter drawer still open over it. */
+export const placeFiltersPath = (params: URLSearchParams, place: PlaceSearch): string =>
+  placeSearchPath(params, place).replace('/search?', '/search/filters?')
+
+/** The current query with the searched place dropped, keeping the filters and sort. */
+export const noPlaceSearch = (params: URLSearchParams): string =>
+  preserveSearchState(params).toString()
 
 /**
  * The searched place as a short name — the leading part of `?q`, so "Prague, Czechia" reads
@@ -488,3 +510,11 @@ export const baseStackEntry = (entries: StackEntry[], hasMap = true): StackEntry
  */
 export const topViewKey = (pathname: string, hasMap = true): string =>
   baseStackEntry(resolveStack(pathname), hasMap)?.path ?? '/'
+
+/**
+ * The identity of the view layer on screen, which the drawer cross-fades on. The filter drawer
+ * keeps one identity across its routes: Near me moves it from `/filters` to `/search/filters`
+ * under an open form, and that must not fade the form out and back in.
+ */
+export const viewLayerKey = (top: StackEntry | null | undefined): string =>
+  top?.kind === 'filters' ? 'filters' : (top?.path ?? '/')

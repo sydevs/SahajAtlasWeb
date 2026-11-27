@@ -6,7 +6,6 @@ import { ArrowUpRight } from 'lucide-react'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { Button } from '@/components/atoms/Button'
-import { useEventDisplay } from '@/hooks/use-event-display'
 import { parentOf, searchPath } from '@/lib/shape'
 import { Event } from '@/types'
 
@@ -70,10 +69,9 @@ export const hasRegisterSlot = (event: Event, display: EventDisplay): boolean =>
  * shows a disabled button and the contact helper. A terminal state replaces
  * the button with its message and an escape hatch.
  */
-export function EventRegisterBar({ event, basePath }: EventRegisterBarProps) {
+export function EventRegisterBar({ event, basePath, strings }: EventRegisterBarProps) {
   const navigate = useAtlasNavigate()
-  const { display, registerLabel, microcopy, contactHelper, blockedMessage } =
-    useEventDisplay(event)
+  const { display, registerLabel, microcopy, contactHelper, blockedMessage } = strings
 
   // Inactive events carry their guidance in the facts and the emphasized
   // Contact action. An external-mode event with no URL has no CTA at all.
@@ -97,14 +95,15 @@ export function EventRegisterBar({ event, basePath }: EventRegisterBarProps) {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <Button
-        className="w-full"
+        className="w-full font-semibold"
         color="primary"
+        size="lg"
         variant="solid"
         {...(external
           ? { href: external, rel: 'noopener noreferrer', target: '_blank' }
           : { disabled: closed, onClick: () => navigate(`${basePath}/register`) })}
       >
-        <span className="text-base font-semibold">{registerLabel}</span>
+        {registerLabel}
         {external && <ArrowUpRight className="text-primary-foreground" size={16} />}
       </Button>
       {microcopy.map((line) => (

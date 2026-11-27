@@ -33,6 +33,10 @@ Do not format files by hand. PostToolUse hooks run Prettier and `eslint --fix` a
 
 - **`react-hooks/exhaustive-deps` is on, and `pnpm lint` fails on it.** Correct the array where every value it would add is stable. Where the array is the design — a mount-only effect, a dependency listed purely to re-run a read, a key standing in for a fresh array — keep it and say why on a narrow `// eslint-disable-next-line react-hooks/exhaustive-deps -- <reason>`. ⚠ Adding the "missing" dependency to one of those changes when the effect runs: `useFrameOnTop` would re-frame the camera on every render, and `AppShell`'s locale effect would re-apply the boot locale.
 
+## Dates and times
+
+- **Every date, time and distance on screen is formatted through `@/lib/time`** (distances through `formatDistance`), given `useLocale().formatLocale`. Never assemble a time, a day period or a date by hand, and never force `hour12`. A machine format (a form value, an ICS stamp, Schedule-X's wall-clock strings) is data and stays a `toFormat`.
+
 ## Environment variables
 
 Client code reads env vars through `import.meta.env.VITE_*`. See `docs/environment.md` for the canonical reference: which prefix reaches the bundle, and where secrets belong.
@@ -41,5 +45,5 @@ Client code reads env vars through `import.meta.env.VITE_*`. See `docs/environme
 
 - Do not use emojis as UI icons. Interface glyphs come from **`lucide-react`**, imported at the call site: one 24px grid, 2px stroke, round caps and joins, outline only. Radix primitives and our atoms accept icon slots.
 - **`src/components/atoms/Icons/` holds one icon, `MeditateFigure`**, beside the Icons story and its usage spec: the We Meditate app's meditating figure, which Lucide lacks. Lucide ships no brand icons, and redrawing a third party's is a trademark problem, so no other brand mark belongs here.
-- **A directional glyph needs `rtl:-scale-x-100` at its call site.** Lucide has no mirroring prop, so each drill-in chevron and the directions signpost declares it directly. **A list row is the one exception**: it renders into `ListRow` (`molecules/List/List.tsx`), which carries the glyph, its size and the flip for both row kinds, so a class row and a place row cannot drift apart. Symmetric glyphs (globe, calendar, pin, share) never mirror, and neither does the external-link arrow.
+- **A directional glyph needs `rtl:-scale-x-100` at its call site.** Lucide has no mirroring prop, so each drill-in chevron declares it directly. **A list row is the one exception**: it renders into `ListRow` (`molecules/List/List.tsx`), which carries the glyph, its size and the flip for both row kinds, so a class row and a place row cannot drift apart. Symmetric glyphs (globe, calendar, pin, share) never mirror, and neither does an arrow pointing up and to the side — the external-link arrow, or Directions' `Navigation` arrow.
 - **The Icons story's gallery shows real USAGE, not a catalogue**. An icon earns a row only when code outside a story or test imports it. The story links to lucide.dev for every other icon. `Icons.usage.test.tsx` checks both directions agree. A newly used glyph fails the lane until listed, and one that loses its last call site cannot stay listed either.

@@ -169,9 +169,9 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   (`.event-pin-popover`), and its content is `pointer-events: none`, so it never
   steals hover from the pin or blocks a tap.
 - The card stacks the recurrence above the start time (two narrow lines) rather
-  than the list card's single line, but both derive their parts from the shared
-  `calendarLineParts` gate (`use-event-display.ts`) — the popover and the card
-  can never drift (#52, #72).
+  than the list card's single line, but both read the same `card` view from
+  `surfaceView` (`use-event-display.ts`) — the popover and the card can never
+  drift (#52, #72).
 
 ## View state lives in zustand, not local state
 
@@ -222,7 +222,10 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   height is the one exception, and it arrives rather than being read:
   `DrawerStack` resolves its active snap and publishes it through
   `useSheetCover`, so the camera reserves the peek while the sheet is collapsed
-  and a class's measured height while it is open.
+  and a class's, a share panel's or the filters' measured height while it is
+  open, down to a strip of `MIN_MAP_STRIP_PX` (`config/responsive.ts`). A sheet
+  leaving less than that strip hides the map's control column, and the filters
+  dim what is left above them.
 - **The FIRST camera command of a session arrives instead of flying, and the
   canvas is held until it does.** `<ReactMapGL>` is uncontrolled with no
   `initialViewState`, so the map boots at `[0,0]` zoom 0 while a deep-linked
@@ -304,7 +307,7 @@ The control opens the distance-ranked results centered on the visitor —
 `frameSearch` do the framing, so the fit inherits the `VENUE_MAX_ZOOM` cap and
 the list re-ranks. `nearbyBounds` builds the frame from the visitor plus the
 nearest few classes, floored at `NEARBY_RADIUS_KM` and capped at
-`NEARBY_MAX_KM` — the same radius that gates the IP prompt itself, so a class
+`NEARBY_MAX_KM` — the same radius that gates the nearby prompt itself, so a class
 the app declines to suggest cannot widen the camera either.
 
 - **`followUserLocation={false}` stops Mapbox moving the camera itself.** Its
@@ -322,8 +325,8 @@ the app declines to suggest cannot widen the camera either.
 ## The map needs browser PERMISSIONS, and a grep will not find them
 
 `<GeolocateControl />` is our JSX, but `navigator.geolocation` runs **inside
-mapbox-gl**, so grepping `src/` for it finds nothing and wrongly suggests no
-permission is needed. The widget is embedded on pages we do not own, and
+mapbox-gl**, so grepping `src/` for it finds only the locator's map-less fallback
+(`use-locator.tsx`, which Near me reaches in a map-less embed) and misses the map's own request. The widget is embedded on pages we do not own, and
 Permissions Policy can deny `geolocation`, `clipboard-write`, or `web-share` to
 a cross-origin frame by default (a host can also deny a script embed the same
 way with a header) — all three fail **silently**: "Find my location" does
@@ -381,7 +384,11 @@ lays out its own children:
   over itself, sets the same switch.
 - **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
   `showButton={false}`, and our button calls its `trigger()` through `useLocate`; the blue dot, the permission flow
-  and the `onError` dialog are unchanged. A permission denied before the map loaded used to
+  and the `onError` dialog are unchanged. While the map is mounted, `useLocate` registers that
+  control as the locator's source (`hooks/use-locator.tsx`, one per `FullInterface`), so the
+  filters' Near me asks through it too and draws the same dot. One request is out at a time, a
+  second ask shares it, and each control acts only on its own. ⚠ Mapbox answers nothing once its
+  control has left the map, so unmounting rejects the request it was answering. A permission denied before the map loaded used to
   leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
   dialog too.
 - **The credits are Mapbox's own compact `AttributionControl`, in Mapbox's own look**, created

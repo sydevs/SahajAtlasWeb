@@ -20,6 +20,7 @@ import { useReportForm } from '@/hooks/use-report-form'
 import { useRecoveryOffer } from '@/hooks/use-recovery-offer'
 import { FLAG_CDN_URL } from '@/lib/flag-cdn'
 import { classifyError, errorMessage, reportInternalError } from '@/lib/report'
+import { telHref } from '@/lib/shape'
 
 /**
  * This is the whole-widget surface. It fills the embed when the app has no content to
@@ -183,7 +184,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   'not-found-event': {
     ...DEAD_END,
     messageKey: 'common.errors.not_found_event',
-    fallbackText: "We couldn't find that event.",
+    fallbackText: "We couldn't find that class.",
   },
   'not-found-region': {
     ...DEAD_END,
@@ -222,7 +223,7 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // This row used to offer no action, on the idea that an empty region is
   // nobody's mistake. That is true, but it still left one sentence and nothing to
   // press. That is the same dead end whether the URL was wrong or just empty.
-  empty: { ...DEAD_END, messageKey: 'common.errors.no_events', fallbackText: 'No events found.' },
+  empty: { ...DEAD_END, messageKey: 'common.errors.no_classes', fallbackText: 'No classes found.' },
   // A class that exists and runs, but cannot be joined: full, ended, or
   // registration closed. Not an error, and not empty. This is the one row whose
   // best next step is a PERSON. It leads with the organiser's number, and falls
@@ -265,8 +266,8 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // neither a public page nor a contact IS a gap worth a report. That beats a
   // sentence with nothing else beside it.
   'share-unavailable': {
-    messageKey: 'common.errors.share_unavailable',
-    fallbackText: 'There is no link to share for this meditation yet.',
+    messageKey: 'common.errors.share_unavailable_class',
+    fallbackText: 'There is no link to share for this class yet.',
     color: 'neutral',
     retry: false,
     onward: false,
@@ -287,8 +288,8 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // all" and nothing else. An onward link would compete with the one action that
   // actually restores results here.
   'no-results': {
-    messageKey: 'filters.chrome.no_results',
-    fallbackText: 'No events match your filters.',
+    messageKey: 'filters.chrome.no_results_classes',
+    fallbackText: 'No classes match your filters.',
     color: 'neutral',
     retry: false,
     onward: false,
@@ -302,8 +303,8 @@ export const ERROR_POLICY: Record<FallbackKind, FallbackPolicy> = {
   // "Show distant events" control sits right below it saying so. `visibleActions`
   // leaves this row alone, since it promised nothing for a surface to remove.
   'no-nearby': {
-    messageKey: 'search.results.no_nearby',
-    fallbackText: 'No events within %{km} km.',
+    messageKey: 'search.results.no_nearby_classes',
+    fallbackText: 'No classes within %{km} km.',
     color: 'neutral',
     retry: false,
     onward: false,
@@ -456,9 +457,9 @@ const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOf
     case 'countries':
       return t('common.errors.browse_countries', { defaultValue: 'Browse all countries' })
     case 'city':
-      return t('common.errors.near_city', {
+      return t('common.errors.classes_near_city', {
         city: offer.name,
-        defaultValue: 'See events near %{city}',
+        defaultValue: 'See classes near %{city}',
       })
     case 'country-site':
       return t('search.country_site.cta', {
@@ -468,7 +469,7 @@ const offerLabel = (t: ReturnType<typeof useTranslation>['t'], offer: RecoveryOf
     default:
       return t('common.errors.back_to_region', {
         region: offer.name,
-        defaultValue: 'See events in %{region}',
+        defaultValue: 'See classes in %{region}',
       })
   }
 }
@@ -625,10 +626,7 @@ export function FallbackActions({
             .join(' — ')}
           className={callSkin}
           color="neutral"
-          // The code strips whitespace from the URI, but keeps it in the label. RFC
-          // 3966 allows no spaces in a `tel:` URI, and some dialers fail on them. But
-          // a human reads "+44 20 1234 5678" back more easily.
-          href={`tel:${contact.phone.replace(/\s+/g, '')}`}
+          href={telHref(contact.phone)}
         >
           <PhoneOutgoing size={18} />
           {contact.phone}

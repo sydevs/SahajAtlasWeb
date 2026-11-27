@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Foto ansehen",
-    "pause_slideshow": "Diashow anhalten",
+    "photo_position": "Foto %{current} von %{total}",
+    "previous_photo": "Vorheriges Foto",
+    "next_photo": "Nächstes Foto",
+    "close_photo": "Foto schließen",
     "copy_address": "Adresse kopieren"
   },
   "filters": {
     "remove": "%{label} entfernen"
   },
   "search": {
-    "results_showing": "%{shown} von %{total} Veranstaltungen werden angezeigt",
+    "results_showing": "%{shown} von %{total} Kursen werden angezeigt",
     "dismiss_nearby_prompt": "Schließen"
   },
   "share": {

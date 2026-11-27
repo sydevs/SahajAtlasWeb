@@ -23,6 +23,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Removed
 
+- **The widget no longer contacts `ipwho.is`.** ([#525]) The visitor's approximate town and
+  country now come from the widget's own origin: the loader imports
+  `https://sahajatlas.com/geo.js`, which Cloudflare answers from the request itself, so no third
+  party sees your visitor's IP. Your CSP's `script-src` already covers it. Nothing breaks if
+  `connect-src` still lists `https://ipwho.is`; you can remove it. `geo.js` is sent
+  `Cache-Control: private, max-age=0, no-store` — don't cache it at your edge.
 - ⚠ **BREAKING: `sahajatlas.pages.dev` is no longer a supported origin.** ([#283]) Load the
   script from `https://sahajatlas.com`, the one origin that serves the bundle. If your snippet's
   `src`, or your CSP's `script-src` and `font-src`, name the `pages.dev` host, point all three at
@@ -43,6 +49,104 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The sign-up form opens nearly full height on a phone, with Register always in reach.** ([#529])
+  The class summary leads, the next date is already chosen in a dropdown, and one full-width
+  Register stays at the bottom of the screen, saying why while the security check runs. A
+  mistyped email is flagged on its box as soon as the visitor leaves it. The confirmation names
+  the date and the email address, keeps Add to calendar, and offers "Invite a friend along" open.
+- **A class's photos show as a grid instead of a slideshow.** ([#530]) They sit in two columns
+  below the description, each at its own shape with rounded corners, and nothing moves on its own.
+  Tapping one still opens it full screen, where arrows, the arrow keys and a swipe step through
+  the rest. The full-screen view no longer zooms or shows a thumbnail strip; pinch-zoom is left to
+  the browser.
+
+- **Filters apply as they are tapped, and close onto the matching classes.** ([#528]) There is
+  no Apply button: each answer narrows the map and the count at once, and the bottom button reads
+  "Show 8 classes", or Close with nothing picked. Closing by X, swipe or Esc keeps the answers and
+  shows the results, and never takes the host page back. When nothing matches, the filters say so
+  and offer the one change that brings the most classes back. On a phone the filters open just
+  tall enough for their questions, with the button always in view. Each time of day shows its
+  hours in the visitor's own format, and Night (midnight to 6:00) is offered only where classes
+  start then. ⚠ **Evening now runs to midnight**, so a shared link with `time=evening` takes in
+  classes starting from 21:00 to 24:00, which it used to leave to Night. A listing that names no times
+  ("Contact host for timings") counts under every time of day. The Filters button's count reads
+  "(1)" again, where the typeface had drawn it as a circled "①".
+
+- **Share opens the phone's own share sheet, and Copy link says "Link copied".** ([#518]) A
+  class's Share panel and the sign-up confirmation now show the same block: the class's summary,
+  as its list card shows it, then Share, then Copy link. Share opens the device's share sheet.
+  Where there is none, as in most desktop browsers, or where your `Permissions-Policy` refuses
+  `web-share`, the same button opens the region's share networks in a small popover, in their
+  own colours. Copy link turns into "Link copied" for a few seconds; where your policy refuses
+  `clipboard-write`, it selects the link and says how to copy it by hand. The Share panel's
+  heading reads "Share this class". An online class's list card now tags it Online after its
+  title. The "QR code for posters" row moves from Share to the bottom of the class page. **No
+  parameter, origin or CSP change**; the Permissions Policy section says what each refusal now
+  does.
+
+- **Dates, times and distances follow the visitor's own region.** ([#509]) Every time and date the
+  widget shows is now written in the format of the visitor's browser region: a UK visitor reads
+  "17:45–18:45" and "Wed 18 Nov", a US visitor "5:45 – 6:45 PM" and "Wed, Nov 18". A browser
+  whose first language is not the page's keeps that language's clock on an English page (a
+  Czech or German browser reads "17:45"). Whole hours now show their minutes ("6:00 – 7:00 PM").
+  A year appears only on a date outside the current year. The calendar grid follows the same
+  region. Distances read in miles for UK and US visitors and in kilometres everywhere else.
+
+- **Filters asks only what can narrow the classes where the visitor is.** ([#514]) It opens on
+  Where, Online or in person, Day, Time of day and Language, with Frequency and Dates under "More
+  filters"; each option shows how many classes it leaves, one that leaves none is greyed out, and
+  a question that cannot change the results in that place is not asked. The region list is gone:
+  the place in scope is a removable tag. ⚠ **The filters' new Near me asks the browser for the
+  visitor's location, on map-less embeds too**, which never asked before. A host that embeds in an
+  iframe, or sends a `Permissions-Policy` header, grants `geolocation` as
+  [Permissions Policy](docs/embedding.md#permissions-policy) already lists; without it Near me
+  says it could not get a location. The position is rounded to about 110m before it reaches the
+  URL. **No parameter, origin, CSP or storage change.**
+
+- **Keyboard focus looks the same on every control.** ([#510]) A 2px line in your brand colour,
+  drawn just inside the control, with a thin band of the panel's colour inside it so it still
+  shows on a filled button such as Register. Buttons, filter tags, fields, the place search and
+  the map's own credits button, logo and canvas all draw it; before, they drew three different
+  rings, and Mapbox's blue halo appeared even on a mouse click. A mouse click still shows nothing.
+
+- **A dialog with a form starts in its first field.** ([#510]) It started on its × button, as if
+  Close were already chosen. On a touch-only screen the dialog itself takes focus instead, so the
+  on-screen keyboard does not rise over the form before anyone has read it.
+
+- **The search box's clear button answers to a 44px tap on a touch screen**, at the same drawn
+  size. ([#510]) The invisible tap areas around small controls now apply only to touch-only
+  screens, so a touchscreen laptop's mouse no longer hits an area it cannot see.
+
+- **A class page's actions are quiet grey buttons, and Register is taller.** ([#502]) Directions,
+  Contact, Share and Website were outlined circles; each is now a grey button with its icon beside
+  the word, or above it across the row when a label would not fit on one line (a narrow phone,
+  all four actions in the desktop panel, or longer languages such as Spanish, Portuguese and
+  Russian). Register is 48px
+  tall. On the phone map sheet only Register pins to the foot: the actions stay in the panel,
+  under the address, rather than riding the pinned bar. On an iPhone or iPad, Directions opens
+  Apple Maps rather than Google Maps, which made a fresh browser accept Google's consent page
+  first. **No parameter,
+  origin, CSP, storage or Permissions-Policy change.**
+
+- **The consent line under the sign-up fields reads like the text around it.** ([#506]) It was
+  centred in 12px type. It now starts at the left edge, in the card's own 14px size and the quiet
+  grey, and says "By registering…" to match the button. Its "privacy policy" still opens We
+  Meditate's policy in a new tab. **No parameter, origin or CSP change.**
+
+- **A class's tags no longer repeat what its page already says.** ([#500]) Every class that
+  reads "Contact host for timings" now carries no type tag: one marked inactive in SahajCloud, one
+  with no dates, and a repeating class with no session left. Stirling, for one, no longer reads
+  "ONE-OFF EVENT". "Today" appears once. A class page says it in its time line, without a TODAY
+  tag under the title. A list card for a repeating class shows the TODAY tag, without the faded
+  "Today" under its pattern. The FULL tag is gone: a full class says so where you would sign up,
+  and if it meets today it carries no TODAY tag, keeping "Today" in its time line.
+  **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
+- **A listing with an empty schedule says "Contact host for timings".** ([#500]) SahajCloud sends
+  such a listing a schedule whose fields are all empty, and the widget read it as a one-off on
+  1 January 1970. It no longer says "This event has ended", the "One-off" filter no longer lists
+  it, and its page's structured data (`startDate`, `validFrom`, `og:event:start_time`) no longer
+  carries the 1970 date. It shows as an area on the map, and offers contact, website and share.
 - **On a phone, one drag down from a class stops at its key facts.** ([#496]) It used to drop to
   the third-height stop every panel shares, where the sticky Register bar covered the class's tags,
   its time and its address. The sheet now stops where those end, with a third of the map above it,
@@ -55,7 +159,7 @@ cover everything a host would notice since the widget was first deployed.
 - **A class page's address ends with its postcode, and a tap copies it.** ([#498]) "120 Heath
   St, London NW3 1DR", as the host entered it; never for an online class or a listing that hides
   its street. List cards, the calendar and the share and sign-up summaries keep the short line. A tap on the address copies street, town and
-  postcode, to paste into any maps app — the Directions button opens Google Maps alone — and the
+  postcode, to paste into any maps app — the Directions button opens only one — and the
   line reads "Copied" for two seconds. This is a third use of `clipboard-write`: where your page
   denies it, the address is selected to copy by hand instead. **No parameter, origin or CSP
   change.**
@@ -1349,6 +1453,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#509]: https://github.com/sydevs/SahajAtlasWeb/pull/509
 [#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
 [#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
 [#466]: https://github.com/sydevs/SahajAtlasWeb/pull/466
@@ -1461,5 +1566,15 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#488]: https://github.com/sydevs/SahajAtlasWeb/pull/488
 [#490]: https://github.com/sydevs/SahajAtlasWeb/pull/490
 [#498]: https://github.com/sydevs/SahajAtlasWeb/pull/498
+[#502]: https://github.com/sydevs/SahajAtlasWeb/pull/502
 [#495]: https://github.com/sydevs/SahajAtlasWeb/pull/495
+[#500]: https://github.com/sydevs/SahajAtlasWeb/pull/500
 [#496]: https://github.com/sydevs/SahajAtlasWeb/pull/496
+[#506]: https://github.com/sydevs/SahajAtlasWeb/pull/506
+[#510]: https://github.com/sydevs/SahajAtlasWeb/pull/510
+[#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
+[#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
+[#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
+[#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
+[#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
+[#529]: https://github.com/sydevs/SahajAtlasWeb/pull/529

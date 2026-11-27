@@ -11,8 +11,9 @@ import {
 import { Drawer as Vaul } from 'vaul'
 
 import { RESULTS_BAND, drawer, inPlaceTransform } from './drawer-style'
-import { isIOS, useSheetDragClaim } from './sheet-touch'
+import { useSheetDragClaim } from './sheet-touch'
 
+import { isIOS } from '@/lib/platform'
 import { type VariantProps } from '@/styles/tv'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { overlayContainer } from '@/lib/overlay'

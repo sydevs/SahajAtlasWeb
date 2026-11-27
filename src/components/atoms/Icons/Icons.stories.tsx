@@ -15,20 +15,20 @@ import {
   Globe,
   Info,
   Languages,
+  Link,
   LoaderCircle,
   LocateFixed,
-  MailCheck,
   MapPin,
-  Milestone,
   Monitor,
   Moon,
-  Pause,
+  MoonStar,
+  Navigation,
+  Phone,
   PhoneOutgoing,
-  Play,
-  Search,
   Settings,
   Share,
   Sun,
+  Sunrise,
   X,
 } from 'lucide-react'
 
@@ -70,20 +70,20 @@ const ICONS = [
   { name: 'Globe', Icon: Globe },
   { name: 'Info', Icon: Info },
   { name: 'Languages', Icon: Languages },
+  { name: 'Link', Icon: Link },
   { name: 'LoaderCircle', Icon: LoaderCircle },
   { name: 'LocateFixed', Icon: LocateFixed },
-  { name: 'MailCheck', Icon: MailCheck },
   { name: 'MapPin', Icon: MapPin },
-  { name: 'Milestone', Icon: Milestone },
   { name: 'Monitor', Icon: Monitor },
   { name: 'Moon', Icon: Moon },
-  { name: 'Pause', Icon: Pause },
+  { name: 'MoonStar', Icon: MoonStar },
+  { name: 'Navigation', Icon: Navigation },
+  { name: 'Phone', Icon: Phone },
   { name: 'PhoneOutgoing', Icon: PhoneOutgoing },
-  { name: 'Play', Icon: Play },
-  { name: 'Search', Icon: Search },
   { name: 'Settings', Icon: Settings },
   { name: 'Share', Icon: Share },
   { name: 'Sun', Icon: Sun },
+  { name: 'Sunrise', Icon: Sunrise },
   { name: 'X', Icon: X },
 ] as const
 
@@ -172,7 +172,6 @@ export const Default: Story = () => (
     >
       <div className="flex items-center gap-6" dir="rtl">
         <ChevronRight className="rtl:-scale-x-100" size={24} />
-        <Milestone className="rtl:-scale-x-100" size={24} />
         <span className="text-sm text-gray-11">dir=&quot;rtl&quot;</span>
       </div>
     </StorySection>

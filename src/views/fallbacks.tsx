@@ -136,7 +136,7 @@ export function DrawerChrome({
 
     switch (entry?.kind) {
       case 'online':
-        return t('online.title', { defaultValue: 'Online Classes' })
+        return t('online.title', { defaultValue: 'Online classes' })
       case 'search':
         return t('search.chrome.title', { defaultValue: 'Search' })
       case 'calendar':
@@ -144,9 +144,9 @@ export function DrawerChrome({
       case 'filters':
         return t('filters.chrome.title', { defaultValue: 'Filters' })
       case 'register':
-        return t('registration.form.title', { defaultValue: 'Register for Meditation' })
+        return t('registration.form.title', { defaultValue: 'Register for this class' })
       case 'share':
-        return t('share.title', { defaultValue: 'Share Meditation' })
+        return t('share.title_class', { defaultValue: 'Share this class' })
       default:
         return undefined
     }

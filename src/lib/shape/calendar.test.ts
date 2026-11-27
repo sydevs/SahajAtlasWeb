@@ -10,10 +10,13 @@ import {
   eventsToCalendarEntries,
   isCalendarViewOption,
   resolveCalendarView,
+  scheduleXLocale,
   type CalendarEntry,
   type CalendarSourceEvent,
 } from './calendar'
 import { DEFAULT_FILTERS, type EventFilters } from './filters'
+
+import { regionalLocale } from '@/lib/time'
 
 const at = (zone: string, iso: string) => DateTime.fromISO(iso, { zone })
 
@@ -267,12 +270,13 @@ describe('computeDayBoundaries', () => {
   it('spans multiple non-wrapping periods from earliest to latest', () => {
     expect(computeDayBoundaries([], ['morning', 'evening'])).toEqual({
       start: '06:00',
-      end: '21:00',
+      end: '24:00',
     })
   })
 
-  it('frames an overnight (night) period as start > end', () => {
-    expect(computeDayBoundaries([], ['night'])).toEqual({ start: '21:00', end: '06:00' })
+  it('frames an overnight span (evening into night) as start > end', () => {
+    expect(computeDayBoundaries([], ['night'])).toEqual({ start: '00:00', end: '06:00' })
+    expect(computeDayBoundaries([], ['evening', 'night'])).toEqual({ start: '17:00', end: '06:00' })
   })
 
   it('is undefined when every period is selected (whole day)', () => {
@@ -347,5 +351,40 @@ describe('resolveCalendarView', () => {
 
     expect(resolveCalendarView(stored, false).option).toBe(CALENDAR_VIEW_MONTH)
     expect(resolveCalendarView(stored, true).option).toBe(CALENDAR_VIEW_WEEK)
+  })
+})
+
+describe('scheduleXLocale', () => {
+  it('keeps an exact match', () => {
+    expect(scheduleXLocale('en-GB')).toBe('en-GB')
+    expect(scheduleXLocale('pt-BR')).toBe('pt-BR')
+  })
+
+  it('falls back to the base language for a regional tag it lacks', () => {
+    expect(scheduleXLocale('de-DE')).toBe('de-DE')
+    expect(scheduleXLocale('de-AT')).toBe('de-DE')
+    expect(scheduleXLocale('fr-CA')).toBe('fr-FR')
+    expect(scheduleXLocale('es-MX')).toBe('es-ES')
+    // A Portuguese page whose browser reads pt-PT still runs the grid in Portuguese.
+    expect(scheduleXLocale(regionalLocale('pt-BR', ['pt-PT']))).toBe('pt-BR')
+    expect(scheduleXLocale('pt')).toBe('pt-BR')
+  })
+
+  // The lists beside the grid read `regionalLocale`'s tag, so the grid follows its date order: a
+  // Czech browser's en-CZ reads day first in both.
+  it('runs a regional English as en-GB or en-US by its date order', () => {
+    expect(scheduleXLocale('en')).toBe('en-US')
+    expect(scheduleXLocale('en-US')).toBe('en-US')
+    expect(scheduleXLocale(regionalLocale('en', ['cs-CZ', 'en-US']))).toBe('en-GB')
+    expect(scheduleXLocale('en-DE')).toBe('en-GB')
+    expect(scheduleXLocale('en-AU')).toBe('en-GB')
+    expect(scheduleXLocale('en-ZA')).toBe('en-GB')
+    expect(scheduleXLocale('en-CA')).toBe('en-US')
+    expect(scheduleXLocale(regionalLocale('en', ['pt-BR']))).toBe('en-US')
+  })
+
+  it('falls back to en-US for a language Schedule-X lacks', () => {
+    expect(scheduleXLocale('hu')).toBe('en-US')
+    expect(scheduleXLocale('hu-HU')).toBe('en-US')
   })
 })

@@ -1,22 +1,22 @@
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody } from '@/components/atoms/Drawer'
-import { EventFacts, FallbackPanel } from '@/components/molecules'
+import { EventSummary, FallbackPanel } from '@/components/molecules'
 // This imports the leaf path, not the barrel. ShareContent owns react-share, and the views
 // that open with the interface import the barrel — so a re-export there would put react-share
 // in the interface's own download, even though this view is lazy (issue #96). EventDetails
 // reaches EventActions the same way, for the same reason.
 import { ShareContent } from '@/components/molecules/ShareContent'
-import { QrPoster } from '@/components/molecules/QrPoster'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { useViewerCountry } from '@/hooks/use-viewer-country'
 import { NavHeader } from '@/views/nav'
 import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 
 // Share links for an event, at route `<event-path>/share`. The event's Share CTA reaches
-// this view, and the route is deep-linkable. So it repeats the compact resolver summary —
-// title, chips, when, where — above the share block. A direct-link visitor then sees what
-// they are sharing, without any other Atlas chrome (issue #52).
+// this view, and the route is deep-linkable. So it opens on the class's summary — title,
+// when, where, chips — above the share block. A direct-link visitor then sees what they are
+// sharing, without any other Atlas chrome (issue #52).
 export function ShareView({ eventPath }: { eventPath: string }) {
   const { t } = useTranslation()
   // Order the share targets to the viewer's region. This is resolved here, so ShareContent
@@ -29,23 +29,22 @@ export function ShareView({ eventPath }: { eventPath: string }) {
   // widget routes off the URL (issue #115).
   const url = useShareUrl(event.webUrl, event.path)
 
+  const strings = useEventDisplay(event)
+
   useFrameEventOnTop(event)
 
   return (
     <>
-      <NavHeader title={t('share.title')} />
+      <NavHeader title={t('share.title_class')} />
       <DrawerBody fitSheet className="px-gutter py-4">
-        <EventFacts className="form-column mb-4" event={event} title={event.title} variant="card" />
+        <EventSummary boxed className="form-column mb-4" event={event} strings={strings} />
         {/* Match the summary card's width so the share block lines up with it. */}
         <div className="form-column">
           {url ? (
-            <div className="flex flex-col gap-4">
-              <ShareContent country={country} label={event.title} url={url} />
-              <QrPoster label={event.title} url={url} />
-            </div>
+            <ShareContent country={country} label={event.title} url={url} />
           ) : (
-            /* No canonical page, and no route in the URL. The copy field, the native sheet,
-               and every react-share target all need a URL. The only string within reach is
+            /* No canonical page, and no route in the URL. Copy link, the native sheet, and
+               every react-share target all need a URL. The only string within reach is
                the HOST page's, and that names their article, not this meditation. So this
                screen says so, instead of handing out a link that goes somewhere else (issue
                #115). `align="start"` matches the identical panel on the sibling register

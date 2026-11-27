@@ -1,4 +1,6 @@
 import { type ReactNode } from 'react'
+import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 
 /**
  * The `aria-describedby` target for a field's error text. The id
@@ -17,27 +19,43 @@ export const fieldErrorId = (name?: string) => (name ? `${name}-error` : undefin
 export const fieldHelpId = (name?: string) => (name ? `${name}-help` : undefined)
 
 /**
- * The full `aria-describedby` value for a control: its help text, its
- * error, or both. Callers pass this straight to the control, so the two
- * ids cannot be wired inconsistently.
+ * The id of a group's legend, which its control names itself by (`aria-labelledby`). A radio
+ * group inside a fieldset is otherwise a nameless group within a named one.
  */
-export const fieldDescribedBy = ({
-  name,
-  help,
-  error,
-}: {
-  name?: string
-  help?: boolean
-  error?: boolean
-}) =>
-  [help ? fieldHelpId(name) : undefined, error ? fieldErrorId(name) : undefined]
-    .filter(Boolean)
-    .join(' ') || undefined
+export const fieldLabelId = (name?: string) => (name ? `${name}-label` : undefined)
 
-export type FormFieldProps = {
+/**
+ * What a field hands its control, so the control is wired to the label, the help and the error
+ * by the field itself rather than by each caller: spread it onto any form atom.
+ */
+export type FieldControlProps = {
+  /** The control's id, matching the label's `htmlFor`. Absent for a group. */
+  id?: string
+  /** A group's legend, which names it. Absent for a single control, which its label names. */
+  'aria-labelledby'?: string
+  /** The help or the error, whichever shows. */
+  'aria-describedby'?: string
+  'aria-required'?: true
+  isInvalid: boolean
+}
+
+/**
+ * A single control is named by its `<label>` and keyed by its id (`htmlFor`). A control that
+ * labels itself — a checkbox — passes `name` instead, which keys the help and error ids only.
+ * A group of controls with no single id — a choice of cards, a row of days — is a `fieldset`
+ * named by its legend, and must pass `name`: it keys the legend, help and error ids.
+ */
+type FieldTarget =
+  | { as?: undefined; htmlFor?: string; name?: string }
+  | { as: 'fieldset'; name: string; htmlFor?: never }
+
+export type FormFieldProps = FieldTarget & {
   label: ReactNode
   /** Appends the required marker to the label. The caller still marks the control. */
   required?: boolean
+  /** Marks a field that may be left empty, "(optional)" after its label, in a form where every
+   *  unmarked field is needed. */
+  optional?: boolean
   /** Supporting copy under the control. The error replaces it while one is showing. */
   help?: ReactNode
   error?: ReactNode
@@ -56,36 +74,137 @@ export type FormFieldProps = {
    * shape).
    */
   announceError?: boolean
-  /** The control's id. Omitted for a composite control (e.g. a radio list) with no single id. */
-  htmlFor?: string
-  children: ReactNode
+  /**
+   * A small "Clear" link at the end of the label row, which resets just this field. Absent by
+   * default. While `active` is false it is hidden but keeps its place, so it cannot move the row.
+   */
+  clear?: { label: string; active: boolean; onClear: () => void }
+  /**
+   * The control, or a function that receives its wiring ({@link FieldControlProps}) — the id,
+   * `aria-labelledby`, `aria-describedby`, `aria-required` and `isInvalid` — so no caller
+   * assembles them by hand.
+   */
+  children: ReactNode | ((control: FieldControlProps) => ReactNode)
 }
 
 /**
- * Label, control, and help or error: the shared shell for the app's forms
- * (the registration form and the report-issue form). It exists as a
- * molecule, instead of a copy per form, so the required marker, the
- * help-or-error precedence, and above all the `aria-describedby` id
- * convention are defined once.
+ * Label, control, and help or error: the shared shell for every form in the app — the
+ * registration form, the report-issue form and adding or correcting a class. It exists as a
+ * molecule, instead of a copy per form, so the required marker, the help-or-error precedence,
+ * and above all the `aria-describedby` id convention are defined once.
+ *
+ * A single control is labelled by a `<label>`; a group (`as="fieldset"`) by a `<legend>`. Pass
+ * the control as a function to receive its wiring:
+ *
+ * ```tsx
+ * <FormField error={error} help={help} htmlFor="email" label="Email">
+ *   {(control) => <Input {...control} type="email" />}
+ * </FormField>
+ * ```
  */
 export function FormField({
   label,
   required,
+  optional,
   help,
   error,
   htmlFor,
+  as,
+  name,
   children,
   announceError = true,
+  clear,
 }: FormFieldProps) {
+  const { t } = useTranslation()
+  const group = as === 'fieldset'
+  const key = htmlFor ?? name
+  const showHelp = Boolean(help) && !error
+  const control: FieldControlProps = {
+    id: group ? undefined : htmlFor,
+    'aria-labelledby': group ? fieldLabelId(key) : undefined,
+    'aria-describedby':
+      [showHelp && fieldHelpId(key), Boolean(error) && fieldErrorId(key)]
+        .filter(Boolean)
+        .join(' ') || undefined,
+    'aria-required': required || undefined,
+    isInvalid: Boolean(error),
+  }
+  const caption = (
+    <>
+      {label}
+      {required && ' *'}
+      {optional && (
+        <span className="font-normal text-gray-11"> ({t('common.chrome.optional')})</span>
+      )}
+    </>
+  )
+  const Root = group ? 'fieldset' : 'div'
+
+  // Outside the legend, so the group's name stays the question alone. It is HIDDEN, never
+  // unmounted, while the field is empty: `visibility: hidden` also takes it out of the tab order
+  // and the accessibility tree, and the row keeps its height.
+  const clearButton = clear && (
+    <button
+      data-vaul-no-drag
+      className={clsx(
+        'touch-target relative shrink-0 text-xs font-medium text-primary-11 focus-ring hover:underline',
+        !clear.active && 'invisible',
+      )}
+      type="button"
+      onClick={clear.onClear}
+    >
+      {clear.label}
+    </button>
+  )
+  // ⚠ The extra space under a row with a Clear on a touch screen is not spacing taste: the Clear's
+  // invisible 44px tap area (#432) reaches down toward the control, which would take those taps.
+  const labelRow = 'flex items-baseline justify-between gap-2 pointer-coarse:mb-2'
+
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium" htmlFor={htmlFor}>
-        {label}
-        {required && ' *'}
-      </label>
-      {children}
-      {help && !error && (
-        <span className="text-xs text-gray-11" id={fieldHelpId(htmlFor)}>
+    <Root className="flex min-w-0 flex-col gap-1">
+      {group &&
+        (clear ? (
+          // A legend cannot hold the Clear, so it names the group off screen and the row beside
+          // the Clear shows the same words.
+          <>
+            <legend className="sr-only" id={fieldLabelId(key)}>
+              {caption}
+            </legend>
+            <div className={labelRow}>
+              <span aria-hidden className="text-sm font-medium">
+                {caption}
+              </span>
+              {clearButton}
+            </div>
+          </>
+        ) : (
+          // A legend sits outside the fieldset's flex flow, so it spaces itself.
+          <legend className="mb-1 text-sm font-medium" id={fieldLabelId(key)}>
+            {caption}
+          </legend>
+        ))}
+      {/* A control that labels itself (no `htmlFor`) already shows the label beside it. */}
+      {!group &&
+        (htmlFor || clear) &&
+        (clear ? (
+          <div className={labelRow}>
+            {htmlFor ? (
+              <label className="text-sm font-medium" htmlFor={htmlFor}>
+                {caption}
+              </label>
+            ) : (
+              <span />
+            )}
+            {clearButton}
+          </div>
+        ) : (
+          <label className="text-sm font-medium" htmlFor={htmlFor}>
+            {caption}
+          </label>
+        ))}
+      {typeof children === 'function' ? children(control) : children}
+      {showHelp && (
+        <span className="text-xs text-gray-11" id={fieldHelpId(key)}>
           {help}
         </span>
       )}
@@ -114,12 +233,12 @@ export function FormField({
       {error && (
         <span
           className="text-xs text-danger-11"
-          id={fieldErrorId(htmlFor)}
+          id={fieldErrorId(key)}
           role={announceError ? 'alert' : undefined}
         >
           {error}
         </span>
       )}
-    </div>
+    </Root>
   )
 }

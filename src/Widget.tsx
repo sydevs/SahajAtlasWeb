@@ -14,6 +14,7 @@ import embed from './config/embed'
 import { queryClient } from './config/query-client'
 import i18n from './config/i18n'
 import { bootLocale } from './config/locale'
+import { bootApproxLocation } from './config/store'
 import { useLocale } from './hooks/use-locale'
 import { usePublishedNode } from './hooks/use-published-node'
 import { getInitialTheme, setThemeRoot } from './hooks/use-theme'
@@ -576,13 +577,20 @@ class SahajAtlasElement extends AtlasElementBase {
  * renders, so a report filed at this point would attest to a widget that may never
  * exist. The observation is parked on the boot singleton, and `AppShell` joins it to
  * the page's mount and sends it once the widget has genuinely rendered — which is also
- * why the third parameter this used to take, a pre-composed report, is gone. It carried
- * a URL captured on loader idle, which was neither this moment nor the one that
- * matters.
+ * why the pre-composed report this used to take is gone. It carried a URL captured on
+ * loader idle, which was neither this moment nor the one that matters.
+ *
+ * `geo` is the loader's import of `/geo.js`, still in flight: the visitor's approximate
+ * location lands in its store whenever that resolves.
  */
-export function boot(config: LoaderConfig, observed: EmbedFingerprint | null = null): void {
+export function boot(
+  config: LoaderConfig,
+  observed: EmbedFingerprint | null = null,
+  geo: Promise<unknown> | null = null,
+): void {
   embed.config = config
   embed.observed = observed
+  if (geo) bootApproxLocation(geo)
 
   // Guarded: `customElements.define` throws NotSupportedError on a name that is
   // already registered, and two copies of the embed script on one page is a plausible

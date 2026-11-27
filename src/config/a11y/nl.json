@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Foto bekijken",
-    "pause_slideshow": "Diavoorstelling pauzeren",
+    "photo_position": "Foto %{current} van %{total}",
+    "previous_photo": "Vorige foto",
+    "next_photo": "Volgende foto",
+    "close_photo": "Foto sluiten",
     "copy_address": "Adres kopiëren"
   },
   "filters": {
     "remove": "%{label} verwijderen"
   },
   "search": {
-    "results_showing": "%{shown} van %{total} evenementen weergegeven",
+    "results_showing": "%{shown} van %{total} lessen weergegeven",
     "dismiss_nearby_prompt": "Negeren"
   },
   "share": {

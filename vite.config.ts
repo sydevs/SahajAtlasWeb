@@ -1,4 +1,4 @@
-import type { Plugin, PluginOption } from 'vite'
+import type { Connect, Plugin, PluginOption } from 'vite'
 
 import { readdir, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -13,6 +13,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 import circleFlags from './scripts/circle-flags.mjs'
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
+import { GEO_PATH, approxLocation, geoModule } from './worker/geo.mjs'
 
 /**
  * Where the emitted CSS goes instead of `document.head` (#236).
@@ -265,6 +266,24 @@ function stripDsStore(): Plugin {
   }
 }
 
+/**
+ * The dev and preview servers' stand-in for the app Worker's one route: `/geo.js` answers Prague,
+ * so `pnpm dev` shows the nearby suggestion as production would. `ATLAS_DEV_GEO=off` answers no
+ * location instead.
+ */
+function devApproxLocation(): Plugin {
+  const prague = { country: 'CZ', city: 'Prague', latitude: '50.0880', longitude: '14.4208' }
+  const serve = (server: { middlewares: Connect.Server }) => {
+    server.middlewares.use(GEO_PATH, (_req, res) => {
+      res.setHeader('content-type', 'text/javascript')
+      res.setHeader('cache-control', 'no-store')
+      res.end(geoModule(process.env.ATLAS_DEV_GEO === 'off' ? null : approxLocation(prague)))
+    })
+  }
+
+  return { name: 'sy-dev-approx-location', configureServer: serve, configurePreviewServer: serve }
+}
+
 /** The build entries emitted under a fixed name, by `rolldownOptions.input` key. */
 const STABLE_ENTRY_FILES = new Map([
   ['bridge', 'auto.js'],
@@ -297,6 +316,7 @@ export default defineConfig(({ command }) => ({
     // `<script>` tag parsed up front.
     flattenEntryImports('loader'),
     stripDsStore(),
+    devApproxLocation(),
     circleFlags(),
     // This plugin's position in the array does not set its order.
     // `sentryVitePlugin` returns an `enforce: 'pre'` plugin, which Vite

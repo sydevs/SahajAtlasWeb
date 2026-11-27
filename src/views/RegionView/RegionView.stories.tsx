@@ -44,7 +44,7 @@ const emptied = (region: Region): Region => ({
  * RegionView — the drawer screen for a region at any level. "Country" is a large parent
  * whose events all sit under its child regions. "City" lists only its own events, with
  * online ones inline. "City with Centers" is a city whose children are SY Centers (venues),
- * led by an "Online Classes" roll-up.
+ * led by an "Online classes" roll-up.
  *
  * **The two axes multiply, and both fall out of the example.** `Empty` empties whichever
  * region is selected. It is a state of a region, not a region of its own, so the header still
@@ -57,7 +57,7 @@ const emptied = (region: Region): Region => ({
  *  - **City with Centers** (`…/greater-london/london`) → **Greater London**, the same rung
  *    one level up.
  *  - **Country** (`/united-kingdom`) → nothing sits above it, so the ladder falls past rung 1
- *    to the cached IP guess: **"See events near Cambridge"**. That IS the top-level variant.
+ *    to the cached IP guess: **"See classes near Cambridge"**. That IS the top-level variant.
  *    The bare "Browse all countries" floor only appears when even the guess is absent
  *    (Molecules › Fallbacks shows it).
  *

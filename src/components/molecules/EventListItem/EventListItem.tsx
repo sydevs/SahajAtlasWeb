@@ -2,13 +2,13 @@ import { memo, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ListRow } from '@/components/molecules/List/List'
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { useHoverPrefetch } from '@/hooks/use-prefetch-event'
 import { formatDistance } from '@/lib'
 import { isOnline } from '@/lib/shape'
-import { EventChips } from '@/components/molecules/EventChips'
-import { EventFacts } from '@/components/molecules/EventFacts'
+import { EventSummary } from '@/components/molecules/EventSummary'
 import { EventSlim } from '@/types'
 
 export interface EventListItemProps {
@@ -34,13 +34,12 @@ export interface EventListItemProps {
 const MIN_DISTANCE_KM = 5
 
 /**
- * The list card: title, then the shared EventFacts summary (recurrence and
- * time, then the address with its distance faded below, or the online
- * hosted-from line), then the compact EventChips (a non-default type, a
- * non-UI language, and a "Today"). The facts carry the distance, not a
- * chip. The card is a ListRow, so it ends in the same chevron as a place
- * row and a class looks as tappable as a place. Its Link stays hookable for
- * map-pin highlight (#44).
+ * The list card: the shared EventSummary — the title with its Online tag,
+ * recurrence and time, the address with its distance faded below (or the
+ * online hosted-from line), then the card's chips. The facts carry the
+ * distance, not a chip. The card is a ListRow, so it ends in the same chevron
+ * as a place row and a class looks as tappable as a place. Its Link stays
+ * hookable for map-pin highlight (#44).
  *
  * **This is memoized** (the only `memo` in the repo, so it needs a
  * reason). The search results list GROWS as it pages, re-rendering with an
@@ -53,7 +52,9 @@ const MIN_DISTANCE_KM = 5
  */
 function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventListItemProps) {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  // One resolve per card, shared by its facts and chips (#505).
+  const strings = useEventDisplay(event)
+  const { formatLocale } = useLocale()
   const { highlightEvent } = useMapController()
   const prefetch = useHoverPrefetch()
 
@@ -80,7 +81,7 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
   // reference point stays in the accessible label either way.
   const distance =
     showDistance && !online && event.distance !== undefined && event.distance >= MIN_DISTANCE_KM
-      ? formatDistance(event.distance, locale)
+      ? formatDistance(event.distance, formatLocale)
       : null
   const distanceText = distance
     ? searchedPlace
@@ -124,24 +125,20 @@ function EventListItemImpl({ event, searchedPlace, showDistance = true }: EventL
       onMouseEnter={activate}
       onMouseLeave={deactivate}
     >
-      {/* `min-w-0` lets a truncating chip or an unbroken title shrink
+      {/* `min-w-0` (inside the summary) lets a truncating chip or an unbroken title shrink
           instead of pushing the chevron out. */}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="line-clamp-2 text-lg">{event.title}</div>
-        <EventFacts
-          className="mt-0.5 mb-1"
-          distance={
-            distanceText && (
-              <span aria-label={distanceLabel} title={distanceLabel}>
-                {distanceText}
-              </span>
-            )
-          }
-          event={event}
-          variant="compact"
-        />
-        <EventChips className="mt-1" event={event} variant="compact" />
-      </div>
+      <EventSummary
+        className="flex-1"
+        distance={
+          distanceText && (
+            <span aria-label={distanceLabel} title={distanceLabel}>
+              {distanceText}
+            </span>
+          )
+        }
+        event={event}
+        strings={strings}
+      />
     </ListRow>
   )
 }

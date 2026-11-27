@@ -265,11 +265,6 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
 
   for (const id of disabledRules) rules[id] = { enabled: false }
 
-  const axeResults = await /** @type {any} */ (window).axe.run(root, {
-    resultTypes: ['violations'],
-    rules,
-  })
-
   const INTERACTIVE = [
     'a[href]',
     'button',
@@ -327,8 +322,29 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
   // apart by one property would report a focus indicator on every control, for ever, with
   // nothing failing.
   const shared = /** @type {any} */ (window)
+  const ORDER = 'data-a11y-order'
+  const stops = () =>
+    [...root.querySelectorAll(`${INTERACTIVE},[tabindex]`)]
+      .map((node) => /** @type {any} */ (node))
+      .filter(tabbable)
+  // The recount after the audit (#515) goes through the same `stops`, so the counts it compares
+  // cannot be taken two ways.
+  const recount = () => {
+    const found = stops()
 
-  shared.__a11y = { describe, paint, visible, tabbable }
+    return { stops: found.length, unstamped: found.filter((el) => !el.hasAttribute(ORDER)).length }
+  }
+
+  shared.__a11y = { describe, paint, visible, recount }
+
+  // ⚠ Counted BEFORE axe runs as well as after the probe: content that lands while axe runs —
+  // where the swap moves on a slower machine — reads the same at the end of the audit and at the
+  // recount, while axe audited the tree it replaced.
+  const stopsBefore = stops().length
+  const axeResults = await /** @type {any} */ (window).axe.run(root, {
+    resultTypes: ['violations'],
+    rules,
+  })
 
   // ⚠ The window reaches a whole tap area either side, not half of one. The centre it walks out
   // from is the CONTROL's, and what it measures is the `touch-target` `::after` around it, so the
@@ -432,7 +448,7 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
   for (const node of root.querySelectorAll('*')) {
     const el = /** @type {any} */ (node)
 
-    el.setAttribute('data-a11y-order', String(index))
+    el.setAttribute(ORDER, String(index))
     if (tabbable(el)) resting.set(String(index), paint(el))
     index += 1
   }
@@ -447,9 +463,8 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
     })),
     probed,
     resting: Object.fromEntries(resting),
-    stops: [...root.querySelectorAll(`${INTERACTIVE},[tabindex]`)]
-      .map((node) => /** @type {any} */ (node))
-      .filter(tabbable).length,
+    stopsBefore,
+    stops: stops().length,
   }
 }
  
@@ -457,6 +472,27 @@ async function pageAudit({ disabledRules, minTap, selectors, step }) {
 /** How long the DOM must sit still before a story counts as rendered, and the cap on waiting. */
 const QUIET_MS = 250
 const SETTLE_CAP_MS = 4000
+
+/**
+ * The pause before the recount. The two EventView stories, the only ones measured rendering
+ * late, landed their content 4–31ms after the audit's read with the placeholder wait off
+ * (2026-11-26), so this is about three times the worst.
+ */
+const RECHECK_MS = 100
+
+/**
+ * The widget's own loading placeholder: `LOADING_ATTR` in `src/components/organisms/Skeleton`,
+ * duplicated because a script cannot import a `.tsx`, and pinned to it by the spec.
+ */
+export const LOADING_SELECTOR = '[data-sy-loading]'
+
+/** Stories whose subject IS a loading placeholder, so the wait does not hold out for it to go. */
+export const PLACEHOLDER_STORIES = [
+  {
+    story: 'organisms--skeleton',
+    reason: 'The placeholder catalogue itself. Its skeletons never resolve, by design.',
+  },
+]
 
 /**
  * Waits until the story has stopped changing.
@@ -476,16 +512,28 @@ const SETTLE_CAP_MS = 4000
  * violation either way — green having read nothing. The cap still bounds a story that never
  * mutates.
  *
+ * ⚠ **Nor may it close while a loading placeholder is on the page** (#515). React holds a
+ * Suspense boundary's content back at least 300ms after its fallback commits (react-dom 19's
+ * `FALLBACK_THROTTLE_MS`), so a view drawing a skeleton first goes quiet for longer than the
+ * window: `views--event` and its sticky-register sibling were read on the skeleton. The window
+ * still covers every pending state the widget does not mark — the boot spinner, the lazy map
+ * library — so a shorter one reopens those, measured.
+ *
  * @param {import('playwright').Page} page
+ * @param {{ waitForLoading: boolean }} options
  */
-async function settled(page) {
+async function settled(page, { waitForLoading }) {
   await page.evaluate(
-    ([quiet, cap]) =>
+    ({ quiet, cap, selector, waitForLoading }) =>
       new Promise((done) => {
         let timer
+        // No re-arm while a placeholder is up: the mutation that swaps it out restarts the window.
+        const quietly = () => {
+          if (!waitForLoading || !document.querySelector(selector)) finish()
+        }
         const observer = new MutationObserver(() => {
           clearTimeout(timer)
-          timer = setTimeout(finish, quiet)
+          timer = setTimeout(quietly, quiet)
         })
 
         function finish() {
@@ -499,8 +547,38 @@ async function settled(page) {
 
         observer.observe(document.body, { childList: true, subtree: true, attributes: true })
       }),
-    [QUIET_MS, SETTLE_CAP_MS],
+    { quiet: QUIET_MS, cap: SETTLE_CAP_MS, selector: LOADING_SELECTOR, waitForLoading },
   )
+}
+
+/**
+ * Why the page the audit read is not the whole story, or `null` when it is: the tab stops
+ * before axe ran, at the end of the audit and at the recount; controls the audit never stamped;
+ * and a placeholder still on the page. Any of these is a story audited before it finished
+ * rendering (#515), which would otherwise pass or fail on a partial read with nothing saying so.
+ *
+ * @param {{ stopsBefore: number, stops: number }} audit
+ * @param {{ stops: number, unstamped: number, loading: number }} now
+ * @param {boolean} placeholderStory
+ */
+export function unsettledDetail(audit, now, placeholderStory) {
+  const problems = []
+
+  if (now.loading > 0 && !placeholderStory) {
+    problems.push(
+      `${now.loading} loading placeholder(s) still on the page at the recount (a story whose subject is one belongs in PLACEHOLDER_STORIES)`,
+    )
+  }
+  if (audit.stopsBefore !== audit.stops || audit.stops !== now.stops) {
+    problems.push(
+      `tab stops changed during the audit: ${audit.stopsBefore} before axe ran, ${audit.stops} after the probe, ${now.stops} at the recount`,
+    )
+  }
+  if (now.unstamped > 0) problems.push(`${now.unstamped} control(s) rendered after the audit`)
+
+  return problems.length === 0
+    ? null
+    : `audited before it finished rendering — ${problems.join('; ')}. No other verdict is reported for it.`
 }
 
 /**
@@ -514,9 +592,24 @@ async function settled(page) {
 async function keyboardWalk(page, count, resting, selectors) {
   const stops = []
 
-  await page.evaluate(() => document.body.focus())
+  // ⚠ Not `document.body.focus()`, which is a no-op: the body is not focusable, so whatever the
+  // page focused during the audit stays the starting point. Schedule-X's month agenda focuses
+  // its day cell on any attribute change inside it, the audit's own stamping included, so
+  // `views--calendar`'s walk began on that cell and its first Tab left the page — 0 of 9 stops,
+  // passing. A focused, unfocusable-by-Tab anchor at the top resets the starting point.
+  await page.evaluate(() => {
+    const anchor = document.createElement('span')
 
-  for (let i = 0; i < count; i += 1) {
+    anchor.tabIndex = -1
+    anchor.setAttribute('data-a11y-walk-start', '')
+    document.body.prepend(anchor)
+    anchor.focus()
+  })
+
+  // A skipped focus sentinel is not one of the `count` stops, so it does not spend one: in
+  // `atoms--drawer` the guard ahead of its one control took the walk's only press. The second
+  // bound stops a page of nothing but sentinels from walking for ever.
+  for (let reached = 0, presses = 0; reached < count && presses < count * 3 + 2; presses += 1) {
     await page.keyboard.press('Tab')
 
      
@@ -542,7 +635,14 @@ async function keyboardWalk(page, count, resting, selectors) {
 
     if (!stop) break
     if (stop.skip) continue
+    // Back on the first stop: Tab wrapped round, so the walk is complete. `count` is the
+    // tabbable elements, and a roving-tabindex group (the weekday picker) is one Tab stop holding
+    // several, so the walk can outlast the page and wrap without passing the body.
+    if (stops.length > 0 && stop.order === stops[0].order && stops[stops.length - 1].order !== stop.order) {
+      break
+    }
 
+    reached += 1
     stops.push({
       ...stop,
       // An element the audit never stamped is one the page added after it ran — a portal that
@@ -585,9 +685,9 @@ export async function run({ only, origin } = {}) {
   // warmed cache entry serves both CI consumers. The default launches the headless shell, a
   // download of its own under the same directory (#459).
   const browser = await chromium.launch({ channel: 'chromium' })
-  // `isMobile` is what makes `(pointer: coarse)` match, and the `touch-target` utility is
-  // written against that query — on a fine pointer every small control would be reported and
-  // the gate would be measuring a device nobody taps.
+  // `isMobile` is what makes `(hover: none) and (pointer: coarse)` match, and the
+  // `touch-target` utility is written against that query — on a fine pointer every small control
+  // would be reported and the gate would be measuring a device nobody taps.
   const context = await browser.newContext({
     viewport: PHONE,
     deviceScaleFactor: 1,
@@ -608,7 +708,9 @@ export async function run({ only, origin } = {}) {
         waitUntil: 'load',
         timeout: 30_000,
       })
-      await settled(page)
+      const placeholderStory = PLACEHOLDER_STORIES.some(({ story }) => story === id)
+
+      await settled(page, { waitForLoading: !placeholderStory })
       // ⚠ By URL, never `content`. axe-core is 650 KB, and inlining it would push that
       // through the debugging protocol and recompile it once per story — 34 MB and 52
       // compiles across this run. A URL is fetched from the server above, cached, and
@@ -621,6 +723,27 @@ export async function run({ only, origin } = {}) {
         selectors,
         step: PROBE_STEP_PX,
       })
+
+      const now = await page.evaluate(
+        ({ pause, selector }) =>
+          new Promise((done) =>
+            setTimeout(
+              () =>
+                done({
+                  ...(/** @type {any} */ (window).__a11y.recount()),
+                  loading: document.querySelectorAll(selector).length,
+                }),
+              pause,
+            ),
+          ),
+        { pause: RECHECK_MS, selector: LOADING_SELECTOR },
+      )
+      const unsettled = unsettledDetail(result, now, placeholderStory)
+
+      if (unsettled) {
+        failures.push({ story: id, kind: 'unsettled', detail: unsettled })
+        continue
+      }
 
       controls += result.probed.length
 
@@ -658,8 +781,22 @@ export async function run({ only, origin } = {}) {
       let reached = -1
       const checked = new Set()
 
-      for (const stop of await keyboardWalk(page, result.stops, result.resting, selectors)) {
-        const at = Number(stop.order)
+      const walked = await keyboardWalk(page, result.stops, result.resting, selectors)
+
+      // A roving-tabindex group legitimately ends a walk short of `result.stops`, but never at
+      // zero: an empty walk over a page with stops measured nothing and would pass (#515).
+      if (result.stops > 0 && walked.length === 0) {
+        failures.push({
+          story: id,
+          kind: 'keyboard-walk',
+          detail: `Tab reached none of the ${result.stops} stop(s) the page offers`,
+        })
+      }
+
+      for (const stop of walked) {
+        // ⚠ An unstamped stop (rendered after the audit) has no place in document order, and
+        // `Number(null)` is 0, which would read as a jump back to the top.
+        const at = stop.order === null ? NaN : Number(stop.order)
 
         // `<`, not `<=`: Chromium's own date field moves focus between the segments of ONE
         // input, so the same element is a stop twice in a row, and that is not an order defect.
@@ -753,6 +890,9 @@ async function main() {
   )
   report([
     `## Accessibility gate — ${failures.length} findings`,
+    '',
+    // Printed on red too, so repeated runs compare a control count whatever they found.
+    `${stories} stories, ${controls} controls measured.`,
     '',
     ...formatFailures(failures),
     ...aside,

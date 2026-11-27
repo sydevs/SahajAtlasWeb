@@ -6,6 +6,7 @@ import {
   startTransition,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -26,6 +27,7 @@ import { Drawer, DrawerContent, DrawerSlotsProvider } from '@/components/atoms/D
 import { ResetErrorBoundary } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
 import {
+  MIN_MAP_STRIP_PX,
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
   WIDE_SNAP,
@@ -44,9 +46,9 @@ import {
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
-  atlasDepth,
   calendarFillsWidth,
   backStep,
+  sameRoute,
   baseStackEntry,
   isFilterOverlay,
   isOnline,
@@ -54,6 +56,7 @@ import {
   passablePlaces,
   placePathsOf,
   resolveStack,
+  viewLayerKey,
 } from '@/lib/shape'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
@@ -65,6 +68,7 @@ import {
   PEEK_SNAP,
   resolveStop,
   sheetLadder,
+  sheetOpening,
 } from '@/views/DrawerStack/sheet-ladder'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
@@ -216,9 +220,15 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   const isWide = useIsWide(container ?? frameElement())
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
+  // Set by "Show N classes": the results it closes onto open at the near-full stop.
+  const resultsTall = useRef(false)
+  // Where a step back is due to land, and the entry it left (`dismiss`).
+  const landing = useRef<{ key: string; to: string } | null>(null)
   // Whether the sheet is sitting at its peek, measured by the sheet-top loop below. Never true
   // where the sheet cannot collapse, since the loop does not run there.
   const [atPeek, setAtPeek] = useState(false)
+  // Whether the sheet leaves less than `MIN_MAP_STRIP_PX` of map above it, from the same loop.
+  const [sheetTall, setSheetTall] = useState(false)
   const sheetOriginRef = useRef<HTMLDivElement>(null)
   // The wrapper "Close map" renders in, which reads the sheet's live top off this mirror.
   const floatRef = useRef<HTMLDivElement>(null)
@@ -298,17 +308,12 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
     if (!first || code) setBrowsedCountry(code)
   }, [location.pathname, setBrowsedCountry])
 
-  const depth = atlasDepth(location)
   const canCollapse = sheeted && direction === 'bottom'
 
-  // A class opens as tall as its content and footer, up to the near-full snap. At the
-  // third-height snap the sticky Register bar covered the address, and on a small phone it
-  // sliced the "Next session" line in half. It never opens lower than that snap: the loading
-  // skeleton is short, and a sheet that dipped under it would only climb again once the class
-  // arrived. One drag down stops at its key facts (`sheetLadder`), with the class's pin above.
-  // Share opens the same way, so its last row (the poster QR code) is in view without a drag.
+  // How tall the top view opens on a phone (`sheetOpening` says why each one does).
+  const opening = sheetOpening(top?.kind)
   const classView = top?.kind === 'event'
-  const fitsContent = classView || top?.kind === 'share'
+  const fitsContent = opening === 'fit'
   // Keys the open stop per class, so class B tapped after class A opens at B's own fit.
   const openedClass = classView ? location.pathname : null
   const { fit, fold: measuredFold } = useFitSnap(canCollapse && fitsContent, location.pathname)
@@ -358,9 +363,11 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
 
   // The sheet's near-full stop covers the map's control column all but its top edge, which would
   // show as a row of slivers above the sheet. Everywhere else a drawer either leaves the column
-  // clear or covers it whole. The inline column covers nothing, though a narrow one takes the
-  // calendar's near-full stop too, so it must not hide the inline map's credits.
-  const controlsHidden = canCollapse && vaulSnap === WIDE_SNAP
+  // clear or covers it whole. The inline column is no sheet, so it never hides the inline map's.
+  // Any sheet that tall cuts through the column, so it goes; the filters, a form over the page, also
+  // dim what is left of the map above them.
+  const dimmed = canCollapse && sheetTall && top?.kind === 'filters'
+  const controlsHidden = canCollapse && sheetTall
   const setControlsHidden = useMapControls((s) => s.setHidden)
 
   useEffect(() => {
@@ -475,6 +482,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
 
           sheet.toggleAttribute('data-sy-peek', atPeekNow)
           setAtPeek(atPeekNow)
+          setSheetTall(top < MIN_MAP_STRIP_PX)
         }
       }
 
@@ -515,17 +523,17 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
     }
   }, [canCollapse])
 
-  // The calendar opens at the near-full snap on mobile — its month grid AND its list
-  // both need the height — while every other view keeps the third-height open snap.
-  // Keyed on the view KIND (not `wide`), so switching the calendar between
-  // month/week/list keeps it tall, rather than collapsing the list to the short snap.
-  // This runs only when navigating to or from the calendar, so it never fights a
-  // manual drag on a non-calendar view.
+  // Each view opens at its own height (`sheetOpening`). Keyed on the view KIND (not `wide`), so
+  // switching the calendar between month/week/list keeps it tall. This runs only when the top
+  // view changes, so it never fights a manual drag within one.
   useEffect(() => {
-    if (direction === 'bottom') {
-      setSnap(top?.kind === 'calendar' ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
-    }
-  }, [direction, fitsContent, top?.kind, openedClass])
+    if (direction !== 'bottom') return
+
+    const landTall = resultsTall.current
+
+    resultsTall.current = false
+    setSnap(opening === 'tall' || landTall ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
+  }, [direction, opening, fitsContent, top?.kind, openedClass])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this
@@ -544,38 +552,61 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
   // Back, swipe and Esc all run `dismiss`, and Back's label reads the same `step`, so what it
   // says is where it goes. With in-widget history it goes chronologically back, restoring the
   // prior camera. Otherwise it climbs: `navigate(-1)` there would take the HOST page back (the
-  // embedded widget shares browser history). The root view collapses to its peek.
+  // embedded widget shares browser history). The root view collapses to its peek. Closing the
+  // filters replaces their own entry instead, or steps back onto the view they covered.
+  const dismiss = useCallback(() => {
+    if (!step) return setSnap(PEEK_SNAP)
+    // A transition: unmounting a heavy view (the calendar's large grid) would otherwise
+    // reconcile synchronously and freeze the click for a beat ("nothing happened").
+    startTransition(() => {
+      if (step.how === 'history') {
+        landing.current = { key: location.key, to: step.to }
+        navigate(-1)
+      } else if (step.how === 'replace') navigate(step.to, { replace: true, state: location.state })
+      // A climb says where it climbed from, so a place that opens its lone class climbs on
+      // rather than bouncing back into it (RegionView, `loneClassExit`).
+      else navigate(step.to, { state: { climbedFrom: location.pathname } })
+    })
+  }, [step, navigate, location.key, location.pathname, location.state])
+
+  // A step back lands where it said: closing the filters onto the search they covered keeps the
+  // answers tapped since, by rewriting the landed entry's query rather than restoring the old one.
+  useLayoutEffect(() => {
+    const pending = landing.current
+
+    if (!pending || pending.key === location.key) return
+    landing.current = null
+    if (
+      location.pathname === pending.to.split('?')[0] &&
+      !sameRoute(`${location.pathname}${location.search}`, pending.to)
+    ) {
+      navigate(pending.to, { replace: true, state: location.state })
+    }
+  }, [location, navigate])
+
+  // "Show N classes" closes the filters like the X does, then opens the results tall.
+  const showResults = useCallback(() => {
+    resultsTall.current = canCollapse
+    dismiss()
+  }, [canCollapse, dismiss])
+
   const control = useMemo(
     () => ({
       // The filter overlay's X is the way out while it covers the calendar.
       backTo: filterOverlay ? undefined : step?.to,
       collapsed: canCollapse && atPeek,
       toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
-      dismiss: () => {
-        if (!step) return setSnap(PEEK_SNAP)
-        // A transition: unmounting a heavy view (the calendar's large grid) would otherwise
-        // reconcile synchronously and freeze the click for a beat ("nothing happened").
-        startTransition(() => {
-          if (step.history) navigate(-1)
-          // A climb says where it climbed from, so a place that opens its lone class climbs on
-          // rather than bouncing back into it (RegionView, `loneClassExit`).
-          else navigate(step.to, { state: { climbedFrom: location.pathname } })
-        })
-      },
+      dismiss,
+      showResults,
     }),
-    [filterOverlay, step, atPeek, openSnap, canCollapse, navigate, location.pathname],
+    [filterOverlay, step, atPeek, openSnap, canCollapse, dismiss, showResults],
   )
 
-  // The filter overlay's own dismiss (its X / swipe / Esc): back to the calendar it opened over,
-  // chronologically when there is in-widget history, otherwise a direct climb keeping its query.
+  // The filter overlay's own control: its X, swipe and Esc close it the same way, through the
+  // same `step`.
   const overlayControl = useMemo(
-    () => ({
-      ...NO_DRAWER_CONTROL,
-      overlay: true,
-      dismiss: () =>
-        depth > 0 ? navigate(-1) : navigate({ pathname: '/calendar', search: location.search }),
-    }),
-    [depth, location.search, navigate],
+    () => ({ ...NO_DRAWER_CONTROL, overlay: true, dismiss, showResults: dismiss }),
+    [dismiss],
   )
 
   // Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a suspend that shows
@@ -625,7 +656,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
         {/* `initial={false}`: the first view takes over from the loading shapes already on
             screen, so it arrives without fading in from nothing. Later views still cross-fade. */}
         <AnimatePresence initial={false}>
-          <ViewLayer key={top?.path ?? '/'}>{topView}</ViewLayer>
+          <ViewLayer key={viewLayerKey(top)}>{topView}</ViewLayer>
         </AnimatePresence>
       </div>
     </DrawerContent>
@@ -693,6 +724,7 @@ export function DrawerStack({ inline = false }: { inline?: boolean } = {}) {
                 aria-hidden
                 className="pointer-events-none fixed top-0 h-0 w-0"
               />
+              {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
               {expanded && (
                 <div ref={floatRef} className="contents">
                   <CloseMapButton beside={isWide && !wide} />

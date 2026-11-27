@@ -4,8 +4,16 @@
  * in-widget history and climbs only for a fresh deep link, never popping the host page's own
  * history. Pure, with no react-router import, so the decision tests in isolation.
  */
+import { filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
 import { ancestorIds, indexRegions } from './hierarchy'
-import { type PlacePathOf, type StackEntry, placedPathname, resolveStack } from './path'
+import {
+  type PlacePathOf,
+  type StackEntry,
+  filterOriginRegion,
+  parentOf,
+  placedPathname,
+  resolveStack,
+} from './path'
 
 /**
  * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
@@ -103,8 +111,31 @@ export const climbDestination = (pathname: string, { passable, pathOf }: ClimbIn
     .reverse()
     .find((entry) => entry.kind !== 'region' || !passable?.has(entry.slug))?.path ?? '/'
 
-/** What Back does: where it lands, and whether getting there is a step back in history. */
-export type BackStep = { to: string; history: boolean }
+/**
+ * What Back does: where it lands, and how it gets there — a step back through in-widget history,
+ * a climb (a push up the tree), or, for the filters, a replace of the filters' own entry.
+ */
+export type BackStep = { to: string; how: 'history' | 'climb' | 'replace' }
+
+/** Whether two routes are the same page, with their query parameters in any order. */
+export const sameRoute = (a: string, b: string): boolean => {
+  const canonical = (route: string) => {
+    const [path, query = ''] = route.split('?')
+    const params = new URLSearchParams(query)
+
+    params.sort()
+
+    return `${path}?${params}`
+  }
+
+  return canonical(a) === canonical(b)
+}
+
+const withQuery = (pathname: string, params: URLSearchParams | string) => {
+  const query = params.toString().replace(/^\?/, '')
+
+  return query ? `${pathname}?${query}` : pathname
+}
 
 /**
  * What Back does from this location, or `undefined` at the root, which has nothing to go back
@@ -116,16 +147,56 @@ export const backStep = (
   location: { pathname: string; search?: string; state?: unknown },
   climb?: ClimbInputs,
 ): BackStep | undefined => {
-  if (resolveStack(location.pathname).length === 0) return undefined
+  const entries = resolveStack(location.pathname)
+
+  if (entries.length === 0) return undefined
+  if (entries.at(-1)?.kind === 'filters') {
+    // Where closing the filters lands, by X, swipe or Esc alike. Every tap already wrote the URL, so
+    // closing shows the answers rather than undoing them. Over the search or the calendar it returns
+    // there with the query as it now stands. Over a view that lists no filtered classes, answers open
+    // the search, scoped to the place the filters were opened over; with none, the filters close
+    // like any other view.
+    //
+    // A step back says where it lands, query included, and the drawer rewrites the landed entry's
+    // query where the answers changed it, so no stale results entry is left behind. Anything else
+    // replaces the filters' own entry: Back from the results still leads to the view before the
+    // filters, and a fresh link never takes the host page back.
+    const { pathname, search = '' } = location
+    const origin = parentOf(pathname) ?? '/'
+    const params = new URLSearchParams(search)
+    const filters = filtersFromParams(params)
+    const listsFiltered = origin === '/search' || origin === '/calendar'
+    const from = atlasDepth(location) > 0 ? stamp(location, 'from') : undefined
+    const answered = listsFiltered || hasActiveFilters(filters)
+    const to = answered
+      ? withQuery(
+          listsFiltered ? origin : '/search',
+          listsFiltered
+            ? params
+            : filtersToParams(
+                { ...filters, region: filters.region ?? filterOriginRegion(pathname) },
+                params,
+              ),
+        )
+      : withQuery(origin, params)
+
+    if (from && from.split('?')[0] === to.split('?')[0]) return { to, how: 'history' }
+    if (answered) return { to, how: 'replace' }
+
+    return { to: climbDestination(pathname, climb), how: 'climb' }
+  }
 
   const from = stamp(location, 'from')
 
-  if (atlasDepth(location) > 0 && from) return { to: from, history: true }
+  if (atlasDepth(location) > 0 && from) return { to: from, how: 'history' }
 
   const parent = climbDestination(location.pathname, climb)
 
   // A search keeps its query when something stacked over it climbs back.
-  return { to: parent === '/search' ? `${parent}${location.search ?? ''}` : parent, history: false }
+  return {
+    to: parent === '/search' ? withQuery(parent, location.search ?? '') : parent,
+    how: 'climb',
+  }
 }
 
 // The class a route shows, or sits on (its Register or Share), by id: a class's own `webPath` and

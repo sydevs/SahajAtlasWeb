@@ -1,9 +1,11 @@
+import type { ApproxLocation } from '@/lib/approx-location'
 import type { CalendarViewOption } from '@/lib/shape'
 import type { Feature } from 'geojson'
 
 import { create } from 'zustand'
 
 import { deepActiveElement } from '@/lib/active-element'
+import { parseApproxLocation } from '@/lib/approx-location'
 
 // ===== VIEW STATE ===== //
 
@@ -271,6 +273,61 @@ export const useReportModal = create<ReportModalState>((set) => ({
   // This also clears the error.
   // So a later open from the settings menu cannot inherit the error context of an earlier, unrelated report.
   closeReport: () => set(() => ({ open: false, error: null })),
+}))
+
+// ===== APPROXIMATE LOCATION ===== //
+
+// Where the visitor roughly is: the default export of `/geo.js` (`lib/approx-location.ts`), or
+// `null` without one. A store because it can arrive after the first render — the module is
+// imported beside the widget, and usually lands first — and a story sets one the same way.
+type ApproxLocationState = { location: ApproxLocation | null }
+
+export const useApproxLocation = create<ApproxLocationState>(() => ({ location: null }))
+
+/** Takes the location from `/geo.js` once it has loaded; a failed import is no location. */
+export const bootApproxLocation = (geo: Promise<unknown>): void =>
+  void geo.then(
+    (value) => useApproxLocation.setState({ location: parseApproxLocation(value) }),
+    () => {},
+  )
+
+// ===== NEAR ME ===== //
+
+// The point the Near me filter last searched from. Near me is ON while the URL's `?center` is this
+// point. It stays out of the URL on purpose: a shared link names a place, and only the visitor who
+// pressed Near me is actually there.
+type NearMeState = {
+  center: [number, number] | null
+  setCenter: (center: [number, number] | null) => void
+}
+
+export const useNearMeState = create<NearMeState>((set) => ({
+  center: null,
+  setCenter: (center) => set(() => ({ center })),
+}))
+
+// ===== SEARCH FOCUS ===== //
+
+// A one-shot request for the list's place search to take focus when it next mounts. "Search
+// instead", offered when Near me cannot locate the visitor, closes the filters onto the list,
+// whose search box is not rendered until the drawer has gone.
+type SearchFocusState = {
+  requested: boolean
+  request: () => void
+  /** True once, for the first search box to mount after a request. */
+  consume: () => boolean
+}
+
+export const useSearchFocus = create<SearchFocusState>((set, get) => ({
+  requested: false,
+  request: () => set(() => ({ requested: true })),
+  consume: () => {
+    const requested = get().requested
+
+    if (requested) set(() => ({ requested: false }))
+
+    return requested
+  },
 }))
 
 // ===== REGISTRATION DRAFT ===== //

@@ -5,7 +5,7 @@ import { useLocation } from 'react-router'
 import atlasAuth from '@/config/api/auth'
 import { clientQuery, regionsQuery } from '@/config/api'
 import { regionRoute } from '@/config/api/fetch'
-import { useIpLocation } from '@/hooks/use-ip-location'
+import { useApproxLocation } from '@/config/store'
 import { isCanonicalPath, nearestKnownRegion, safePath, searchPath } from '@/lib/shape'
 import { reportInternalError } from '@/lib/report'
 
@@ -43,11 +43,9 @@ export type RecoveryOffer =
  *     This is evidence about the SITE, not this navigation, so it ranks below rung 1.
  *     But a France-scoped embed's visitor almost certainly wants France.
  *     `AppShell` already suspends on the client record, so this costs no request.
- *  3. **A cached IP guess**, such as "See events near Bordeaux."
- *     This reads PASSIVELY, through `useIpLocation(false)`. It never fires the lookup from an error screen.
- *     A blocked CSP is a plausible CAUSE of the failure being displayed.
- *     So the recovery could fail the same way the thing it is recovering from did.
- *     A request of up to 5 seconds would also resolve a new button under a moving cursor, on the one screen the viewer is scanning for something to click.
+ *  3. **The visitor's approximate town**, such as "See classes near Bordeaux."
+ *     It was loaded beside the widget, so an error screen never fires a request for it; if that
+ *     load failed too, this rung is simply skipped.
  *  4. **The country list.**
  *     This names nowhere in particular, which is why it is last.
  *     It always exists, which is why it is the floor.
@@ -68,10 +66,7 @@ export const useRecoveryOffer = (): RecoveryOffer => {
   // So in practice both are present. A genuine miss costs a rung, which is what the ladder's floor is for.
   const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
   const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
-  // The same rule applies here, and it matters most here.
-  // A blocked CSP is a plausible CAUSE of the failure on screen.
-  // So the recovery must not depend on the network that just failed.
-  const ipLocation = useIpLocation(false)
+  const guess = useApproxLocation((s) => s.location?.place)
 
   return useMemo(() => {
     const countries: RecoveryOffer = { kind: 'countries', path: '/' }
@@ -101,14 +96,8 @@ export const useRecoveryOffer = (): RecoveryOffer => {
         return { kind: 'region', path: homePath, name: home.name ?? home.slug }
       }
 
-      // Rung 3: a guess someone else already paid for.
-      if (ipLocation?.city) {
-        return {
-          kind: 'city',
-          path: searchPath([ipLocation.longitude, ipLocation.latitude]),
-          name: ipLocation.city,
-        }
-      }
+      // Rung 3: the visitor's approximate town.
+      if (guess) return { kind: 'city', path: searchPath(guess.center), name: guess.city }
 
       return countries
     } catch (error) {
@@ -118,5 +107,5 @@ export const useRecoveryOffer = (): RecoveryOffer => {
 
       return countries
     }
-  }, [location.pathname, regions, client, ipLocation])
+  }, [location.pathname, regions, client, guess])
 }

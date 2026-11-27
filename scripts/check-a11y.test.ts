@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
+import { LOADING_ATTR } from '../src/components/organisms/Skeleton/Skeleton'
+
 import {
+  LOADING_SELECTOR,
   MIN_TAP_PX,
+  PLACEHOLDER_STORIES,
   PROBE_STEP_PX,
   TAP_EXCEPTIONS,
   formatFailures,
   formatUnmeasured,
   spanFrom,
+  unsettledDetail,
 } from './check-a11y.mjs'
 
 // `spanFrom` is the arithmetic behind every tap-target verdict the gate prints, and it is the
@@ -92,15 +97,17 @@ describe('formatUnmeasured', () => {
   })
 })
 
+// Every exemption is a hole in the floor, so each one states what it is for. A bare list is how
+// the next one gets added without an argument.
+const everyEntryHasAReason = (entries: { reason: string }[]) => {
+  expect(entries.length).toBeGreaterThan(0)
+  for (const entry of entries) expect(entry.reason.length).toBeGreaterThan(20)
+}
+
 describe('TAP_EXCEPTIONS', () => {
-  // Every exemption is a hole in the floor, so each one states what it is for. A bare selector
-  // list is how the next one gets added without an argument.
   it('gives every exempt selector a reason', () => {
-    expect(TAP_EXCEPTIONS.length).toBeGreaterThan(0)
-    for (const exception of TAP_EXCEPTIONS) {
-      expect(exception.selector).toBeTruthy()
-      expect(exception.reason.length).toBeGreaterThan(20)
-    }
+    everyEntryHasAReason(TAP_EXCEPTIONS)
+    for (const exception of TAP_EXCEPTIONS) expect(exception.selector).toBeTruthy()
   })
 
   // A selector matching a widget control would exempt the thing the gate exists to measure.
@@ -111,5 +118,54 @@ describe('TAP_EXCEPTIONS', () => {
       '.mapboxgl-ctrl-attrib',
       '[data-radix-focus-guard]',
     ])
+  })
+})
+
+describe('LOADING_SELECTOR', () => {
+  // A rename on the component's side would leave the wait a quiet window alone, failing nothing.
+  it('names the attribute the widget marks its loading placeholder with', () => {
+    expect(LOADING_SELECTOR).toBe(`[${LOADING_ATTR}]`)
+  })
+})
+
+describe('PLACEHOLDER_STORIES', () => {
+  it('is a closed list, and gives every story a reason', () => {
+    expect(PLACEHOLDER_STORIES.map(({ story }) => story)).toEqual(['organisms--skeleton'])
+    everyEntryHasAReason(PLACEHOLDER_STORIES)
+  })
+})
+
+describe('unsettledDetail', () => {
+  const audit = { stopsBefore: 12, stops: 12 }
+  const whole = { stops: 12, unstamped: 0, loading: 0 }
+
+  it('passes a page that read the same each time', () => {
+    expect(unsettledDetail(audit, whole, false)).toBeNull()
+  })
+
+  // The #515 shape: the skeleton's 2 stops audited, the content's 12 on screen by the recount.
+  it('reports a page that grew after the audit, naming every count', () => {
+    const detail = unsettledDetail({ stopsBefore: 2, stops: 2 }, { ...whole, unstamped: 10 }, false)
+
+    expect(detail).toContain('2 before axe ran, 2 after the probe, 12 at the recount')
+    expect(detail).toContain('10 control(s) rendered after the audit')
+  })
+
+  // Content landing while axe runs reads the same after the probe and at the recount.
+  it('reports a page that changed while axe ran, though the recount agrees', () => {
+    expect(unsettledDetail({ stopsBefore: 2, stops: 12 }, whole, false)).toContain(
+      '2 before axe ran, 12 after the probe, 12 at the recount',
+    )
+  })
+
+  it('reports a control the audit never stamped even when the count matches', () => {
+    expect(unsettledDetail(audit, { ...whole, unstamped: 1 }, false)).toContain(
+      '1 control(s) rendered after the audit',
+    )
+  })
+
+  it('reports a placeholder still on the page, except in a story that is one', () => {
+    expect(unsettledDetail(audit, { ...whole, loading: 1 }, false)).toContain('loading placeholder')
+    expect(unsettledDetail(audit, { ...whole, loading: 5 }, true)).toBeNull()
   })
 })

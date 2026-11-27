@@ -4,18 +4,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   GEOLOCATION_DISMISS_KEY,
+  NEARBY_RADIUS_KM,
   hasActivePlaceSearch,
   hasClassWithin,
   isLocalRegion,
+  locatedPlace,
   markGeolocationDismissed,
   nearbyBounds,
   readGeolocationDismissed,
+  guessedPlace,
   shouldShowGeolocationPrompt,
 } from './geolocation'
+import { approxBounds } from './geo'
 
-// Paris as the resolved guess. Coordinates elsewhere are [lng, lat]; NEAR is ~5 km
+// Paris as the resolved guess. Coordinates are [lng, lat]; NEAR is ~5 km
 // east of Paris (well within 100 km), FAR is ~500 km south (well beyond).
-const PARIS = { latitude: 48.8566, longitude: 2.3522 }
 const PARIS_POINT: [number, number] = [2.3522, 48.8566]
 const NEAR: [number, number] = [2.42, 48.86]
 const FAR: [number, number] = [2.35, 44.35]
@@ -84,7 +87,7 @@ describe('isLocalRegion', () => {
 describe('shouldShowGeolocationPrompt', () => {
   // A baseline where the prompt shows. Each case flips exactly one condition.
   const showing = {
-    guess: PARIS,
+    guess: PARIS_POINT,
     dismissed: false,
     activeSearch: false,
     geojson: feed(located(NEAR)),
@@ -214,5 +217,40 @@ describe('nearbyBounds', () => {
 
   it('ignores online classes, which carry no geometry', () => {
     expect(nearbyBounds(PARIS_POINT, feed(online()))).toEqual(floorOnly())
+  })
+})
+
+describe('locatedPlace', () => {
+  it('rounds every coordinate it hands a URL to three decimals, the frame too', async () => {
+    const { place, named } = locatedPlace({ longitude: 2.352219, latitude: 48.856614 }, feed(), {
+      naming: false,
+    })
+    const decimals = (n: number) => (String(n).split('.')[1] ?? '').length
+
+    expect(place.center).toEqual([2.352, 48.857])
+    expect([...place.center, ...(place.bbox ?? [])].every((n) => decimals(n) <= 3)).toBe(true)
+    // A map-less embed asks Mapbox nothing, so there is no name to wait for.
+    await expect(named).resolves.toBeNull()
+  })
+})
+
+describe('guessedPlace', () => {
+  const guess = { city: 'Paris', center: PARIS_POINT }
+
+  it('names the town with its country, and marks the country for the search', () => {
+    expect(guessedPlace(guess, 'FR', 'France')).toMatchObject({
+      q: 'Paris, France',
+      center: PARIS_POINT,
+      countryCode: 'FR',
+    })
+  })
+
+  it('names the town alone without a country', () => {
+    expect(guessedPlace(guess).q).toBe('Paris')
+  })
+
+  // An IP guess is too coarse for its nearest classes to be the visitor's.
+  it('frames a city-sized box around the guess, whatever the feed holds', () => {
+    expect(guessedPlace(guess).bbox).toEqual(approxBounds(PARIS_POINT, NEARBY_RADIUS_KM))
   })
 })

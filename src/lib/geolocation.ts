@@ -1,9 +1,11 @@
 import type { Geojson } from '@/types'
 import type { BBox } from 'geojson'
+import type { PlaceSearch } from '@/lib/shape'
 
 import { approxBounds, boundsOfPoints, distanceKm } from './geo'
+import { geocodeCountryCode, reverseGeocode } from './geocode'
 
-// The visibility logic behind the IP-geolocation "nearby classes"
+// The visibility logic behind the approximate-location "nearby classes"
 // suggestion, factored out of the GeolocationSuggestion component so every
 // condition is unit-tested (the component itself is hook-heavy, and the
 // node lane cannot render it).
@@ -70,6 +72,26 @@ export const hasClassWithin = (
   )
 
 /**
+ * How long a location request waits. Mapbox's default is six seconds, and iOS Safari appears to
+ * count that while its permission prompt is open, so a visitor who took a moment to press Allow
+ * saw a failure.
+ */
+export const LOCATE_POSITION_OPTIONS: PositionOptions = { timeout: 30_000 }
+
+/**
+ * A device fix rounded to about 110m, before anything serializes it, so the visitor's doorstep
+ * never reaches a URL they might copy or the host page's analytics. Every place frame and list
+ * rank this feeds is orders of magnitude coarser.
+ */
+export const coarsePoint = (coords: { longitude: number; latitude: number }): [number, number] => [
+  roundCoordinate(coords.longitude),
+  roundCoordinate(coords.latitude),
+]
+
+/** One coordinate to three decimals, about 110m: the precision any coordinate in a URL gets. */
+export const roundCoordinate = (n: number): number => Math.round(n * 1e3) / 1e3
+
+/**
  * The area to frame around a located visitor: their point, plus the nearest few classes.
  *
  * "Find my location" should answer *where are the classes near me*, so the camera has to hold
@@ -123,8 +145,8 @@ export const isLocalRegion = (
 
 /** The inputs the geolocation-prompt visibility decision reads. */
 export type GeolocationPromptState = {
-  /** The resolved IP guess, or `null` while loading / on failure. */
-  guess: { latitude: number; longitude: number } | null
+  /** The guessed town's point, `[lng, lat]`, or `null` without a guess. */
+  guess: [number, number] | null
   /** Session-dismissed (× or accepted). */
   dismissed: boolean
   /** A place search is already active (SearchView with `?center`/`?q`). */
@@ -136,7 +158,7 @@ export type GeolocationPromptState = {
 }
 
 /**
- * Whether to show the IP-geolocation nearby suggestion.
+ * Whether to show the approximate-location nearby suggestion.
  *
  * This is hidden in any of these cases:
  *
@@ -156,10 +178,52 @@ export const shouldShowGeolocationPrompt = ({
 }: GeolocationPromptState): boolean => {
   if (!guess || dismissed || activeSearch) return false
 
-  const point: [number, number] = [guess.longitude, guess.latitude]
-
   return (
-    hasClassWithin(geojson, point, NEARBY_MAX_KM) &&
-    !isLocalRegion(regionCenter, point, LOCAL_REGION_KM)
+    hasClassWithin(geojson, guess, NEARBY_MAX_KM) &&
+    !isLocalRegion(regionCenter, guess, LOCAL_REGION_KM)
   )
+}
+
+/**
+ * The search a guessed town opens. City-sized, not framed around the nearest classes as a
+ * device fix is: an IP guess is too coarse for its nearest classes to be the visitor's. Already
+ * public and coarse, so not rounded either; its name needs no reverse lookup.
+ */
+export const guessedPlace = (
+  guess: { city: string; center: [number, number] },
+  countryCode?: string,
+  countryName?: string,
+): PlaceSearch => ({
+  q: countryName ? `${guess.city}, ${countryName}` : guess.city,
+  center: guess.center,
+  bbox: approxBounds(guess.center, NEARBY_RADIUS_KM),
+  countryCode,
+})
+
+/**
+ * Where a located visitor is, in the terms a typed search uses, for both ways in: the map's
+ * "find my location" and the filters' Near me. The point and its frame are rounded at once; the
+ * place's name and country follow from the reverse lookup, or `null` without one (`naming` is
+ * off for a map-less embed, which promises no Mapbox calls). Each caller decides when to
+ * navigate: the map moves first and names after, Near me waits briefly for the name.
+ */
+export const locatedPlace = (
+  coords: { longitude: number; latitude: number },
+  feed: Geojson | undefined,
+  { locale, naming }: { locale?: string; naming: boolean },
+): { place: PlaceSearch; named: Promise<Pick<PlaceSearch, 'q' | 'countryCode'> | null> } => {
+  const center = coarsePoint(coords)
+  const place = { center, bbox: nearbyBounds(center, feed).map(roundCoordinate) as BBox }
+  const named = naming
+    ? reverseGeocode(center, locale).then((feature) =>
+        feature
+          ? {
+              q: feature.properties?.full_address ?? undefined,
+              countryCode: geocodeCountryCode(feature),
+            }
+          : null,
+      )
+    : Promise.resolve(null)
+
+  return { place, named }
 }

@@ -8,6 +8,7 @@ import {
   PEEK_SNAP,
   resolveStop,
   sheetLadder,
+  sheetOpening,
   SNAP_POINTS,
 } from './sheet-ladder'
 
@@ -152,5 +153,29 @@ describe('resolveStop', () => {
     expect(resolveStop(sheetLadder({ classView: false, fit: null, fold: null }), '440px')).toBe(
       OPEN_SNAP,
     )
+  })
+})
+
+describe('sheetOpening', () => {
+  it('opens the calendar and the sign-up form near full', () => {
+    expect(sheetOpening('calendar')).toBe('tall')
+    expect(sheetOpening('register')).toBe('tall')
+  })
+
+  it('fits a class, its share panel and the filters to their content', () => {
+    expect(['event', 'share', 'filters'].map((kind) => sheetOpening(kind as never))).toEqual([
+      'fit',
+      'fit',
+      'fit',
+    ])
+  })
+
+  it('keeps the open stop for the lists and the root', () => {
+    expect(['search', 'region', 'online'].map((kind) => sheetOpening(kind as never))).toEqual([
+      'open',
+      'open',
+      'open',
+    ])
+    expect(sheetOpening(undefined)).toBe('open')
   })
 })

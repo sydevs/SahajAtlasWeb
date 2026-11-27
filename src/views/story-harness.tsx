@@ -16,13 +16,13 @@ import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
-import { useCalendarPosition } from '@/config/store'
+import { useApproxLocation, useCalendarPosition } from '@/config/store'
 import { calendarFillsWidth } from '@/lib/shape/calendar'
 import { setFrame } from '@/lib/overlay'
 import { usePublishedNode } from '@/hooks/use-published-node'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
 import { parentOf } from '@/lib/shape'
-import { mockGeojson, mockIpLocation, mockRegionNodes } from '@/mocks/regions'
+import { mockApproxLocation, mockGeojson, mockRegionNodes } from '@/mocks/regions'
 import { MapLayer, MapProviders } from '@/views/FullInterface'
 import { InlineColumns, PlaceHeading } from '@/views/InlineEmbedView/InlineEmbedView'
 import { VIEW_CONTROLS } from '@/views/story-controls'
@@ -95,6 +95,8 @@ export type ViewHarnessProps = {
    * the frame less a margin instead of taking the side panel, as `DrawerStack` sizes it.
    */
   wide?: boolean
+  /** The expanded map's panel whatever the Form control says, for a story about the sheet. */
+  expanded?: boolean
   children: ReactNode
 }
 
@@ -283,6 +285,7 @@ export function ViewHarness({
   mode,
   path,
   wide = false,
+  expanded = false,
   children,
 }: ViewHarnessProps) {
   const controls = useViewControls()
@@ -290,7 +293,7 @@ export function ViewHarness({
   // previews nothing and fills the console with Mapbox errors.
   const withMap = controls.map && Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
   // A map-less atlas is always inline, as `App` renders it: there is no map to expand.
-  const inline = controls.inline || !withMap
+  const inline = (controls.inline && !expanded) || !withMap
 
   const client = useMemo(() => {
     const c = new QueryClient({
@@ -298,16 +301,15 @@ export function ViewHarness({
     })
 
     // Seeds the feed, the wholesale region tree, the host-client record, and a
-    // passive IP guess (so the nearby prompt renders where supported) for every
-    // view — no story pings the (absent) backend or the third-party geolocation
-    // service. The case's own `seed` layers its view-specific keys on top. The
+    // approximate location (so the nearby prompt renders where supported) for every
+    // view — no story pings the (absent) backend. The case's own `seed` layers its view-specific keys on top. The
     // region tree is read by anything filter-adjacent (the Region filter's
     // options, the active-pill name lookup, the country-website check), which is
     // why it is global rather than per-case.
     c.setQueryData(geojsonQuery().queryKey, mockGeojson)
     c.setQueryData(regionsQuery().queryKey, mockRegionNodes)
     c.setQueryData(clientQuery(atlasAuth.apiKey).queryKey, mockClient)
-    c.setQueryData(['ip-location'], mockIpLocation)
+    useApproxLocation.setState({ location: mockApproxLocation })
     seed?.(c)
 
     return c

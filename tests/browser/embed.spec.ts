@@ -91,7 +91,11 @@ test('a sized slot opens inline, grows to its content, and expands the map on re
 
   await atlas.getByRole('button', { name: en.common.map.expand, exact: true }).click()
 
-  const expanded = atlas.getByRole('dialog', { name: en.common.chrome.widget_label, exact: true })
+  // The panel inside is a dialog too, named for the page, which reads the same; the expanded map
+  // holds it, so it comes first.
+  const expanded = atlas
+    .getByRole('dialog', { name: en.common.chrome.widget_label, exact: true })
+    .first()
 
   await expect(expanded).toBeVisible()
   await expanded.getByRole('button', { name: en.common.map.close, exact: true }).click()
@@ -120,7 +124,11 @@ test('a box too small for the atlas shows its heading and "Expand map" alone', a
 
   await expand.click()
 
-  const expanded = atlas.getByRole('dialog', { name: en.common.chrome.widget_label, exact: true })
+  // The panel inside is a dialog too, named for the page, which reads the same; the expanded map
+  // holds it, so it comes first.
+  const expanded = atlas
+    .getByRole('dialog', { name: en.common.chrome.widget_label, exact: true })
+    .first()
 
   await expect(expanded).toBeVisible()
   await expect(expanded.getByRole('link', { name: UNITED_KINGDOM })).toBeVisible()

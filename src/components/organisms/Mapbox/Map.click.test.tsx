@@ -24,7 +24,7 @@ const harness = vi.hoisted(() => ({
   geolocate: () => {},
   filters: {},
   padding: { top: 0, right: 0, bottom: 0, left: 0 },
-  locale: { t: (key: string) => key, locale: 'en', languageCode: 'en' },
+  locale: { t: (key: string) => key, locale: 'en', formatLocale: 'en-US', languageCode: 'en' },
   mapbox: {
     getLanguage: () => 'en',
     getZoom: () => 5,
@@ -64,8 +64,7 @@ vi.mock('@/hooks/use-filters', () => ({ useEventFilters: () => harness.filters }
 vi.mock('@/hooks/use-region-matcher', () => ({ useRegionMatcher: () => undefined }))
 vi.mock('@/hooks/use-geolocate', () => ({ useGeolocateToSearch: () => harness.geolocate }))
 vi.mock('@/hooks/use-event-display', () => ({
-  calendarLineParts: () => ({}),
-  useEventDisplay: () => ({}),
+  useEventDisplay: () => ({ surfaces: { card: { when: {} } } }),
 }))
 vi.mock('@/config/responsive', () => ({ useHasRealPointer: () => true }))
 vi.mock('@/config/api', () => ({

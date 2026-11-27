@@ -53,6 +53,18 @@ describe('EventSlimSchema', () => {
   })
 })
 
+describe('an all-null schedule group', () => {
+  // What SahajCloud sends an inactive listing such as Stirling (event 1505).
+  const allNull = { firstDate: null, firstDate_tz: null, recurrenceType: null, upcomingDates: null }
+
+  it.each([
+    ['the feed', AgnosticFeedEventSchema, { ...mockEventSlim, schedule: allNull }],
+    ['an event read', EventDocSchema, { ...mockEvent, schedule: allNull }],
+  ] as const)('reads as no schedule in %s, not one dated 1970', (_, schema, wire) => {
+    expect(schema.parse(wire).schedule).toBeNull()
+  })
+})
+
 describe('FeedEventSchema', () => {
   it('parses a feed event (the geojson feature properties), dropping derived fields', () => {
     const parsed = FeedEventSchema.parse(mockEventSlim)
@@ -125,6 +137,19 @@ describe('EventDocSchema images', () => {
     expect(parsed.images[0].url).toBe('/api/images/file/picture-9.jpg')
     expect(parsed.images[0]).not.toHaveProperty('filename')
     expect(parsed.images[0].alt).toBe('Hall')
+  })
+
+  it('keeps the stored width and height, and tolerates an image without them', () => {
+    const parsed = EventDocSchema.parse({
+      ...mockEvent,
+      images: [
+        { id: 2, url: '/a.jpg', alt: 'Hall', width: 1200, height: 800 },
+        { id: 3, url: '/b.jpg', alt: 'Garden', width: null },
+      ],
+    })
+
+    expect(parsed.images[0]).toMatchObject({ width: 1200, height: 800 })
+    expect(parsed.images[1].width).toBeNull()
   })
 
   it('tolerates a null image url so a file-less image cannot crash the event read', () => {

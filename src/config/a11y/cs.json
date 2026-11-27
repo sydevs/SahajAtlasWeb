@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Zobrazit fotku",
-    "pause_slideshow": "Pozastavit prezentaci",
+    "photo_position": "Fotka %{current} z %{total}",
+    "previous_photo": "Předchozí fotka",
+    "next_photo": "Další fotka",
+    "close_photo": "Zavřít fotku",
     "copy_address": "Kopírovat adresu"
   },
   "filters": {
     "remove": "Odebrat: %{label}"
   },
   "search": {
-    "results_showing": "Zobrazeno událostí: %{shown} z %{total}",
+    "results_showing": "Zobrazeno lekcí: %{shown} z %{total}",
     "dismiss_nearby_prompt": "Skrýt"
   },
   "share": {

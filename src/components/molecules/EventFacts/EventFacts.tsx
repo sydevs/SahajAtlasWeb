@@ -1,37 +1,25 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import type { EventDisplayStrings, EventSurface } from '@/hooks/use-event-display'
 
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, Check, Copy, MapPin, Monitor } from 'lucide-react'
 
 import { tv } from '@/styles/tv'
-import {
-  composeCalendarLine,
-  useEventDisplay,
-  type DisplayableEvent,
-} from '@/hooks/use-event-display'
 import { useCopy } from '@/hooks/use-copy'
 
-// The when/where fact list. `default` is the panel treatment: brand-tinted
-// icons, roomy spacing. `compact` is the list-card treatment: a size under
+// The when/where fact list. `page` is the class page treatment: brand-tinted
+// icons, roomy spacing. `card` is the list-card treatment: a size under
 // the card's title, tighter spacing, and icons that shrink to the text
 // height, reading as inline text with a leading glyph, not a labelled
 // block. Its time and address keep the foreground colour, since they are
-// what a visitor came for; only the distance steps back. `card` is the
-// boxed event-details card: a `title` over the default facts on a tinted
-// rounded surface, the object being acted on above the registration and
-// share forms. Each fact has a required primary
-// line (`text`) and an optional faded second line (`subtext`).
-//
-// Presentation and composition live together here. This is the only place
-// that builds event facts, and the only thing that renders them. So a
-// generic presenter, previously a separate `Summary` molecule, was public
-// surface with a single internal consumer. It is folded in here instead.
+// what a visitor came for; only the distance steps back. `EventSummary`
+// boxes the card treatment above the registration and share forms. Each
+// fact has a required primary line (`text`) and an optional faded second
+// line (`subtext`).
+
 const facts = tv({
   slots: {
-    // `wrapper` and `title` are used only by the `card` variant. They stay empty otherwise.
-    wrapper: '',
-    title: '',
     base: 'flex flex-col',
     item: 'flex',
     icon: 'shrink-0',
@@ -39,17 +27,10 @@ const facts = tv({
     subtext: 'text-gray-11',
   },
   variants: {
-    variant: {
-      default: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
+    surface: {
+      page: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
       // Every fact takes at least 22px, so one-line facts never sit line on line.
-      compact: { base: 'gap-1.5', item: 'min-h-5.5 gap-2', icon: 'text-gray-11', text: 'text-sm' },
-      card: {
-        wrapper: 'rounded-lg border border-divider bg-gray-2 p-3',
-        title: 'mb-3 text-lg',
-        base: 'gap-2.5',
-        item: 'gap-3',
-        icon: 'text-primary',
-      },
+      card: { base: 'gap-1.5', item: 'min-h-5.5 gap-2', icon: 'text-gray-11', text: 'text-sm' },
     },
     // A two-line fact hangs its icon beside the FIRST line. A lone line centres it.
     stacked: {
@@ -58,17 +39,14 @@ const facts = tv({
     },
   },
   compoundVariants: [
-    { variant: 'default', stacked: true, class: { icon: 'mt-0.5' } },
-    { variant: 'compact', stacked: true, class: { icon: 'mt-px' } },
-    { variant: 'card', stacked: true, class: { icon: 'mt-0.5' } },
+    { surface: 'page', stacked: true, class: { icon: 'mt-0.5' } },
+    { surface: 'card', stacked: true, class: { icon: 'mt-px' } },
   ],
-  defaultVariants: { variant: 'default', stacked: false },
+  defaultVariants: { surface: 'page', stacked: false },
 })
 
-// Icon pixel size per variant. It matches the text height in the compact card.
-const ICON_SIZE = { default: 20, compact: 16, card: 20 } as const
-
-type FactVariant = 'default' | 'compact' | 'card'
+// Icon pixel size per surface. It matches the text height on the list card.
+const ICON_SIZE = { page: 20, card: 16 } as const
 
 type Fact = {
   icon: LucideIcon
@@ -79,16 +57,15 @@ type Fact = {
 }
 
 export type EventFactsProps = {
-  event: DisplayableEvent
-  /** `default` (panel), `compact` (list card), or `card` (boxed details card). */
-  variant?: FactVariant
-  /** The heading rendered above the facts. `card` variant only. */
-  title?: ReactNode
-  /** Extra content inside the `card` box, below the facts (e.g. a backlink). */
-  children?: ReactNode
+  /** The parent's `useEventDisplay(event)`, shared with its EventChips so a card resolves once. */
+  strings: EventDisplayStrings
+  /** The class page, or a list card and the summary that reuses it. */
+  surface?: EventSurface
   /** Distance from the searched location, shown faded under the address. List
    *  cards only: the panel has no search origin to measure from. */
   distance?: ReactNode
+  /** Drops every faded second line. */
+  hideSubtext?: boolean
   className?: string
 }
 
@@ -98,71 +75,34 @@ export type EventFactsProps = {
  * the address with its distance faded below, or "Online • Hosted from …"
  * with the host's own clock. One place builds this, so
  * the panel, list card, and share/registration summaries never diverge
- * (issue #52). Ended events drop the location.
- *
- * The compact (card) variant is deliberately quieter. It shows the start
- * time only, with no "Next session" line. A card is for triage. The panel
- * carries the detail.
+ * (issue #52). Ended events drop the location. What each surface says is
+ * `surfaceView`'s decision; this only renders it.
  */
 export function EventFacts({
-  event,
-  variant = 'default',
-  title,
-  children,
+  strings,
+  surface = 'page',
   distance,
+  hideSubtext = false,
   className,
 }: EventFactsProps) {
-  const {
-    display,
-    recurrenceLine,
-    whenLine,
-    eventTimeRange,
-    eventStartTime,
-    whereLine,
-    whereLineWithPostCode,
-    roomLine,
-    whereSubtext,
-  } = useEventDisplay(event)
-
-  const compact = variant === 'compact'
-  const time = compact ? eventStartTime : eventTimeRange
-
-  // The muted detail under the timing. "Started …" is only meaningful for
-  // a course, a run with an end. The "Next session" line is panel-only.
-  let timingDetail: string | undefined
-
-  if (display.next && recurrenceLine) {
-    if (display.status === 'started')
-      timingDetail = display.kind === 'course' ? whenLine : undefined
-    else if (display.status === 'running' && compact) timingDetail = undefined
-    else timingDetail = whenLine
-  }
+  const { display, surfaces, whereLine, whereLineWithPostCode, roomLine, whereSubtext } = strings
+  const { primary, time, detail } = surfaces[surface].when
 
   const items: Fact[] = [
     {
       icon: CalendarDays,
-      // The shared calendar-line composition. It is the identical string
-      // on the list card and the map-pin hover popover (#72). Recurring
-      // events lead with the pattern. One-off or terminal events lead with
-      // the when-line, since it IS the date or message. The muted
-      // `timingDetail` beneath it stays card and panel only.
-      text: composeCalendarLine({
-        recurrenceLine,
-        whenLine,
-        time,
-        hasNext: Boolean(display.next),
-      }),
-      subtext: timingDetail,
+      text: [primary, time].filter(Boolean).join(' · '),
+      subtext: detail ?? undefined,
     },
   ]
 
   if (whereLine && display.status !== 'ended') {
     // The room and the copyable address are for finding the place, so only the panel carries
-    // them. The list card and the share/registration summaries are triage and recap (#316).
-    const panel = variant === 'default'
-    const room = panel ? roomLine : null
+    // them. The list card, and the summary that reuses it, are triage and recap (#316).
+    const page = surface === 'page'
+    const room = page ? roomLine : null
     const where =
-      panel && whereLineWithPostCode ? <CopyAddress value={whereLineWithPostCode} /> : whereLine
+      page && whereLineWithPostCode ? <CopyAddress value={whereLineWithPostCode} /> : whereLine
 
     items.push({
       icon: display.online ? Monitor : MapPin,
@@ -179,23 +119,17 @@ export function EventFacts({
     })
   }
 
-  const size = ICON_SIZE[variant]
-  const card = variant === 'card'
-  const slots = facts({ variant })
+  const size = ICON_SIZE[surface]
+  const slots = facts({ surface })
 
-  // The card variant owns the outer box, so `className` styles that box.
-  // It also owns a title above the facts, and a slot below them. The other
-  // variants render just the fact column, and take `className` on it.
-  const body = (
+  return (
     // `data-sheet-fold`: the panel's facts end a class's key-facts stop (`foldHeight`).
-    <div
-      className={card ? slots.base() : slots.base({ className })}
-      data-sheet-fold={variant === 'default' || undefined}
-    >
-      {items.map(({ icon: Icon, text, subtext, stacked }, index) => {
+    <div className={slots.base({ className })} data-sheet-fold={surface === 'page' || undefined}>
+      {items.map(({ icon: Icon, text, subtext: line, stacked }, index) => {
+        const subtext = hideSubtext ? undefined : line
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
-        const styles = facts({ variant, stacked: Boolean(subtext) || Boolean(stacked) })
+        const styles = facts({ surface, stacked: Boolean(subtext) || Boolean(stacked) })
 
         return (
           <div key={index} className={styles.item()}>
@@ -211,42 +145,27 @@ export function EventFacts({
       })}
     </div>
   )
-
-  if (!card) return body
-
-  return (
-    <div className={slots.wrapper({ className })}>
-      {title != null && <div className={slots.title()}>{title}</div>}
-      {body}
-      {children}
-    </div>
-  )
 }
 
 /** The class page's street address, which copies itself when tapped. The Directions action beside
- *  it opens Google Maps from the stored point (`lib/events.ts`), so the clipboard is the only
- *  route to any other maps app — Apple Maps is the iOS default. */
+ *  it opens one maps app from the stored point (`lib/events.ts`: Apple Maps on iOS, else Google),
+ *  so the clipboard is the only route to any other. */
 function CopyAddress({ value }: { value: string }) {
   const { t } = useTranslation()
   const { copied, copy } = useCopy(2000)
 
   const status = copied ? t('common.chrome.copied') : ''
 
-  // A refused copy selects the address instead, ready to copy by hand. The button's only text is
-  // the address, since the icon is `aria-hidden` and empty, so its children ARE the address. The
-  // element comes in as an argument because `currentTarget` is null once the copy has awaited.
-  const onClick = async (button: HTMLButtonElement) => {
-    if (!(await copy(value))) window.getSelection()?.selectAllChildren(button)
-  }
-
   return (
     <>
       <button
         data-vaul-no-drag
         aria-label={`${t('event.a11y.copy_address')}: ${value}`}
-        className="touch-target relative rounded-lg text-start outline-none select-text focus-visible:ring-2 focus-visible:ring-focus"
+        className="touch-target relative rounded-lg text-start focus-ring select-text"
         type="button"
-        onClick={(event) => void onClick(event.currentTarget)}
+        // A refused copy selects the address, ready to copy by hand: the icon is `aria-hidden` and
+        // empty, so the button's children ARE the address.
+        onClick={(event) => void copy(value, event.currentTarget)}
       >
         {/* The address stays laid out under "Copied", so a wrapped line keeps its height. Inline,
             so the icon follows its last word. */}

@@ -16,15 +16,18 @@ Before hand-rolling UI, check in this order:
 1. **`src/components/atoms/`** — its atoms already exist and carry the app's tokens
    and focus behavior. Drawer (vaul) is the surface for anything that is a _place_ in
    the URL-driven stack. Modal (Radix Dialog) is the ephemeral surface that never
-   touches the URL or history. `Combobox` is the search-in-the-field picker; `Select` is
-   the plain list picker. Every form-control atom shares one error and active-state
-   interface: **`isInvalid`**
+   touches the URL or history. `Select` is the list picker. Every form-control atom
+   shares one error and active-state interface: **`isInvalid`**
    (danger visual plus `aria-invalid`, with `aria-describedby` for the error text)
    and **`highlight`** (tints the _unselected_ state, no layout shift, to flag an
    active filter). See `DESIGN_SYSTEM.md`.
 2. **Radix** for an unstyled primitive to build on. Radix owns the interaction and
    ARIA. We own the Tailwind skin.
 3. Only then write something new, in the right atomic tier per `DESIGN_SYSTEM.md`.
+
+**Every form is one kit**: `FormField` around the form atoms, wired through its render prop.
+Don't hand-roll a radio, a segmented control or a field shell. `DESIGN_SYSTEM.md` § One form kit
+lists the set, and the FormField story's "Form atoms" section shows it.
 
 ## Styling
 
@@ -54,7 +57,7 @@ pipeline or its check.
   the shadow root; `scripts/postcss-scope-widget.mjs` owns that argument. It runs
   last in the PostCSS chain and rewrites every emitted selector to `:where(.sy-atlas)`
   — Preflight, generated utilities, and the third-party sheets we `@import` (mapbox-gl,
-  swiper, vaul, Radix Colors) included — and it namespaces every `@keyframes`.
+  vaul, Radix Colors) included — and it namespaces every `@keyframes`.
   `scripts/assert-css-scoped.mjs` reads the CSS back out of the built bundle and
   fails `pnpm build` if anything escapes. Write plain selectors in `globals.css`.
   Hand-scoping is not required. Three namespaces are document-global and carry no
@@ -198,7 +201,7 @@ browser window.** Every decision names one of three signals
 
 **Reaching for the wrong signal fails silently**, so `src/config/responsive.test.ts`
 asserts the viewport call sites as a closed list, the way `href.test.ts` pins the
-app's three JSX anchors. A fourth call site turns the unit lane red instead of
+app's JSX anchors. A fourth call site turns the unit lane red instead of
 shipping a narrow embed that quietly behaves like a desktop.
 
 | Behavior | Signal | Why |
@@ -522,10 +525,10 @@ this table or the folklore it fixes. On the frame itself both are deliberate, an
 **Do not render a bare `<a href={…}>`.** Use the `Link` atom. If a component
 genuinely must emit its own anchor, its href must go through **`isSafeHref`**
 (`src/lib/shape/href.ts`) first — `safePath`-clean, or an allowed scheme — and a
-refusal reports via `reportInternalError` and degrades to inert content. Exactly
-three components render a JSX anchor (`Link`, `Button`'s href form, `ActionRow`'s
-`ActionCircle`), and `src/lib/shape/href.test.ts` **asserts** that inventory, so a
-fourth turns the unit lane red until it is gated.
+refusal reports via `reportInternalError` and degrades to inert content. Only
+`Link` and `Button`'s href form render a JSX anchor, and
+`src/lib/shape/href.test.ts` **asserts** that inventory, so another
+turns the unit lane red until it is gated.
 
 For why this is a shared predicate rather than a per-component check, and why
 "site-relative" must mean `safePath` rather than `startsWith('/')`, see
@@ -545,13 +548,16 @@ replaces the other.
 
 **The 44px tap floor is met by growing an invisible area, not by redrawing the control.**
 `touch-target` (`globals.css`) puts a 44px `::after` on a smaller control, under
-`(pointer: coarse)` alone, so nothing moves on a desktop. It needs `relative` beside it, and
+`TOUCH_ONLY_QUERY` (`config/responsive.ts`), so a touchscreen laptop's mouse meets no area it
+cannot see and nothing moves on a desktop. A drawn `pointer-coarse:` size still asks
+`(pointer: coarse)` alone. It needs `relative` beside it, and
 three things defeat it:
 
 - **`overflow: hidden` clips it**, so a `truncate` on the control itself takes the area away and
   leaves the class in the DOM saying nothing. Put `truncate` on an inner span.
 - **An `<input>` renders no pseudo-element at all**, so a field takes a drawn
-  `pointer-coarse:h-11` instead — `fieldChrome` and the geocoder's own input both do.
+  `pointer-coarse:h-11` instead — `fieldChrome` (through the `field-height` utility) and the
+  geocoder's own input both do.
 - **Two such areas that meet take each other's pixels**, the later element winning every shared
   one, so both controls measure short. Controls that sit flush — the toggle group's items — are
   drawn at 44px instead, and rows that sit close get `pointer-coarse:` spacing. The gate
@@ -560,6 +566,12 @@ three things defeat it:
 ⚠ **Join the classes with `tv()`, never `clsx`, wherever a caller may pass its own position.**
 `relative` is later than `absolute` and `fixed` in Tailwind's own order, so a joined list wins
 the cascade and unpins the caller's control. `SettingsMenu`'s trigger carries that story.
+
+**Keyboard focus is one outline: a control takes `focus-ring`, never its own `ring-*`.** A box
+whose focus lands on a hidden control inside it takes `focus-outline` behind its own state, as the
+choice card does. `src/styles/focus-ring.test.ts` holds both. ⚠ The geocoder field's box restates
+the drawing in `Mapbox/themes.ts`: its class names are seeded per instance, so no utility can be
+put on it.
 
 ⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one**, so
 closing dropped the viewer on `<body>` (#432). `useOpenerRestore` (`src/hooks/`) is the one
@@ -571,8 +583,7 @@ and the comment there says why neither end is spare.
 **An accessible name must contain the control's own visible text** (WCAG 2.5.3): a speech-input
 viewer says what they can see. So a weekday pill reading `Mon` is named `Mon`, not `Monday`; a
 value-showing trigger is named `<field>: <value>`; and a copy button whose content is a URL
-carries that URL in its name. Radix's `Select` trigger is exempt by taking `role="combobox"`,
-which our `Combobox`'s trigger deliberately does not.
+carries that URL in its name. Radix's `Select` trigger is exempt by taking `role="combobox"`.
 
 **Text colour comes from the ramp's step 11, never the bare token, which is step 9** — a solid
 background colour. `text-contrast` measured 3.22:1 on the light background. ⚠ Step 11 is
@@ -583,9 +594,8 @@ section's panel) needs step 12 or a lighter surface — measure it, do not assum
 for more than five seconds needs a visible, keyboard-operable control to stop it, and
 must not move at all under `prefers-reduced-motion: reduce` — read live via
 **`usePrefersReducedMotion`** (`src/hooks/use-reduced-motion.ts`), not a one-shot
-read at mount. The image carousel is the worked example: its pause/play toggle keeps
-one accessible name while `aria-pressed` carries the state, and it renders only when
-the carousel actually autoplays.
+read at mount. A toggle for it keeps one accessible name while `aria-pressed` carries the
+state, and renders only when the thing actually moves.
 
 **The rest of the app's motion is off under that preference too, through four
 seams — one per animation technology** (issue #102):
@@ -625,4 +635,4 @@ can render in a Suspense fallback before translation bundles load.
 **A control on the drawer needs `data-vaul-no-drag`.** vaul reads a tap carrying any
 micro-movement as a drag and swallows the click, so a control without this attribute
 fires only intermittently on touch. The `Button` atom sets it for you. Anything
-hand-rolled (`ActionRow`, the carousel's pause button) must carry it itself.
+hand-rolled (the image gallery's tiles) must carry it itself.

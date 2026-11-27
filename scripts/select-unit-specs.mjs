@@ -39,10 +39,10 @@ export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
  * browser lanes' specs, which this lane excludes. One list, because a directory whose specs are
  * indexed but whose sources are refused selects nothing for its own edits.
  */
-const LANE_DIRS = ['src', 'scripts']
+const LANE_DIRS = ['src', 'scripts', 'worker']
 
 const SPEC = /\.(test|spec)\.(ts|tsx)$/
-/** `.mjs` is here for `scripts/`, which ships its sources as modules and its specs as TypeScript. */
+/** `.mjs` is here for `scripts/` and `worker/`, which ship their sources as modules and their specs as TypeScript. */
 const SOURCE_EXT = /\.(ts|tsx|mjs)$/
 
 /**

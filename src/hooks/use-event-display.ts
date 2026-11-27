@@ -1,7 +1,7 @@
-import type { DisplayEventLike, EventDisplay } from '@/lib/shape'
+import type { DisplayEventLike, EventDisplay, EventKind, EventStatus } from '@/lib/shape'
 import type { EventAddress, RegionRef } from '@/types'
+import type { DateTime } from 'luxon'
 
-import { DateTime } from 'luxon'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -13,7 +13,7 @@ import {
   scheduleNamesZone,
   streetAndCity,
 } from '@/lib/shape'
-import { formatTimeRange, sameWallClock, zoneCity } from '@/lib/time'
+import { formatDate, formatTimeRange, formatWeekday, sameWallClock, zoneCity } from '@/lib/time'
 
 /** This is what the formatting layer reads on top of the resolver input: the address and
  *  region refs that feed the where and origin strings, when the surface has them. */
@@ -25,25 +25,8 @@ export type DisplayableEvent = DisplayEventLike & {
 export type EventDisplayStrings = {
   /** The raw resolved state, for surfaces that need more than strings. */
   display: EventDisplay
-  /** "Weekly class" / "Course · 8 sessions" / "One-off event". Null for a by-request listing,
-   *  which carries no schedule and so has no type to name. */
-  typeLabel: string | null
-  /** This is true for a plain weekly class, the default shape. Its `typeLabel` adds
-   *  nothing on a compact surface, so the list card skips its type pill. */
-  isDefaultType: boolean
-  /** Status chip text, or null when the state shows no chip. */
-  statusChip: string | null
-  /** This is the templated recurrence pattern, such as "Every Wednesday." It is approximate and secondary. */
-  recurrenceLine: string | null
-  /** This is the authoritative next-session, first-session, or terminal line. */
-  whenLine: string
-  /** This is the next occurrence's start and end time, in the display zone, such as
-   *  "7:30 PM – 8:30 PM London time." The clock is named only where it tells the viewer
-   *  something (see the times block below). This is null in terminal states. */
-  eventTimeRange: string | null
-  /** This is the next occurrence's start time only, such as "7:30 PM London time," named on the
-   *  same terms as the range. The compact card uses this. */
-  eventStartTime: string | null
+  /** What each surface shows, decided in one place by {@link surfaceView}. */
+  surfaces: Record<EventSurface, EventSurfaceView>
   /** This is a one-line location: hosted-from for an online event, street and city for a physical one. */
   whereLine: string
   /** `whereLine` with the postcode, for the class page: "120 Heath St, London NW3 1DR". Null when
@@ -73,45 +56,75 @@ const WEEK_NUMBER_KEYS = {
   '-1': 'event.recurrence.monthly_last',
 } as const
 
-type CalendarLineArgs = {
-  recurrenceLine: string | null
-  whenLine: string
-  time: string | null
+/** Where an event shows: its class page, or a list card (and the summary that reuses it). */
+export type EventSurface = 'page' | 'card'
+
+export type EventSurfaceView = {
+  /** The calendar fact. `primary` leads: the pattern ("Every Wednesday") for a recurring event,
+   *  else the when line, which is the date or a message. `detail` is faded beneath it. */
+  when: { primary: string; time: string | null; detail: string | null }
+  /** "Weekly class", "Course · 8 sessions", "One-off class", or null. */
+  type: string | null
+  /** The Today chip. A full class gets none, so it never invites joining a session it cannot;
+   *  its faded line still says "Today". */
+  today: boolean
+}
+
+/** What {@link surfaceView} chooses between: the resolved state and its strings. */
+export type SurfaceParts = {
+  status: EventStatus
+  kind: EventKind
+  full: boolean
   hasNext: boolean
+  /** The pattern, such as "Every Wednesday", set only for a recurring event with a session ahead. */
+  recurrenceLine: string | null
+  /** The next-session, first-session, or terminal line. */
+  whenLine: string
+  /** The next session's start, with its clock named where that tells the viewer something. */
+  startTime: string | null
+  /** The same with its end. */
+  timeRange: string | null
+  /** Null for an inactive listing. */
+  typeLabel: string | null
+  /** A plain weekly class, the default shape. */
+  isDefaultType: boolean
 }
 
 /**
- * This is the decomposed calendar fact: the lead line, `primary`, and the time that accompanies it.
- * That time is `null` when a one-off or terminal line has no upcoming time.
- * This is the single place the recurrence-versus-when-line choice and the `hasNext` gate live.
- * So the one-line list card, through `composeCalendarLine`, and the two-line map-pin popover,
- * `EventPinCard`, which stacks the parts instead of joining them, can never drift. See #72.
- *
- * `time` is the surface's chosen time string: the start only, for the compact card or popover,
- * or the full start-to-end range, for the panel.
- * `hasNext` gates the time onto a one-off or terminal line.
- * That line's when-line already carries the date or a message, and it may have no upcoming occurrence to time.
+ * Decides what one surface says about an event, so no component re-derives state. "Today" shows
+ * once on every surface: a card that leads with its pattern carries it as a chip and drops the
+ * faded line; everywhere else the when line says it. The list card (#72) and the map-pin popover
+ * read the same `card` view, so the two cannot drift.
  */
-export function calendarLineParts({ recurrenceLine, whenLine, time, hasNext }: CalendarLineArgs): {
-  primary: string
-  time: string | null
-} {
-  return recurrenceLine
-    ? { primary: recurrenceLine, time }
-    : { primary: whenLine, time: hasNext ? time : null }
-}
+export function surfaceView(parts: SurfaceParts, surface: EventSurface): EventSurfaceView {
+  const { status, kind, full, hasNext, recurrenceLine, whenLine } = parts
+  const card = surface === 'card'
+  // A card is for triage: the start time, and no "Next session" line. The panel carries the detail.
+  const time = card ? parts.startTime : parts.timeRange
+  const todayChip = card && recurrenceLine !== null && status === 'today' && !full
 
-/**
- * This composes the compact calendar fact.
- * It joins the repeat pattern, or for a one-off or terminal event the authoritative when-line,
- * to the occurrence time with a middot.
- * It delegates the gating to {@link calendarLineParts}, so it shares a single source of truth with the map-pin popover. See #72.
- * The list card, `EventFacts`, uses this.
- */
-export function composeCalendarLine(args: CalendarLineArgs): string {
-  const { primary, time } = calendarLineParts(args)
+  if (!recurrenceLine) {
+    // A one-off or terminal line is the date or the message itself, so it takes a time only
+    // when a session is ahead.
+    return {
+      when: { primary: whenLine, time: hasNext ? time : null, detail: null },
+      type: parts.typeLabel,
+      today: false,
+    }
+  }
 
-  return [primary, time].filter(Boolean).join(' · ')
+  // "Started …" means something only for a course, a run with an end.
+  let detail: string | null = whenLine
+
+  if (status === 'started') detail = kind === 'course' ? whenLine : null
+  else if (card && (status === 'running' || todayChip)) detail = null
+
+  return {
+    when: { primary: recurrenceLine, time, detail },
+    // The plain weekly class is the default shape, and naming it on a card adds nothing.
+    type: card && parts.isDefaultType ? null : parts.typeLabel,
+    today: todayChip,
+  }
 }
 
 /**
@@ -121,7 +134,7 @@ export function composeCalendarLine(args: CalendarLineArgs): string {
  */
 export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
   const { t } = useTranslation()
-  const { locale } = useLocale()
+  const { locale, formatLocale } = useLocale()
   // The resolver reads the wall clock.
   // A stable event identity, through TanStack's structural sharing, would otherwise freeze
   // "Today" and open-versus-closed for as long as a surface stays mounted.
@@ -133,10 +146,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     const schedule = event.schedule
     const { kind, status, full, next, nextEnd, origin, firstSession, sessions } = display
 
-    const date = (dt: DateTime) =>
-      dt.setLocale(locale).toLocaleString({ weekday: 'short', day: 'numeric', month: 'short' })
-    const shortDate = (dt: DateTime) =>
-      dt.setLocale(locale).toLocaleString({ day: 'numeric', month: 'short' })
+    const date = (dt: DateTime) => formatDate(dt, formatLocale)
+    const shortDate = (dt: DateTime) => formatDate(dt, formatLocale, { weekday: false })
 
     const sessionsLabel =
       sessions != null ? t('event.display.sessions_count', { count: sessions }) : null
@@ -144,12 +155,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     // ── Type label (derived, never host-set) ──
     let typeLabel: string | null
 
-    // A by-request listing carries no schedule, so the resolver derives `oneoff` from the
-    // absent recurrence and "One-off event" would be simply wrong. "Contact host for timings"
-    // already says what it is. A real one-off has a schedule, inactive or not, and keeps its
-    // label.
-    if (!schedule) typeLabel = null
-    else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff')
+    // "Contact host for timings" already says what an inactive listing is.
+    if (status === 'inactive') typeLabel = null
+    else if (kind === 'oneoff') typeLabel = t('event.display.type_oneoff_class')
     else if (kind === 'course')
       typeLabel = sessionsLabel
         ? `${t('event.display.type_course')} · ${sessionsLabel}`
@@ -168,24 +176,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       else typeLabel = t('event.display.type_class')
     }
 
-    // The plain weekly class is the default shape.
-    // Naming it on a compact surface, the list card's pill, adds nothing, so cards skip it.
     const isDefaultType =
       kind === 'class' && schedule?.recurrenceType === 'WEEKLY' && (schedule?.interval ?? 1) === 1
-
-    // ── Status chip ──
-    const chipDate = firstSession ?? next
-    let statusChip: string | null = null
-
-    if (full) statusChip = t('event.display.chip_full')
-    else if (status === 'today') statusChip = t('event.display.chip_today')
-    // The upcoming state announces the occurrence that is actually coming, `next`.
-    // Under `firstDate` and `upcomingDates` drift, `firstSession` can be a stale past instant.
-    else if (status === 'upcoming' && next)
-      statusChip = t('event.display.chip_starts', { date: shortDate(next) })
-    else if (status === 'started' && chipDate)
-      statusChip = t('event.display.started_on', { date: shortDate(chipDate) })
-    else if (status === 'ended') statusChip = t('event.display.chip_ended')
 
     // ── Recurrence pattern line (weekday labels from display-zone instants) ──
     let recurrenceLine: string | null = null
@@ -193,9 +185,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (next && recurrence) {
       const interval = schedule?.interval ?? 1
-      const weekdayNames = display.weekdayInstants.map((dt) =>
-        dt.setLocale(locale).toLocaleString({ weekday: 'long' }),
-      )
+      const weekdayNames = display.weekdayInstants.map((dt) => formatWeekday(dt, formatLocale))
       const weekdays = new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(
         weekdayNames,
       )
@@ -214,16 +204,17 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
               : t('event.recurrence.weekly_1', { weekday: weekdays })
       } else if (schedule?.monthlyMode === 'weekday' && schedule.weekNumber)
         recurrenceLine = t(WEEK_NUMBER_KEYS[schedule.weekNumber], {
-          weekday: next.setLocale(locale).toLocaleString({ weekday: 'long' }),
+          weekday: formatWeekday(next, formatLocale),
         })
       else recurrenceLine = t('event.recurrence.monthly_date', { day: next.day })
     }
 
     // ── The authoritative when-line ──
+    const chipDate = firstSession ?? next
     let whenLine: string
 
     if (status === 'inactive') whenLine = t('event.display.contact_for_timing')
-    else if (status === 'ended') whenLine = t('event.display.event_ended')
+    else if (status === 'ended') whenLine = t('event.display.class_ended')
     else if (status === 'today') whenLine = t('event.display.chip_today')
     else if (status === 'upcoming')
       whenLine =
@@ -255,9 +246,9 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
         ? t('event.display.zone_time', { city: zoneCity(next.zoneName) })
         : null
     const withZone = (time: string) => (zoneLabel ? `${time} ${zoneLabel}` : time)
-    const eventStartTime = next ? withZone(formatTimeRange(next, null, locale)) : null
+    const eventStartTime = next ? withZone(formatTimeRange(next, null, formatLocale)) : null
     const eventTimeRange = next
-      ? withZone(formatTimeRange(next, schedule?.endTime ? nextEnd : null, locale))
+      ? withZone(formatTimeRange(next, schedule?.endTime ? nextEnd : null, formatLocale))
       : null
 
     const originCity = event.address?.city ?? event.region?.name ?? zoneCity(origin?.zoneName)
@@ -294,10 +285,8 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     if (origin && next && !sameWallClock(origin, next)) {
       whereSubtext = [
-        origin.weekday !== next.weekday
-          ? origin.setLocale(locale).toLocaleString({ weekday: 'short' })
-          : null,
-        formatTimeRange(origin, null, locale),
+        origin.weekday !== next.weekday ? formatWeekday(origin, formatLocale, 'short') : null,
+        formatTimeRange(origin, null, formatLocale),
         namesZone ? t('event.display.zone_time', { city: zoneCity(origin.zoneName) }) : null,
       ]
         .filter(Boolean)
@@ -312,7 +301,7 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
     )
     const microcopy: string[] = []
 
-    if (full) microcopy.push(t('event.display.event_full'))
+    if (full) microcopy.push(t('event.display.class_full'))
     else if (display.registration === 'open') {
       // The course note leads. The online mechanics note renders second. See issue #52.
       if (kind === 'course') microcopy.push(t('event.display.registration_required'))
@@ -329,24 +318,34 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
 
     // This is one state-to-copy mapping for every surface that blocks registration.
     const blockedMessage = full
-      ? t('event.display.event_full')
+      ? t('event.display.class_full')
       : display.status === 'ended'
-        ? t('event.display.event_ended')
+        ? t('event.display.class_ended')
         : display.registration === 'closed'
           ? t('event.display.registration_closed')
           : display.registration === 'hidden'
             ? t('event.display.contact_for_timing')
             : null
 
-    return {
-      display,
-      typeLabel,
-      isDefaultType,
-      statusChip,
+    const parts: SurfaceParts = {
+      status,
+      kind,
+      full,
+      hasNext: next !== null,
       recurrenceLine,
       whenLine,
-      eventTimeRange,
-      eventStartTime,
+      startTime: eventStartTime,
+      timeRange: eventTimeRange,
+      typeLabel,
+      isDefaultType,
+    }
+
+    return {
+      display,
+      surfaces: {
+        page: surfaceView(parts, 'page'),
+        card: surfaceView(parts, 'card'),
+      },
       whereLine,
       whereLineWithPostCode,
       roomLine,
@@ -357,5 +356,5 @@ export function useEventDisplay(event: DisplayableEvent): EventDisplayStrings {
       blockedMessage,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `minute` is the invalidation trigger: the resolver reads the wall clock itself
-  }, [event, locale, t, minute])
+  }, [event, locale, formatLocale, t, minute])
 }

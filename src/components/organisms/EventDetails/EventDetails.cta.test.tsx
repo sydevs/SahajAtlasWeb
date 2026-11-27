@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, it, expect, vi } from 'vitest'
 
-import { EventDetails } from './EventDetails'
+import { EventDetails, type EventDetailsProps } from './EventDetails'
 
 import { mockEvent } from '@/mocks/events'
 
@@ -31,9 +31,14 @@ vi.mock('./sanitize', () => ({
   sanitizeDescription: (html: string) => html,
 }))
 
-const panel = (ctaInline?: boolean) =>
+const panel = (registerInline?: boolean) =>
   renderToStaticMarkup(
-    <EventDetails basePath="/gb/london/1" ctaInline={ctaInline} event={mockEvent} />,
+    <EventDetails
+      basePath="/gb/london/1"
+      event={mockEvent}
+      registerInline={registerInline}
+      strings={{} as EventDetailsProps['strings']}
+    />,
   )
 
 describe('EventDetails — where the calls to action render', () => {
@@ -45,17 +50,18 @@ describe('EventDetails — where the calls to action render', () => {
     expect(markup.indexOf('register-slot')).toBeLessThan(markup.indexOf('actions-slot'))
   })
 
-  it('renders neither when the sticky footer owns them', () => {
+  // Only Register pins to the phone sheet's footer. The action row stays in the panel, where
+  // a visitor scrolling the class still finds Directions, Contact and Share.
+  it('keeps the action row when the sticky footer owns Register', () => {
     const markup = panel(false)
 
     expect(markup).not.toContain('register-slot')
-    expect(markup).not.toContain('actions-slot')
+    expect(markup).toContain('actions-slot')
   })
 
   // The rest of the panel is unaffected, so a reader who drags the sheet up still gets
-  // the facts and the prose. Without this, "renders neither" also passes for a panel
-  // that rendered nothing at all.
-  it('keeps the rest of the panel when the footer owns them', () => {
+  // the facts and the prose.
+  it('keeps the rest of the panel when the footer owns Register', () => {
     const markup = panel(false)
 
     expect(markup).toContain('facts-slot')

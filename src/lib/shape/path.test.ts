@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 
 import {
+  baseStackEntry,
+  noPlaceSearch,
+  placeFiltersPath,
   placePathsOf,
   placedPathname,
   childRoute,
@@ -9,12 +12,14 @@ import {
   listResetKey,
   nearestKnownRegion,
   parentOf,
+  parseBounds,
   parseCenter,
   placeSearchPath,
   resolvePath,
   resolveStack,
   safePath,
   topViewKey,
+  viewLayerKey,
 } from './path'
 
 describe('safePath', () => {
@@ -217,6 +222,15 @@ describe('resolveStack', () => {
       { kind: 'region', slug: 'belgium', path: '/belgium' },
       { kind: 'region', slug: 'liège', path: '/belgium/li%C3%A8ge' },
     ])
+  })
+})
+
+describe('parseBounds', () => {
+  it('reads four finite numbers, and nothing else', () => {
+    expect(parseBounds('-0.51,51.28,0.33,51.69')).toEqual([-0.51, 51.28, 0.33, 51.69])
+    expect(parseBounds('-0.51,51.28,0.33')).toBeUndefined()
+    expect(parseBounds('a,b,c,d')).toBeUndefined()
+    expect(parseBounds(null)).toBeUndefined()
   })
 })
 
@@ -466,5 +480,28 @@ describe('topViewKey', () => {
   // change": the same SearchView must re-frame when `?center` moves.
   it('is unchanged by a re-search on the same view', () => {
     expect(topViewKey('/search')).toBe(topViewKey('/search'))
+  })
+})
+
+describe('viewLayerKey', () => {
+  it('keeps the filter drawer one layer when Near me moves it onto a search', () => {
+    const over = (pathname: string) => viewLayerKey(baseStackEntry(resolveStack(pathname), false))
+
+    expect(over('/filters')).toBe(over('/search/filters'))
+    expect(over('/search')).not.toBe(over('/search/filters'))
+  })
+})
+
+describe('the filter drawer over a place search', () => {
+  const params = new URLSearchParams('days=2&region=gb&q=Leeds&center=-1.5,53.8')
+
+  it('moves the drawer onto the new place, keeping the answers and dropping the region', () => {
+    expect(placeFiltersPath(params, { center: [-0.128, 51.507], q: 'London' })).toBe(
+      '/search/filters?days=2&q=London&center=-0.128%2C51.507',
+    )
+  })
+
+  it('drops the place and the region, keeping the answers', () => {
+    expect(noPlaceSearch(params)).toBe('days=2')
   })
 })

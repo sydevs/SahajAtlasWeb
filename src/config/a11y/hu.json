@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Fotó megtekintése",
-    "pause_slideshow": "Diavetítés szüneteltetése",
+    "photo_position": "%{current}. fotó / %{total}",
+    "previous_photo": "Előző fotó",
+    "next_photo": "Következő fotó",
+    "close_photo": "Fotó bezárása",
     "copy_address": "Cím másolása"
   },
   "filters": {
     "remove": "Eltávolítás: %{label}"
   },
   "search": {
-    "results_showing": "Megjelenítve: %{shown} / %{total} esemény",
+    "results_showing": "Megjelenítve: %{shown} / %{total} foglalkozás",
     "dismiss_nearby_prompt": "Elvetés"
   },
   "share": {

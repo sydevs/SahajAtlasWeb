@@ -4,6 +4,7 @@ import { type Root, createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Drawer, DrawerBody, DrawerContent, type DrawerProps } from './Drawer'
+import { STICKY_FOOTER_CLEARANCE } from './drawer-style'
 
 import { readRepoSource } from '@/test-support/repo-source'
 
@@ -96,29 +97,35 @@ describe('Drawer — the panel cannot scroll', () => {
 })
 
 /**
- * Where a sticky footer's SCROLL clearance lives: at its one caller (issue #326).
+ * Where a sticky footer's SCROLL clearance lives: `STICKY_FOOTER_CLEARANCE`, on each body beside
+ * a `sticky` DrawerFooter (issue #326) — EventView's Register bar and the sign-up form's.
  *
  * The body slot's own trailing spacer clears the content at the footer's published height
  * (#320, `Drawer.sticky.test.tsx`). That leaves focus, which a spacer cannot stop parking a
- * field behind the bar — only `scroll-padding-bottom` does. `EventView`'s Register bar is the
- * app's only `sticky` DrawerFooter, so the ten other drawer bodies have nothing to clear and
- * carry none.
+ * field behind the bar — only `scroll-padding-bottom` does.
  *
  * It carries `--sy-sheet-top` on top of the height because the body's bottom edge sits that far
  * below the viewport at any snap but the top one. Measured in Chrome at 390×844 on the branch
  * preview, sheet at its 544px snap: the body's bottom edge was 519px below the viewport, so the
  * bar's height alone parked a focused field off-screen instead of above the bar.
  */
-describe('the sticky register bar’s clearance', () => {
-  const eventView = readRepoSource('src/views/EventView/EventView.tsx')
-  const classes = eventView.match(/stickyRegister\s*\n?\s*\? '([^']+)'/)?.[1].split(/\s+/)
-
-  it('scroll-pads the one body with a footer to clear, at the published height', () => {
+describe('the sticky footer’s clearance', () => {
+  it('scroll-pads at the published height plus the sheet’s top, and nothing fixed', () => {
     // Tokens, not a substring: `overlay.clip.test.ts` carries the defect that settled that.
-    // A null here means the class moved and every assertion below would pass by vacuum.
-    expect(classes, 'no `stickyRegister ? …` class string in EventView').toBeDefined()
+    const classes = STICKY_FOOTER_CLEARANCE.split(/\s+/)
+
     expect(classes).toContain('scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))]')
     // A constant here is what #320 measured wrong in both directions.
-    expect(classes!.filter((token) => /^p[btrlxy]?-/.test(token))).toEqual([])
+    expect(classes.filter((token) => /^p[btrlxy]?-/.test(token))).toEqual([])
   })
+
+  it.each(['src/views/EventView/EventView.tsx', 'src/views/RegistrationView/RegistrationView.tsx'])(
+    'is what %s pads a pinned body with',
+    (path) => {
+      const source = readRepoSource(path)
+
+      expect(source).toMatch(/<DrawerFooter[\s\S]*?sticky/)
+      expect(source).toMatch(/\? STICKY_FOOTER_CLEARANCE :/)
+    },
+  )
 })

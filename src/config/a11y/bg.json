@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Преглед на снимката",
-    "pause_slideshow": "Пауза на слайдшоуто",
+    "photo_position": "Снимка %{current} от %{total}",
+    "previous_photo": "Предишна снимка",
+    "next_photo": "Следваща снимка",
+    "close_photo": "Затваряне на снимката",
     "copy_address": "Копиране на адреса"
   },
   "filters": {
     "remove": "Премахване: %{label}"
   },
   "search": {
-    "results_showing": "Показани събития: %{shown} от %{total}",
+    "results_showing": "Показани занимания: %{shown} от %{total}",
     "dismiss_nearby_prompt": "Скриване"
   },
   "share": {

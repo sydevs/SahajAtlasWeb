@@ -458,7 +458,8 @@ backend, and a key that backend accepts. The seeded local backend refuses both k
 `.env.local` (the header of `scripts/serve-embed-review.mjs`), a fork's CI holds no key at all, and
 a run against production would test production's data rather than this commit. So the lane
 brings its own backend: every SahajCloud request is answered from `src/mocks/sahajcloud.ts`, keyed to
-`SAHAJCLOUD_API_KEY`, Mapbox from a minimal style, and the IP lookup from a refusal. That also makes the
+`SAHAJCLOUD_API_KEY`, Mapbox from a minimal style. The review server answers the app Worker's `/geo.js` with no
+location, so no scenario shows the nearby suggestion. That also makes the
 lane deterministic, since nothing it reads changes under it, and lets a fork and a merge-queue
 entry run it exactly as a pull request does — which is what lets it be a required check.
 
@@ -572,7 +573,7 @@ browser 131** — and the browser's 80 contrast failures and 24 label-in-name fa
 among the 31, which is the whole argument. (The browser figure is from the 49 stories that
 rendered; three forms timed out in that first pass.)
 
-Five things about it are deliberate:
+Seven things about it are deliberate:
 
 - **The quiet period it waits for cannot close until the story has changed the page once.** `load`
   fires before React mounts, so a run that looked in that gap found the page quiet because nothing
@@ -581,6 +582,28 @@ Five things about it are deliberate:
   either way — a green required check that had read nothing. With the first mutation required,
   three runs measured 645, 655 and 655 controls, clean, in about 43s (2026-11-22, 4 cores).
   ⚠ A story that mutates nothing is still released by the 4s cap, so the wait cannot hang the gate.
+- **Nor can it close while a loading placeholder (`data-sy-loading`) is on the page, and a
+  recount checks the read was whole** (#515). React holds a Suspense boundary's content back at
+  least 300ms after its fallback commits (react-dom 19's `FALLBACK_THROTTLE_MS`), so a view that
+  draws a skeleton first goes quiet for longer than the 250ms window: `views--event` and its
+  sticky-register sibling were audited on the skeleton — 2 tab stops on one run, 12 on the next,
+  one build (#509). The tab stops are counted before axe runs, after the probe, and again 100ms
+  later; a changed count, a control the audit never stamped, or a placeholder still on the
+  page fails the story as **`unsettled`**, with no other verdict. `PLACEHOLDER_STORIES` lists the
+  one story whose skeletons are the subject.
+  ⚠ **The marker covers skeleton phases only, so do not shorten the quiet window to win time
+  back.** The boot spinner, the lazy map library and a late row in `views--countries` carry no
+  marker: at a 50ms window, 7 of 18 reads of those stories were partial (2026-11-26).
+  Measured 2026-11-26 on 11 cores: five full runs measured 689 controls each, about 49s against
+  41s before. With the placeholder wait off and a 50ms window, the recount reported the
+  skeleton read on every run.
+- **The keyboard walk starts from an anchor it focuses at the top of the body, and an empty walk
+  is a finding** (#515). `document.body.focus()` is a no-op, so the walk used to start wherever
+  the page had put focus — Schedule-X's month agenda focuses its day cell on any attribute change
+  inside it, the audit's own stamping included, and `views--calendar` walked 0 of its 9 stops and
+  passed. A skipped Radix focus sentinel no longer spends one of the walk's presses either, which
+  had left `atoms--drawer` at 0 of 1. A walk that reaches none of a story's stops now fails as
+  `keyboard-walk`; a roving-tabindex group still ends one short of the count legitimately.
 - **It reads a BUILD, never `ladle serve`.** The dev server compiles a story when it is opened,
   so a story that failed to build would pass by never having been built. `--origin
 http://localhost:61000` points it at the dev server anyway, for the local fix loop only.
@@ -615,7 +638,7 @@ http://localhost:61000` points it at the dev server anyway, for the local fix lo
   claim that no axe rule was left out.
 
 ⚠ **The gate's own arithmetic is in the unit lane** (`scripts/check-a11y.test.ts`) — the span
-measurement, the report's grouping, and the exemption list. Only the browser half needs a
+measurement, the report's grouping, the unsettled-read verdict, and the exemption lists. Only the browser half needs a
 browser.
 
 ## Decision: node-only (no jsdom / Testing Library)

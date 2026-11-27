@@ -13,7 +13,7 @@ import { readSourceWithoutComments as read, sourceFiles } from '@/test-support/s
 // Nothing else notices.
 // Lint, typecheck, and every other spec stay green, because a media query is perfectly valid code that simply answers the wrong question.
 //
-// So the sanctioned viewport call sites form an ASSERTED list, exactly as `href.test.ts` pins the app's three JSX anchors.
+// So the sanctioned viewport call sites form an ASSERTED list, exactly as `href.test.ts` pins the app's JSX anchors.
 // A fourth call site turns this lane red with instructions, rather than shipping.
 
 // Every scan below reads comment-stripped source, so these assertions are about CODE, not prose.

@@ -6,6 +6,7 @@ import type { Event } from '@/types'
 import { NO_ERROR, ViewStory, stateControl } from '@/views/story-harness'
 import { EventView } from '@/views/EventView/EventView'
 import { useLocale } from '@/hooks/use-locale'
+import { WidgetWidthContext } from '@/config/responsive'
 import {
   mockEvent,
   mockEventCourse,
@@ -29,11 +30,11 @@ const EXAMPLES: Record<string, Event> = {
   Course: mockEventCourse,
   Ended: mockEventEnded,
   Inactive: mockEventInactive,
-  // At capacity: "Full" chip, no Register button — the facts stay normal (the
-  // class still runs), and the slot becomes "This event is full" + "See nearby
+  // At capacity: no Register button — the facts stay normal (the
+  // class still runs), and the slot becomes "This class is full" + "See nearby
   // events" + the contact helper.
   Full: mockEventFull,
-  // Full AND meeting today — "Full" supersedes the "Today" chip.
+  // Full AND meeting today: no chip, and the when line says "Today".
   'Full · today': mockEventFullToday,
   'External registration': {
     ...mockEvent,
@@ -89,4 +90,41 @@ Default.argTypes = {
     defaultValue: 'In person',
   },
   state: stateControl('Not found · event'),
+}
+
+/**
+ * The phone map sheet's class page: Register pins to the foot of the sheet, and the action row
+ * stays in the panel after the facts. This is the map-mode, narrow-widget case EventView pins
+ * Register for, so it opens in the expanded map's panel whatever the Form control says.
+ */
+export const StickyRegister: Story<{ example: ExampleKey }> = ({ example }) => {
+  const { locale } = useLocale()
+  const event = EXAMPLES[example] ?? mockEvent
+
+  return (
+    <WidgetWidthContext.Provider value={false}>
+      <ViewStory
+        expanded
+        example={example}
+        path={event.path}
+        seed={(client: QueryClient) =>
+          client.setQueryData<Event>(['event', event.id, locale], event)
+        }
+      >
+        <EventView basePath={event.path} id={event.id} />
+      </ViewStory>
+    </WidgetWidthContext.Provider>
+  )
+}
+
+StickyRegister.storyName = 'Event · sticky Register'
+StickyRegister.meta = { width: 'xsmall' }
+StickyRegister.args = { example: 'In person' }
+StickyRegister.argTypes = {
+  example: {
+    name: 'Example',
+    options: Object.keys(EXAMPLES),
+    control: { type: 'radio' },
+    defaultValue: 'In person',
+  },
 }

@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Voir la photo",
-    "pause_slideshow": "Mettre le diaporama en pause",
+    "photo_position": "Photo %{current} sur %{total}",
+    "previous_photo": "Photo précédente",
+    "next_photo": "Photo suivante",
+    "close_photo": "Fermer la photo",
     "copy_address": "Copier l’adresse"
   },
   "filters": {
     "remove": "Supprimer %{label}"
   },
   "search": {
-    "results_showing": "Affichage de %{shown} événements sur %{total}",
+    "results_showing": "Affichage de %{shown} cours sur %{total}",
     "dismiss_nearby_prompt": "Fermer"
   },
   "share": {

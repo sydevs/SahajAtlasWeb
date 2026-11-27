@@ -7,16 +7,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { EventFacts } from './EventFacts'
 
+import { useEventDisplay } from '@/hooks/use-event-display'
 import { mockEvent } from '@/mocks/events'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en' }),
+  useLocale: () => ({ locale: 'en', formatLocale: 'en-US' }),
 }))
 
 const FULL = '5 Market St, Cambridge CB2 3QJ'
+
+const Facts = () => <EventFacts strings={useEventDisplay(mockEvent)} />
 
 Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true)
 
@@ -35,7 +38,7 @@ async function tapAddress(clipboard: { writeText: (text: string) => Promise<void
   document.body.append(container)
   const root = createRoot(container)
 
-  await act(async () => root.render(<EventFacts event={mockEvent} />))
+  await act(async () => root.render(<Facts />))
   await act(async () =>
     container.querySelector<HTMLButtonElement>('[aria-label^="event.a11y.copy_address"]')?.click(),
   )

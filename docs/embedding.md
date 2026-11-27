@@ -876,7 +876,7 @@ child-src   blob:
 style-src   'unsafe-inline'
 font-src    https://sahajatlas.com
 img-src     data: https://api.mapbox.com https://imagedelivery.net https://sahajatlas.com https://cloud.sydevelopers.com
-connect-src https://cloud.sydevelopers.com https://api.mapbox.com https://events.mapbox.com https://ipwho.is https://cdn.usefathom.com https://*.sentry.io
+connect-src https://cloud.sydevelopers.com https://api.mapbox.com https://events.mapbox.com https://cdn.usefathom.com https://*.sentry.io
 frame-src   https://cloud.sydevelopers.com
 ```
 
@@ -906,12 +906,16 @@ chunks, Mapbox's RTL plugin and analytics, and `style-src`, `font-src`, `img-src
 |                            | `imagedelivery.net`, `cloud.sydevelopers.com` | event and venue photography. The URL comes from the CMS, so the origin is data rather than a bundle-pinned value. Production serves the Cloudflare Images CDN (`imagedelivery.net`) today. Any relative URL resolves against the API origin.                                                                                                                                                                                                                                                                                                                         | images only                                                                                                                                                                                                   |
 |                            | `sahajatlas.com` (the widget's origin)        | country flag SVGs on the country list and the country-website offer, served from the widget's own origin, and sent with `referrer-policy: no-referrer`, so your page's URL is never disclosed. They loaded from `react-circle-flags.pages.dev` until #418; a policy that still names that host is harmless, and the entry can be removed. ⚠ **Add the widget's origin to `img-src`**: your `script-src` and `font-src` already name it, but `img-src` is its own directive, and until it lists the origin a strict policy blocks the flags (the lists still render). | the flag glyphs only, the lists still render                                                                                                                                                                  |
 | `connect-src`              | `cloud.sydevelopers.com`                      | **the API — every event, region and venue, and since 2026-09 every UI string and the list of languages offered**, plus the one-per-load [embed report](#what-the-loader-reports-back).                                                                                                                                                                                                                                                                                                                                                                               | **the widget has no data: its panel shows the error and Try again, with the map still drawn**                                                                                                                 |
-|                            | `api.mapbox.com`                              | tile and style requests. Also the place-search geocoder, and the reverse lookup naming the visitor's own location for "find my location".                                                                                                                                                                                                                                                                                                                                                                                                                            | the map and search fail                                                                                                                                                                                       |
+|                            | `api.mapbox.com`                              | tile and style requests. Also the place-search geocoder, and the reverse lookup naming a located visitor ("find my location", and Near me).                                                                                                                                                                                                                                                                                                                                                                                                                          | the map and search fail                                                                                                                                                                                       |
 |                            | `events.mapbox.com`                           | Mapbox GL's own map-load telemetry                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | nothing visible                                                                                                                                                                                               |
-|                            | `ipwho.is`                                    | the once-per-session IP→city lookup behind "classes near you"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | **degrades**: the nearby suggestion is skipped                                                                                                                                                                |
 |                            | `cdn.usefathom.com`                           | analytics, conditional as above                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | analytics only                                                                                                                                                                                                |
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                                                                                                                                                                                                                                                                                                                                             | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life                                                                                                                 |
 | `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this is named on the console within about 40 seconds (two 20-second waits, since a refused frame and a slow one look the same) rather than when somebody registers.                                                                                                                        | **browsing still works, but registration and reports can't be sent.** The forms say so — see the note below                                                                                                   |
+
+**`ipwho.is` is no longer contacted.** The widget's approximate location now comes from its own
+origin, as the module `/geo.js`, which `script-src` already covers (see [Privacy, storage and
+third-party requests](#privacy-storage-and-third-party-requests)). A policy that still names
+`https://ipwho.is` is harmless, and the entry can be removed.
 
 Notes on that table:
 
@@ -1007,11 +1011,11 @@ Alongside the origins in the CSP table above, the widget needs three browser **c
 Each is denied to a cross-origin iframe by default, and each can also be denied to a script embed
 by a `Permissions-Policy` header on your own page.
 
-| Feature           | What uses it                                                                                              | What breaks without it                                              |
-| ----------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `geolocation`     | The map's "find my location" control, which opens the classes nearest the visitor                         | The control says it could not get a location                        |
-| `clipboard-write` | The copy-link button on the share sheet, the contact popover's copy button, and tapping a class's address | Copying fails; a tapped address is selected to copy by hand instead |
-| `web-share`       | The native share sheet on mobile                                                                          | The share button falls back to the copy/link list                   |
+| Feature           | What uses it                                                                                                                           | What breaks without it                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `geolocation`     | The map's "find my location" control and the filters' Near me (map-less embeds too), each opening the classes nearest the visitor      | Each says it could not get a location                                                                       |
+| `clipboard-write` | Copy link on a class's Share panel and the registration confirmation, the contact popover's copy button, and tapping a class's address | Copy link says it could not copy and selects the link to copy by hand; a tapped address is selected instead |
+| `web-share`       | The Share button, which opens the device's own share sheet                                                                             | Share opens a popover of the region's share networks instead                                                |
 
 **None of the three errors**, so nothing in your console will tell you. If
 you send a `Permissions-Policy` header, allow these three for your own origin. If you embed in
@@ -1050,14 +1054,15 @@ the events — the widget ships an English copy compiled in and fetches every ot
 the CMS, so a blocked `connect-src` leaves a non-English page reading English rather than showing
 raw key names.
 
-Three files sit at the widget's own origin, `https://sahajatlas.com`, and only the first is
+Four files sit at the widget's own origin, `https://sahajatlas.com`, and only the first is
 one you reference:
 
-| File        | What it is                                                     |
-| ----------- | -------------------------------------------------------------- |
-| `auto.js`   | the one you install — it starts the loader, as a module or not |
-| `loader.js` | the loader, which `auto.js` adds to your page                  |
-| `embed.js`  | the widget itself, fetched by the loader on demand             |
+| File        | What it is                                                         |
+| ----------- | ------------------------------------------------------------------ |
+| `auto.js`   | the one you install — it starts the loader, as a module or not     |
+| `loader.js` | the loader, which `auto.js` adds to your page                      |
+| `embed.js`  | the widget itself, fetched by the loader on demand                 |
+| `geo.js`    | the visitor's approximate location, imported by the loader with it |
 
 ## Browser support
 
@@ -1118,7 +1123,7 @@ Eight honest exceptions, none of them styling your content:
   document-global by nature. They are declared under the family name **`Atlas Rethink Sans`,
   deliberately not a plain typeface name** — so if your page self-hosts the same typeface, the
   widget's faces cannot override yours. That is the whole reason for the odd name. These three
-  are the only `@font-face` rules the widget contributes. Mapbox and Swiper register none.
+  are the only `@font-face` rules the widget contributes. Mapbox registers none.
 - **One hidden `aria-live` region sits in your `<body>`** while the widget's place-search field is
   mounted, and is removed with it. The search field announces its suggestion counts through it,
   and the library that owns it looks the region up on the document, which cannot see into the
@@ -1217,10 +1222,13 @@ name, so the search, the filters and the results are told apart.
 
 Inside that landmark, every control the widget draws:
 
-- is reached by Tab, in the order it appears, and shows a focus ring where it lands;
+- is reached by Tab, in the order it appears, and shows the same focus outline where it lands —
+  a 2px line in your brand colour, inside the control;
 - is never a Tab stop while it is invisible;
 - carries a name in the page's language, icon-only controls included;
-- answers to a tap of at least 44 × 44 CSS pixels on a touch screen.
+- answers to a tap of at least 44 × 44 CSS pixels on a touch-only screen (`(hover: none) and
+  (pointer: coarse)`). A touchscreen laptop gets the larger drawn controls but none of the
+  invisible tap areas, which its mouse would hit without seeing them.
 
 **Each of those is checked on every change we make**, in a real browser at phone size, over every
 component in the library — `axe-core` for the rule set, a hit test for the tap areas, and a
@@ -1237,7 +1245,9 @@ cover them.** The canvas's keyboard behaviour is theirs rather than ours, and so
 attribution's information button, drawn at 24 × 24 CSS px: the one control we may not resize,
 since Mapbox's attribution guide sanctions exactly one collapsed form of it. On a touch screen it
 answers to 44 × 44 through an invisible tap area. "Find my location" and the settings button
-beside it are our own buttons, 40px on a desktop and 44px on a touch screen.
+beside it are our own buttons, 40px on a desktop and 44px on a touch screen. Mapbox's own blue
+focus halo is replaced: the canvas, the logo and the attribution show the widget's focus
+outline, and only for the keyboard.
 
 **Nor does the check reach them**, for a mechanical reason worth stating rather than leaving
 you to assume: it drives our component library, where the map renders a "needs an access token"
@@ -1271,15 +1281,10 @@ them.
 The language picker persists **nothing** — i18next's detector would cache `i18nextLng` on your
 origin by default, and that write is switched off.
 
-Three third-party flows leave the browser. **None has a script-URL opt-out** — each is designed
+Two third-party flows leave the browser. **Neither has a script-URL opt-out** — each is designed
 so it does not need one. If a flow is still a problem for your privacy notice, talk to the
 maintainers rather than editing the snippet:
 
-- **`ipwho.is`** — a keyless IP→city lookup, once per session, so the widget can offer "classes
-  near you" before the visitor types. No referrer, no key, no cookies, a five-second timeout,
-  silent on failure, and skipped entirely when that prompt could not show — including for the
-  rest of a session after the visitor dismissed it. **An IP is personal data in the EU**, and it is not stored — used to pick a city, then
-  discarded.
 - **`cdn.usefathom.com`** — cookieless, aggregate pageview counting, loaded only when the bundle
   was built with an analytics ID and your client record names a real primary domain.
   Auto-tracking is off, so it reports the widget's own route under that domain — **your page's
@@ -1289,6 +1294,14 @@ maintainers rather than editing the snippet:
   fragment**, which on your site can carry a reset token or an OAuth `#access_token`. It also
   carries the visitor's **`navigator.userAgent`**. No global error handler is installed, so your
   own scripts' exceptions are never captured. No breadcrumbs, no session replay.
+
+**The visitor's approximate location never leaves our own origin.** The loader imports
+`https://sahajatlas.com/geo.js` beside the widget: Cloudflare, which serves that origin, reads a
+town, a country and a point off that request, and our Worker answers with them, sent
+`private, no-store`. No third party is asked, nothing is stored, and the widget sends them on
+nowhere: they pick "classes near you", order the share targets, and name a town to recover to
+when a link is dead. If the module fails, the widget simply has no guess. **An IP is personal
+data in the EU**; it reaches only the server that already answers the widget's own scripts.
 
 **The captcha talks to Cloudflare from a frame, not from your page.** The Turnstile challenge
 gating every form is a small frame served from `cloud.sydevelopers.com`, and that frame's document
@@ -1326,9 +1339,10 @@ observe — parameters, origins, CSP, visible behaviour.
 
 **We serve all three root files with `Cache-Control: public, max-age=0, must-revalidate`**, so
 a browser always asks before reusing one. That is deliberate, and it is the contract: the files
-are unhashed and mutable, and they import content-hashed chunks by name.
+are unhashed and mutable, and they import content-hashed chunks by name. `geo.js`, the visitor's
+own location, is `private, max-age=0, no-store`.
 
-- **Don't cache `auto.js`, `loader.js` or `embed.js` aggressively at your edge.** A stale copy held by a proxy
+- **Don't cache `auto.js`, `loader.js`, `embed.js` or `geo.js` at your edge.** A stale copy held by a proxy
   or service worker will ask for chunk filenames the CDN no longer serves, and those 404s kill
   the widget with no fallback. Let it revalidate. The hashed chunks underneath it are immutable
   and safe to cache hard.

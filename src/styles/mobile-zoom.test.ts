@@ -26,7 +26,7 @@ const ON_THE_RECIPE = /fieldChrome\(/
 const BARE_BREAKPOINT = /\bmd:text-sm\b/
 
 /** Atoms whose own `className` prop reaches `fieldChrome`. */
-const FIELD_COMPONENTS = ['Input', 'Textarea', 'Select', 'Combobox']
+const FIELD_COMPONENTS = ['Input', 'Textarea', 'Select']
 
 /**
  * A caller's `text-*` silently outranks the floor.
@@ -39,13 +39,10 @@ const FIELD_COMPONENTS = ['Input', 'Textarea', 'Select', 'Combobox']
 const CALLER_TEXT_SIZE = /\btext-(?:xs|sm|base|lg|xl|2xl|\[)/
 
 /**
- * Tags that render a focusable text field.
- *
- * `CommandInput` is cmdk's, and the Combobox's real text entry — the Radix trigger beside it is
- * a button. Our own `Input` and `Textarea` atoms are absent on purpose: they are the `<input>`
- * and `<textarea>` in this list already, through their own files.
+ * Tags that render a focusable text field. Our own `Input` and `Textarea` atoms are absent on
+ * purpose: they are the `<input>` and `<textarea>` in this list already, through their own files.
  */
-const FIELD_TAGS = ['input', 'textarea', 'select', 'CommandInput']
+const FIELD_TAGS = ['input', 'textarea', 'select']
 
 /** `type`s that take no typing, so focusing one zooms nothing. */
 const NON_TEXT_TYPES = ['checkbox', 'radio']
@@ -106,12 +103,9 @@ describe('every field clears the 16px iOS zoom floor', () => {
    * on screen that nothing here would catch.
    */
   const INVENTORY = [
-    'components/atoms/Combobox/Combobox.tsx <CommandInput>',
     'components/atoms/Input/Input.tsx <input>',
     'components/atoms/Textarea/Textarea.tsx <textarea>',
     'components/organisms/Mapbox/MapSearch.tsx <input>',
-    'components/organisms/RegistrationForm/RegistrationForm.tsx <input>',
-    'components/organisms/RegistrationForm/RegistrationForm.tsx <textarea>',
     'views/CalendarView/CalendarView.tsx <input>',
   ]
 

@@ -152,6 +152,22 @@ export const revealKey = (queryKey: readonly unknown[], sort: string): string =>
 type Segmentable = { distance?: number; address?: { country?: string | null } | null }
 
 /**
+ * How far a class may be from a searched place and still count as nearby: half the cut for a
+ * class across a border, the full cut otherwise. Both countries must be known to demote anything,
+ * so a class with no address country (every online one) is judged on distance alone, rather than
+ * on a fact we do not have. `isoCountryCode` lets a malformed CMS value degrade to unknown.
+ */
+const nearbyLimitKm = (event: Segmentable, searchCountry?: string): number => {
+  const country = isoCountryCode(event.address?.country)
+
+  return searchCountry && country && country !== searchCountry ? FOREIGN_NEARBY_KM : NEARBY_KM
+}
+
+/** Nearby, by the list's own rule. A class with no distance (online, or no point) always is. */
+export const isNearby = (event: Segmentable, searchCountry?: string): boolean =>
+  event.distance === undefined || event.distance <= nearbyLimitKm(event, searchCountry)
+
+/**
  * Which control the foot of the list should offer next.
  *
  * `'farther'` covers both reaching the distant segment and every page within it. Once
@@ -184,7 +200,7 @@ export type Reveal<T> = {
   total: number
   /**
    * The boundary the empty state should name: the smallest limit actually applied, so
-   * the sentence stays true. "No events within 300 km" is a lie when a cross-border
+   * the sentence stays true. "No classes within 300 km" is a lie when a cross-border
    * match sits at 200 km and the 150 km foreign limit is what excluded it. "Within
    * 150 km" holds either way, because an empty nearby segment means nothing cleared
    * either limit.
@@ -219,21 +235,8 @@ export function revealRows<T extends Segmentable>(
     searchCountry,
   }: { shown: number; showAll: boolean; hasSearchCenter: boolean; searchCountry?: string },
 ): Reveal<T> {
-  // This applies half the cut for an event across a border, the full cut otherwise.
-  // Both countries must be known to demote anything. An event with no address country
-  // (every online one) is judged on distance alone, instead of on a fact we do not
-  // actually have.
-  const limitFor = (event: T) => {
-    // This uses `isoCountryCode`, like every other country consumer. The CMS address
-    // field is a bare nullish string, so a malformed value (a 3-letter code, stray
-    // whitespace) must degrade to "unknown", and be judged on distance alone, instead
-    // of comparing as-is and demoting an event on a fact we do not actually have.
-    const country = isoCountryCode(event.address?.country)
-
-    return searchCountry && country && country !== searchCountry ? FOREIGN_NEARBY_KM : NEARBY_KM
-  }
-  // Online events carry no distance, so they are never distance-excluded.
-  const isNear = (event: T) => event.distance === undefined || event.distance <= limitFor(event)
+  const limitFor = (event: T) => nearbyLimitKm(event, searchCountry)
+  const isNear = (event: T) => isNearby(event, searchCountry)
   const near = hasSearchCenter ? sorted.filter(isNear) : sorted
   const far = hasSearchCenter ? sorted.filter((event) => !isNear(event)) : []
   // This is the smallest limit any excluded event was held to. It is what the empty

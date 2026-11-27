@@ -6,6 +6,7 @@ import { MapProvider } from 'react-map-gl/mapbox'
 import { useCameraSettled } from '@/config/store'
 import { useWidgetMode } from '@/config/mode'
 import { Mapbox } from '@/components/organisms/Mapbox'
+import { LocatorProvider } from '@/hooks/use-locator'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
@@ -188,12 +189,17 @@ export function MapProviders({
   children: ReactNode
   inline?: boolean
 }) {
-  return useWidgetMode().hasMap ? (
-    <MapProvider>
-      <RealMapControllerProvider inline={inline}>{children}</RealMapControllerProvider>
-    </MapProvider>
-  ) : (
-    <NoopMapControllerProvider>{children}</NoopMapControllerProvider>
+  // One locator for the map's find-me and the filters' Near me, gone with this map.
+  return (
+    <LocatorProvider>
+      {useWidgetMode().hasMap ? (
+        <MapProvider>
+          <RealMapControllerProvider inline={inline}>{children}</RealMapControllerProvider>
+        </MapProvider>
+      ) : (
+        <NoopMapControllerProvider>{children}</NoopMapControllerProvider>
+      )}
+    </LocatorProvider>
   )
 }
 

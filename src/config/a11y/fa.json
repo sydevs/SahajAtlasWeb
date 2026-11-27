@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "مشاهده عکس",
-    "pause_slideshow": "توقف نمایش اسلاید",
+    "photo_position": "عکس %{current} از %{total}",
+    "previous_photo": "عکس قبلی",
+    "next_photo": "عکس بعدی",
+    "close_photo": "بستن عکس",
     "copy_address": "کپی نشانی"
   },
   "filters": {
     "remove": "حذف %{label}"
   },
   "search": {
-    "results_showing": "نمایش %{shown} از %{total} رویداد",
+    "results_showing": "نمایش %{shown} از %{total} کلاس",
     "dismiss_nearby_prompt": "رد کردن"
   },
   "share": {

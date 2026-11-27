@@ -3,7 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
 
 import { Alert } from '@/components/atoms/Alert'
-import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerFooter, STICKY_FOOTER_CLEARANCE } from '@/components/atoms/Drawer'
 import { Link } from '@/components/atoms/Link'
 import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
 // This imports leaf files, not the folder index. The index re-exports EventDetails, and
@@ -45,16 +45,6 @@ const loadEventDetails = () =>
     import('@/components/organisms/EventDetails').then((m) => ({ default: m.EventDetails })),
   )
 
-// The sticky bar carries the action row too (#320), and EventActions reaches CopyField and
-// so react-share — which `molecules/index.ts` keeps out of the eager payload on purpose
-// (issue #96). So the row loads on its own, while EventRegisterBar stays eager: Register is
-// what must survive a chunk the host's CSP blocked (issue #89). Module scope is right here,
-// unlike `loadEventDetails` above, because nothing offers to retry this one — the boundary
-// below renders nothing and the bar keeps its CTA.
-const EventActions = lazy(() =>
-  import('@/components/molecules/EventActions').then((m) => ({ default: m.EventActions })),
-)
-
 // A single event, at route `<event-path>`. The header — Back and the title — is the mobile
 // sheet's peek payload, and stays pinned above the scrolling body. The chips and facts lead the
 // body. On the mobile map sheet, Register lives in a sticky bar pinned to the viewport edge,
@@ -94,8 +84,8 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // renders at all. In map mode there is no container, so the measured signal returns the
   // viewport's answer. The hook is here so a future map-less sticky bar starts out reading the
   // right thing, not because a narrow embed gains one today.
-  const { display } = useEventDisplay(event)
-  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, display)
+  const strings = useEventDisplay(event)
+  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, strings.display)
   const onwardHref = parentOf(event.path)
 
   return (
@@ -109,16 +99,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           would otherwise park a field behind the bar. It carries the sheet's live top on
           top of that height because THIS body's bottom edge sits that far below the
           viewport, where the bar paints — measured 519px at the 544px snap, so the bar's
-          height alone cleared it at the top snap only (#326). The ten other drawer bodies
-          have nothing at the bottom to clear. */}
-      <DrawerBody
-        fitSheet
-        className={
-          stickyRegister
-            ? 'scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))]'
-            : undefined
-        }
-      >
+          height alone cleared it at the top snap only (#326). Of the other drawer bodies,
+          only the sign-up form's has a bar to clear. */}
+      <DrawerBody fitSheet className={stickyRegister ? STICKY_FOOTER_CLEARANCE : undefined}>
         {/* The details are a lazy chunk, so they can fail on their own — a dropped connection
             mid-session, or a host CSP blocking the chunk — after the event itself resolved.
             Keeping that local means the title, Back, and the sticky Register CTA
@@ -131,7 +114,12 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           {/* The page's shape while its code arrives, marked loading so the phone sheet holds
               still until it has (`useFitSnap`). */}
           <Suspense fallback={<SkeletonBody body="class" cta={!stickyRegister} />}>
-            <EventDetails basePath={basePath} ctaInline={!stickyRegister} event={event}>
+            <EventDetails
+              basePath={basePath}
+              event={event}
+              registerInline={!stickyRegister}
+              strings={strings}
+            >
               {/* This is passed as the panel's slot, so it lands immediately above Register,
                   which lives inside EventDetails when it is inline. The acknowledgement belongs
                   beside the action it wants the reader to take, and the panel is the only thing
@@ -173,19 +161,8 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           sticky
           className={`px-gutter py-3 transition-transform ${collapsed ? 'translate-y-full opacity-0' : ''}`}
         >
-          {/* The two rows are gapped inside a wrapper, not by the footer itself, so the
-              footer's own safe-area spacer is not a third gapped sibling. */}
-          <div className="flex flex-col gap-2">
-            <EventRegisterBar basePath={basePath} event={event} />
-            {/* The row rides the bar so only one copy exists — see `ctaInline`. The
-                boundary keeps a rejected chunk from reaching the body's sibling
-                boundary and taking the Register CTA down with it (issue #89). */}
-            <ResetErrorBoundary context="event actions" fallback={null}>
-              <Suspense fallback={null}>
-                <EventActions basePath={basePath} event={event} />
-              </Suspense>
-            </ResetErrorBoundary>
-          </div>
+          {/* Only Register pins: the action row stays in the panel, after the facts. */}
+          <EventRegisterBar basePath={basePath} event={event} strings={strings} />
         </DrawerFooter>
       )}
     </>

@@ -15,10 +15,14 @@ describe('formatDistance', () => {
     expect(formatDistance(123.4, 'en')).toBe('123 km')
   })
 
-  it('uses miles for en-US and en-GB only', () => {
+  it('uses miles for a UK or US region only', () => {
     expect(usesMiles('en-US')).toBe(true)
     expect(usesMiles('en-GB')).toBe(true)
+    // `regionalLocale` tags: another page language in the visitor's region, a stated clock.
+    expect(usesMiles('de-GB')).toBe(true)
+    expect(usesMiles('en-GB-u-hc-h23')).toBe(true)
     expect(usesMiles('en')).toBe(false)
+    expect(usesMiles('en-CZ')).toBe(false)
     expect(usesMiles('fr')).toBe(false)
 
     expect(formatDistance(1.609344, 'en-US')).toBe('1 mi')

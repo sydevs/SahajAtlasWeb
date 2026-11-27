@@ -24,14 +24,11 @@ import * as molecules from './index'
  * it.
  */
 const LEAF_PATH_ONLY = [
-  // Swiper.
-  'ImageCarousel',
-  // react-share, through EventActions to ShareContent.
-  'EventActions',
+  // react-share.
   'ShareContent',
-  'CopyField',
-  // The iCalendar builder (issue #105). This is lighter than the two
-  // above: luxon is already in the shell, so the leak would be
+  // The class page's action row, which the lazy EventDetails chunk reaches by leaf path.
+  'EventActions',
+  // The iCalendar builder (issue #105). This is lighter than react-share: luxon is already in the shell, so the leak would be
   // `lib/ics.ts` alone.
   'AddToCalendar',
   // The QR encoder's loader. The encoder itself is a dynamic import either way.
@@ -48,7 +45,7 @@ describe('molecules barrel', () => {
   // for the wrong reason.
   it('still exports the molecules the views do use', () => {
     expect(Object.keys(molecules)).toEqual(
-      expect.arrayContaining(['FallbackPanel', 'EventFacts', 'ListToolbar']),
+      expect.arrayContaining(['FallbackPanel', 'EventSummary', 'ListToolbar']),
     )
   })
 })

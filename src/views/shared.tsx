@@ -14,18 +14,16 @@ import { Button } from '@/components/atoms/Button'
 import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
-import { useCameraHistory } from '@/config/store'
+import { useApproxLocation, useCameraHistory, useSearchFocus } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
-import { useIpLocation } from '@/hooks/use-ip-location'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { hasMapPoint } from '@/lib/camera'
-import { approxBounds } from '@/lib/geo'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
 import {
-  NEARBY_RADIUS_KM,
+  guessedPlace,
   hasActivePlaceSearch,
   markGeolocationDismissed,
   readGeolocationDismissed,
@@ -36,7 +34,6 @@ import {
   ancestorSlugs,
   atlasDepth,
   calendarPath,
-  isoCountryCode,
   placeSearchPath,
   resolvePath,
   topViewKey,
@@ -61,6 +58,8 @@ export type DrawerControl = {
   collapsed: boolean
   toggle: () => void
   dismiss: () => void
+  /** Closes the filters onto their results, and opens those as tall as the sheet goes. */
+  showResults: () => void
 }
 
 /** A control with nowhere to go: the default outside DrawerStack, and the base for stand-ins. */
@@ -68,6 +67,7 @@ export const NO_DRAWER_CONTROL: DrawerControl = {
   collapsed: false,
   toggle: () => {},
   dismiss: () => {},
+  showResults: () => {},
 }
 
 export const DrawerControlContext = createContext<DrawerControl>(NO_DRAWER_CONTROL)
@@ -215,7 +215,7 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   return (
     <Button size="sm" variant="ghost" onClick={open}>
       <Funnel size={18} />
-      {label}
+      <span className="literal-count">{label}</span>
     </Button>
   )
 }
@@ -226,6 +226,32 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 // behaviour that used to live in the removed SearchBar.
 export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
   const { t } = useTranslation()
+  const box = useRef<HTMLDivElement>(null)
+
+  // Takes focus when asked to (`useSearchFocus`). The geocoder renders its input a moment after
+  // mounting, so this watches for it rather than waiting a set time, as `Modal`'s first-field
+  // focus does.
+  useEffect(() => {
+    const host = box.current
+
+    if (!host || !useSearchFocus.getState().consume()) return
+
+    const focusInput = () => {
+      const input = host.querySelector('input')
+
+      input?.focus({ preventScroll: true })
+
+      return input !== null
+    }
+
+    if (focusInput()) return
+
+    const watch = new MutationObserver(() => focusInput() && watch.disconnect())
+
+    watch.observe(host, { childList: true, subtree: true })
+
+    return () => watch.disconnect()
+  }, [])
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
 
@@ -257,7 +283,7 @@ export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
     // this is what lets a screen-reader viewer tell the place search from the results under it
     // and from the Filters dialog beside it (#432). The name is the field's, not the view's:
     // `SearchView` is itself a dialog called Search.
-    <div aria-label={t('search.chrome.title')} className="min-w-0 flex-1" role="search">
+    <div ref={box} aria-label={t('search.chrome.title')} className="min-w-0 flex-1" role="search">
       <MapSearch label={label} onSelect={handleSelect} />
     </div>
   )
@@ -424,21 +450,19 @@ export function EmptyEventList() {
   )
 }
 
-// The single shared wiring for the IP-geolocation nearby suggestion, rendered above the list
-// on CountriesView, RegionView, and SearchView, so the behaviour is not triplicated. This reads
-// the passive IP location — one lookup per session, which fails silently, so nothing renders —
-// and, on accept, navigates into the distance-ranked search centred on the guess. It preserves
-// the active URL filters exactly as SearchField does, plus a synthesized city-sized bbox, so
-// SearchView frames a neighbourhood rather than the pinpoint zoom it uses for a bare centre.
+// The single shared wiring for the approximate-location nearby suggestion, rendered above the
+// list on CountriesView, RegionView, and SearchView, so the behaviour is not triplicated. On
+// accept it navigates into the distance-ranked search centred on the guessed town
+// (`guessedPlace`), preserving the active URL filters exactly as SearchField does.
 // `shouldShowGeolocationPrompt` (src/lib/geolocation.ts, fully unit-tested) owns the visibility
 // conditions. Only the close button persists a session-scoped dismissal. Accepting merely
 // navigates. The prompt self-hides while the visitor views that area, but returns once they
 // leave it.
 //
-// The lookup can land seconds after the list has painted, and a banner pushed in above rows the
-// visitor may be about to tap moved them 48px under the finger. So a view mounts this twice:
-// `above` shows only if the answer was already known at the first paint, `below` only if it came
-// later, where it moves nothing.
+// The guess is known at first paint, but the feed that decides whether anything is near may land
+// after the list has painted, and a banner pushed in above rows the visitor may be about to tap
+// moved them 48px under the finger. So a view mounts this twice: `above` shows only if the answer
+// was already known at the first paint, `below` only if it came later, where it moves nothing.
 export function GeolocationSuggestion({
   regionCenter,
   position,
@@ -448,12 +472,11 @@ export function GeolocationSuggestion({
 }) {
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
+  const { regionNames } = useLocale()
   const [dismissed, setDismissed] = useState(readGeolocationDismissed)
-  // Skips the passive lookup when it could not be shown anyway — dismissed, or a
-  // place search is already active — so those cases never ping the third-party
-  // service.
   const activeSearch = hasActivePlaceSearch(searchParams)
-  const ipLocation = useIpLocation(!dismissed && !activeSearch)
+  const guess = useApproxLocation((s) => s.location?.place)
+  const countryCode = useApproxLocation((s) => s.location?.countryCode)
 
   // The cached event feed powers the "is anything actually near?" guard.
   const { data: geojson } = useQuery(geojsonQuery())
@@ -461,56 +484,45 @@ export function GeolocationSuggestion({
   const show = useMemo(
     () =>
       shouldShowGeolocationPrompt({
-        guess: ipLocation,
+        guess: guess?.center ?? null,
         dismissed,
         activeSearch,
         geojson,
         regionCenter,
       }),
-    [ipLocation, dismissed, activeSearch, geojson, regionCenter],
+    [guess, dismissed, activeSearch, geojson, regionCenter],
   )
   const knownAtFirstPaint = useRef(show)
 
   const handleSelect = useCallback(() => {
-    if (!ipLocation) return
+    if (!guess) return
 
     // Accepting must NOT persist a dismissal — only the close button does (handleDismiss).
-    // Zooming to the guess already hides the prompt on its own. The new URL carries
-    // `?center`/`?q`, so `hasActivePlaceSearch` suppresses it while the visitor is looking at
-    // that area. Leaving the area, by clearing the search, brings the suggestion back, so it
-    // keeps offering until the visitor actually dismisses it.
+    // The new URL carries `?center`/`?q`, so `hasActivePlaceSearch` suppresses the prompt while
+    // the visitor is looking at that area; clearing the search brings it back.
     navigate(
-      placeSearchPath(searchParams, {
-        q: `${ipLocation.city}, ${ipLocation.country}`,
-        center: [ipLocation.longitude, ipLocation.latitude],
-        // A synthesized city-sized box, so the search frames a neighbourhood
-        // rather than the pinpoint zoom a bare centre gets. The device fix
-        // uses the same floor — see `nearbyBounds`, which additionally
-        // extends to the classes themselves, because there the point is
-        // precise enough for that to mean something.
-        bbox: approxBounds([ipLocation.longitude, ipLocation.latitude], NEARBY_RADIUS_KM),
-        // The same searched-country marker SearchField writes — the guess
-        // already carries the code (it also orders an event's share
-        // targets), so an accepted suggestion that lands in a program-less
-        // country gets the offer too.
-        countryCode: isoCountryCode(ipLocation.country_code),
-      }),
+      placeSearchPath(
+        searchParams,
+        // The searched-country marker SearchField writes, so an accepted suggestion that lands
+        // in a program-less country gets the country-site offer too.
+        guessedPlace(guess, countryCode, countryCode && regionNames.of(countryCode)),
+      ),
     )
-  }, [ipLocation, navigate, searchParams])
+  }, [guess, countryCode, navigate, regionNames, searchParams])
 
   const handleDismiss = useCallback(() => {
     markGeolocationDismissed()
     setDismissed(true)
   }, [])
 
-  // `!ipLocation` is implied by `!show`, but narrows the type for the render below.
-  if (!ipLocation || !show || knownAtFirstPaint.current !== (position === 'above')) return null
+  // `!guess` is implied by `!show`, but narrows the type for the render below.
+  if (!guess || !show || knownAtFirstPaint.current !== (position === 'above')) return null
 
   return (
     // Below, it can close the panel, so it carries the space under itself; the last row's own
     // padding is the space above.
     <div className={position === 'above' ? 'pb-2' : 'pb-4'}>
-      <GeolocationPrompt city={ipLocation.city} onAccept={handleSelect} onClose={handleDismiss} />
+      <GeolocationPrompt city={guess.city} onAccept={handleSelect} onClose={handleDismiss} />
     </div>
   )
 }

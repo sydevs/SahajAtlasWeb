@@ -11,14 +11,17 @@
   },
   "event": {
     "view_photo": "Открыть фото",
-    "pause_slideshow": "Приостановить слайд-шоу",
+    "photo_position": "Фото %{current} из %{total}",
+    "previous_photo": "Предыдущее фото",
+    "next_photo": "Следующее фото",
+    "close_photo": "Закрыть фото",
     "copy_address": "Копировать адрес"
   },
   "filters": {
     "remove": "Удалить: %{label}"
   },
   "search": {
-    "results_showing": "Показано событий: %{shown} из %{total}",
+    "results_showing": "Показано занятий: %{shown} из %{total}",
     "dismiss_nearby_prompt": "Скрыть"
   },
   "share": {

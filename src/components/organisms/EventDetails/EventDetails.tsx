@@ -1,4 +1,6 @@
-import { type ReactNode, useMemo } from 'react'
+import type { EventDisplayStrings } from '@/hooks/use-event-display'
+
+import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { EventRegisterBar } from './EventRegister'
@@ -7,42 +9,44 @@ import { sanitizeDescription } from './sanitize'
 import { Alert } from '@/components/atoms/Alert'
 import { EventActions } from '@/components/molecules/EventActions'
 import { EventChips } from '@/components/molecules/EventChips'
-import { ImageCarousel } from '@/components/molecules/ImageCarousel'
+import { ImageGallery } from '@/components/molecules/ImageGallery'
 import { EventFacts } from '@/components/molecules/EventFacts'
+import { QrPoster } from '@/components/molecules/QrPoster'
+import { useShareUrl } from '@/hooks/use-share-url'
 import { isUnverified, lexicalToHtml } from '@/lib/shape'
 import { Event } from '@/types'
 
 /**
- * Every surface in this folder takes the same pair: the event, and the route
- * that reached it. This type declares the pair once, here. EventDetails,
- * EventActions, and EventRegisterBar all render from these same two values.
- * Callers always pass both together. This way, a change to the contract
- * cannot land on only two of the three.
+ * Every surface in this folder takes the same three values: the event, the
+ * route that reached it, and its resolved display strings. This type declares
+ * them once, here. EventDetails, EventActions, and EventRegisterBar all render
+ * from these. Callers always pass them together. This way, a change to the
+ * contract cannot land on only two of the three.
  */
 export type EventSurfaceProps = {
   event: Event
   /** The event's current route. Register and share drawers open at `${basePath}/register|share`. */
   basePath: string
+  /** The view's one `useEventDisplay(event)`, shared by every surface on the page (#505). */
+  strings: EventDisplayStrings
 }
 
 export type EventDetailsProps = EventSurfaceProps & {
-  /** Render the calls to action — Register, then the secondary action row —
-   *  inline in panel order. The mobile map sheet passes false and mounts both
-   *  in the sticky drawer footer instead. They travel together because the
-   *  footer is pinned over the body's last band, so an inline copy of either
-   *  would be drawn underneath it at the short snap (#320). */
-  ctaInline?: boolean
+  /** Render Register inline, above the action row. The mobile map sheet passes
+   *  false and pins Register in the sticky drawer footer instead (#320). The
+   *  action row stays in the panel either way. */
+  registerInline?: boolean
   /**
    * This slot renders below the facts, inside the panel's own flow, above the
    * unverified caveat and Register.
    *
    * This uses a slot, not a prop, because each caller decides what goes here.
    * It is a view's job, not this component's job. The alternative was a second
-   * boolean beside `ctaInline` for every new addition. EventView passes
+   * boolean beside `registerInline` for every new addition. EventView passes
    * the post-event feedback acknowledgement (#164).
    *
-   * ⚠ The calls to action are sometimes not inline. Then the mobile map sheet
-   * mounts them in the sticky footer instead. This slot still renders here,
+   * ⚠ Register is sometimes not inline. Then the mobile map sheet pins it in
+   * the sticky footer instead. This slot still renders here,
    * after the facts and above everything that follows. This position keeps it
    * above the sticky bar in reading order too.
    */
@@ -51,42 +55,32 @@ export type EventDetailsProps = EventSurfaceProps & {
 
 /**
  * This is the event panel body. It follows the order from issue #52: chips,
- * facts (plain text), Register, microcopy, secondary actions, images, then
- * About. The title is a separate component (EventHeader). It renders outside
+ * facts (plain text), Register, microcopy, secondary actions, About, images,
+ * then the closed QR code row. The title is a separate component (EventHeader). It renders outside
  * the scrolling drawer body, so it stays pinned. The triage chips lead the body.
  */
-export function EventDetails({ event, basePath, ctaInline = true, children }: EventDetailsProps) {
+export function EventDetails({
+  event,
+  basePath,
+  strings,
+  registerInline = true,
+  children,
+}: EventDetailsProps) {
   const { t } = useTranslation()
 
   const descriptionHtml = lexicalToHtml(event.description)
 
-  // The image alt text doubles as the lightbox caption. This value is memoized,
-  // so the carousel and lightbox receive the same stable slides array across
-  // re-renders. getEvent already resolves each URL to its origin. Skip any
-  // image with no URL.
-  const slides = useMemo(
-    () =>
-      event.images.flatMap((image) =>
-        image.url
-          ? [{ src: image.url, alt: image.alt ?? undefined, caption: image.alt ?? undefined }]
-          : [],
-      ),
-    [event.images],
-  )
-
-  const hasImages = slides.length > 0
+  // The poster code is the class's own link, so a class with nothing to share has no row (#115).
+  const shareUrl = useShareUrl(event.webUrl, event.path)
 
   return (
-    // The carousel is full-bleed and always last. It removes the container's
-    // bottom padding, so the images sit flush against the end of the view
-    // instead of floating 40px above it. Everything else keeps the padding.
-    <div className={`flex flex-col gap-4 px-gutter pt-2 ${hasImages ? '' : 'pb-10'}`}>
+    <div className="flex flex-col gap-4 px-gutter pt-2 pb-10">
       {/* The triage chips open the body. They do not sit under the title in the
           pinned header. */}
-      <EventChips event={event} />
+      <EventChips languages={event.languages} strings={strings} />
 
       {/* The facts keep extra room above the Register button. */}
-      <EventFacts className="mb-2" event={event} />
+      <EventFacts className="mb-2" strings={strings} />
 
       {children}
 
@@ -102,12 +96,8 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
         />
       )}
 
-      {ctaInline && (
-        <>
-          <EventRegisterBar basePath={basePath} event={event} />
-          <EventActions basePath={basePath} event={event} />
-        </>
-      )}
+      {registerInline && <EventRegisterBar basePath={basePath} event={event} strings={strings} />}
+      <EventActions basePath={basePath} event={event} strings={strings} />
 
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (
@@ -121,14 +111,10 @@ export function EventDetails({ event, basePath, ctaInline = true, children }: Ev
         </div>
       )}
 
-      {hasImages && (
-        // This section sits full-bleed below the description. It cancels the
-        // container's `px-gutter` padding, so the carousel spans the full drawer
-        // width. The slides now carry no padding of their own.
-        <div className="-mx-gutter">
-          <ImageCarousel slides={slides} />
-        </div>
-      )}
+      <ImageGallery images={event.images} />
+
+      {/* For hosts printing posters, which most visitors never need, so it closes the page. */}
+      {shareUrl && <QrPoster label={event.title} url={shareUrl} />}
     </div>
   )
 }

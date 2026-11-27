@@ -13,11 +13,6 @@
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 
-// SearchFilters — the controlled event-filters form (Format, Frequency,
-// Day, Time, Language), rendered inside the FilterView drawer.
-export { SearchFilters } from './SearchFilters'
-export type { SearchFiltersProps } from './SearchFilters'
-
 // ActiveFilterPills — the applied filters as removable pills at the top
 // of the search results, rendered by the events list. It takes no props.
 // It reads the filters from the URL itself.
@@ -48,31 +43,27 @@ export {
 } from './Fallbacks'
 export type { FallbackAlign, FallbackKind } from './Fallbacks'
 
-// FormField — the label, control, and help-or-error shell shared by the
-// app's forms, and `fieldErrorId`, the single definition of the
-// aria-describedby id convention.
-export { FormField, fieldErrorId, fieldHelpId, fieldDescribedBy } from './FormField'
-export type { FormFieldProps } from './FormField'
-
-// ActionRow / ActionCircle — the labelled tonal-circle secondary actions
-// under an event's Register CTA (Directions, Website, Contact, Share).
-export { ActionRow, ActionCircle } from './ActionRow'
-export type { ActionRowProps, ActionCircleProps } from './ActionRow'
+// FormField — the label, control, and help-or-error shell every form shares, and the one
+// definition of the aria-describedby id convention.
+export { FormField } from './FormField'
+export type { FieldControlProps, FormFieldProps } from './FormField'
 
 // EventFacts — the shared calendar and location fact block for an
-// event. It builds and renders the when/where lines. The panel, the list
-// card, and the share and registration drawers all use it. Its `card`
-// variant is the boxed, titled treatment those two drawers use. There is
-// deliberately no separate wrapper for it. The one that existed only
-// added an outbound backlink that was never correct behaviour (#156).
+// event. It builds and renders the when/where lines, for the panel and,
+// through EventSummary, everywhere else.
 export { EventFacts } from './EventFacts'
 export type { EventFactsProps } from './EventFacts'
 
-// The event's triage chips (type, language(s), Today). The list card
-// and the event header share this, so the two never drift. `compact`
-// trims the list card.
+// EventSummary — a class at a glance: title, facts and chips. The list
+// card renders it, and the Share, Register and confirmation panels box it
+// at their top.
+export { EventSummary } from './EventSummary'
+export type { EventSummaryProps } from './EventSummary'
+
+// The event's triage chips. The list card and the event header share
+// this, so the two never drift. The `card` surface trims the list card.
 export { EventChips } from './EventChips'
-export type { EventChipsProps, EventChipsVariant } from './EventChips'
+export type { EventChipsProps } from './EventChips'
 
 export { List, ListRow } from './List'
 
@@ -82,25 +73,22 @@ export type { ListItemProps } from './ListItem'
 export { EventListItem } from './EventListItem'
 export type { EventListItemProps } from './EventListItem'
 
-// NOTE: ImageCarousel, EventActions, ShareContent/CopyField, and
-// AddToCalendar are deliberately NOT re-exported. The organisms barrel
-// states the same rule for EventDetails and RegistrationForm. Between
-// them, these own Swiper and react-share. The interface's views import
-// this barrel, so the re-export edge alone would put both in the download
-// every opened interface waits for (about 45 KiB gz), even though nothing
-// imported them through it. Tree-shaking will not drop them, since their
-// `swiper/*` and react-share imports carry side effects. Every real
-// consumer already reaches them by leaf path from inside a lazily-loaded
-// chunk: EventActions and ImageCarousel from EventDetails, ShareContent
-// from EventActions, RegistrationForm and ShareView. That is the
-// readiness report's "Swiper bundled twice" finding. `index.test.ts` pins
-// it (issue #96). ⚠ Nothing else does: the interface loads behind a lazy
+// NOTE: EventActions, ShareContent, and AddToCalendar are deliberately NOT
+// re-exported. The organisms barrel states the same rule for EventDetails
+// and RegistrationForm. Between them, these own react-share. The
+// interface's views import this barrel, so the re-export edge alone would
+// put it in the download every opened interface waits for, even though
+// nothing imported it through it. Tree-shaking will not drop it, since its
+// imports carry side effects. Every real consumer already reaches them by
+// leaf path from inside a lazily-loaded chunk: EventActions from
+// EventDetails, ShareContent from RegistrationForm and ShareView.
+// `index.test.ts` pins it (issue #96). ⚠ Nothing else does: the interface loads behind a lazy
 // seam, outside the graphs `pnpm size` budgets.
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
 
-// GeolocationPrompt — the dismissible IP-geolocation "events near you"
+// GeolocationPrompt — the dismissible approximate-location "events near you"
 // suggestion shown above the list on the top-level views, wired by
 // GeolocationSuggestion in views/shared.
 export { GeolocationPrompt } from './GeolocationPrompt'

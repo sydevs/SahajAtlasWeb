@@ -1,112 +1,65 @@
 import type { EventChipsProps } from './EventChips'
+import type { EventSurfaceView } from '@/hooks/use-event-display'
 
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { EventChips } from './EventChips'
 
-// This drives the display resolver and locale by hand, so the test
-// exercises the chip variant and filter logic, not the display derivation.
-// The UI language is `en`. `languageLabel` echoes the code, so the
-// combined language text is greppable.
-const { d } = vi.hoisted(() => ({
-  d: {
-    status: 'upcoming',
-    full: false,
-    typeLabel: 'Weekly class' as string | null,
-    isDefaultType: true,
-  },
-}))
+// Which chips a surface shows is `surfaceView`'s decision, specced beside it. This drives the
+// views by hand, so it covers only the rendering and the language filter. The UI language is
+// `en`, and `languageLabel` echoes the code, so the combined language text is greppable.
+const views = {} as Record<'page' | 'card', Pick<EventSurfaceView, 'type' | 'today'>>
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ languageCode: 'en', languageLabel: (code: string) => code }),
 }))
-vi.mock('@/hooks/use-event-display', () => ({
-  useEventDisplay: () => ({
-    display: { status: d.status, full: d.full },
-    typeLabel: d.typeLabel,
-    isDefaultType: d.isDefaultType,
-  }),
-}))
 
-const render = (languages: string[], variant?: EventChipsProps['variant']) =>
+const render = (languages: string[], surface?: EventChipsProps['surface']) =>
   renderToStaticMarkup(
-    <EventChips event={{ languages } as unknown as EventChipsProps['event']} variant={variant} />,
+    <EventChips
+      languages={languages}
+      strings={{ surfaces: views } as unknown as EventChipsProps['strings']}
+      surface={surface}
+    />,
   )
 
 describe('EventChips', () => {
   beforeEach(() => {
-    d.status = 'upcoming'
-    d.full = false
-    d.typeLabel = 'Weekly class'
-    d.isDefaultType = true
+    views.page = { type: 'Weekly class', today: false }
+    views.card = { type: null, today: false }
   })
 
-  it('default: names the type and folds every language into one chip', () => {
+  it('names the type and folds every language into one chip on the page', () => {
     const html = render(['en', 'fr'])
 
     expect(html).toContain('Weekly class')
     expect(html).toContain('en, fr')
   })
 
-  it('compact: drops the plain weekly type and the viewer language (renders nothing)', () => {
-    expect(render(['en'], 'compact')).toBe('')
-  })
+  it("leaves the viewer's own language off a card", () => {
+    const html = render(['en', 'fr'], 'card')
 
-  it('compact: keeps a non-default type and only the non-UI languages', () => {
-    d.isDefaultType = false
-    d.typeLabel = 'Course'
-
-    const html = render(['en', 'fr'], 'compact')
-
-    expect(html).toContain('Course')
     expect(html).toContain('>fr<')
     expect(html).not.toContain('en, fr')
   })
 
-  it('shows a contrast "Today" chip when the event is today', () => {
-    d.status = 'today'
-
-    const html = render(['en'])
-
-    expect(html).toContain('event.display.chip_today')
-    expect(html).toContain('text-contrast-11')
+  it('renders nothing when a card has nothing to add', () => {
+    expect(render(['en'], 'card')).toBe('')
   })
 
-  it('renders no type chip where the listing has no type to name', () => {
-    d.typeLabel = null
-    d.isDefaultType = false
+  it('renders "Today" in contrast', () => {
+    views.card.today = true
+
+    expect(render(['en'], 'card')).toContain('event.display.chip_today')
+    expect(render(['en'], 'card')).toContain('text-contrast-11')
+  })
+
+  it('renders no type chip where the view names none', () => {
+    views.page.type = null
 
     expect(render(['en'])).not.toContain('text-primary-11')
-    expect(render(['fr'], 'compact')).not.toContain('text-primary-11')
-    // The language still shows.
     expect(render(['en'])).toContain('>en<')
-  })
-
-  it('shows a "Full" chip when the event is at capacity', () => {
-    d.full = true
-
-    const html = render(['en'])
-
-    expect(html).toContain('event.display.chip_full')
-  })
-
-  it('"Full" supersedes "Today" — only one availability chip renders', () => {
-    d.full = true
-    d.status = 'today'
-
-    const html = render(['en'])
-
-    expect(html).toContain('event.display.chip_full')
-    expect(html).not.toContain('event.display.chip_today')
-  })
-
-  it('compact: a "Full" chip alone is enough to render the row', () => {
-    d.full = true
-
-    // The plain weekly type and the viewer language are both trimmed in
-    // compact. So the row would otherwise be empty.
-    expect(render(['en'], 'compact')).toContain('event.display.chip_full')
   })
 })
