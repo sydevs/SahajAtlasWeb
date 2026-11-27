@@ -50,8 +50,8 @@ cover everything a host would notice since the widget was first deployed.
 ### Changed
 
 - **On a computer the filters are three buttons over the map: Where, When and Language.** ([#PRNUM])
-  From 1024px of widget width they sit at the top right of the map, and in the calendar's own
-  header, instead of behind a Filters button in the list. Each opens a small menu with the same
+  From 1024px of widget width they sit at the top right of the map, or in the header of the
+  calendar's month and week views, instead of behind a Filters button in the list. Each opens a small menu with the same
   questions and live counts as the phone's filters, and a tap applies at once. A button with an
   answer fills and names it ("Tue · Evening"), and Clear leads the row; on a place page, Clear goes
   back to that page. The list shows no filter tags beside them. Narrower widgets, a map-less
