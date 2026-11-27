@@ -209,12 +209,10 @@ function CopyLinkTarget({ url }: { url: string }) {
       <span aria-live="polite" className="sr-only">
         {copied ? t('share.link_copied') : ''}
       </span>
-      <CopyFailedCaption
-        captionRef={captionRef}
-        className={failed ? 'order-last w-full' : 'hidden'}
-        failed={failed}
-        url={url}
-      />
+      {/* Kept in the DOM so a failed copy has the link to select, and shown once one has. */}
+      <div className={failed ? 'order-last w-full' : 'hidden'}>
+        <CopyFailedCaption captionRef={captionRef} failed={failed} url={url} />
+      </div>
     </>
   )
 }
