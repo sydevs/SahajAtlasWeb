@@ -184,8 +184,8 @@ export const useCameraSettled = create<CameraSettled>((set) => ({
 
 // This holds the day the calendar's Month has in view: its month, and on a phone the day whose
 // classes it lists. The store keeps it so applying a filter or opening a class and coming back
-// does not reset the Month to today. The view itself lives in the URL (`?view=week`), with the
-// Week's dates. This state is session-scoped and clears on reload.
+// does not reset the Month to today. The view itself lives in the URL (`?view=week`), beside the
+// Week's own `?week=`. This state is session-scoped and clears on reload.
 type CalendarPositionState = {
   date: string | null
   setDate: (date: string) => void

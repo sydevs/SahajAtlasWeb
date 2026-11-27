@@ -66,8 +66,8 @@ cover everything a host would notice since the widget was first deployed.
   - **Your root font size no longer shrinks the calendar.** It was the one part of the widget
     sized in `rem`; with its third-party grid gone, a theme that sets `html { font-size: 62.5% }`
     renders it at the same size as the rest.
-  - The view rides inside `atlas` (`/calendar?view=week&dates=…`), so a host's page writes no new
-    parameter. No origin, CSP or permission change.
+  - The view rides inside `atlas` (`/calendar?view=week&week=2026-12-10`), so a host's page writes
+    no new parameter. No origin, CSP or permission change.
 
 - **"Add to calendar" on the registration confirmation spans the panel, in your second brand
   colour.** ([#549]) It was a narrower button in the first brand colour. Its menu of calendars

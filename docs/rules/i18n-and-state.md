@@ -129,8 +129,8 @@ Ten stores, each the single source of truth for its own slice:
 - **`useCalendarPosition`** — the day the calendar's Month has in view: its month, and on a
   phone the day whose classes it lists, so a filter apply or returning from a class does not
   reset the Month to today. Session-scoped. The view itself is not here: it rides in the URL
-  (`?view=week`, read with `useCalendarView`), beside the Week's `dates`, so a shared link opens
-  the view and the week it was sent from.
+  (`?view=week`, read with `useCalendarView`), beside the Week's own `?week=<day>`, so a shared
+  link opens the view and the week it was sent from.
 - **`useReportModal`** — whether the report-issue modal is open, plus the thrown
   message when an error CTA opened it. A store, not local state, because its
   three triggers (the settings cog, `ErrorFallback`, `DrawerErrorFallback`) sit

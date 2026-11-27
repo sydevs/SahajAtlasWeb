@@ -281,7 +281,7 @@ function LanguageFilter({
 }
 
 /** Frequency and Dates, folded away: most classes are weekly, so neither narrows much. */
-function MoreFilters({ value, patch, facets, hideDates }: ControlProps & { hideDates?: boolean }) {
+function MoreFilters({ value, patch, facets }: ControlProps) {
   const { t } = useTranslation()
   const { cadence, dateRange } = value
   // The date picker is bounded to today through today plus 12 months, the window the URL codec
@@ -291,7 +291,7 @@ function MoreFilters({ value, patch, facets, hideDates }: ControlProps & { hideD
   return (
     <Disclosure
       className="border-t-0"
-      defaultOpen={cadence !== 'any' || (!hideDates && isDateRestricted(dateRange))}
+      defaultOpen={cadence !== 'any' || isDateRestricted(dateRange)}
       title={t('filters.more.label')}
     >
       <div className="flex flex-col gap-5">
@@ -319,35 +319,33 @@ function MoreFilters({ value, patch, facets, hideDates }: ControlProps & { hideD
             )}
           </Question>
         )}
-        {!hideDates && (
-          <Question
-            active={isDateRestricted(dateRange)}
-            label={t('filters.dates.label')}
-            name="filter-dates"
-            onClear={() => patch({ dateRange: { start: null, end: null } })}
-          >
-            {() => (
-              <div className="grid grid-cols-2 gap-2">
-                <DateBound
-                  highlight={dateRange.start !== null}
-                  label={t('filters.dates.from')}
-                  max={dateRange.end ?? dateMax}
-                  min={dateMin}
-                  value={dateRange.start ?? ''}
-                  onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
-                />
-                <DateBound
-                  highlight={dateRange.end !== null}
-                  label={t('filters.dates.to')}
-                  max={dateMax}
-                  min={dateRange.start ?? dateMin}
-                  value={dateRange.end ?? ''}
-                  onChange={(end) => patch({ dateRange: { ...dateRange, end } })}
-                />
-              </div>
-            )}
-          </Question>
-        )}
+        <Question
+          active={isDateRestricted(dateRange)}
+          label={t('filters.dates.label')}
+          name="filter-dates"
+          onClear={() => patch({ dateRange: { start: null, end: null } })}
+        >
+          {() => (
+            <div className="grid grid-cols-2 gap-2">
+              <DateBound
+                highlight={dateRange.start !== null}
+                label={t('filters.dates.from')}
+                max={dateRange.end ?? dateMax}
+                min={dateMin}
+                value={dateRange.start ?? ''}
+                onChange={(start) => patch({ dateRange: { ...dateRange, start } })}
+              />
+              <DateBound
+                highlight={dateRange.end !== null}
+                label={t('filters.dates.to')}
+                max={dateMax}
+                min={dateRange.start ?? dateMin}
+                value={dateRange.end ?? ''}
+                onChange={(end) => patch({ dateRange: { ...dateRange, end } })}
+              />
+            </div>
+          )}
+        </Question>
       </div>
     </Disclosure>
   )
@@ -362,8 +360,6 @@ export type SearchFiltersProps = {
   where?: ReactNode
   /** Live counts and relevance. Without them every group but Language shows, with no numbers. */
   facets?: FilterFacets
-  /** Leaves out Dates, where the view sets them itself (the calendar's Week). */
-  hideDates?: boolean
 }
 
 /**
@@ -375,7 +371,7 @@ export type SearchFiltersProps = {
  * A question that cannot change the results in this scope is not asked, unless it is already
  * answered (`shownGroups`).
  */
-export function SearchFilters({ value, onChange, where, facets, hideDates }: SearchFiltersProps) {
+export function SearchFilters({ value, onChange, where, facets }: SearchFiltersProps) {
   const { t } = useTranslation()
   const { formatLocale } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages } = value
@@ -501,7 +497,7 @@ export function SearchFilters({ value, onChange, where, facets, hideDates }: Sea
         </Question>
       )}
 
-      <MoreFilters facets={facets} hideDates={hideDates} patch={patch} value={value} />
+      <MoreFilters facets={facets} patch={patch} value={value} />
     </div>
   )
 }

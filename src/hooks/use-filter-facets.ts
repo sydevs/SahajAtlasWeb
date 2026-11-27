@@ -24,10 +24,7 @@ import {
  * else the whole feed. `undefined` until the feed has loaded, and the form then shows every group
  * but Language, without numbers.
  */
-export function useFilterFacets(
-  filters: EventFilters,
-  { keepDates = false }: { keepDates?: boolean } = {},
-): FilterFacets | undefined {
+export function useFilterFacets(filters: EventFilters): FilterFacets | undefined {
   const [searchParams] = useSearchParams()
   const center = parseCenter(searchParams.get('center'))
   const centerKey = center?.join(',')
@@ -63,8 +60,7 @@ export function useFilterFacets(
     return {
       counts,
       relevance: unfiltered.relevance,
-      recovery:
-        counts.total === 0 ? bestRecovery(scope, filters, undefined, { keepDates }) : undefined,
+      recovery: counts.total === 0 ? bestRecovery(scope, filters) : undefined,
     }
-  }, [scope, unfiltered, filters, keepDates])
+  }, [scope, unfiltered, filters])
 }

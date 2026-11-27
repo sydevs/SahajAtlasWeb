@@ -18,7 +18,7 @@ import {
   entryTime,
   weekFrom,
   tidyPlaceCase,
-  weekFilters,
+  weekFromParams,
 } from './calendar'
 import { DEFAULT_FILTERS, type EventFilters } from './filters'
 
@@ -256,36 +256,35 @@ const entry = (start: string): CalendarEntry => ({
 describe('the Week', () => {
   const today = '2026-11-27'
 
-  it('opens on the seven days from today, or from a link’s first day', () => {
-    expect(calendarWindow({ start: null, end: null }, today)).toEqual({
+  it('opens on the seven days from today, or from the day it is paged to', () => {
+    expect(calendarWindow(null, today)).toEqual({
       start: today,
       end: '2026-12-03',
       isThisWeek: true,
     })
-    // A link naming three weeks opens the first seven days; one that has passed opens today.
-    expect(calendarWindow({ start: '2026-12-10', end: '2026-12-31' }, today)).toMatchObject({
+    expect(calendarWindow('2026-12-10', today)).toMatchObject({
       start: '2026-12-10',
       end: '2026-12-16',
       isThisWeek: false,
     })
-    expect(calendarWindow({ start: '2026-11-01', end: null }, today).start).toBe(today)
+    // A day that has passed opens today: nothing before it has classes.
+    expect(calendarWindow('2026-11-01', today).start).toBe(today)
   })
 
   it('pages a week at a time, and back to this week’s plain address', () => {
-    const now = calendarWindow({ start: null, end: null }, today)
+    const now = calendarWindow(null, today)
     const next = shiftWeek(now, 1, today)
 
-    expect(next).toEqual({ start: '2026-12-04', end: '2026-12-10' })
-    expect(shiftWeek(calendarWindow(next, today), -1, today)).toEqual({ start: null, end: null })
+    expect(next).toBe('2026-12-04')
+    expect(shiftWeek(calendarWindow(next, today), -1, today)).toBeNull()
   })
 
-  it('reads its own seven days in place of the link’s range', () => {
-    expect(
-      weekFilters({ ...DEFAULT_FILTERS, dateRange: { start: null, end: null } }, today).dateRange,
-    ).toEqual({
-      start: today,
-      end: '2026-12-03',
-    })
+  it('takes its day from `week`, falling back to a pre-`week` link’s dates', () => {
+    expect(weekFromParams(new URLSearchParams('view=week&week=2026-12-10'))).toBe('2026-12-10')
+    expect(weekFromParams(new URLSearchParams('view=week&dates=2026-12-10,2026-12-31'))).toBe(
+      '2026-12-10',
+    )
+    expect(weekFromParams(new URLSearchParams('view=week'))).toBeNull()
   })
 
   it('takes its view from the address', () => {
@@ -331,32 +330,36 @@ describe('the calendar’s own rules', () => {
   const filters = { ...DEFAULT_FILTERS, region: 'gb', format: 'online' as const, dateRange: week }
 
   it('opens the Week on a later day, and on this week’s plain address from today or before', () => {
-    expect(weekFrom('2026-12-04', today)).toEqual(week)
-    expect(weekFrom(today, today)).toEqual({ start: null, end: null })
-    expect(weekFrom('2026-11-20', today)).toEqual({ start: null, end: null })
+    expect(weekFrom('2026-12-04', today)).toBe('2026-12-04')
+    expect(weekFrom(today, today)).toBeNull()
+    expect(weekFrom('2026-11-20', today)).toBeNull()
   })
 
-  it('counts neither the place nor the Week’s dates as chosen, and Clear keeps both', () => {
-    expect(chosenCalendarFilters(filters, 'week')).toMatchObject({
+  it('counts the place as the title rather than a chosen filter, and Clear keeps it', () => {
+    expect(chosenCalendarFilters(filters)).toMatchObject({
       region: null,
-      dateRange: { start: null, end: null },
+      // The dates are an ordinary filter in both views.
+      dateRange: week,
       format: 'online',
     })
-    // On the Month the dates are a filter like the rest.
-    expect(chosenCalendarFilters(filters, 'month').dateRange).toEqual(week)
-    expect(clearedCalendarFilters(filters, 'week')).toEqual({
-      ...DEFAULT_FILTERS,
-      region: 'gb',
-      dateRange: week,
-    })
-    expect(clearedCalendarFilters(filters, 'month')).toEqual({ ...DEFAULT_FILTERS, region: 'gb' })
+    expect(clearedCalendarFilters(filters)).toEqual({ ...DEFAULT_FILTERS, region: 'gb' })
   })
 
-  it('writes only the Week into the address', () => {
-    expect(calendarViewToParams('week', new URLSearchParams('region=gb')).toString()).toBe(
-      'region=gb&view=week',
-    )
-    expect(calendarViewToParams('month', new URLSearchParams('view=week')).toString()).toBe('')
+  it('writes the view and the Week’s day into the address', () => {
+    expect(
+      calendarViewToParams('week', '2026-12-04', new URLSearchParams('region=gb')).toString(),
+    ).toBe('region=gb&view=week&week=2026-12-04')
+    // This week, and the Month, write neither.
+    expect(
+      calendarViewToParams('week', null, new URLSearchParams('week=2026-12-04')).toString(),
+    ).toBe('view=week')
+    expect(
+      calendarViewToParams(
+        'month',
+        null,
+        new URLSearchParams('view=week&week=2026-12-04'),
+      ).toString(),
+    ).toBe('')
   })
 
   it('reads an entry’s day and its wall clock off its start', () => {

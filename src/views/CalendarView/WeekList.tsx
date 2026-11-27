@@ -16,7 +16,7 @@ type WeekListProps = {
   entries: readonly CalendarEntry[]
   week: CalendarWindow
   locale: string
-  /** Whether filters other than the place and the dates are chosen. */
+  /** Whether filters other than the place are chosen. */
   filtered: boolean
   onClearFilters: () => void
   onWeekFrom: (day: string) => void
