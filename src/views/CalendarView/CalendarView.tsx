@@ -17,7 +17,6 @@ import api, { regionsQuery } from '@/config/api'
 import { regionRoute } from '@/config/api/fetch'
 import { useIsWideWidget } from '@/config/responsive'
 import { useCalendarPosition } from '@/config/store'
-import { useCalendarView, useSetCalendarView } from '@/hooks/use-calendar-view'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import {
@@ -25,6 +24,8 @@ import {
   type CalendarWindow,
   type EventFilters,
   DEFAULT_FILTERS,
+  calendarViewFromParams,
+  calendarViewToParams,
   calendarWindow,
   cameFrom,
   chosenCalendarFilters,
@@ -48,6 +49,22 @@ const useFocusedDate = () => useCalendarPosition((s) => s.date) ?? todayISO()
 
 const setFocused = (day: string) => useCalendarPosition.getState().setDate(day)
 
+/**
+ * Switches the view in place, on the Week's own day — `null` for this week, and dropped
+ * altogether by the Month. `state` carries the entry's depth, which a replace without it would
+ * strip.
+ */
+function useSetView() {
+  const [, setSearchParams] = useSearchParams()
+  const location = useLocation()
+
+  return (view: CalendarViewName, week: string | null) =>
+    setSearchParams((prev) => calendarViewToParams(view, week, new URLSearchParams(prev)), {
+      replace: true,
+      state: location.state,
+    })
+}
+
 // The place the calendar is scoped to, from the cache-once region tree.
 function usePlace(slug: string | null) {
   const { data: regions } = useQuery(regionsQuery())
@@ -62,7 +79,7 @@ function usePlace(slug: string | null) {
 function CalendarHeader({ view, week }: { view: CalendarViewName; week: CalendarWindow }) {
   const { t } = useTranslation()
   const { formatLocale } = useLocale()
-  const setView = useSetCalendarView()
+  const setView = useSetView()
   const filters = useEventFilters()
   const { dismiss } = useDrawerControl()
   const navigate = useNavigate()
@@ -196,7 +213,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
 export function CalendarView() {
   const [params] = useSearchParams()
   const filters = useEventFilters()
-  const view = useCalendarView()
+  const view = calendarViewFromParams(params)
   const week = calendarWindow(weekFromParams(params), todayISO())
 
   return (
@@ -233,7 +250,7 @@ function CalendarBody({
   const isWide = useIsWideWidget()
   const focused = useFocusedDate()
   const { setFilters } = useSetFilters()
-  const setView = useSetCalendarView()
+  const setView = useSetView()
   const today = todayISO()
   // A busy Month day's "+ N classes", or an empty week's next class, opens the Week from it.
   const openWeek = (day: string) => setView('week', weekFrom(day, today))
