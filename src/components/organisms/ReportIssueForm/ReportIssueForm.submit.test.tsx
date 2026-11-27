@@ -10,9 +10,9 @@
 // called `window.alert(JSON.stringify(payload))` and then
 // `setSubmitted(true)`, so every report showed the thank-you screen, and
 // none of them reached a server. Its sibling spec can only drive the story
-// prop (`initialSubmitted`), which short-circuits the derivation. So with that spec alone, restoring the bug keeps the
-// lane green. Here the ONLY way to the thank-you screen is a resolved
-// POST.
+// prop (`initialSubmitted`), which short-circuits the derivation. So with that
+// spec alone, restoring the bug keeps the lane green. Here the ONLY way to the
+// thank-you screen is a resolved POST.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'

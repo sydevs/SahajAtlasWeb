@@ -417,8 +417,8 @@ per-layout rule.
 Mapbox's terms allow keeping a feature id only when the lookup that returned it carried
 `permanent=true`, and such lookups bill separately. No mount of `MapSearch` sets it, because
 nothing the geocoder answers reaches a row SahajCloud stores; `reverseGeocode` (`lib/geocode.ts`)
-is temporary for the same reason. Storing an id means adding the option on the mount that submits
-it (sydevs/SahajCloud#893 is the contract that would require it).
+is temporary for the same reason. Storing an id means giving `MapSearch` a `permanent` option again,
+on the mount that submits it (sydevs/SahajCloud#893 is the contract that would require it).
 
 ⚠ **An option that may be absent is spread conditionally.** `GeocodingCore` drops a `null` or
 `undefined` option but serializes a `false`, so `country` is spread rather than passed as itself —

@@ -278,7 +278,11 @@ export function DrawerLoading() {
     <>
       <DrawerChrome loading />
       {/* The phone sheet pins Register to its foot once the class arrives. */}
-      <DrawerLoadingBody body={shape?.body} cta={!hasMap || isWide} />
+      {shape ? (
+        <DrawerLoadingBody body={shape.body} cta={!hasMap || isWide} />
+      ) : (
+        <DrawerLoadingBody />
+      )}
     </>
   )
 }
@@ -292,7 +296,10 @@ export function DrawerLoading() {
  * This is the loading counterpart of `DrawerErrorBody`/`ErrorPanel` — same split,
  * same reason.
  */
-export function DrawerLoadingBody({ body, cta }: { body?: SkeletonBodyKind; cta?: boolean }) {
+export function DrawerLoadingBody({
+  body,
+  cta,
+}: { body?: undefined; cta?: never } | { body: SkeletonBodyKind; cta?: boolean }) {
   const { t } = useTranslation()
 
   if (body) {

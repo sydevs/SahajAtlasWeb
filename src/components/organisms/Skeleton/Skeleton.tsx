@@ -16,8 +16,9 @@ import { tv } from '@/styles/tv'
 // The loading panel: a few generic shapes, one set for every view that loads, shared by the boot
 // panel and the drawer's own loading state. Each is sized like what replaces it — a 56px place
 // row, a class card's title over two lines, the field's 38px box (46px on a touch screen) — so the
-// content lands where its placeholder stood. `tests/browser/skeleton.spec.ts` measures each
-// against the view it stands for.
+// content lands where its placeholder stood. `tests/browser/skeleton.spec.ts` measures the
+// list and class shapes against the views they stand for; the form, filters and calendar bodies
+// are sized from their views' classes and not yet measured.
 
 /**
  * Marks a loading placeholder. The phone sheet's fit (`useFitSnap`) holds its stop while one is in
@@ -137,8 +138,10 @@ export function skeletonShape(
   }
 }
 
-const FIELD =
-  'flex h-[38px] min-w-0 flex-1 items-center gap-3 rounded-lg border border-divider bg-gray-2 ps-2 pointer-coarse:h-[46px]'
+// A field's drawn height, 46px on a touch screen (`field-height` in globals.css).
+const FIELD_HEIGHT = 'h-[38px] pointer-coarse:h-[46px]'
+
+const FIELD = `flex ${FIELD_HEIGHT} min-w-0 flex-1 items-center gap-3 rounded-lg border border-divider bg-gray-2 ps-2`
 
 /** The search field's box, greyed and holding bars, so it reads as on its way, not as a field. */
 export function SkeletonField() {
@@ -258,7 +261,7 @@ function Question({ children, width }: { children?: ReactNode; width: string }) 
   )
 }
 
-const CONTROL = 'h-[38px] w-full pointer-coarse:h-[46px]'
+const CONTROL = `${FIELD_HEIGHT} w-full`
 
 /** The registration form below its title: the class's summary card, then a labelled field each. */
 function RegistrationPage() {
