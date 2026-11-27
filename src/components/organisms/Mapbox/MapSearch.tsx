@@ -30,10 +30,8 @@ export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
   /**
-   * This is the accessible name and placeholder. It defaults to the "search
-   * for events near…" phrasing, which is right in a header, where position
-   * already says what the field is for. But it reads as a promise of nearby
-   * events when the field sits in an error body instead.
+   * This is the accessible name and placeholder. It defaults to "Enter your
+   * city or postcode", which names what to type; an error body passes its own words.
    */
   label?: string
   /**

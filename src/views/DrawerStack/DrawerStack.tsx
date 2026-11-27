@@ -62,6 +62,7 @@ import {
   capPoints,
   FIT_SNAP,
   heldFoldPx,
+  HOME_SNAP,
   OPEN_SNAP,
   PEEK_SNAP,
   resolveStop,
@@ -283,9 +284,13 @@ export function DrawerStack() {
   const openedClass = classView ? location.pathname : null
   const { fit, fold: measuredFold } = useFitSnap(canCollapse && fitsContent, location.pathname)
   const fold = classView ? (heldFoldPx(snap) ?? measuredFold) : null
-  const ladder = useMemo(() => sheetLadder({ classView, fit, fold }), [classView, fit, fold])
+  const home = opening === 'home'
+  const ladder = useMemo(
+    () => sheetLadder({ classView, fit, fold, home }),
+    [classView, fit, fold, home],
+  )
   const { points: snapPoints, fitSnap } = ladder
-  const openSnap = fitsContent ? FIT_SNAP : OPEN_SNAP
+  const openSnap = fitsContent ? FIT_SNAP : home ? HOME_SNAP : OPEN_SNAP
   const vaulSnap = resolveStop(ladder, snap)
   // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
   // literally would swap the token for whatever it resolved to that render, and the sheet would
@@ -500,8 +505,8 @@ export function DrawerStack() {
     const landTall = resultsTall.current
 
     resultsTall.current = false
-    setSnap(opening === 'tall' || landTall ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
-  }, [direction, opening, fitsContent, top?.kind, openedClass])
+    setSnap(opening === 'tall' || landTall ? WIDE_SNAP : openSnap)
+  }, [direction, opening, openSnap, top?.kind, openedClass])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this

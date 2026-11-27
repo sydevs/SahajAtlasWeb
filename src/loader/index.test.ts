@@ -114,8 +114,8 @@ describe('booting on idle', () => {
     expect(widget.boot).toHaveBeenCalledWith(
       expect.objectContaining({ key: 'test-key' }),
       expect.objectContaining({ mode: 'inline' }),
-      // The import of `/geo.js`, still in flight; the widget takes it when it lands.
-      expect.any(Promise),
+      // `/geo.js`'s default export, waited for before boot; this page has none.
+      null,
     )
   })
 

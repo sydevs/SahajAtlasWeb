@@ -52,12 +52,12 @@ SahajCloud, and every key it stores.
 own, written inside a `try`/`catch` so a sandboxed iframe, or a privacy mode
 that refuses storage, degrades gracefully. Two are written by Mapbox GL:
 
-| Key                                | Store            | Holds                                                 | Lifetime            |
-| ----------------------------------- | ---------------- | ------------------------------------------------------ | -------------------- |
-| `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
-| `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
-| `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
-| `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
+| Key                                | Store            | Holds                                                      | Lifetime            |
+| ---------------------------------- | ---------------- | ---------------------------------------------------------- | ------------------- |
+| `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                        | until cleared       |
+| `atlas.geolocationPromptDismissed` | `sessionStorage` | that they removed the guessed town from "classes near you" | the browser session |
+| `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                      | until cleared       |
+| `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates                 | until cleared       |
 
 Two notes. **`theme` used to carry no namespace** — the bare string `theme`
 — so a page storing its own light/dark preference under that name had it
@@ -73,8 +73,8 @@ then your page's `<html lang>`, then the browser, per page load.
 
 The visitor's approximate town and country come from the widget's own origin,
 as `/geo.js`: Cloudflare reads them off that request, and the widget sends them
-nowhere. They power "classes near you" and the order of the
-share targets, and are not stored.
+nowhere. They power "classes near you", put the visitor's country first in
+the country list, order the share targets, and are not stored.
 
 Requests leave the browser for these hosts, none of them yours or
 SahajCloud's:

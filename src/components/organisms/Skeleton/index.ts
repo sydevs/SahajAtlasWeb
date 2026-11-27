@@ -8,6 +8,7 @@ export {
   SkeletonField,
   SkeletonGroup,
   SkeletonHeader,
+  SkeletonLocation,
   SkeletonLine,
   skeletonShape,
 } from './Skeleton'

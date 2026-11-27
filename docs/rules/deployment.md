@@ -25,7 +25,8 @@ move ran one site at a time, and the app's own cutover was split from building i
 - **`sahajatlas-web`, the app** — from `wrangler.jsonc`, pointed at `dist/`, which
   `pnpm build:worker` fills, plus one small script, `worker/index.ts`, that serves `/geo.js`: the
   visitor's approximate location from `request.cf`, as a module (`worker/geo.mjs`). The loader
-  imports it beside the widget, and the standalone page from `main.tsx`. `run_worker_first`
+  imports it beside the widget and waits for it before booting (at most `GEO_WAIT_MS`, 1.5s), and
+  the standalone page does the same from `main.tsx`, so the location is there at the first render. `run_worker_first`
   names only `/geo.js`, so every other file is a static asset and never runs the script; its
   cost is one Workers request per embed load — about 1,800 a week in 2026-11, against the 10
   million a month Workers Paid includes. A failure there costs the location, never the embed:

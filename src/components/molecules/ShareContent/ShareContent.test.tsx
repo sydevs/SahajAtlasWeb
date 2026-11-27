@@ -6,7 +6,7 @@ import { ShareTargets } from './platform-buttons'
 
 // This mocks the i18n boundary, so aria-labels render as real copy,
 // including the %{platform} interpolation, without booting i18next (see
-// GeolocationPrompt.test). This is the node lane, with no jsdom
+// AddToCalendar.test). This is the node lane, with no jsdom
 // (docs/testing.md), so the popover itself never opens here: `ShareTargets`
 // is rendered directly for what it holds, and `ShareContent.dom.test.tsx`
 // drives the button.

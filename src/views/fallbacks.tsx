@@ -22,11 +22,13 @@ import {
   LOADING_BODY_CLIP,
   SkeletonBody,
   SkeletonField,
+  SkeletonLocation,
   skeletonShape,
 } from '@/components/organisms/Skeleton/Skeleton'
 import { BackButton, NavHeader, NavRow } from '@/views/nav'
 import {
   CalendarButton,
+  DrawerTitle,
   ExpandSheetButton,
   FilterButton,
   SearchField,
@@ -163,13 +165,19 @@ export function DrawerChrome({
     // field. There it is the escape hatch.
     const field = loading ? <SkeletonField /> : <SearchField />
 
-    // CountriesView's header.
+    // CountriesView's header, and its search band with the location line's room.
     if (!entry) {
       return (
-        <DrawerHeader>
-          {field}
-          {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
-        </DrawerHeader>
+        <>
+          <DrawerHeader className="justify-between">
+            <DrawerTitle title={t('countries.title')} />
+            {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+          </DrawerHeader>
+          <DrawerToolbar field>
+            {field}
+            {loading && <SkeletonLocation />}
+          </DrawerToolbar>
+        </>
       )
     }
 

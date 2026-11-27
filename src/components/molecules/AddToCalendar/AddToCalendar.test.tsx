@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { AddToCalendar, calendarLinkTargets } from './AddToCalendar'
 
 // Mock the i18n boundary, so the accessible name renders as real copy
-// without booting i18next (the ShareContent/GeolocationPrompt template).
+// without booting i18next (the ShareContent template).
 // This is the node lane, with no jsdom. See docs/testing.md.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

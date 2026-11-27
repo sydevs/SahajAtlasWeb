@@ -253,8 +253,7 @@
   },
   "search": {
     "chrome": {
-      "city_or_postcode": "City or postcode",
-      "placeholder": "Search for events near…",
+      "placeholder": "Enter your city or postcode",
       "title": "Search"
     },
     "country_site": {

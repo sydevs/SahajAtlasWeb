@@ -1069,11 +1069,11 @@ Alongside the origins in the CSP table above, the widget needs three browser **c
 Each is denied to a cross-origin iframe by default, and each can also be denied to a script embed
 by a `Permissions-Policy` header on your own page.
 
-| Feature           | What uses it                                                                                                                           | What breaks without it                                                                                      |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `geolocation`     | The map's "find my location" control and the filters' Near me (map-less embeds too), each opening the classes nearest the visitor      | Each says it could not get a location                                                                       |
-| `clipboard-write` | Copy link on a class's Share panel and the registration confirmation, the contact popover's copy button, and tapping a class's address | Copy link says it could not copy and selects the link to copy by hand; a tapped address is selected instead |
-| `web-share`       | The Share button, which opens the device's own share sheet                                                                             | Share opens a popover of the region's share networks instead                                                |
+| Feature           | What uses it                                                                                                                                                            | What breaks without it                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `geolocation`     | The map's "find my location" control, the filters' Near me and the first screen's "Classes near me" (map-less embeds too), each opening the classes nearest the visitor | Each says it could not get a location                                                                       |
+| `clipboard-write` | Copy link on a class's Share panel and the registration confirmation, the contact popover's copy button, and tapping a class's address                                  | Copy link says it could not copy and selects the link to copy by hand; a tapped address is selected instead |
+| `web-share`       | The Share button, which opens the device's own share sheet                                                                                                              | Share opens a popover of the region's share networks instead                                                |
 
 **None of the three errors**, so nothing in your console will tell you. If
 you send a `Permissions-Policy` header, allow these three for your own origin. If you embed in
@@ -1322,12 +1322,12 @@ full detail on each flow, including exactly what an error report does and does n
 `try`/`catch` so a sandboxed iframe degrades the setting rather than breaking the widget, and two
 written by Mapbox GL:
 
-| Key                                | Store            | Holds                                                 | Lifetime            |
-| ---------------------------------- | ---------------- | ----------------------------------------------------- | ------------------- |
-| `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                   | until cleared       |
-| `atlas.geolocationPromptDismissed` | `sessionStorage` | that they dismissed the "classes near you" suggestion | the browser session |
-| `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                 | until cleared       |
-| `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates            | until cleared       |
+| Key                                | Store            | Holds                                                      | Lifetime            |
+| ---------------------------------- | ---------------- | ---------------------------------------------------------- | ------------------- |
+| `atlas.theme`                      | `localStorage`   | the viewer's light/dark/auto choice                        | until cleared       |
+| `atlas.geolocationPromptDismissed` | `sessionStorage` | that they removed the guessed town from "classes near you" | the browser session |
+| `mapbox.eventData:<token>`         | `localStorage`   | Mapbox GL's own telemetry bookkeeping                      | until cleared       |
+| `mapbox.eventData.uuid:<token>`    | `localStorage`   | a persistent anonymous id Mapbox generates                 | until cleared       |
 
 **The `theme` key used to be un-namespaced** — the bare string `theme` — so a page storing its
 own light/dark preference under that name had it read and overwritten. That is fixed: our key is
@@ -1356,8 +1356,9 @@ maintainers rather than editing the snippet:
 `https://sahajatlas.com/geo.js` beside the widget: Cloudflare, which serves that origin, reads a
 town, a country and a point off that request, and our Worker answers with them, sent
 `private, no-store`. No third party is asked, nothing is stored, and the widget sends them on
-nowhere: they pick "classes near you", order the share targets, and name a town to recover to
-when a link is dead. If the module fails, the widget simply has no guess. **An IP is personal
+nowhere: they pick "classes near you", put the visitor's country first in the country list,
+order the share targets, and name a town to recover to when a link is dead. If the module
+fails, the widget simply has no guess. **An IP is personal
 data in the EU**; it reaches only the server that already answers the widget's own scripts.
 
 **The captcha talks to Cloudflare from a frame, not from your page.** The Turnstile challenge

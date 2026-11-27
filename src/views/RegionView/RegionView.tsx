@@ -31,13 +31,7 @@ import {
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
-import {
-  CalendarButton,
-  FilterButton,
-  GeolocationSuggestion,
-  SearchField,
-  useFrameOnTop,
-} from '@/views/shared'
+import { CalendarButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 
 // A region at any level, at route `<region-path>`. It shows child-region cards, then this
 // region's own located events, in ONE mixed list. A city can hold both venue and centre
@@ -142,7 +136,9 @@ export function RegionView({ slug }: { slug: string }) {
       {/* A field, not an icon, so a visitor who landed in the wrong place can search again from
           here. */}
       <DrawerToolbar field>
-        <SearchField />
+        {/* A place page's own search, with the location line its region allows. Not while
+            the acknowledgement is up: two prompts are more than the screen can carry. */}
+        <SearchField near={feedback ? undefined : region} />
       </DrawerToolbar>
       <DrawerBody>
         <ActiveFilterPills />
@@ -182,10 +178,6 @@ export function RegionView({ slug }: { slug: string }) {
             onClose={dismissFeedback}
           />
         )}
-        {/* This is suppressed while the acknowledgement is up. Two stacked prompts above the
-            list are more than the screen can carry, and the reader has just acted once
-            already. It returns as soon as they dismiss the banner. */}
-        {!feedback && <GeolocationSuggestion position="above" regionCenter={region.center} />}
         {isEmpty ? (
           <FallbackPanel
             hasSearchChrome
@@ -229,7 +221,6 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
-        {!feedback && <GeolocationSuggestion position="below" regionCenter={region.center} />}
       </DrawerBody>
     </>
   )

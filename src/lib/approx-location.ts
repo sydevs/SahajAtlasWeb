@@ -41,3 +41,25 @@ export function parseApproxLocation(value: unknown): ApproxLocation | null {
 
   return { ...(countryCode && { countryCode }), ...(place && { place }) }
 }
+
+// One session-scoped flag: dismissing the suggestion (× or clicking through)
+// hides it for the rest of the browser session. It reappears on a fresh visit.
+export const GEOLOCATION_DISMISS_KEY = 'atlas.geolocationPromptDismissed'
+
+// sessionStorage can be absent or throw in sandboxed embeds / private mode, so both
+// accessors degrade to "not dismissed" rather than crashing the suggestion.
+export const readGeolocationDismissed = (): boolean => {
+  try {
+    return sessionStorage.getItem(GEOLOCATION_DISMISS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export const markGeolocationDismissed = (): void => {
+  try {
+    sessionStorage.setItem(GEOLOCATION_DISMISS_KEY, '1')
+  } catch {
+    // Dismissal will not persist where sessionStorage is unavailable. This is acceptable.
+  }
+}

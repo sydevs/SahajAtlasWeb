@@ -3,30 +3,34 @@ import type { GeocodingFeature } from '@mapbox/search-js-core'
 import type { DependencyList, ReactNode } from 'react'
 import type { Event, Region } from '@/types'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { CalendarDays, Funnel } from 'lucide-react'
+import { CalendarDays, ChevronRight, Funnel, MapPin } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
-import { FallbackPanel, GeolocationPrompt } from '@/components/molecules'
+import { Alert } from '@/components/atoms/Alert'
+import { Spinner } from '@/components/atoms/Spinner'
+import { FallbackPanel } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
 import { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useApproxLocation, useCameraHistory, useSearchFocus } from '@/config/store'
+import { useWidgetMode } from '@/config/mode'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
+import { useNearMe } from '@/hooks/use-near-me'
 import { useMapController } from '@/hooks/use-map-controller'
+import { deepActiveElement } from '@/lib/active-element'
 import { hasMapPoint } from '@/lib/camera'
 import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
 import {
   guessedPlace,
   hasActivePlaceSearch,
-  markGeolocationDismissed,
-  readGeolocationDismissed,
+  locationLineHere,
   shouldShowGeolocationPrompt,
 } from '@/lib/geolocation'
 import {
@@ -217,7 +221,19 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
 // place navigates to /search with the geocoded bbox and centre (the SearchView
 // ranks events by distance from there). This carries the geocode-to-search
 // behaviour that used to live in the removed SearchBar.
-export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
+/**
+ * Where the place search stands, for the location line under it: the first screen (`'home'`),
+ * or a place page's region. Left out, the field stands alone.
+ */
+export type SearchNear = 'home' | Pick<Region, 'level' | 'countryCode' | 'center'>
+
+export function SearchField({
+  label,
+  near,
+}: Pick<MapSearchProps, 'label'> & {
+  /** Hang the location line under the field, for this page (`LocationLine` decides if it shows). */
+  near?: SearchNear
+} = {}) {
   const { t } = useTranslation()
   const box = useRef<HTMLDivElement>(null)
 
@@ -270,14 +286,33 @@ export function SearchField({ label }: Pick<MapSearchProps, 'label'> = {}) {
     [navigate, searchParams],
   )
 
-  return (
-    // A `search` landmark, named from the widget's own translations. The widget as a whole is
-    // one `region` on the host's page (`Widget.tsx`), and each drawer is a named dialog, so
-    // this is what lets a screen-reader viewer tell the place search from the results under it
-    // and from the Filters dialog beside it (#432). The name is the field's, not the view's:
-    // `SearchView` is itself a dialog called Search.
+  // After a refused location the line is gone, and the cursor goes to the field, unless the
+  // visitor has already put it somewhere else.
+  const focusFieldUnlessMoved = useCallback(() => {
+    const focused = deepActiveElement()
+
+    if (!focused || focused === document.body) {
+      box.current?.querySelector<HTMLInputElement>('input')?.focus()
+    }
+  }, [])
+
+  // A `search` landmark, named from the widget's own translations. The widget as a whole is one
+  // `region` on the host's page (`Widget.tsx`), and each drawer is a named dialog, so this is what
+  // lets a screen-reader viewer tell the place search from the results under it and from the
+  // Filters dialog beside it (#432). The name is the field's, not the view's: `SearchView` is
+  // itself a dialog called Search.
+  const field = (
     <div ref={box} aria-label={t('search.chrome.title')} className="min-w-0 flex-1" role="search">
       <MapSearch label={label} onSelect={handleSelect} />
+    </div>
+  )
+
+  if (!near) return field
+
+  return (
+    <div className="min-w-0 flex-1">
+      {field}
+      <LocationLine near={near} onRefused={focusFieldUnlessMoved} />
     </div>
   )
 }
@@ -434,8 +469,7 @@ export function EmptyEventList() {
     // views' error states.
     <FallbackPanel align="start" kind="empty">
       {/* `label` is the field's accessible name AND its placeholder, so it does the whole
-          job of prompting: dropped out of a header, the default "search for events near…"
-          reads on this screen as a promise that there ARE nearby events. */}
+          job of prompting here, where the field stands alone in an empty page. */}
       <SearchField
         label={t('common.errors.search_label', { defaultValue: 'Or search for a place' })}
       />
@@ -443,79 +477,111 @@ export function EmptyEventList() {
   )
 }
 
-// The single shared wiring for the approximate-location nearby suggestion, rendered above the
-// list on CountriesView, RegionView, and SearchView, so the behaviour is not triplicated. On
-// accept it navigates into the distance-ranked search centred on the guessed town
-// (`guessedPlace`), preserving the active URL filters exactly as SearchField does.
-// `shouldShowGeolocationPrompt` (src/lib/geolocation.ts, fully unit-tested) owns the visibility
-// conditions. Only the close button persists a session-scoped dismissal. Accepting merely
-// navigates. The prompt self-hides while the visitor views that area, but returns once they
-// leave it.
-//
-// The guess is known at first paint, but the feed that decides whether anything is near may land
-// after the list has painted, and a banner pushed in above rows the visitor may be about to tap
-// moved them 48px under the finger. So a view mounts this twice: `above` shows only if the answer
-// was already known at the first paint, `below` only if it came later, where it moves nothing.
-export function GeolocationSuggestion({
-  regionCenter,
-  position,
-}: {
-  regionCenter?: [number, number] | null
-  position: 'above' | 'below'
-}) {
+/**
+ * The location line under the place search: one obvious way to classes near the visitor. With a
+ * guessed town it offers it ("Classes near Prague ›"), and its × removes a wrong guess for the
+ * visit. On the first screen a line with no guess asks for the visitor's position instead
+ * ("Classes near me ›"), through the filters' Near me; a refusal takes the line away.
+ *
+ * Shown only where it helps: the first screen, and another country's page. Never a region, a
+ * city or the visitor's own country, never during a place search, nor where nothing is within
+ * reach of the guess (`shouldShowGeolocationPrompt`).
+ */
+function LocationLine({ near, onRefused }: { near: SearchNear; onRefused: () => void }) {
+  const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()
   const { regionNames } = useLocale()
-  const [dismissed, setDismissed] = useState(readGeolocationDismissed)
-  const activeSearch = hasActivePlaceSearch(searchParams)
-  const guess = useApproxLocation((s) => s.location?.place)
+  const { hasMap } = useWidgetMode()
+  const guess = useApproxLocation((s) => (s.dismissed ? undefined : s.location?.place))
   const countryCode = useApproxLocation((s) => s.location?.countryCode)
-
-  // The cached event feed powers the "is anything actually near?" guard.
+  const dismiss = useApproxLocation((s) => s.dismiss)
   const { data: geojson } = useQuery(geojsonQuery())
+  const home = near === 'home'
+  const regionCenter = home ? undefined : near.center
+  const shown = locationLineHere(near, countryCode)
+  // The filters' Near me, here as a line: a map-less embed promises no Mapbox calls, so there it
+  // searches the coordinates unnamed.
+  const { status, locate } = useNearMe({
+    naming: hasMap,
+    onPlace: (place) => navigate(placeSearchPath(searchParams, place)),
+  })
 
-  const show = useMemo(
-    () =>
-      shouldShowGeolocationPrompt({
-        guess: guess?.center ?? null,
-        dismissed,
-        activeSearch,
-        geojson,
-        regionCenter,
-      }),
-    [guess, dismissed, activeSearch, geojson, regionCenter],
-  )
-  const knownAtFirstPaint = useRef(show)
+  // A refusal takes the line away, so the cursor goes to the search.
+  useEffect(() => {
+    if (status === 'failed') onRefused()
+  }, [status, onRefused])
 
-  const handleSelect = useCallback(() => {
-    if (!guess) return
+  const activeSearch = hasActivePlaceSearch(searchParams)
+  const offer =
+    shown &&
+    guess &&
+    status !== 'locating' &&
+    shouldShowGeolocationPrompt({
+      guess: guess.center,
+      dismissed: false,
+      activeSearch,
+      geojson,
+      regionCenter,
+    })
+      ? guess
+      : null
 
-    // Accepting must NOT persist a dismissal — only the close button does (handleDismiss).
-    // The new URL carries `?center`/`?q`, so `hasActivePlaceSearch` suppresses the prompt while
-    // the visitor is looking at that area; clearing the search brings it back.
+  const accept = () => {
+    if (!offer) return
+
+    // The searched-country marker SearchField writes, so a guess in a program-less country gets
+    // the country-site offer too.
     navigate(
       placeSearchPath(
         searchParams,
-        // The searched-country marker SearchField writes, so an accepted suggestion that lands
-        // in a program-less country gets the country-site offer too.
-        guessedPlace(guess, countryCode, countryCode && regionNames.of(countryCode)),
+        guessedPlace(offer, countryCode, countryCode && regionNames.of(countryCode)),
       ),
     )
-  }, [guess, countryCode, navigate, regionNames, searchParams])
+  }
 
-  const handleDismiss = useCallback(() => {
-    markGeolocationDismissed()
-    setDismissed(true)
-  }, [])
-
-  // `!guess` is implied by `!show`, but narrows the type for the render below.
-  if (!guess || !show || knownAtFirstPaint.current !== (position === 'above')) return null
+  // With a guess, the line waits for the feed that decides whether the guess is worth offering,
+  // rather than asking for the device's position first and swapping under the visitor's finger.
+  const judging = guess !== undefined && geojson === undefined
+  const askLine = home && !activeSearch && !judging && status !== 'failed'
+  const busy = status === 'locating'
+  // The × removes a guess; a line that only asks has nothing to remove.
+  const close = offer
+    ? { closeLabel: t('search.a11y.dismiss_nearby_prompt'), onClose: dismiss }
+    : { closeLabel: undefined, onClose: undefined }
 
   return (
-    // Below, it can close the panel, so it carries the space under itself; the last row's own
-    // padding is the space above.
-    <div className={position === 'above' ? 'pb-2' : 'pb-4'}>
-      <GeolocationPrompt city={guess.city} onAccept={handleSelect} onClose={handleDismiss} />
-    </div>
+    <>
+      {(offer || askLine) && (
+        // Framed as a guess, never "your location"; polite, since nobody asked for it.
+        <Alert
+          className="mt-1.5 gap-2.5 ps-3 pe-1"
+          color="secondary"
+          icon={busy ? <Spinner size="sm" /> : <MapPin size={18} />}
+          size="sm"
+          title={
+            <button
+              data-vaul-no-drag
+              className="touch-target relative flex w-full items-center gap-1 text-start focus-ring hover:underline disabled:no-underline"
+              disabled={busy}
+              type="button"
+              onClick={offer ? accept : locate}
+            >
+              <span className="truncate">
+                {offer
+                  ? t('countries.near_city', { city: offer.city })
+                  : busy
+                    ? t('countries.locating')
+                    : t('countries.near_me')}
+              </span>
+              {!busy && (
+                <ChevronRight aria-hidden className="shrink-0 rtl:-scale-x-100" size={16} />
+              )}
+            </button>
+          }
+          {...close}
+        />
+      )}
+    </>
   )
 }

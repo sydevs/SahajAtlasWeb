@@ -87,11 +87,11 @@ export function SkeletonBlock({ className }: { className?: string }) {
 // ── The panel ───────────────────────────────────────────────────────────────────────────────
 
 /**
- * The header a view opens with: the search field (the first screen), the field over Filters and
- * Sort (search results), Back and a title (with the search box under it on a place), or a class's
- * own header.
+ * The header a view opens with: the title over the search and its location line (the first
+ * screen), the field over Filters and Sort (search results), Back and a title (with the search box
+ * under it on a place), or a class's own header.
  */
-export type SkeletonHeaderKind = 'field' | 'search' | 'titled' | 'titled-field' | 'class'
+export type SkeletonHeaderKind = 'home' | 'search' | 'titled' | 'titled-field' | 'class'
 
 /** What fills the panel: place rows, class cards, or a class page. */
 export type SkeletonBodyKind = 'places' | 'classes' | 'class'
@@ -111,7 +111,7 @@ export function skeletonShape(
 ): SkeletonShape | null {
   switch (entry?.kind) {
     case undefined:
-      return { header: 'field', body: 'places' }
+      return { header: 'home', body: 'places' }
     case 'search':
       return { header: 'search', body: 'classes' }
     case 'region':
@@ -141,12 +141,30 @@ export function SkeletonField() {
   )
 }
 
-/** A header's content, for a panel with no real header yet: the field and a control, or Back and a title. */
-export function SkeletonHeader({ header }: { header: 'field' | 'titled' }) {
-  if (header === 'field') {
+/** The location line under the first screen's search, the height of the real one. */
+export function SkeletonLocation() {
+  return (
+    <SkeletonGroup>
+      <SkeletonBlock className="mt-1.5 h-10 w-full" />
+    </SkeletonGroup>
+  )
+}
+
+/**
+ * A header's content, for a panel with no real header yet: the field and a control, a title and a
+ * control (the first screen), or Back and a title.
+ */
+export function SkeletonHeader({ header }: { header: 'field' | 'home' | 'titled' }) {
+  if (header === 'field' || header === 'home') {
     return (
       <>
-        <SkeletonField />
+        {header === 'field' ? (
+          <SkeletonField />
+        ) : (
+          <SkeletonGroup className="min-w-0 flex-1">
+            <SkeletonLine className="text-xl" width="w-3/5" />
+          </SkeletonGroup>
+        )}
         <SkeletonGroup className="flex h-8 w-8 shrink-0 items-center justify-center">
           <SkeletonBlock className="h-5 w-5 rounded-full" />
         </SkeletonGroup>
@@ -274,13 +292,17 @@ export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
         <div
           className={panel.header({
             className:
-              header === 'field' || header === 'search'
+              header === 'search'
                 ? undefined
-                : 'flex-col items-stretch gap-0',
+                : header === 'home'
+                  ? 'justify-between'
+                  : 'flex-col items-stretch gap-0',
           })}
           data-band="header"
         >
-          <SkeletonHeader header={header === 'field' || header === 'search' ? 'field' : 'titled'} />
+          <SkeletonHeader
+            header={header === 'search' ? 'field' : header === 'home' ? 'home' : 'titled'}
+          />
         </div>
       )}
       {header === 'search' && (
@@ -292,12 +314,13 @@ export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
           </SkeletonGroup>
         </div>
       )}
-      {header === 'titled-field' && (
+      {(header === 'titled-field' || header === 'home') && (
         <div
           className={panel.toolbar({ className: `${RESULTS_BAND} px-gutter pb-2` })}
           data-band="toolbar"
         >
           <SkeletonField />
+          {header === 'home' && <SkeletonLocation />}
         </div>
       )}
       <div className={panel.body({ className: LOADING_BODY_CLIP })} data-band="body">

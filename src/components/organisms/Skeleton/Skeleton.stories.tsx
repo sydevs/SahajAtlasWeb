@@ -13,7 +13,7 @@ const PANELS: { title: string; description: string; shape: SkeletonShape; cta?: 
   {
     title: 'First screen',
     description: 'The search field and Filters, over place rows.',
-    shape: { header: 'field', body: 'places' },
+    shape: { header: 'home', body: 'places' },
   },
   {
     title: 'Search results',

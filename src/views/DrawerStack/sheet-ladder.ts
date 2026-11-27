@@ -1,7 +1,13 @@
 import type { StackEntry } from '@/lib/shape'
 import type { SheetFit } from '@/views/DrawerStack/use-fit-snap'
 
-import { SHEET_OPEN_PX, SHEET_PEEK_PX, WIDE_SNAP, capStop } from '@/config/responsive'
+import {
+  SHEET_HOME_PX,
+  SHEET_OPEN_PX,
+  SHEET_PEEK_PX,
+  WIDE_SNAP,
+  capStop,
+} from '@/config/responsive'
 
 // The mobile bottom-sheet snap ladder, ascending. vaul reads a string as pixels, and a
 // number as a fraction of the sheet height:
@@ -11,16 +17,19 @@ import { SHEET_OPEN_PX, SHEET_PEEK_PX, WIDE_SNAP, capStop } from '@/config/respo
 //  - 0.97 near-full
 export const PEEK_SNAP = `${SHEET_PEEK_PX}px` // the collapsed peek
 export const OPEN_SNAP = `${SHEET_OPEN_PX}px` // default, and what the peek expands to
+export const HOME_SNAP = `${SHEET_HOME_PX}px` // the first screen's open stop, in place of OPEN_SNAP
 export const SNAP_POINTS = [PEEK_SNAP, OPEN_SNAP, WIDE_SNAP]
+
 // Stands for "as tall as the content" in `snap`. The pixel value moves with the content, so the
 // state holds this token and the ladder carries the live number (`useFitSnap`).
 export const FIT_SNAP = 'fit'
 
 /**
- * How tall a phone sheet opens: near full (`tall`), as tall as its content (`fit`), or the
- * third-height open stop (`open`). Total over the view kinds, so a new view picks one.
+ * How tall a phone sheet opens: near full (`tall`), as tall as its content (`fit`), the
+ * third-height open stop (`open`), or the first screen's own stop (`home`). Total over the view
+ * kinds, so a new view picks one.
  */
-export type SheetOpening = 'tall' | 'fit' | 'open'
+export type SheetOpening = 'tall' | 'fit' | 'open' | 'home'
 
 const SHEET_OPENING: Record<StackEntry['kind'], SheetOpening> = {
   // Its month grid and its list both need the height, whichever of month/week/list shows.
@@ -40,9 +49,13 @@ const SHEET_OPENING: Record<StackEntry['kind'], SheetOpening> = {
   online: 'open',
 }
 
-/** The opening for the top view; the root list, with no view over it, keeps the open stop. */
+/**
+ * The opening for the top view. The first screen, with no view over it, takes `HOME_SNAP`: its
+ * title, search and location line, online classes and the browse heading come before the first
+ * country, which must still show.
+ */
 export const sheetOpening = (kind: StackEntry['kind'] | undefined): SheetOpening =>
-  kind === undefined ? 'open' : SHEET_OPENING[kind]
+  kind === undefined ? 'home' : SHEET_OPENING[kind]
 
 type Stop = number | string | null
 
@@ -71,11 +84,16 @@ export function sheetLadder({
   classView,
   fit,
   fold,
+  home = false,
 }: {
   classView: boolean
   fit: SheetFit | null
   fold: number | null
+  /** The first screen, which opens at `HOME_SNAP` instead of the shared open stop. */
+  home?: boolean
 }): Ladder {
+  if (home) return { points: [PEEK_SNAP, HOME_SNAP, WIDE_SNAP], fitStop: HOME_SNAP, fitSnap: null }
+
   // A fit at or below the open stop is no stop of its own: the sheet never opens lower than that.
   const fitPx = typeof fit === 'number' && fit > SHEET_OPEN_PX ? fit : null
   const fitSnap = fitPx === null ? null : `${fitPx}px`

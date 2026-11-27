@@ -13,7 +13,7 @@ const shapeAt = (path: string) => skeletonShape(resolveStack(path).at(-1))
 
 describe('skeletonShape', () => {
   it.each([
-    ['/', { header: 'field', body: 'places' }],
+    ['/', { header: 'home', body: 'places' }],
     ['/search', { header: 'search', body: 'classes' }],
     ['/gb', { header: 'titled-field', body: 'places' }],
     ['/gb/south-east', { header: 'titled-field', body: 'places' }],
