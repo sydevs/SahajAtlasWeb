@@ -505,12 +505,7 @@ export function RegistrationForm({
               primitives from RegistrationView, never an Event (issue #105). It anchors on
               the session actually submitted, or on the next occurrence when the
               confirmation is previewed rather than earned. */}
-          {/* Its own row, so the trigger keeps its width and the menu opens under its start edge. */}
-          {calendar && (
-            <div className="flex">
-              <AddToCalendar event={{ ...calendar, from: registered?.startingAt }} />
-            </div>
-          )}
+          {calendar && <AddToCalendar event={{ ...calendar, from: registered?.startingAt }} />}
 
           {/* No link, no section. "Invite a friend" over nothing to press is a worse
               confirmation screen than one that simply does not offer it. */}
