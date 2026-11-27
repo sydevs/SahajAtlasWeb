@@ -126,28 +126,11 @@ Ten stores, each the single source of truth for its own slice:
   `useViewState` mirrors the camera only once the map STOPS, so `rememberCamera` would
   otherwise snapshot the place a fly left for the screen it is flying to. Non-reactive,
   like the history it feeds.
-- **`useCalendarPosition`** — the CalendarView's last Schedule-X `view` plus
-  focused `date`, so a filter apply or returning from an event does not reset the
-  grid to the current month. The grid **seeds** from it once at mount (no
-  re-render on write). The header and `DrawerStack` (for sizing) read it
-  **reactively**. The header drives Schedule-X through the public
-  `calendar-controls` plugin — no reach into SX internals. Session-scoped.
-  ⚠ **It holds what the viewer PICKED, never what a width can render** (#331).
-  `month-grid` and `week` declare no small-screen support, so below the crossing
-  both render as `month-agenda` — and every reader resolves the stored name
-  through `resolveCalendarView` (`lib/shape/calendar.ts`) against
-  `useIsWideWidget()` rather than reading it raw. Storing the resolution instead
-  would lose a `week` the moment a viewer passed through a phone width. The
-  header's label and paging step, the switch's value and its offered options, the
-  grid's `defaultView`, and `DrawerStack`'s drawer-width test are all that same
-  resolution. Schedule-X's own `isResponsive` is **off**, so nothing but the
-  resolver decides which view renders: the flag registers the resize listener
-  that is the only path into `setScreenSizeCompatibleView`, which moved off both
-  grids to the FIRST registered compat view and emitted nothing. With it off,
-  neither registration order nor SX's own breakpoint matters. Nothing is lost —
-  the `isCalendarSmall` signal it drops feeds SX's view dropdown and the
-  `sx__is-calendar-small` class, whose rules target the header bar
-  `globals.css` hides, and the year grid this app never registers.
+- **`useCalendarPosition`** — the day the calendar's Month has in view: its month, and on a
+  phone the day whose classes it lists, so a filter apply or returning from a class does not
+  reset the Month to today. Session-scoped. The view itself is not here: it rides in the URL
+  (`?view=week`, read with `useCalendarView`), beside the Week's `dates`, so a shared link opens
+  the view and the week it was sent from.
 - **`useReportModal`** — whether the report-issue modal is open, plus the thrown
   message when an error CTA opened it. A store, not local state, because its
   three triggers (the settings cog, `ErrorFallback`, `DrawerErrorFallback`) sit
@@ -322,7 +305,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
   `useSuspenseQuery` at the top, then returns its header plus body — a boundary
   inside a view drops that view's header entirely. Add a body-level boundary
   only where a real seam exists: a child with its own suspense read below the
-  chrome (`CalendarGrid`, `DynamicEventsList`, the lazy `EventDetails` — exactly
+  chrome (`CalendarBody`, `DynamicEventsList`, the lazy `EventDetails` — exactly
   three places). Everywhere else, the drawer boundary catches.
 - **Fallbacks render their own chrome.** `DrawerChrome` rebuilds the header from
   the URL plus already-cached data (the region tree for a name, the titles

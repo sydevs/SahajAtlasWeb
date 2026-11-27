@@ -81,8 +81,8 @@
  * Every scale is re-pinned in px. v4's own defaults are rem, and a host page that sets
  * `html { font-size: 62.5% }` rescales every rem we ship — a rem resolves against the
  * host's root font size from inside the shadow root too — and it once shrank the side
- * panel to 220px (#238). `pnpm assert:css` fails the build on a rem declaration outside
- * the lazy calendar chunk.
+ * panel to 220px (#238). `pnpm assert:css` fails the build on a rem declaration in any
+ * sheet.
  *
  * `*: initial` clears a namespace before re-declaring it, because the v3 config
  * REPLACED these scales rather than extending them. Without the clear, v4's rem-based

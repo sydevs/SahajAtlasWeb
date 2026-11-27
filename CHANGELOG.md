@@ -49,13 +49,26 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **The calendar names each class, and reads in the visitor's own format.** ([#538]) Every entry
-  leads with the class's name, then its time ("17:45–18:45" in the UK, "5:45 – 6:45 PM" in the US)
-  and its town; an online class says "Online". On a phone, the month view lists the chosen day's
-  classes under its date ("Thursday 12 Nov", then "Today · 4 classes"), every day with classes
-  shows a solid dot, and dark mode keeps the widget's own colours. A busy day says "+ 30 classes".
-  On a computer, each month box shows the time and town, with the class's name on hover. No
-  parameter, origin or CSP change.
+- **The calendar is the widget's own, with a Week list, and names each class.** ([#538])
+  - **Switch:** Month | Week | List at every width. List leads back to the place's own page, and a
+    place page's **Calendar** button opens the calendar scoped to that place, named at its top.
+  - **Week:** the next seven days, each under its date ("Friday 13 Nov", with Today or Tomorrow
+    beside it), each class by name with its time in the visitor's own format ("17:45–18:45" in the
+    UK, "5:45 – 6:45 PM" in the US), its town, and an Online chip for an online class. The arrows
+    step a week; a link's dates open the seven days from its first, and a past week opens on
+    today's. Over the Week, Filters asks no dates and counts the seven days on screen. On a
+    computer the Week keeps the side panel, so the map stays in view; the hour-by-hour week grid
+    is gone.
+  - **Month:** on a computer, a box per class ("18:30 Bath", or "Online"), the name on hover, and
+    "+ 3 classes" on a busy day, which opens the Week from that day. On a phone, a dot per class
+    (online in the class card's colour, a plus past three) and the chosen day's classes listed
+    below it.
+  - **Your root font size no longer shrinks the calendar.** It was the one part of the widget
+    sized in `rem`; with its third-party grid gone, a theme that sets `html { font-size: 62.5% }`
+    renders it at the same size as the rest.
+  - The view rides inside `atlas` (`/calendar?view=week&dates=…`), so a host's page writes no new
+    parameter. No origin, CSP or permission change.
+
 - **"Add to calendar" on the registration confirmation spans the panel, in your second brand
   colour.** ([#549]) It was a narrower button in the first brand colour. Its menu of calendars
   is unchanged and still opens under the button's start edge.

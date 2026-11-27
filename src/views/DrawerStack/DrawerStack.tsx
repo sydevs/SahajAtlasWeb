@@ -76,8 +76,8 @@ import { EventView } from '@/views/EventView/EventView'
 
 // The two views most visitors never open, split out of the eager graph (issue #96). Each
 // one is the only consumer of a large dependency the widget would otherwise pay for at first
-// paint on every host page. The calendar owns the whole Schedule-X stack — its grid, its
-// views, its theme CSS. Registration owns react-hook-form plus the resolver.
+// paint on every host page. The calendar owns its own Month and Week. Registration owns
+// react-hook-form plus the resolver.
 //
 // These are the RIGHT two to split, because neither can be the first thing on screen
 // by accident. Each is reached by pressing something — the calendar button, an event's

@@ -269,7 +269,7 @@ describe('check 5: every fallbackless var() names a declared property', () => {
   it('accepts a property another chunk’s sheet declares', () => {
     const build = {
       ...GOOD,
-      [CALENDAR_CHUNK]: chunk(`${CALENDAR}:where(.sy-atlas) .sx__x{color:var(--color-primary-9)}`),
+      [CALENDAR_CHUNK]: chunk(`${CALENDAR}:where(.sy-atlas) .cell-x{color:var(--color-primary-9)}`),
     }
 
     expect(audit(build)).toMatchObject({ failures: [], varRefs: 4 })

@@ -98,9 +98,6 @@ describe('every field clears the 16px iOS zoom floor', () => {
   /**
    * Two blind spots, since a guard that oversells itself is worse than none. A field rendered by
    * a component not in `FIELD_TAGS` is invisible here — the geocoder is that case, pinned below.
-   * So is Schedule-X's `.sx__date-input`, measured at 14px and inert only because `globals.css`
-   * hides the `.sx__calendar-header` it sits in: un-hiding that header puts a zooming field back
-   * on screen that nothing here would catch.
    */
   const INVENTORY = [
     'components/atoms/Input/Input.tsx <input>',

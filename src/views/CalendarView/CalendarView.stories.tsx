@@ -139,13 +139,12 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
     <ViewStory
       example={example}
       seed={(client: QueryClient) => {
-        // Seed the default key (initial render) AND the active-filter key (once the params are
-        // seeded into the URL) so the calendar resolves from cache either way.
+        // The calendar reads one key for every date, so the place's key answers it.
         for (const filters of seededFilters) {
           client.setQueryData<CalendarSourceEvent[]>(
             ['calendar', filtersKey(filters), locale],
             // The error case seeds a shape the expansion cannot consume, so the throw happens
-            // where a Schedule-X or contract failure would: inside CalendarGrid's render,
+            // where a contract failure would: inside CalendarBody's render,
             // below the header. This casts the value because that is precisely the point. The
             // types say this cannot happen, and the boundary exists for when it does.
             example === 'Grid failure' ? (POISONED as unknown as CalendarSourceEvent[]) : events,
