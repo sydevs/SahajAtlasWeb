@@ -23,10 +23,7 @@ const EXAMPLES = {
 
 type Example = keyof typeof EXAMPLES
 
-/**
- * The feed plus an online class starting at 02:00 on the viewer's own clock, the time an online
- * class from far away reads in, so Night is offered whatever zone the story is opened in.
- */
+// The feed plus an online class at 2 AM, so the filters offer Night.
 const withNightClass = () => {
   const start = DateTime.local().plus({ days: 1 }).set({ hour: 2, minute: 0, second: 0 })
 
