@@ -49,6 +49,13 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The calendar names each class, and reads in the visitor's own format.** ([#538]) Every entry
+  leads with the class's name, then its time ("17:45–18:45" in the UK, "5:45 – 6:45 PM" in the US)
+  and its town; an online class says "Online". On a phone, the month view lists the chosen day's
+  classes under its date ("Thursday 12 Nov", then "Today · 4 classes"), every day with classes
+  shows a solid dot, and dark mode keeps the widget's own colours. A busy day says "+ 30 classes".
+  On a computer, each month box shows the time and town, with the class's name on hover. No
+  parameter, origin or CSP change.
 - **The first screen opens on its title, the search, and one way to classes near the
   visitor.** ([#531]) "Free meditation classes" heads it, and the search, which reads "Enter your
   city or postcode" on every page, spans the panel. Under it, "Classes near Prague ›" (the visitor's
@@ -1433,6 +1440,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   found. ([#111], [#136])
 
 [#509]: https://github.com/sydevs/SahajAtlasWeb/pull/509
+[#538]: https://github.com/sydevs/SahajAtlasWeb/pull/538
 [#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
 [#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
 [#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483
