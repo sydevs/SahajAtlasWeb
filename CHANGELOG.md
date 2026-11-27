@@ -23,7 +23,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Removed
 
-- **The widget no longer contacts `ipwho.is`.** ([#PR]) The visitor's approximate town and
+- **The widget no longer contacts `ipwho.is`.** ([#525]) The visitor's approximate town and
   country now come from the widget's own origin: the loader imports
   `https://sahajatlas.com/geo.js`, which Cloudflare answers from the request itself, so no third
   party sees your visitor's IP. Your CSP's `script-src` already covers it. Nothing breaks if
@@ -1519,4 +1519,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#510]: https://github.com/sydevs/SahajAtlasWeb/pull/510
 [#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
-[#PR]: https://github.com/sydevs/SahajAtlasWeb/pull/PR
+[#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
