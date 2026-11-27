@@ -3,7 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
 
 import { Alert } from '@/components/atoms/Alert'
-import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerFooter, STICKY_FOOTER_CLEARANCE } from '@/components/atoms/Drawer'
 import { Link } from '@/components/atoms/Link'
 import { EventMetadata, ResetErrorBoundary } from '@/components/molecules'
 // This imports leaf files, not the folder index. The index re-exports EventDetails, and
@@ -99,16 +99,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
           would otherwise park a field behind the bar. It carries the sheet's live top on
           top of that height because THIS body's bottom edge sits that far below the
           viewport, where the bar paints — measured 519px at the 544px snap, so the bar's
-          height alone cleared it at the top snap only (#326). The ten other drawer bodies
-          have nothing at the bottom to clear. */}
-      <DrawerBody
-        fitSheet
-        className={
-          stickyRegister
-            ? 'scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))]'
-            : undefined
-        }
-      >
+          height alone cleared it at the top snap only (#326). Of the other drawer bodies,
+          only the sign-up form's has a bar to clear. */}
+      <DrawerBody fitSheet className={stickyRegister ? STICKY_FOOTER_CLEARANCE : undefined}>
         {/* The details are a lazy chunk, so they can fail on their own — a dropped connection
             mid-session, or a host CSP blocking the chunk — after the event itself resolved.
             Keeping that local means the title, Back, and the sticky Register CTA

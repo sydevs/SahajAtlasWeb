@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
-import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerFooter, STICKY_FOOTER_CLEARANCE } from '@/components/atoms/Drawer'
 import { EventSummary, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
@@ -115,11 +115,9 @@ export function RegistrationView({
           submitted ? t('registration.form.confirmed_title') : t('registration.form.title_class')
         }
       />
-      {/* Clearing the pinned bar's CONTENT is the body slot's own spacer. Keeping a focused field
-          clear of it is this body's scroll padding, with the sheet's live top on top, as
-          EventView's does (#326). */}
+      {/* The body slot's own spacer clears the pinned bar's content; focus needs the clearance. */}
       <DrawerBody
-        className={`px-gutter py-4 ${formShowing && pinned ? 'scroll-pb-[calc(var(--sy-footer-h,0px)_+_var(--sy-sheet-top,0px))]' : ''}`}
+        className={`px-gutter py-4 ${formShowing && pinned ? STICKY_FOOTER_CLEARANCE : ''}`}
       >
         {/* The class's summary leads every state and stays put when the form gives way to the
             confirmation. Without its muted lines: the form asks which date, and the

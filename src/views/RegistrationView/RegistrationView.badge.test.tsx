@@ -20,6 +20,7 @@ vi.mock('@/components/atoms/Drawer', () => ({
   DrawerBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DrawerHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DrawerFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  STICKY_FOOTER_CLEARANCE: '',
 }))
 vi.mock('@/components/molecules', () => ({
   EventSummary: () => <i>summary-card</i>,
