@@ -67,7 +67,7 @@ export function usePopover({
     ],
   })
 
-  // ⚠ Escape belongs to the open popover alone (#PRNUM). The drawer around it is a Radix layer,
+  // ⚠ Escape belongs to the open popover alone (#542). The drawer around it is a Radix layer,
   // which hears the key in the document's capture phase, before Floating UI's own dismiss, and
   // would close the page with it. The window's capture phase runs before both.
   useEffect(() => {

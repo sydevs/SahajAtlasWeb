@@ -49,7 +49,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **On a computer the filters are three buttons over the map: Where, When and Language.** ([#PRNUM])
+- **On a computer the filters are three buttons over the map: Where, When and Language.** ([#542])
   From 1024px of widget width they sit at the top right of the map, or in the header of the
   calendar's month and week views, instead of behind a Filters button in the list. Each opens a small menu with the same
   questions and live counts as the phone's filters, and a tap applies at once. A button with an
@@ -1564,4 +1564,4 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
 [#529]: https://github.com/sydevs/SahajAtlasWeb/pull/529
-[#PRNUM]: https://github.com/sydevs/SahajAtlasWeb/pull/PRNUM
+[#542]: https://github.com/sydevs/SahajAtlasWeb/pull/542
