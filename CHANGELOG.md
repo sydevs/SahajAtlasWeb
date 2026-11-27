@@ -61,7 +61,8 @@ cover everything a host would notice since the widget was first deployed.
   widget's list, and phones keep the Filters button. While the buttons show, the map's own
   find-my-location button steps aside for Where's Near me. The map's credits button now sits
   under the map's buttons rather than beside them. Escape in any open menu or popover now closes
-  only that menu, not the panel behind it. Nothing changes in the snippet or the CSP.
+  only that menu, not the panel behind it; pressed anywhere on your page outside the widget it
+  reaches you untouched, as before. Nothing changes in the snippet or the CSP.
   A list the filters empty says "No classes match your filters." in one line, then offers the one
   removal that brings classes back ("Remove Mon (3 classes)") and Clear filters as links, the same
   on every list. A searched place's list ends on "4 more classes in this area. Clear filters"
