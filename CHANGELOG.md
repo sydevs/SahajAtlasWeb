@@ -49,7 +49,7 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
-- **A class's photos show as a grid instead of a slideshow.** ([#PRNUM]) They sit in two columns
+- **A class's photos show as a grid instead of a slideshow.** ([#530]) They sit in two columns
   below the description, each at its own shape with rounded corners, and nothing moves on its own.
   Tapping one still opens it full screen, where arrows, the arrow keys and a swipe step through
   the rest. The full-screen view no longer zooms or shows a thumbnail strip; pinch-zoom is left to
@@ -1538,4 +1538,5 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
+[#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
