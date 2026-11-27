@@ -13,7 +13,6 @@ let id = 0
 
 const entry = (start: string, end: string): CalendarEntry => ({
   id: String(++id),
-  title: 'Meditation',
   name: 'Meditation',
   start,
   end,
@@ -28,6 +27,19 @@ afterEach(() => {
 })
 
 describe('scheduleXTimeline', () => {
+  it('titles an entry by its name, then where it is on a second line', () => {
+    const [named, placed] = scheduleXTimeline(
+      [
+        entry('2026-11-19 19:00', '2026-11-19 20:00'),
+        { ...entry('2026-11-19 19:00', '2026-11-19 20:00'), detail: 'Harrogate' },
+      ],
+      'UTC',
+    ).events
+
+    expect(named.title).toBe('Meditation')
+    expect(placed.title).toBe('Meditation\nHarrogate')
+  })
+
   // CI runs in UTC, where Schedule-X's own UTC default looks right. A Los Angeles viewer at
   // 23:30 is already on the 20th in UTC: without the viewer's zone, the grid lights the 20th as
   // today and draws a 19:00 class at 3:00 AM the next day.

@@ -43,6 +43,12 @@ export const scheduleXTimeline = (
       ? wallEnd.toZonedDateTime(zone)
       : start.add(wallStart.until(wallEnd))
 
-    return { ...entry, start: new ScheduleXTime(start), end: new ScheduleXTime(end) }
+    return {
+      ...entry,
+      // What Schedule-X writes itself, in the week grid and the list: two lines (globals.css).
+      title: entry.detail ? `${entry.name}\n${entry.detail}` : entry.name,
+      start: new ScheduleXTime(start),
+      end: new ScheduleXTime(end),
+    }
   }),
 })

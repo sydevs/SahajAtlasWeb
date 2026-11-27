@@ -60,7 +60,7 @@ describe('CalendarMount', () => {
   })
 
   // The renderers reach Schedule-X through an underscored hook, so this is what fails when an
-  // upgrade closes it: the rows would fall back to Schedule-X's own, titled by place.
+  // upgrade closes it and Schedule-X draws its own rows again.
   it.each([
     ['month-agenda', '.sx__month-agenda-event', ['Evening meditation', '19:00–20:00 · Harrogate']],
     ['month-grid', '.sy-entry-cell', ['19:00 Harrogate']],
@@ -70,7 +70,6 @@ describe('CalendarMount', () => {
       const { root, container } = shadowContainer()
       const entry: CalendarEntry = {
         id: '1',
-        title: 'Evening meditation\nHarrogate',
         name: 'Evening meditation',
         detail: 'Harrogate',
         start: '2026-10-19 19:00',
@@ -102,7 +101,12 @@ describe('CalendarMount', () => {
         : [drawn?.textContent]
 
       expect(texts).toEqual(lines)
-      if (view === 'month-grid') expect(drawn?.title).toBe('Evening meditation · Harrogate')
+      if (view === 'month-grid') {
+        expect(drawn?.title).toBe('Evening meditation · Harrogate')
+        expect(drawn?.closest('[role=button]')?.getAttribute('aria-label')).toBe(
+          '19:00 Harrogate, Evening meditation',
+        )
+      }
 
       await act(async () => {
         reactRoot.unmount()

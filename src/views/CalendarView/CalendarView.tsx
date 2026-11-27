@@ -40,6 +40,7 @@ import { useTheme } from '@/hooks/use-theme'
 import {
   CALENDAR_VIEW_LIST,
   CALENDAR_VIEW_MONTH,
+  CALENDAR_VIEW_MONTH_AGENDA,
   CALENDAR_VIEW_WEEK,
   type EventFilters,
   computeDayBoundaries,
@@ -48,6 +49,7 @@ import {
   isCalendarViewOption,
   resolveCalendarView,
   scheduleXLocale,
+  todayISO,
 } from '@/lib/shape'
 import { formatDate, formatMonth, zoneCity } from '@/lib/time'
 import { BackButton } from '@/views/nav'
@@ -70,6 +72,9 @@ const CALENDARS = {
 }
 
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
+
+// The date the grid has focused, or today until it reports one.
+const useFocusedDate = () => useCalendarPosition((s) => s.date) ?? todayISO()
 
 // The header drives Schedule-X through the `calendar-controls` plugin, but its buttons are
 // live before the grid mounts — the header sits above the Suspense. So each action updates the
@@ -98,17 +103,15 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   // The OPTION, not the stored name: below the crossing a stored `week` renders a month
   // agenda, so the lit button, the label and the paging step must all follow what rendered.
   const { option } = resolveCalendarView(stored, isWide)
-  const date = useCalendarPosition((s) => s.date)
+  const focused = useFocusedDate()
   const dateInputRef = useRef<HTMLInputElement>(null)
 
-  // The focused date (falls back to today until the grid reports one). The header label,
-  // localized straight from luxon (no per-month i18n key), shows the month + year in month view,
-  // but the specific date (condensed month) in the week + list views — for the week its first day.
-  const focused = date ?? DateTime.now().toISODate()
-  const dt = focused ? DateTime.fromISO(focused) : null
-  const label = !dt
-    ? ''
-    : option === CALENDAR_VIEW_MONTH
+  // The header label, localized straight from luxon (no per-month i18n key), shows the month +
+  // year in month view, but the specific date (condensed month) in the week + list views — for
+  // the week its first day.
+  const dt = DateTime.fromISO(focused)
+  const label =
+    option === CALENDAR_VIEW_MONTH
       ? formatMonth(dt, formatLocale)
       : formatDate(option === CALENDAR_VIEW_WEEK ? dt.startOf('week') : dt, formatLocale, {
           weekday: false,
@@ -130,8 +133,6 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
   // Page one period off the focused date — a month in month view, a week in week view, a day in
   // list view (matching the built-in nav's semantics per view).
   const step = (dir: -1 | 1) => {
-    if (!focused) return
-
     const base = DateTime.fromISO(focused)
     const moved =
       option === CALENDAR_VIEW_MONTH
@@ -201,7 +202,7 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
               className="pointer-events-none absolute inset-0 h-full w-full field-size opacity-0"
               tabIndex={-1}
               type="date"
-              value={focused ?? ''}
+              value={focused}
               onChange={(event) => event.target.value && applyDate(event.target.value)}
             />
           </div>
@@ -361,23 +362,18 @@ function CalendarGrid({
   )
 
   const renderers = useMemo(() => calendarRenderers(formatLocale), [formatLocale])
-  const perDay = useMemo(() => {
-    const counts = new Map<string, number>()
-
-    for (const entry of events) {
-      const day = entry.start.slice(0, 10)
-
-      counts.set(day, (counts.get(day) ?? 0) + 1)
-    }
-
-    return counts
-  }, [events])
 
   // The phone month list names the day it shows, which otherwise only an outline in the grid
-  // says. Schedule-X draws that list, so the words reach it as custom properties (globals.css).
-  const focused = useCalendarPosition((s) => s.date) ?? DateTime.now().toISODate() ?? ''
+  // says. Schedule-X draws that list, so the words reach it as custom properties (globals.css),
+  // and a screen reader hears them from the live line below as the day changes.
+  const focused = useFocusedDate()
+  const isAgenda =
+    resolveCalendarView(
+      useCalendarPosition((s) => s.view),
+      isWide,
+    ).view === CALENDAR_VIEW_MONTH_AGENDA
   const day = dayHeadingParts(DateTime.fromISO(focused), {
-    count: perDay.get(focused) ?? 0,
+    count: events.filter((entry) => entry.start.startsWith(focused)).length,
     locale: formatLocale,
     t,
   })
@@ -401,6 +397,11 @@ function CalendarGrid({
         </p>
       )}
       <DrawerBody className="max-w-none overflow-hidden px-gutter py-4">
+        {isAgenda && (
+          <p aria-live="polite" className="sr-only">
+            {[day.heading, day.note].filter(Boolean).join(', ')}
+          </p>
+        )}
         <div className="sx-calendar" style={dayStyle}>
           <CalendarMount calendar={calendar} renderers={renderers} />
         </div>

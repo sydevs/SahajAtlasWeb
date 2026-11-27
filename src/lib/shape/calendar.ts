@@ -32,26 +32,24 @@ export type CalendarSourceEvent = {
   locality?: string | null
 }
 
-// Words that stay lower case inside a recased town's name: Stratford-upon-Avon, Le Mans.
-const NAME_JOINERS = new Set(['upon', 'on', 'under', 'in', 'by', 'the', 'and', 'de', 'la', 'le'])
-
 /**
  * A town typed all in capitals ("HARROGATE") reads as shouting beside the rest, so it is recased.
- * Any other name keeps the case it was given, so "McLean" stays as it is.
+ * Any other name keeps the case it was given ("McLean"), and so does one of three letters or
+ * fewer, which is likelier an abbreviation ("NYC") than a town.
  */
 export const tidyPlaceCase = (name: string): string =>
-  name !== name.toUpperCase() || name === name.toLowerCase()
+  name !== name.toUpperCase() || name.length <= 3
     ? name
     : name
         .toLowerCase()
-        .replace(/(^|[\s'’-])(\p{L}+)/gu, (_, before: string, word: string, offset: number) =>
-          offset > 0 && NAME_JOINERS.has(word)
-            ? before + word
-            : before + word[0].toUpperCase() + word.slice(1),
+        // After an apostrophe only a name, not a possessive: "L'Aquila", "St John's".
+        .replace(
+          /(^|[\s-]|['’](?=\p{L}{2}))(\p{L})/gu,
+          (_, before: string, letter: string) => before + letter.toUpperCase(),
         )
 
 // The address city first: a region can be one venue ("R. do Catete, 311"), which says nothing next
-// to the class name. A class with no address, as most online ones are, falls back to its region.
+// to the class name.
 const placeOf = (event: CalendarSourceEvent): string | undefined => {
   const place = event.locality?.trim() || event.regionName?.trim()
 
@@ -62,9 +60,6 @@ const placeOf = (event: CalendarSourceEvent): string | undefined => {
 export type CalendarEntry = {
   /** Unique per occurrence: `${eventId}-${startMillis}`. */
   id: string
-  /** What Schedule-X writes itself, in the week grid and the list: the name, then the detail. */
-  title: string
-  /** The class's own name. */
   name: string
   /** Where it is: "Harrogate", "London · Online", or "Online" for a class with no place. */
   detail?: string
@@ -115,12 +110,14 @@ export const eventsToCalendarEntries = (
     const eventZone = event.schedule ? scheduleTimeZone(event.schedule) : 'UTC'
     const endTime = event.schedule?.endTime
     const online = event.eventType === 'online'
-    const name = event.title.trim() || placeOf(event) || ''
+    const place = placeOf(event)
+    const title = event.title.trim()
     // "Online" is written out, because a time in the visitor's clock otherwise looks wrong.
     const detail =
-      [placeOf(event), online ? opts?.onlineLabel : undefined].filter(Boolean).join(' · ') ||
-      undefined
-    const title = detail ? `${name}\n${detail}` : name
+      [title ? place : undefined, online ? opts?.onlineLabel : undefined]
+        .filter(Boolean)
+        .join(' · ') || undefined
+    const name = title || place || ''
     const calendarId = online ? 'online' : undefined
 
     for (const occurrence of occurrences) {
@@ -141,7 +138,6 @@ export const eventsToCalendarEntries = (
 
       entries.push({
         id: `${event.id}-${start.toMillis()}`,
-        title,
         name,
         detail,
         start: start.toFormat(WALL_CLOCK),

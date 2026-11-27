@@ -520,12 +520,8 @@ describe('Schedule-X through a shadow boundary', () => {
 
     root.append(container)
 
-    const asked: [string, Record<string, unknown>][] = []
-    const sydevs = (key: string, vars: Record<string, unknown>) => {
-      asked.push([key, vars])
-
-      return key === '+ {{n}} events' ? `+ ${String(vars.n)} Kurse` : undefined
-    }
+    const sydevs = (key: string, vars: Record<string, unknown>) =>
+      key === '+ {{n}} events' ? `+ ${String(vars.n)} Kurse` : undefined
     const calendar = createCalendar({
       views: [createViewMonthGrid()],
       isResponsive: false,
@@ -553,7 +549,6 @@ describe('Schedule-X through a shadow boundary', () => {
     const more = root.querySelector('.sx__month-grid-day__events-more')
 
     expect(more?.textContent).toBe('+ 2 Kurse')
-    expect(asked).toContainEqual(['+ {{n}} events', { n: 2 }])
     // A key the widget leaves alone keeps Schedule-X's own German.
     expect(more?.getAttribute('aria-label')).toMatch(/^Link zu 2 weiteren /)
 

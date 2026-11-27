@@ -1,19 +1,16 @@
-import { createInstance } from 'i18next'
+import type { TFunction } from 'i18next'
+
 import { DateTime } from 'luxon'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { dayHeadingParts } from './day-heading'
 
-import { i18nSharedOptions } from '@/config/i18n-options'
-import snapshot from '@/config/translations.en.json'
+import { englishT } from '@/test-support/english-t'
 
-// The snapshot's English, through a real instance, so the count picks its plural form as it will.
-const i18n = createInstance()
-let t: typeof i18n.t
+let t: TFunction
 
 beforeAll(async () => {
-  await i18n.init({ ...i18nSharedOptions, lng: 'en', resources: { en: { translation: snapshot } } })
-  t = i18n.t
+  t = await englishT()
 })
 
 const day = (iso: string) => DateTime.fromISO(iso)

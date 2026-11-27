@@ -32,7 +32,7 @@ const at = (dayOffset: number, hour: number, minute: number, zone: string): Date
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-// A weekly class in `city` (its region + locality — what the calendar labels events by) at hh:mm,
+// A weekly class in `city` (its region and locality, which the calendar names it by) at hh:mm,
 // running an hour, physical unless `online`. Occurrences repeat weekly so the grid fills out. All
 // single-day + timed, matching the real feed (no all-day or multi-day events).
 const weekly = (

@@ -95,21 +95,22 @@ export function formatTimeRange(start: DateTime, end: DateTime | null, locale: s
 }
 
 /** The hour a time-of-day filter stands for, to format like any class's time. Hour 24 is midnight. */
-export const wallClock = (hour: number): DateTime => DateTime.utc(2000, 1, 1, hour % 24)
+export const wallClock = (hour: number, minute = 0): DateTime =>
+  DateTime.utc(2000, 1, 1, hour % 24, minute)
 
 /**
  * A date the way the class page writes it: "Wed 11 Nov" on a UK browser, "Wed, Nov 11" on a US
  * one. `weekday: false` drops the day name where the words around it already say it ("Started 8
- * Jul"). The year joins only when it is not this year's, so a series that began in 2022 does not
+ * Jul"), and `'long'` writes it in full for a heading ("Thursday 12 Nov"). The year joins only when it is not this year's, so a series that began in 2022 does not
  * pass for this December.
  */
 export function formatDate(
   at: DateTime,
   locale: string,
-  { weekday = true }: { weekday?: boolean } = {},
+  { weekday = 'short' }: { weekday?: 'short' | 'long' | false } = {},
 ): string {
   return at.setLocale(locale).toLocaleString({
-    weekday: weekday ? 'short' : undefined,
+    weekday: weekday || undefined,
     day: 'numeric',
     month: 'short',
     year: at.year === DateTime.now().setZone(at.zone).year ? undefined : 'numeric',
@@ -122,15 +123,6 @@ export const formatLongDate = (at: DateTime, locale: string): string =>
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: at.year === DateTime.now().setZone(at.zone).year ? undefined : 'numeric',
-  })
-
-/** A day as a heading: "Thursday 12 Nov" in the UK, "Thursday, Nov 12" in the US. */
-export const formatDayHeading = (at: DateTime, locale: string): string =>
-  at.setLocale(locale).toLocaleString({
-    weekday: 'long',
-    day: 'numeric',
-    month: 'short',
     year: at.year === DateTime.now().setZone(at.zone).year ? undefined : 'numeric',
   })
 

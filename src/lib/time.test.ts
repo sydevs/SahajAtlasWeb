@@ -3,7 +3,6 @@ import { DateTime, Settings } from 'luxon'
 
 import {
   formatDate,
-  formatDayHeading,
   formatLongDate,
   formatMonth,
   formatRelativeDate,
@@ -186,10 +185,9 @@ describe('the calendar’s dates', () => {
     expect(formatMonth(day, 'en-GB')).toBe('November 2026')
   })
 
-  it('heads a day compactly, the visitor’s way', () => {
-    expect(formatDayHeading(day, 'en-GB')).toBe('Thursday 12 Nov')
-    expect(formatDayHeading(day, 'en-US')).toBe('Thursday, Nov 12')
-    expect(formatDayHeading(at('2027-01-07T00:00'), 'en-GB')).toBe('Thursday, 7 Jan 2027')
+  it('heads a day compactly, with its weekday in full', () => {
+    expect(formatDate(day, 'en-GB', { weekday: 'long' })).toBe('Thursday 12 Nov')
+    expect(formatDate(day, 'en-US', { weekday: 'long' })).toBe('Thursday, Nov 12')
   })
 
   it('says how far off a date is to lead a phrase', () => {

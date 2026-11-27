@@ -654,7 +654,7 @@ html.sy-atlas {
 }
 
 /* An entry Schedule-X writes itself, in the week grid and the list, is the class name and then
-   where it is, on two lines (`title` in `eventsToCalendarEntries`). */
+   where it is, on two lines (`title` in `timeline.ts`). */
 .sx-calendar .sx__time-grid-event-title,
 .sx-calendar .sx__list-event-title {
   white-space: pre-line;
@@ -667,63 +667,49 @@ html.sy-atlas {
 }
 
 .sx-calendar .sx__month-agenda-event {
+  @apply border-b border-divider;
   margin: 0;
   padding: 8px 0 !important;
-  border-bottom: 1px solid var(--gray-5);
   border-radius: 0;
   cursor: pointer;
 }
 
 .sx-calendar .sy-entry-name {
-  font-size: var(--text-base);
-  line-height: var(--text-base--line-height);
-  font-weight: 600;
-  color: var(--gray-12);
+  @apply text-base font-semibold;
+}
+
+.sx-calendar .sy-entry-meta,
+.sx-calendar .sx__month-agenda-events::before {
+  @apply text-sm text-gray-11;
 }
 
 .sx-calendar .sy-entry-meta {
   margin-top: 2px;
-  font-size: var(--text-sm);
-  line-height: var(--text-sm--line-height);
-  color: var(--gray-11);
 }
 
 /* The phone month list's heading names the day it shows: the date, then "Today · 4 classes" on
    a quieter line. Schedule-X draws the grid and the list as siblings, so CalendarView hands the
    words over as custom properties, the heading closing the grid and the note opening the list. */
 .sx-calendar .sx__month-agenda-weeks::after {
+  @apply text-lg;
   content: var(--sy-agenda-day, none);
   display: block;
   padding-top: 20px;
-  font-size: var(--text-lg);
-  line-height: var(--text-lg--line-height);
-  font-weight: 600;
-  color: var(--gray-12);
 }
 
 .sx-calendar .sx__month-agenda-events::before {
   content: var(--sy-agenda-day-note, none);
   display: block;
   padding-bottom: 4px;
-  font-size: var(--text-sm);
-  line-height: var(--text-sm--line-height);
-  color: var(--gray-11);
 }
 
-/* A desktop month box: its time and where, on the entry's tint. */
+/* A desktop month box: its time and where, on its calendar's tint (`renderers.ts`). */
 .sx-calendar .sy-entry-cell {
   width: 100%;
   overflow: hidden;
   padding-inline: 4px;
   border-radius: 4px;
-  background: hsl(var(--primary-3));
-  color: var(--gray-12);
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sx-calendar .sy-entry-cell[data-online='true'] {
-  background: hsl(var(--secondary-3));
 }
 
 /* Every day with classes gets the same solid dot. Schedule-X tints each by its entry's colour

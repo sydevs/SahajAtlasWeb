@@ -1,17 +1,16 @@
-import { createInstance } from 'i18next'
+import { createRequire } from 'node:module'
+import { readFileSync } from 'node:fs'
+
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { scheduleXWords } from './schedule-x-words'
+import { SCHEDULE_X_WORDS, scheduleXWords } from './schedule-x-words'
 
-import { i18nSharedOptions } from '@/config/i18n-options'
-import snapshot from '@/config/translations.en.json'
+import { englishT } from '@/test-support/english-t'
 
-const i18n = createInstance()
 let words: ReturnType<typeof scheduleXWords>['sydevs']
 
 beforeAll(async () => {
-  await i18n.init({ ...i18nSharedOptions, lng: 'en', resources: { en: { translation: snapshot } } })
-  words = scheduleXWords(i18n.t).sydevs
+  words = scheduleXWords(await englishT()).sydevs
 })
 
 describe('scheduleXWords', () => {
@@ -32,5 +31,18 @@ describe('scheduleXWords', () => {
 
   it('leaves every other string to Schedule-X', () => {
     expect(words('Today', {})).toBeUndefined()
+  })
+
+  // Keyed by Schedule-X's English source strings, so an upgrade that rewords one would quietly
+  // bring back its own "events" there.
+  it('names only keys the installed Schedule-X still asks for', () => {
+    const core = readFileSync(
+      createRequire(import.meta.url).resolve('@schedule-x/calendar'),
+      'utf8',
+    )
+
+    expect(
+      Object.keys(SCHEDULE_X_WORDS).filter((key) => !core.includes(`translate('${key}'`)),
+    ).toEqual([])
   })
 })

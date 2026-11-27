@@ -60,7 +60,7 @@ describe('eventsToCalendarEntries', () => {
 
     expect(entries).toHaveLength(2)
     expect(entries[0]).toMatchObject({
-      title: 'Meditation',
+      name: 'Meditation',
       start: '2026-07-06 09:30',
       end: '2026-07-06 11:00',
       path: '/1',
@@ -129,11 +129,7 @@ describe('eventsToCalendarEntries', () => {
     })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(entry).toMatchObject({
-      name: 'Evening meditation',
-      detail: 'Camden',
-      title: 'Evening meditation\nCamden',
-    })
+    expect(entry).toMatchObject({ name: 'Evening meditation', detail: 'Camden' })
   })
 
   it('says where by the address city, and by the region only without one', () => {
@@ -174,13 +170,23 @@ describe('eventsToCalendarEntries', () => {
     expect(bare).toMatchObject({ name: 'Weekly meditation', detail: 'Online' })
   })
 
-  it('leaves an in-person class with no place untagged, titled by its name alone', () => {
+  it('leaves an in-person class with no place untagged, with no detail', () => {
     const evt = makeEvent({ title: 'Just the title', occurrences: [at('UTC', '2026-07-06T09:30')] })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
     expect(entry.calendarId).toBeUndefined()
     expect(entry.detail).toBeUndefined()
-    expect(entry.title).toBe('Just the title')
+  })
+
+  it('names an untitled class by its place, and says the place once', () => {
+    const evt = makeEvent({
+      title: ' ',
+      locality: 'Harrogate',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
+    })
+    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
+
+    expect(entry).toMatchObject({ name: 'Harrogate', detail: undefined })
   })
 
   it('recases a town typed all in capitals', () => {
@@ -226,7 +232,6 @@ describe('eventsToCalendarEntries', () => {
 describe('computeDayBoundaries', () => {
   const entry = (start: string, end: string): CalendarEntry => ({
     id: start,
-    title: 'x',
     name: 'x',
     start,
     end,
@@ -381,13 +386,14 @@ describe('scheduleXLocale', () => {
 describe('tidyPlaceCase', () => {
   it('recases a name typed all in capitals, keeping its joining words lower case', () => {
     expect(tidyPlaceCase('HARROGATE')).toBe('Harrogate')
-    expect(tidyPlaceCase('STRATFORD-UPON-AVON')).toBe('Stratford-upon-Avon')
-    expect(tidyPlaceCase('LE MANS')).toBe('Le Mans')
+    expect(tidyPlaceCase('SOUTHEND-ON-SEA')).toBe('Southend-On-Sea')
     expect(tidyPlaceCase("L'AQUILA")).toBe("L'Aquila")
+    expect(tidyPlaceCase("ST JOHN'S")).toBe("St John's")
     expect(tidyPlaceCase('SÃO PAULO')).toBe('São Paulo')
   })
 
-  it('leaves any other name as it was given', () => {
+  it('leaves any other name as it was given, and an abbreviation too', () => {
+    expect(tidyPlaceCase('NYC')).toBe('NYC')
     expect(tidyPlaceCase('McLean')).toBe('McLean')
     expect(tidyPlaceCase('coventry')).toBe('coventry')
     expect(tidyPlaceCase('東京')).toBe('東京')
