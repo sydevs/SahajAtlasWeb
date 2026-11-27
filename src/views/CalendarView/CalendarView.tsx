@@ -1,4 +1,3 @@
-import type { TFunction } from 'i18next'
 import type { CalendarConfig } from '@schedule-x/calendar'
 
 import { type CSSProperties, Suspense, useMemo, useRef } from 'react'
@@ -24,6 +23,7 @@ import '@schedule-x/theme-default/dist/index.css'
 import { CalendarMount } from './CalendarMount'
 import { dayHeadingParts } from './day-heading'
 import { calendarRenderers } from './renderers'
+import { scheduleXWords } from './schedule-x-words'
 import { scheduleXTimeline } from './timeline'
 
 import { Button } from '@/components/atoms/Button'
@@ -68,24 +68,6 @@ const ONLINE_COLORS = {
 const CALENDARS = {
   online: { colorName: 'online', lightColors: ONLINE_COLORS, darkColors: ONLINE_COLORS },
 }
-
-// Schedule-X's own words for what it lists, in ours and in every language: "+ 3 classes", not
-// "+ 3 events". The patched core asks this before its own table (`src/components/AGENTS.md`
-// § Patch register), and a key missing here keeps Schedule-X's wording.
-const SCHEDULE_X_WORDS: Record<string, (t: TFunction, vars: Record<string, unknown>) => string> = {
-  '+ 1 event': (t) => t('calendar.more', { count: 1 }),
-  '+ {{n}} events': (t, { n }) => t('calendar.more', { count: Number(n) }),
-  // A spoken name starts with the words on screen, so the button is named by its own text.
-  'Link to 1 more event on {{date}}': (t, { date }) =>
-    `${t('calendar.more', { count: 1 })}, ${String(date)}`,
-  'Link to {{n}} more events on {{date}}': (t, { n, date }) =>
-    `${t('calendar.more', { count: Number(n) })}, ${String(date)}`,
-  'No events': (t) => t('calendar.none'),
-}
-
-const scheduleXWords = (t: TFunction) => ({
-  sydevs: (key: string, vars: Record<string, unknown>) => SCHEDULE_X_WORDS[key]?.(t, vars),
-})
 
 type CalendarControlsPlugin = ReturnType<typeof createCalendarControlsPlugin>
 

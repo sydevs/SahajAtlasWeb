@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { act, createElement } from 'react'
-import { createRoot } from 'react-dom/client'
 import type { CalendarEntry } from '@/lib/shape'
 
+import { act, createElement } from 'react'
+import { createRoot } from 'react-dom/client'
 import { createCalendar, createViewMonthAgenda, createViewMonthGrid } from '@schedule-x/calendar'
 import { Temporal } from 'temporal-polyfill'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -61,58 +61,54 @@ describe('CalendarMount', () => {
 
   // The renderers reach Schedule-X through an underscored hook, so this is what fails when an
   // upgrade closes it: the rows would fall back to Schedule-X's own, titled by place.
-  it("draws Schedule-X's rows and boxes with the renderers it is given", async () => {
-    const { root, container } = shadowContainer()
-    const entry: CalendarEntry = {
-      id: '1',
-      title: 'Evening meditation\nHarrogate',
-      name: 'Evening meditation',
-      detail: 'Harrogate',
-      start: '2026-10-19 19:00',
-      end: '2026-10-19 20:00',
-      path: '/1',
-    }
-    const calendar = createCalendar({
-      views: [createViewMonthAgenda(), createViewMonthGrid()],
-      defaultView: 'month-agenda',
-      isResponsive: false,
-      selectedDate: Temporal.PlainDate.from('2026-10-19'),
-      ...scheduleXTimeline([entry], 'UTC'),
-    })
-    const reactRoot = createRoot(container)
+  it.each([
+    ['month-agenda', '.sx__month-agenda-event', ['Evening meditation', '19:00–20:00 · Harrogate']],
+    ['month-grid', '.sy-entry-cell', ['19:00 Harrogate']],
+  ])(
+    "draws Schedule-X's %s entries with the renderers it is given",
+    async (view, selector, lines) => {
+      const { root, container } = shadowContainer()
+      const entry: CalendarEntry = {
+        id: '1',
+        title: 'Evening meditation\nHarrogate',
+        name: 'Evening meditation',
+        detail: 'Harrogate',
+        start: '2026-10-19 19:00',
+        end: '2026-10-19 20:00',
+        path: '/1',
+      }
+      const calendar = createCalendar({
+        views: [createViewMonthAgenda(), createViewMonthGrid()],
+        defaultView: view,
+        isResponsive: false,
+        selectedDate: Temporal.PlainDate.from('2026-10-19'),
+        ...scheduleXTimeline([entry], 'UTC'),
+      })
+      const reactRoot = createRoot(container)
 
-    await act(async () => {
-      reactRoot.render(
-        createElement(CalendarMount, { calendar, renderers: calendarRenderers('en-GB') }),
-      )
-    })
+      await act(async () => {
+        reactRoot.render(
+          createElement(CalendarMount, { calendar, renderers: calendarRenderers('en-GB') }),
+        )
+      })
 
-    await vi.waitFor(() => {
-      expect(root.querySelector('.sx__month-agenda-event')).not.toBeNull()
-    })
+      await vi.waitFor(() => {
+        expect(root.querySelector(selector)).not.toBeNull()
+      })
 
-    const row = root.querySelector('.sx__month-agenda-event')
+      const drawn = root.querySelector<HTMLElement>(selector)
+      const texts = drawn?.children.length
+        ? [...drawn.children].map((line) => line.textContent)
+        : [drawn?.textContent]
 
-    expect([...(row?.children ?? [])].map((line) => line.textContent)).toEqual([
-      'Evening meditation',
-      '19:00–20:00 · Harrogate',
-    ])
+      expect(texts).toEqual(lines)
+      if (view === 'month-grid') expect(drawn?.title).toBe('Evening meditation · Harrogate')
 
-    await act(async () => {
-      calendar.$app.calendarState.setView('month-grid', Temporal.PlainDate.from('2026-10-19'))
-    })
-
-    await vi.waitFor(() => {
-      expect(root.querySelector('.sy-entry-cell')?.textContent).toBe('19:00 Harrogate')
-    })
-    expect(root.querySelector<HTMLElement>('.sy-entry-cell')?.title).toBe(
-      'Evening meditation · Harrogate',
-    )
-
-    await act(async () => {
-      reactRoot.unmount()
-    })
-  })
+      await act(async () => {
+        reactRoot.unmount()
+      })
+    },
+  )
 
   it('tears the calendar down on unmount, and waits for one before rendering', async () => {
     const { container } = shadowContainer()

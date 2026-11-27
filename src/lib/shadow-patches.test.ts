@@ -101,7 +101,10 @@ const PATCHES: Record<string, Patch> = {
         'an end already in the calendar’s zone is read as is',
         'if (this._end.timeZoneId === this._config.timezone.value) return this._end;',
       ],
-      ['a word the widget supplies is asked for first', 'const sydevsWords = languages.value.sydevs;'],
+      [
+        'a word the widget supplies is asked for first',
+        'const sydevsWords = languages.value.sydevs;',
+      ],
       [
         'the widget’s translations join the built-in languages',
         '.withTranslations(Object.assign({}, translations, config.translations))',

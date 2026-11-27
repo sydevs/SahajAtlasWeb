@@ -1,22 +1,20 @@
-import type { TFunction } from 'i18next'
-
+import { createInstance } from 'i18next'
 import { DateTime } from 'luxon'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { dayHeadingParts } from './day-heading'
 
+import { i18nSharedOptions } from '@/config/i18n-options'
 import snapshot from '@/config/translations.en.json'
 
-// The snapshot's English, with `%{var}` filled and `count` picking `_one` or `_other`.
-const t = ((key: string, options: Record<string, unknown> = {}) => {
-  const plural =
-    typeof options.count === 'number' ? `${key}_${options.count === 1 ? 'one' : 'other'}` : key
-  const value = plural
-    .split('.')
-    .reduce<unknown>((node, part) => (node as Record<string, unknown>)?.[part], snapshot)
+// The snapshot's English, through a real instance, so the count picks its plural form as it will.
+const i18n = createInstance()
+let t: typeof i18n.t
 
-  return String(value).replace(/%\{(\w+)\}/g, (_, name: string) => String(options[name]))
-}) as unknown as TFunction
+beforeAll(async () => {
+  await i18n.init({ ...i18nSharedOptions, lng: 'en', resources: { en: { translation: snapshot } } })
+  t = i18n.t
+})
 
 const day = (iso: string) => DateTime.fromISO(iso)
 

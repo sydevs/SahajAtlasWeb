@@ -143,9 +143,14 @@ describe('eventsToCalendarEntries', () => {
       locality: 'Rio de Janeiro',
       occurrences: [at('UTC', '2026-07-06T09:30')],
     })
-    const noAddress = makeEvent({ regionName: 'London', occurrences: [at('UTC', '2026-07-06T09:30')] })
+    const noAddress = makeEvent({
+      regionName: 'London',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
+    })
 
-    expect(eventsToCalendarEntries([venue], DEFAULT_FILTERS, RANGE)[0].detail).toBe('Rio de Janeiro')
+    expect(eventsToCalendarEntries([venue], DEFAULT_FILTERS, RANGE)[0].detail).toBe(
+      'Rio de Janeiro',
+    )
     expect(eventsToCalendarEntries([noAddress], DEFAULT_FILTERS, RANGE)[0].detail).toBe('London')
   })
 
