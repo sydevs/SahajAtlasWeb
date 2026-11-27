@@ -194,6 +194,8 @@ export function DrawerStack() {
   // Whether the sheet is sitting at its peek, measured by the sheet-top loop below. Never true
   // where the sheet cannot collapse, since the loop does not run there.
   const [atPeek, setAtPeek] = useState(false)
+  // Whether the sheet leaves less than `MIN_MAP_STRIP_PX` of map above it, from the same loop.
+  const [sheetTall, setSheetTall] = useState(false)
   const sheetOriginRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
@@ -332,15 +334,10 @@ export function DrawerStack() {
   // The sheet's near-full stop covers the map's control column all but its top edge, which would
   // show as a row of slivers above the sheet. Everywhere else a drawer either leaves the column
   // clear or covers it whole.
-  // A sheet standing that tall cuts through the column too, so it goes; the filters, a form over
-  // the page, also dim what is left of the map above them.
-  const frameHeight = frameElement()?.clientHeight ?? window.innerHeight
-  const sheetTall =
-    canCollapse &&
-    (vaulSnap === WIDE_SNAP ||
-      (typeof vaulSnap === 'string' && frameHeight - parseFloat(vaulSnap) < MIN_MAP_STRIP_PX))
-  const dimmed = sheetTall && top?.kind === 'filters'
-  const controlsHidden = direction === 'bottom' && sheetTall
+  // Any sheet that tall cuts through the column, so it goes; the filters, a form over the page, also
+  // dim what is left of the map above them.
+  const dimmed = canCollapse && sheetTall && top?.kind === 'filters'
+  const controlsHidden = canCollapse && sheetTall
   const setControlsHidden = useMapControls((s) => s.setHidden)
 
   useEffect(() => {
@@ -458,6 +455,7 @@ export function DrawerStack() {
 
           sheet.toggleAttribute('data-sy-peek', atPeekNow)
           setAtPeek(atPeekNow)
+          setSheetTall(top < MIN_MAP_STRIP_PX)
         }
       }
 
@@ -746,7 +744,7 @@ export function DrawerStack() {
                 aria-hidden
                 className="pointer-events-none fixed top-0 h-0 w-0"
               />
-              {dimmed && <div aria-hidden className="fixed inset-0 z-[35] bg-black/50" />}
+              {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
             </>,
             target,
           )}
