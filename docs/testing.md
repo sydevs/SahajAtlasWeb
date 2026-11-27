@@ -510,6 +510,15 @@ Chromium 153: the context reports `ANGLE (Google, Vulkan 1.3.0 (SwiftShader Devi
 the map loads the fixture style, and the app's own pins draw at Cambridge. The full-map scenario
 asserts a live WebGL2 context on the map's canvas and that the map asked for its style.
 
+⚠ **The lane runs with motion reduced (`reducedMotion: 'reduce'`), because a CSS animation
+stalls the map under SwiftShader.** Software compositing puts the skeleton's pulse and the
+spinner's turn in the GPU process the map's GL calls wait on. Once #540 made those animations
+run, mapbox-gl's `supported()` probe blocked the main thread for 4–5s in 14 of 30 deep-link
+loads, against 0 of 30 with motion reduced (2026-11-27, two workers), and the navigation
+scenarios failed their 5s budget about half the time in CI. A GPU composites the same
+animation for nothing, so this is the lane's cost, not a visitor's. A scenario that needs to
+see an animation run has to opt back in with `page.emulateMedia`.
+
 ### A map-less embed must not download mapbox-gl
 
 ⚠ **The lane asserted the opposite until react-map-gl 8 landed (#445).** Under react-map-gl 7,
