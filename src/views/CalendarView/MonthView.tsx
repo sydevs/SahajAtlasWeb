@@ -110,13 +110,11 @@ function WideMonth({ byDay, focused, locale, onWeekFrom }: GridProps) {
                       {dayOfMonth(day)}
                     </time>
                   </div>
-                  <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+                  <div className="flex flex-col gap-0.5">
                     {classes.slice(0, hidden > 0 ? BOX_ENTRIES - 1 : BOX_ENTRIES).map((entry) => (
-                      <li key={entry.id}>
-                        <MonthBox entry={entry} locale={locale} />
-                      </li>
+                      <MonthBox key={entry.id} entry={entry} locale={locale} />
                     ))}
-                  </ul>
+                  </div>
                   {hidden > 0 && (
                     <button
                       data-vaul-no-drag
