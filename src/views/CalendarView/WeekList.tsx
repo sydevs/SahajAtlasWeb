@@ -8,6 +8,7 @@ import { EntryList } from './EntryList'
 import { dayHeadingParts } from './day-heading'
 
 import { Button } from '@/components/atoms/Button'
+import { FallbackPanel } from '@/components/molecules'
 import { daysBetween, entriesByDay } from '@/lib/shape'
 import { formatDate } from '@/lib/time'
 
@@ -38,23 +39,20 @@ export function WeekList({
   if (days.length === 0) {
     const next = [...byDay.keys()].sort().find((day) => day > window.end)
 
+    // The widget's one empty-state table, as the place pages use it: filters that hid every class
+    // offer to clear them, and a quiet week offers the next class's week.
     return (
-      <div className="flex flex-col items-start gap-3 px-gutter py-6" role="status">
-        <p className="text-sm text-gray-12">
-          {t(filtered ? 'calendar.none_match_filters' : 'calendar.none_in_window')}
-        </p>
-        {filtered ? (
-          <Button color="neutral" variant="flat" onClick={onClearFilters}>
-            {t('calendar.clear_filters')}
+      <FallbackPanel
+        align="start"
+        kind={filtered ? 'no-results' : 'empty'}
+        onClearFilters={onClearFilters}
+      >
+        {!filtered && next && (
+          <Button color="neutral" variant="flat" onClick={() => onWeekFrom(next)}>
+            {t('calendar.next_class', { date: formatDate(DateTime.fromISO(next), locale) })}
           </Button>
-        ) : (
-          next && (
-            <Button color="neutral" variant="flat" onClick={() => onWeekFrom(next)}>
-              {t('calendar.next_class', { date: formatDate(DateTime.fromISO(next), locale) })}
-            </Button>
-          )
         )}
-      </div>
+      </FallbackPanel>
     )
   }
 
