@@ -1,17 +1,12 @@
-import type { CalendarEntry } from '@/lib/shape'
-
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 
 import { dayHeadingParts } from './day-heading'
 
+import { type CalendarEntry, entryTime } from '@/lib/shape'
 import { Chip } from '@/components/atoms/Chip'
 import { List, ListItem } from '@/components/molecules'
 import { formatTimeRange } from '@/lib/time'
-
-/** An entry's time, the wall clock of the zone it is shown in (`eventsToCalendarEntries`). */
-export const entryWallClock = (at: string) =>
-  DateTime.fromFormat(at, 'yyyy-MM-dd HH:mm', { zone: 'UTC' })
 
 /**
  * One day of classes, as both the Week and the phone Month list it: the date in a band held at
@@ -24,12 +19,15 @@ export function DayClasses({
   entries,
   locale,
   counted = false,
+  live = false,
 }: {
   day: string
   entries: readonly CalendarEntry[]
   locale: string
   /** Says how many classes the day holds beside the date, where no list says it already. */
   counted?: boolean
+  /** Announces the heading as it changes, where the visitor changes the day from a grid. */
+  live?: boolean
 }) {
   const { t } = useTranslation()
   const { heading, note } = dayHeadingParts(DateTime.fromISO(day), {
@@ -41,6 +39,7 @@ export function DayClasses({
   return (
     <section aria-labelledby={`day-${day}`}>
       <h3
+        aria-live={live ? 'polite' : undefined}
         className="sticky top-0 z-10 flex items-baseline gap-2 bg-gray-3 px-gutter py-2 text-sm font-semibold text-gray-12"
         id={`day-${day}`}
       >
@@ -53,19 +52,14 @@ export function DayClasses({
             <ListItem
               key={entry.id}
               description={[
-                formatTimeRange(entryWallClock(entry.start), entryWallClock(entry.end), locale),
+                formatTimeRange(entryTime(entry.start), entryTime(entry.end), locale),
                 entry.place,
               ]
                 .filter(Boolean)
                 .join(' · ')}
               href={entry.path}
               label={entry.name}
-              tag={
-                entry.online ? (
-                  // Inline in the name, so no 44px touch floor: a label, not a control.
-                  <Chip className="pointer-coarse:min-h-0">{t('event.display.online')}</Chip>
-                ) : undefined
-              }
+              tag={entry.online ? <Chip>{t('event.display.online')}</Chip> : undefined}
             />
           ))}
         </List>

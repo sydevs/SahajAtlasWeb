@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { placePathsOf } from './path'
 import {
   atlasDepth,
+  cameFrom,
   atlasPushState,
   backStep,
   climbDestination,
@@ -253,5 +254,19 @@ describe('loneClassExit', () => {
     expect(
       loneClassExit({ state: { depth: 1, climbedFrom: '/lu/1185', from: '/lu' } }, '/lu/1185'),
     ).toBe('climbed')
+  })
+})
+
+describe('cameFrom', () => {
+  it('is true only for an in-widget step from that page, whatever its query', () => {
+    const from = (state: unknown) => ({ state })
+
+    expect(
+      cameFrom(from({ depth: 1, from: '/calendar?region=gb&view=week' }), '/calendar?region=gb'),
+    ).toBe(true)
+    expect(cameFrom(from({ depth: 1, from: '/gb' }), '/calendar')).toBe(false)
+    // A fresh deep link has no step to go back to, and a host's own state is not ours.
+    expect(cameFrom(from({ from: '/calendar' }), '/calendar')).toBe(false)
+    expect(cameFrom(from({ depth: 1, from: 42 }), '/calendar')).toBe(false)
   })
 })

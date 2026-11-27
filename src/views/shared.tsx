@@ -39,8 +39,8 @@ import {
   ancestorSlugs,
   atlasDepth,
   calendarPath,
+  cameFrom,
   placeSearchPath,
-  sameRoute,
   resolvePath,
   topViewKey,
 } from '@/lib/shape'
@@ -144,8 +144,8 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
+  const { dismiss } = useDrawerControl()
   const to = calendarPath(regionSlug)
-  const from = (location.state as { from?: string } | null)?.from
 
   return (
     <Button
@@ -153,7 +153,7 @@ export function CalendarButton({ regionSlug }: { regionSlug: string }) {
       color="primary"
       size="sm"
       variant="flat"
-      onClick={() => (from && sameRoute(from, to) ? navigate(-1) : navigate(to))}
+      onClick={() => (cameFrom(location, to) ? dismiss() : navigate(to))}
     >
       <CalendarDays aria-hidden size={18} />
       {t('calendar.title')}

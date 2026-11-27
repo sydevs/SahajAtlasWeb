@@ -11,6 +11,12 @@ import {
   eventsToCalendarEntries,
   monthGrid,
   shiftWeek,
+  calendarViewToParams,
+  chosenCalendarFilters,
+  clearedCalendarFilters,
+  entryDay,
+  entryTime,
+  weekFrom,
   tidyPlaceCase,
   weekFilters,
 } from './calendar'
@@ -316,5 +322,45 @@ describe('the Month', () => {
       '2026-11-27 19:00',
     ])
     expect([...days.keys()]).toEqual(['2026-11-27', '2026-11-28'])
+  })
+})
+
+describe('the calendar’s own rules', () => {
+  const today = '2026-11-27'
+  const week = { start: '2026-12-04', end: '2026-12-10' }
+  const filters = { ...DEFAULT_FILTERS, region: 'gb', format: 'online' as const, dateRange: week }
+
+  it('opens the Week on a later day, and on this week’s plain address from today or before', () => {
+    expect(weekFrom('2026-12-04', today)).toEqual(week)
+    expect(weekFrom(today, today)).toEqual({ start: null, end: null })
+    expect(weekFrom('2026-11-20', today)).toEqual({ start: null, end: null })
+  })
+
+  it('counts neither the place nor the Week’s dates as chosen, and Clear keeps both', () => {
+    expect(chosenCalendarFilters(filters, 'week')).toMatchObject({
+      region: null,
+      dateRange: { start: null, end: null },
+      format: 'online',
+    })
+    // On the Month the dates are a filter like the rest.
+    expect(chosenCalendarFilters(filters, 'month').dateRange).toEqual(week)
+    expect(clearedCalendarFilters(filters, 'week')).toEqual({
+      ...DEFAULT_FILTERS,
+      region: 'gb',
+      dateRange: week,
+    })
+    expect(clearedCalendarFilters(filters, 'month')).toEqual({ ...DEFAULT_FILTERS, region: 'gb' })
+  })
+
+  it('writes only the Week into the address', () => {
+    expect(calendarViewToParams('week', new URLSearchParams('region=gb')).toString()).toBe(
+      'region=gb&view=week',
+    )
+    expect(calendarViewToParams('month', new URLSearchParams('view=week')).toString()).toBe('')
+  })
+
+  it('reads an entry’s day and its wall clock off its start', () => {
+    expect(entryDay({ start: '2026-11-27 19:45' })).toBe('2026-11-27')
+    expect(entryTime('2026-11-27 19:45').toFormat('HH:mm')).toBe('19:45')
   })
 })

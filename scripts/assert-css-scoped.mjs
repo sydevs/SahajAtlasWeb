@@ -565,6 +565,12 @@ export function auditBuild(files, read, fail) {
     fail(failure)
   }
 
+  // No sheet carries a `rem`, so finding none is also what a detector the minifier had outgrown
+  // would report. It must still find the one in a declaration written the way the build writes it.
+  if (remLengths(postcss.parse(':where(.sy-atlas) .x{width:1rem}')).length !== 1) {
+    fail('the rem detector found no rem in `width:1rem` — it no longer reads the emitted CSS')
+  }
+
   // Tailwind 4 registers these for every composed utility in the sheet, so
   // none at all means the walk stopped matching, not that the sheet stopped
   // registering. Without this the check above would pass vacuously.

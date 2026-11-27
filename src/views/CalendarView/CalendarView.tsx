@@ -1,6 +1,6 @@
 import { Suspense, useMemo, useRef } from 'react'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { ChevronRight } from 'lucide-react'
@@ -14,6 +14,7 @@ import { CALENDAR_HEADER } from '@/components/organisms/Skeleton/Skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
 import api, { regionsQuery } from '@/config/api'
+import { regionRoute } from '@/config/api/fetch'
 import { useIsWideWidget } from '@/config/responsive'
 import { useCalendarPosition } from '@/config/store'
 import { useCalendarView, useSetCalendarView } from '@/hooks/use-calendar-view'
@@ -23,87 +24,38 @@ import {
   type CalendarViewName,
   type CalendarWindow,
   type EventFilters,
-  CALENDAR_WEEK_PARAM,
   DEFAULT_FILTERS,
   calendarWindow,
+  cameFrom,
+  chosenCalendarFilters,
+  clearedCalendarFilters,
+  entryDay,
   eventsToCalendarEntries,
-  filtersFromParams,
   filtersKey,
-  filtersToParams,
   hasActiveFilters,
-  safePath,
   shiftWeek,
   todayISO,
   weekFrom,
 } from '@/lib/shape'
 import { formatDateRange, formatMonth, zoneCity } from '@/lib/time'
 import { BackButton } from '@/views/nav'
-import { DrawerTitle, ExpandSheetButton, FilterButton } from '@/views/shared'
+import { DrawerTitle, ExpandSheetButton, FilterButton, useDrawerControl } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
-
-const NO_DATES = { start: null, end: null }
 
 // The date the Month has in view, or today until the visitor moves it.
 const useFocusedDate = () => useCalendarPosition((s) => s.date) ?? todayISO()
 
 const setFocused = (day: string) => useCalendarPosition.getState().setDate(day)
 
-/**
- * The filters a visitor chose, for the pills and the Filters count. The place is the calendar's
- * title, and on the Week the dates are its arrows: neither is a restriction they added.
- */
-export const chosenCalendarFilters = (
-  filters: EventFilters,
-  view: CalendarViewName,
-): EventFilters => ({
-  ...filters,
-  region: null,
-  dateRange: view === 'week' ? NO_DATES : filters.dateRange,
-})
-
-/** Opens the Week on the seven days from a day, in place. */
-function useOpenWeek() {
-  const [, setSearchParams] = useSearchParams()
-  const location = useLocation()
-
-  return (day: string) =>
-    setSearchParams(
-      (prev) => {
-        const next = filtersToParams(
-          { ...filtersFromParams(prev), dateRange: weekFrom(day) },
-          new URLSearchParams(prev),
-        )
-
-        next.set('view', CALENDAR_WEEK_PARAM)
-
-        return next
-      },
-      { replace: true, state: location.state },
-    )
-}
-
 // The place the calendar is scoped to, from the cache-once region tree.
 function usePlace(slug: string | null) {
   const { data: regions } = useQuery(regionsQuery())
-  const node = slug ? regions?.find((region) => region.slug === slug) : undefined
 
-  return { name: node?.name ?? undefined, path: safePath(node?.webPath) }
-}
+  return useMemo(() => {
+    const node = slug ? regions?.find((region) => region.slug === slug) : undefined
 
-/**
- * The list a calendar stands beside: its place's own page, or the first screen. Opened from that
- * list, the calendar steps back to it, so flipping between the two never piles up entries behind
- * Back.
- */
-function useGoToList(path: string) {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from
-
-  return () =>
-    from?.split('?')[0] === path
-      ? navigate(-1)
-      : navigate(path, { replace: true, state: location.state })
+    return { name: node?.name ?? undefined, path: node ? regionRoute(node) : '/' }
+  }, [regions, slug])
 }
 
 function CalendarHeader({ view, week }: { view: CalendarViewName; week: CalendarWindow }) {
@@ -112,28 +64,31 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   const setView = useSetCalendarView()
   const filters = useEventFilters()
   const { setDateRange } = useSetFilters()
+  const { dismiss } = useDrawerControl()
+  const navigate = useNavigate()
+  const location = useLocation()
   const focused = useFocusedDate()
   const place = usePlace(filters.region)
-  const goToList = useGoToList(place.path ?? '/')
   const dateInputRef = useRef<HTMLInputElement>(null)
   const today = todayISO()
   const isWeek = view === 'week'
-  const weekDates = formatDateRange(
-    DateTime.fromISO(week.start),
-    DateTime.fromISO(week.end),
-    formatLocale,
-  )
   const month = DateTime.fromISO(focused).startOf('month')
-  const label = isWeek
-    ? week.isThisWeek
+  const label = !isWeek
+    ? formatMonth(month, formatLocale)
+    : week.isThisWeek
       ? t('calendar.next_7_days')
-      : weekDates
-    : formatMonth(month, formatLocale)
+      : formatDateRange(DateTime.fromISO(week.start), DateTime.fromISO(week.end), formatLocale)
   // Nothing before today has classes, so neither view pages back past it.
   const atStart = isWeek ? week.isThisWeek : month <= DateTime.now().startOf('month')
 
-  const pick = (day: string) =>
-    isWeek ? setDateRange(day <= today ? NO_DATES : weekFrom(day)) : setFocused(day)
+  const pick = (day: string) => (isWeek ? setDateRange(weekFrom(day, today)) : setFocused(day))
+
+  // The place's own list. Opened from it, the calendar steps back to it, so flipping between the
+  // two never piles up entries behind Back.
+  const goToList = () =>
+    cameFrom(location, place.path)
+      ? dismiss()
+      : navigate(place.path, { replace: true, state: location.state })
 
   const step = (direction: -1 | 1) => {
     if (isWeek) return setDateRange(shiftWeek(week, direction, today))
@@ -275,33 +230,39 @@ function CalendarBody({
   const isWide = useIsWideWidget()
   const focused = useFocusedDate()
   const { setFilters } = useSetFilters()
-  const openWeek = useOpenWeek()
+  const setView = useSetCalendarView()
+  const today = todayISO()
+  // A busy Month day's "+ N classes", or an empty week's next class, opens the Week from it.
+  const openWeek = (day: string) => setView('week', weekFrom(day, today))
   // One read for every date, so paging the Week or the Month never refetches.
-  const anyDate = useMemo(() => ({ ...filters, dateRange: NO_DATES }), [filters])
+  const anyDate = { ...filters, dateRange: DEFAULT_FILTERS.dateRange }
+  const anyDateKey = filtersKey(anyDate)
   const { data: source } = useSuspenseQuery({
-    queryKey: ['calendar', filtersKey(anyDate), locale],
+    queryKey: ['calendar', anyDateKey, locale],
     queryFn: () => api.getCalendarEvents(anyDate),
   })
 
-  // The Month keeps a dates filter as a filter; the Week cuts its own seven days.
+  // The Month keeps a dates filter as a filter; the Week cuts its own seven days. Keyed on the
+  // filters' string form, so a page of the Week does not expand the whole feed again.
+  const shownKey = view === 'week' ? anyDateKey : filtersKey(filters)
   const entries = useMemo(
     () => eventsToCalendarEntries(source, view === 'week' ? anyDate : filters),
-    [source, view, anyDate, filters],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `shownKey` stands in for the filters it is built from.
+    [source, shownKey],
   )
-  const shown =
-    view === 'week'
-      ? entries.filter((entry) => entry.start >= week.start && entry.start <= `${week.end} 24`)
-      : entries
+  // The days on screen: the Week's seven, or the Month's month.
+  const onScreen = (day: string) =>
+    view === 'week' ? day >= week.start && day <= week.end : day.startsWith(focused.slice(0, 7))
 
   // Says whose clock the times are in: an in-person class reads in its own zone and an online
   // one in the viewer's, so a London visitor's 1:00 AM Toronto class looks like a mistake
-  // without it (#25). It sits above the times it explains.
-  const hasOnline = shown.some((entry) => entry.online)
+  // without it (#25). Only while an online class is on screen.
+  const hasOnline = entries.some((entry) => entry.online && onScreen(entryDay(entry)))
 
   return (
     <>
       {hasOnline && (
-        <p className="shrink-0 px-gutter pt-3 pb-3 text-xs text-gray-11">
+        <p className="shrink-0 px-gutter py-3 text-xs text-gray-11">
           {t('calendar.times_note', { zone: zoneCity(DateTime.local().zoneName) })}
         </p>
       )}
@@ -312,14 +273,8 @@ function CalendarBody({
             entries={entries}
             filtered={hasActiveFilters(chosenCalendarFilters(filters, 'week'))}
             locale={formatLocale}
-            window={week}
-            onClearFilters={() =>
-              setFilters({
-                ...DEFAULT_FILTERS,
-                region: filters.region,
-                dateRange: filters.dateRange,
-              })
-            }
+            week={week}
+            onClearFilters={() => setFilters(clearedCalendarFilters(filters, 'week'))}
             onWeekFrom={openWeek}
           />
         ) : (

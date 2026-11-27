@@ -3,7 +3,15 @@ import type { EventSchedule, EventType } from '@/types'
 import { DateTime } from 'luxon'
 
 import { DEFAULT_DURATION, eventTimeZone, scheduleTimeZone, withEndTime } from './event'
-import { type DateRange, type EventFilters, dateFloor, occurrenceMatchesFilters } from './filters'
+import {
+  type DateRange,
+  type EventFilters,
+  DEFAULT_FILTERS,
+  dateFloor,
+  occurrenceMatchesFilters,
+} from './filters'
+
+import { wallClock } from '@/lib/time'
 
 /**
  * Feed → calendar-entry expansion. SahajCloud pre-computes each event's recurrence
@@ -67,6 +75,13 @@ export type CalendarEntry = {
 // The occurrence already resolved into its display zone, so what the calendar shows is the local
 // class time.
 const WALL_CLOCK = 'yyyy-MM-dd HH:mm'
+
+/** The day an entry starts on, `yyyy-MM-dd`. */
+export const entryDay = (entry: Pick<CalendarEntry, 'start'>): string => entry.start.slice(0, 10)
+
+/** An entry's start or end as its wall clock, for `formatTimeRange`, which reads only that. */
+export const entryTime = (at: string): DateTime =>
+  wallClock(Number(at.slice(11, 13)), Number(at.slice(14, 16)))
 
 /**
  * Expands events into calendar entries: one per `upcomingDates` occurrence whose start
@@ -144,19 +159,55 @@ export const eventsToCalendarEntries = (
 /** The calendar's two views. Month is the default, so only `?view=week` is ever written. */
 export type CalendarViewName = 'month' | 'week'
 
-/** The URL word for the Week, `?view=week`. */
-export const CALENDAR_WEEK_PARAM = 'week'
+const VIEW_PARAM = 'view'
 
 export const calendarViewFromParams = (params: URLSearchParams): CalendarViewName =>
-  params.get('view') === CALENDAR_WEEK_PARAM ? 'week' : 'month'
+  params.get(VIEW_PARAM) === 'week' ? 'week' : 'month'
+
+/** Writes `view` onto `params`: `week` for the Week, nothing for the Month. */
+export const calendarViewToParams = (
+  view: CalendarViewName,
+  params: URLSearchParams,
+): URLSearchParams => {
+  if (view === 'week') params.set(VIEW_PARAM, 'week')
+  else params.delete(VIEW_PARAM)
+
+  return params
+}
+
+/**
+ * The filters a visitor chose, for the pills, the Filters count and Clear's "anything to clear".
+ * The place is the calendar's title, and on the Week the dates are its arrows: neither is a
+ * restriction they added.
+ */
+export const chosenCalendarFilters = (
+  filters: EventFilters,
+  view: CalendarViewName,
+): EventFilters => ({
+  ...filters,
+  region: null,
+  dateRange: view === 'week' ? DEFAULT_FILTERS.dateRange : filters.dateRange,
+})
+
+/** What Clear leaves: the place, and on the Week its dates, since neither is a chosen filter. */
+export const clearedCalendarFilters = (
+  filters: EventFilters,
+  view: CalendarViewName,
+): EventFilters => ({
+  ...DEFAULT_FILTERS,
+  region: filters.region,
+  dateRange: view === 'week' ? filters.dateRange : DEFAULT_FILTERS.dateRange,
+})
 
 // ===== THE WEEK ===== //
 
-/** How many days the Week shows: today and the six after it, so a page is never a thin Sunday. */
-export const CALENDAR_WEEK_DAYS = 7
+const WEEK_DAYS = 7
 
 const addDays = (iso: string, days: number): string =>
   DateTime.fromISO(iso).plus({ days }).toISODate() ?? iso
+
+/** The seven days from `date`. */
+const sevenFrom = (date: string) => ({ start: date, end: addDays(date, WEEK_DAYS - 1) })
 
 /** The seven days the Week shows, as `yyyy-MM-dd`. */
 export type CalendarWindow = { start: string; end: string; isThisWeek: boolean }
@@ -168,24 +219,19 @@ export type CalendarWindow = { start: string; end: string; isThisWeek: boolean }
 export const calendarWindow = (range: DateRange, today: string): CalendarWindow => {
   const start = range.start && range.start > today ? range.start : today
 
-  return { start, end: addDays(start, CALENDAR_WEEK_DAYS - 1), isThisWeek: start === today }
+  return { ...sevenFrom(start), isThisWeek: start === today }
 }
-
-/** The week starting on `date`. */
-export const weekFrom = (date: string): DateRange => ({
-  start: date,
-  end: addDays(date, CALENDAR_WEEK_DAYS - 1),
-})
 
 /**
- * The seven days next to a window. Nothing before today has classes, so a step back stops there,
- * and landing on this week clears the range, so its address is the plain one.
+ * The `dates` that open the Week on `day`. Nothing before today has classes, so a day at or before
+ * it opens this week, whose address is the plain one.
  */
-export const shiftWeek = (window: CalendarWindow, direction: -1 | 1, today: string): DateRange => {
-  const moved = addDays(window.start, direction * CALENDAR_WEEK_DAYS)
+export const weekFrom = (day: string, today: string): DateRange =>
+  day <= today ? DEFAULT_FILTERS.dateRange : sevenFrom(day)
 
-  return moved <= today ? { start: null, end: null } : weekFrom(moved)
-}
+/** The `dates` of the seven days next to a window. */
+export const shiftWeek = (window: CalendarWindow, direction: -1 | 1, today: string): DateRange =>
+  weekFrom(addDays(window.start, direction * WEEK_DAYS), today)
 
 /** The filters as the Week reads them: its own seven days in place of the link's range. */
 export const weekFilters = (filters: EventFilters, today: string): EventFilters => {
@@ -230,7 +276,7 @@ export const entriesByDay = (entries: readonly CalendarEntry[]): Map<string, Cal
   const days = new Map<string, CalendarEntry[]>()
 
   for (const entry of [...entries].sort((a, b) => a.start.localeCompare(b.start))) {
-    const day = entry.start.slice(0, 10)
+    const day = entryDay(entry)
     const list = days.get(day)
 
     if (list) list.push(entry)

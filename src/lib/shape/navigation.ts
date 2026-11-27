@@ -34,6 +34,14 @@ const stamp = (location: { state?: unknown }, key: 'from' | 'climbedFrom'): stri
 }
 
 /**
+ * Whether the entry before this one is `route`'s page, whatever its query: then a link between
+ * two sibling views (a place's list and its calendar) steps back to it rather than stacking it
+ * again behind Back.
+ */
+export const cameFrom = (location: { state?: unknown }, route: string): boolean =>
+  atlasDepth(location) > 0 && stamp(location, 'from')?.split('?')[0] === route.split('?')[0]
+
+/**
  * The in-widget history depth carried on a location's `state`. A fresh deep link
  * (or any navigation we did not stamp) has no numeric depth, so it reads as 0.
  */

@@ -1,6 +1,6 @@
 import type { GlobalProvider, GlobalState } from '@ladle/react'
 
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useLayoutEffect, useState } from 'react'
 import { ActionType, ThemeState, useLadleContext } from '@ladle/react'
 import { MemoryRouter } from 'react-router'
 import clsx from 'clsx'
@@ -107,7 +107,6 @@ export const Provider: GlobalProvider = ({ children }) => {
     applyTheme(ladleTheme === ThemeState.Dark ? 'dark' : 'light')
   }, [ladleTheme])
 
-  const wrapperRef = useRef<HTMLElement>(null)
   const [wrapper, setWrapper] = useState<HTMLElement | null>(null)
   const { theme } = useTheme()
 
@@ -165,12 +164,8 @@ export const Provider: GlobalProvider = ({ children }) => {
   // applies new ones. So switching back to the default restores the
   // built-in palette on its own.
   useEffect(() => {
-    const el = wrapperRef.current
-
-    if (!el) return
-
-    applyPalette(el, palette, theme)
-  }, [palette, theme])
+    if (wrapper) applyPalette(wrapper, palette, theme)
+  }, [wrapper, palette, theme])
 
   // The story's own page takes the theme's background, so a dark story scrolled past its first
   // screen, or framed at a fixed width, never shows the light page behind it.
@@ -205,10 +200,7 @@ export const Provider: GlobalProvider = ({ children }) => {
               everything below it — which left every story light while <html>
               said dark. */}
           <main
-            ref={(element) => {
-              wrapperRef.current = element
-              setWrapper(element)
-            }}
+            ref={setWrapper}
             className={clsx(
               WIDGET_SCOPE_CLASS,
               theme,

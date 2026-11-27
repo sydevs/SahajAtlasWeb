@@ -16,10 +16,11 @@ import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import {
-  DEFAULT_FILTERS,
   type EventFilters,
   type PlaceSearch,
   calendarViewFromParams,
+  chosenCalendarFilters,
+  clearedCalendarFilters,
   filterOriginRegion,
   filtersToParams,
   hasActiveFilters,
@@ -61,11 +62,14 @@ export function FilterView() {
   // Over the calendar's Week the dates are its arrows: the form asks none, counts the seven days
   // on screen whatever range the link names, and Clear keeps them.
   const overWeek = origin === '/calendar' && calendarViewFromParams(searchParams) === 'week'
-  const facets = useFilterFacets(overWeek ? weekFilters(filters, todayISO()) : filters, {
-    keepDates: overWeek,
-  })
+  // Anywhere but the Week, the dates are a filter like the rest (`chosenCalendarFilters`).
+  const view = overWeek ? 'week' : 'month'
+  const counted = useMemo(
+    () => (overWeek ? weekFilters(filters, todayISO()) : filters),
+    [overWeek, filters],
+  )
+  const facets = useFilterFacets(counted, { keepDates: overWeek })
   const count = facets?.counts.total
-  const kept = overWeek ? filters.dateRange : DEFAULT_FILTERS.dateRange
   const filtersOrigin = origin === '/calendar' || origin === '/search' ? origin : '/search'
 
   const moveTo = (to: { pathname: string; search: string } | string) =>
@@ -120,12 +124,8 @@ export function FilterView() {
   )
 
   // Clear resets the answers, not the Where: the visitor is still looking in the same place.
-  const answered = hasActiveFilters({
-    ...filters,
-    region: null,
-    dateRange: overWeek ? DEFAULT_FILTERS.dateRange : filters.dateRange,
-  })
-  const clear = () => write({ ...DEFAULT_FILTERS, region: filters.region, dateRange: kept })
+  const answered = hasActiveFilters(chosenCalendarFilters(filters, view))
+  const clear = () => write(clearedCalendarFilters(filters, view))
   const recovery = count === 0 ? facets?.recovery : undefined
   // Nothing matches, and removing any one answer still finds nothing: Clear is the way out.
   const clearLeads = count === 0 && !recovery

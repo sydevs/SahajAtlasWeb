@@ -13,11 +13,7 @@ import { IconSvgProps } from '@/types'
 // active-filter pills do.
 const chip = tv({
   slots: {
-    // ⚠ The 44px minimum on a touch screen is what CONTAINS the close button's own invisible
-    // 44px area (#432). On a 24px pill that area reached ~9px past the chip on both sides, and
-    // the wrapped row below took it, so every row but the last measured short.
-    base: 'inline-flex max-w-full items-center gap-1 pointer-coarse:min-h-11',
-    // Body text carries no letter spacing; uppercase needs a little to stay legible.
+    base: 'inline-flex max-w-full items-center gap-1',
     content: 'min-w-0 truncate leading-none',
     // The close button carries the app's standard focus ring, not only the
     // opacity lift it used to have on its own (issue #102). Opacity is also
@@ -49,7 +45,8 @@ const chip = tv({
       sm: { base: 'rounded-lg' },
       full: { base: 'rounded-full' },
     },
-    // A label reads in capitals; a chip carrying a name or a place keeps its own case.
+    // A label reads in capitals, with a little letter spacing to stay legible; a chip carrying a
+    // name or a place keeps its own case.
     casing: {
       upper: { content: 'tracking-[0.3px] uppercase' },
       none: {},
@@ -118,7 +115,11 @@ export function Chip({
   const slots = chip({ color, variant, size, radius, casing })
 
   return (
-    <span className={slots.base({ className })}>
+    // ⚠ A closable chip is 44px tall on a touch screen, which CONTAINS its close button's own
+    // invisible 44px area (#432): on a 24px pill that area reached ~9px past the chip on both
+    // sides, and the wrapped row below took it, so every row but the last measured short. A chip
+    // with nothing to press is a label and keeps its drawn height.
+    <span className={slots.base({ className: [onClose && 'pointer-coarse:min-h-11', className] })}>
       {icon}
       <span className={slots.content()}>{children}</span>
       {onClose && (
