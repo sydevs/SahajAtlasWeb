@@ -24,6 +24,8 @@ const dayNumber = tv({
     today: {
       true: 'dark:text-primary-on bg-primary-12 font-semibold text-white dark:bg-primary-9',
     },
+    // Today sits in a neighbouring month's grid too, and twMerge keeps this colour over the
+    // pill's, so a day that is both is never outside.
     outside: { true: 'text-gray-9' },
   },
 })
@@ -103,7 +105,7 @@ function WideMonth({ byDay, focused, locale, onWeekFrom }: GridProps) {
                     <time
                       className={dayNumber({
                         today: day === today,
-                        outside: !day.startsWith(month),
+                        outside: !day.startsWith(month) && day !== today,
                       })}
                       dateTime={day}
                     >
@@ -227,7 +229,7 @@ function PhoneMonth({ byDay, focused, locale, onFocus }: GridProps) {
                       <span
                         className={dayNumber({
                           today: day === today,
-                          outside: !day.startsWith(month),
+                          outside: !day.startsWith(month) && day !== today,
                         })}
                       >
                         {dayOfMonth(day)}
