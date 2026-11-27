@@ -7,7 +7,7 @@ import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerToolbar } from '@/components/atoms/Drawer'
 import {
-  ActiveFilterPills,
+  ActiveFilterChips,
   EventListItem,
   FallbackPanel,
   List,
@@ -141,7 +141,7 @@ export function RegionView({ slug }: { slug: string }) {
         <SearchField near={feedback ? undefined : region} />
       </DrawerToolbar>
       <DrawerBody>
-        <ActiveFilterPills />
+        <ActiveFilterChips />
         {/* Above the region's own content, which IS the "other classes near them" the
             acknowledgement hands off to. So the banner carries no onward link of its own.
             This stays neutral and unticked. A tick would read as "yes, it's gone", and one

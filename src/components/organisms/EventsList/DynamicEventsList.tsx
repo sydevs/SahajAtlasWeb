@@ -5,7 +5,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { EventsList } from './EventsList'
 import { LoadMore } from './LoadMore'
 
-import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
+import { ActiveFilterChips } from '@/components/molecules/ActiveFilterChips'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
 import {
   DEFAULT_REVEAL,
@@ -138,7 +138,7 @@ export function DynamicEventsList({
 
   return (
     <>
-      <ActiveFilterPills />
+      <ActiveFilterChips />
       <div ref={listRef}>
         {rows.length === 0 ? (
           <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />

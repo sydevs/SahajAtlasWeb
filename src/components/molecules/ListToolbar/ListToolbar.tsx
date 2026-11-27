@@ -16,7 +16,7 @@ export type ListToolbarProps = {
  * deliberately a thin presentational `justify-between` flex row. The
  * views supply the controls, since the Filters button is a view concern
  * that drives the drawer stack. So the toolbar never imports them, and
- * the layering stays clean. It sits above the ActiveFilterPills row. It
+ * the layering stays clean. It sits above the ActiveFilterChips row. It
  * has no vertical padding of its own. Its padding is the panel gutter less
  * the ghost buttons' own `px-3`, so their content starts on the gutter,
  * aligned with the `px-gutter` (`ListRow`) of the list rows below.

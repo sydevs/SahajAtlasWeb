@@ -396,12 +396,11 @@ type MapControlsState = {
   findMeHidden: boolean
   setFindMeHidden: (hidden: boolean) => void
   /**
-   * The map's own element, once it is on screen. Something drawn over the map that must sit under
-   * the map's controls (the filter buttons, under the column's hover labels) renders into it, so
-   * the two share one stacking order.
+   * Where the filter menus render on the map, once it is on screen: a slot beside the control
+   * column's buttons, inside the one Mapbox control (`MapControls`), so Mapbox places both.
    */
-  container: HTMLElement | null
-  setContainer: (container: HTMLElement | null) => void
+  menuSlot: HTMLElement | null
+  setMenuSlot: (slot: HTMLElement | null) => void
 }
 
 /**
@@ -414,8 +413,8 @@ export const useMapControls = create<MapControlsState>((set) => ({
   setHidden: (hidden) => set(() => ({ hidden })),
   findMeHidden: false,
   setFindMeHidden: (findMeHidden) => set(() => ({ findMeHidden })),
-  container: null,
-  setContainer: (container) => set(() => ({ container })),
+  menuSlot: null,
+  setMenuSlot: (menuSlot) => set(() => ({ menuSlot })),
 }))
 
 type BrowsedCountryState = {

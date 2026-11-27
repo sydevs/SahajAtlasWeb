@@ -24,13 +24,13 @@ import { scheduleXTimeline } from './timeline'
 import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
+import { ActiveFilterChips, ResetErrorBoundary } from '@/components/molecules'
 import api from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useCalendarPosition } from '@/config/store'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
-import { useFilterRow } from '@/hooks/use-filter-chips'
+import { useFilterRow } from '@/hooks/use-filter-row'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import {
@@ -46,7 +46,7 @@ import {
   scheduleXLocale,
 } from '@/lib/shape'
 import { formatDate, formatMonth, zoneCity } from '@/lib/time'
-import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
+import { FilterMenuBar } from '@/views/FilterView/FilterMenuBar'
 import { BackButton } from '@/views/nav'
 import { ExpandSheetButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
@@ -214,8 +214,8 @@ function CalendarControls({ controls }: { controls: CalendarControlsPlugin }) {
           </Button>
         </div>
 
-        {/* Where the calendar covers the map, it asks its filters in its own header. */}
-        {inHeader && <FilterChipBar placement="inline" />}
+        {/* Where the calendar covers the map, its filter menus are part of its toolbar. */}
+        {inHeader && <FilterMenuBar placement="toolbar" />}
         <FilterButton />
       </div>
     </>
@@ -249,7 +249,7 @@ export function CalendarView() {
       <DrawerHeader className="max-w-none flex-wrap items-center gap-x-3 gap-y-2">
         <CalendarControls controls={controls} />
       </DrawerHeader>
-      <ActiveFilterPills />
+      <ActiveFilterChips />
       {/* The grid owns the `['calendar', …]` read. The header above — month nav, view picker,
           filters, close — and the pills read none of it. So a failed grid is survivable in
           place. Escalating it to the drawer boundary would replace all that working chrome to

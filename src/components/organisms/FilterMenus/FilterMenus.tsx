@@ -32,10 +32,23 @@ const summarize = (parts: (string | false | null | undefined)[]): string =>
 
 type Menu = 'where' | 'when' | 'language'
 
+type Placement = 'map' | 'toolbar'
+
+// Over the map a button floats; in a toolbar it sits with the toolbar's own controls, smaller and
+// unlifted. Filled, it takes the primary fill either way.
+const trigger = (placement: Placement, filled: boolean) =>
+  placement === 'map'
+    ? ({ variant: 'floating', size: 'md', color: filled ? 'primary' : 'neutral' } as const)
+    : ({
+        variant: filled ? 'solid' : 'bordered',
+        size: 'sm',
+        color: filled ? 'primary' : 'neutral',
+      } as const)
+
 // How many answers a button names before it counts them instead.
 const MAX_NAMED = 2
 
-export type FilterChipsWhere = {
+export type FilterMenusWhere = {
   /** The place in scope, as the button names it: its first part, or Near me. */
   place?: string | null
   /** A searched place or Near me is an answer; a place page names its place without being one. */
@@ -46,18 +59,18 @@ export type FilterChipsWhere = {
   always: boolean
 }
 
-export type FilterChipsProps = {
+export type FilterMenusProps = {
   value: EventFilters
   onChange: (next: EventFilters) => void
   /** Clear leads the row once anything is answered. */
   onClear: () => void
   /** The Where button, supplied by the view. Absent, there is none. */
-  where?: FilterChipsWhere
+  where?: FilterMenusWhere
   /**
-   * `map`: a row across the top right of the map, between the side panel and the map's controls.
-   * `inline`: a row in a header, such as the calendar's.
+   * `map`: floating buttons beside the map's own controls, in Mapbox's control corner.
+   * `toolbar`: smaller bordered buttons inline in a view's toolbar, such as the calendar's.
    */
-  placement: 'map' | 'inline'
+  placement: Placement
 }
 
 /**
@@ -65,7 +78,7 @@ export type FilterChipsProps = {
  * choosing; the closed buttons need none. With nothing left, it ends on the one change that brings
  * the most classes back.
  */
-function ChipMenu({
+function MenuBody({
   menu,
   value,
   onChange,
@@ -74,7 +87,7 @@ function ChipMenu({
   menu: Menu
   value: EventFilters
   onChange: (next: EventFilters) => void
-  where?: FilterChipsWhere
+  where?: FilterMenusWhere
 }) {
   const { t } = useLocale()
   const facets = useFilterFacets(value)
@@ -123,15 +136,17 @@ function ChipMenu({
  * One filter button and its menu, which opens under the button's end edge so it stays on the
  * map's side, clear of the list. A screen reader hears the question before the answer.
  */
-function FilterChip({
+function FilterMenu({
   label,
   summary,
   filled = summary !== '',
+  placement,
   children,
 }: {
   label: string
   summary: string
   filled?: boolean
+  placement: Placement
   children: ReactNode
 }) {
   return (
@@ -143,10 +158,9 @@ function FilterChip({
       trigger={(props) => (
         <Button
           {...props}
-          className="pointer-events-auto max-w-56 pe-3"
-          color={filled ? 'primary' : 'neutral'}
+          {...trigger(placement, filled)}
+          className={clsx('max-w-56', placement === 'toolbar' && !filled && 'border-gray-6')}
           radius="full"
-          variant="floating"
         >
           <span className="truncate">
             {summary ? (
@@ -174,7 +188,7 @@ function FilterChip({
  * own questions (`shownGroups`) from the same blocks. Fully controlled: every tap reports the next
  * answers at once. A button with an answer is filled and names it ("Tue · Evening").
  */
-export function FilterChips({ value, onChange, onClear, where, placement }: FilterChipsProps) {
+export function FilterMenus({ value, onChange, onClear, where, placement }: FilterMenusProps) {
   const { t, formatLocale, languageLabel } = useLocale()
   const scope = useFilterScope(value)
   const weekdays = weekdayNames(formatLocale, 'short')
@@ -210,64 +224,65 @@ export function FilterChips({ value, onChange, onClear, where, placement }: Filt
     value.format !== 'any' ||
     Boolean(scope?.some(isOnline) && scope.some((event) => !isOnline(event)))
 
+  // Clear sits at the end the row grows from, so its arrival moves nothing already there: a
+  // button whose menu is open must not slide out from under the pointer.
+  const clear = hasActiveFilters({ ...value, region: null }) && (
+    <HoverLabel text={t('filters.chrome.clear')}>
+      <Button
+        isIconOnly
+        {...trigger(placement, false)}
+        aria-label={t('filters.chrome.clear')}
+        className={clsx(placement === 'toolbar' && 'border-gray-6')}
+        radius="full"
+        onClick={onClear}
+      >
+        <X aria-hidden size={placement === 'map' ? 18 : 16} />
+      </Button>
+    </HoverLabel>
+  )
+
   return (
     <div
       aria-label={t('filters.chrome.title')}
-      // Over the map the row spans the map between the panel and the map's control column, so it
-      // lets every press through but its buttons' own. Physical sides, as the panel and the column
-      // have. ⚠ The 352px is the panel's (`DRAWER_W_PX`); the 64px clears the control column's
-      // 40px buttons and its 16px inset (`MapControls`). Rendered into the map's element, under
-      // that column's corner (z-20), so the column's hover labels draw over the row; `font-sans`
-      // undoes the map element's own Helvetica.
+      // On the map the row is part of Mapbox's control corner (`MapControls`), which places it.
+      // ⚠ Its widest is the map (`100cqw`, the map is the size container) less the side panel
+      // (`DRAWER_W_PX`, its 16px inset and a 16px gap) and the column of buttons beside it, so it
+      // wraps rather than running under the panel. `font-sans` undoes the map's own Helvetica.
       className={clsx(
-        'pointer-events-none flex flex-wrap items-center justify-end gap-2',
-        placement === 'map'
-          ? 'fixed top-4 right-[64px] left-[calc(var(--sy-drawer-w,352px)+32px)] z-[15] font-sans'
-          : 'ms-auto',
+        'flex flex-wrap items-center gap-2',
+        placement === 'map' &&
+          'max-w-[calc(100cqw-var(--sy-drawer-w,352px)-96px)] justify-end font-sans',
       )}
       role="group"
     >
-      {/* First in a row that ends on the right, so its arrival moves nothing already there: a
-          button whose menu is open must not slide out from under the pointer. */}
-      {hasActiveFilters({ ...value, region: null }) && (
-        <HoverLabel text={t('filters.chrome.clear_one')}>
-          <Button
-            isIconOnly
-            aria-label={t('filters.chrome.clear_one')}
-            className="pointer-events-auto"
-            color="neutral"
-            radius="full"
-            variant="floating"
-            onClick={onClear}
-          >
-            <X aria-hidden size={18} />
-          </Button>
-        </HoverLabel>
-      )}
+      {placement === 'map' && clear}
       {where && (where.always || mixesFormats || value.region) && (
-        <FilterChip
+        <FilterMenu
           filled={where.placeAnswered || value.format !== 'any'}
           label={t('filters.where.label')}
+          placement={placement}
           summary={whereSummary}
         >
-          <ChipMenu {...menu} menu="where" />
-        </FilterChip>
+          <MenuBody {...menu} menu="where" />
+        </FilterMenu>
       )}
-      <FilterChip label={t('filters.when.label')} summary={whenSummary}>
-        <ChipMenu {...menu} menu="when" />
-      </FilterChip>
+      <FilterMenu label={t('filters.when.label')} placement={placement} summary={whenSummary}>
+        <MenuBody {...menu} menu="when" />
+      </FilterMenu>
       {hasLanguages && (
-        <FilterChip
+        <FilterMenu
           label={t('filters.language.label')}
+          placement={placement}
           summary={
             value.languages.length > MAX_NAMED
               ? t('filters.language.count', { count: value.languages.length })
               : value.languages.map(languageLabel).join(', ')
           }
         >
-          <ChipMenu {...menu} menu="language" />
-        </FilterChip>
+          <MenuBody {...menu} menu="language" />
+        </FilterMenu>
       )}
+      {placement === 'toolbar' && clear}
     </div>
   )
 }

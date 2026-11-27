@@ -1,22 +1,22 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import { FilterChipBar } from './FilterChipBar'
+import { FilterMenuBar } from './FilterMenuBar'
 
-import { type FilterChipsProps } from '@/components/organisms/FilterChips'
+import { type FilterMenusProps } from '@/components/organisms/FilterMenus'
 import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 
-// Node-only. The buttons themselves are `FilterChips`' spec; this one pins what the view tells
+// Node-only. The buttons themselves are `FilterMenus`' spec; this one pins what the view tells
 // them about the place, from the router and the region tree, both mocked at the boundary.
 const state = vi.hoisted(() => ({
   filters: {} as EventFilters,
   search: '',
   pathname: '/search',
-  props: undefined as FilterChipsProps | undefined,
+  props: undefined as FilterMenusProps | undefined,
 }))
 
-vi.mock('@/components/organisms/FilterChips', () => ({
-  FilterChips: (props: FilterChipsProps) => {
+vi.mock('@/components/organisms/FilterMenus', () => ({
+  FilterMenus: (props: FilterMenusProps) => {
     state.props = props
 
     return null
@@ -39,12 +39,12 @@ vi.mock('@/hooks/use-near-me', () => ({ useNearVisitor: () => false }))
 
 const whereFor = (filters: Partial<EventFilters>, search = '', pathname = '/search') => {
   Object.assign(state, { filters: { ...DEFAULT_FILTERS, ...filters }, search, pathname })
-  renderToStaticMarkup(<FilterChipBar placement="map" />)
+  renderToStaticMarkup(<FilterMenuBar placement="map" />)
 
   return state.props?.where
 }
 
-describe('FilterChipBar — the place it hands the Where button', () => {
+describe('FilterMenuBar — the place it hands the Where button', () => {
   it('names a place page, which is not an answer', () => {
     expect(whereFor({ region: 'gb' })).toMatchObject({
       place: 'United Kingdom',

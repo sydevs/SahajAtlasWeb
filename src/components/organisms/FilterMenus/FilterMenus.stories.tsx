@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 
 import { SeedSearchParams } from '@/components/ladle'
 import { refuseGeolocation } from '@/mocks/story-geolocation'
-import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
+import { FilterMenuBar } from '@/views/FilterView/FilterMenuBar'
 import { ViewHarness } from '@/views/story-harness'
 
 export default { title: 'Organisms' } satisfies StoryDefault
@@ -19,7 +19,7 @@ const EXAMPLES = {
 type Example = keyof typeof EXAMPLES
 
 /**
- * FilterChips — the filters on a computer: Where, When and Language as buttons, each opening a
+ * FilterMenus — the filters on a computer: Where, When and Language as buttons, each opening a
  * small menu with the same questions and live counts as the phone's filters. A button with an
  * answer is filled and names it, and Clear leads the row once anything is chosen. Over the map the
  * row sits at its top right; this story shows it on its own, as the calendar's header carries it.
@@ -27,25 +27,25 @@ type Example = keyof typeof EXAMPLES
  * - **Location refused**: this browser refuses the location. Press Where, then Near me, for the
  *   message and its way on to the search box.
  */
-export const FilterChipsStory: Story<{ example: Example }> = ({ example }) => {
+export const FilterMenusStory: Story<{ example: Example }> = ({ example }) => {
   // Stable per case, so `SeedSearchParams` seeds once rather than on every render.
   const params = useMemo(() => new URLSearchParams(EXAMPLES[example]), [example])
 
   useEffect(() => (example === 'Location refused' ? refuseGeolocation() : undefined), [example])
 
   return (
-    <ViewHarness path="/search" seedKey={`filter-chips-${example}`}>
+    <ViewHarness path="/search" seedKey={`filter-menus-${example}`}>
       <SeedSearchParams params={params}>
         <div className="flex justify-end p-4">
-          <FilterChipBar placement="inline" />
+          <FilterMenuBar placement="toolbar" />
         </div>
       </SeedSearchParams>
     </ViewHarness>
   )
 }
 
-FilterChipsStory.storyName = 'Filter chips'
-FilterChipsStory.argTypes = {
+FilterMenusStory.storyName = 'Filter menus'
+FilterMenusStory.argTypes = {
   example: {
     name: 'Example',
     options: Object.keys(EXAMPLES),

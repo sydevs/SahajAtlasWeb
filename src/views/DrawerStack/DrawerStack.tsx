@@ -20,7 +20,7 @@ import { AnimatePresence } from 'framer-motion'
 
 import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useExpansion } from '@/hooks/use-expansion'
-import { FilterRowContext } from '@/hooks/use-filter-chips'
+import { FilterRowContext } from '@/hooks/use-filter-row'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
@@ -79,7 +79,7 @@ import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
-import { FilterChipBar } from '@/views/FilterView/FilterChipBar'
+import { FilterMenuBar } from '@/views/FilterView/FilterMenuBar'
 import { FilterView } from '@/views/FilterView/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
@@ -245,7 +245,7 @@ export function DrawerStack() {
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
   const filterRow = filterRowPlace({ chipsWide, hasMap, top: top?.kind, calendarFullWidth: wide })
   const setFindMeHidden = useMapControls((s) => s.setFindMeHidden)
-  const mapContainer = useMapControls((s) => s.container)
+  const menuSlot = useMapControls((s) => s.menuSlot)
 
   useEffect(() => {
     setFindMeHidden(filterRow === 'map')
@@ -798,10 +798,10 @@ export function DrawerStack() {
           {sheet}
         </Drawer>
         {filterDrawer}
-        {/* In the map's own element, so the row sits under the map's controls and their labels. */}
+        {/* Beside the map's own buttons, in the control Mapbox places (`MapControls`). */}
         {filterRow === 'map' &&
-          mapContainer &&
-          createPortal(<FilterChipBar placement="map" />, mapContainer)}
+          menuSlot &&
+          createPortal(<FilterMenuBar placement="map" />, menuSlot)}
       </DrawerControlContext.Provider>
     </WidthContexts>
   )

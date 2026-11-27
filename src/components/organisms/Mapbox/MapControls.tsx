@@ -4,7 +4,7 @@ import type { LocateState } from './use-locate'
 import { memo, type Ref, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { useControl, useMap } from 'react-map-gl/mapbox'
+import { useControl } from 'react-map-gl/mapbox'
 import { LocateFixed } from 'lucide-react'
 
 import { Button } from '@/components/atoms/Button'
@@ -24,21 +24,27 @@ import { useMapControls } from '@/config/store'
  */
 class ControlColumn implements IControl {
   readonly slot = document.createElement('div')
+  /** The filter menus beside the buttons, on a computer (`DrawerStack` renders them into it). */
+  readonly menuSlot = document.createElement('div')
   private readonly root = document.createElement('div')
+  private readonly column = document.createElement('div')
 
   constructor(private readonly attribution: AttributionControl) {
     // The top inset clears a phone's status bar where `viewport-fit=cover` runs the map beneath
-    // it. ⚠ The 10px gap is the credits' 44px tap area overhanging its 24px button on a touch
-    // screen: any less and the button above it takes the shared pixels.
+    // it.
     this.root.className =
-      'sy-map-controls pointer-events-auto mt-[calc(16px+env(safe-area-inset-top,0px))] mr-4 flex flex-col items-end gap-2.5'
-    this.root.append(this.slot)
+      'sy-map-controls pointer-events-auto mt-[calc(16px+env(safe-area-inset-top,0px))] mr-4 flex items-start gap-2'
+    // ⚠ The 10px gap is the credits' 44px tap area overhanging its 24px button on a touch screen:
+    // any less and the button above it takes the shared pixels.
+    this.column.className = 'flex flex-col items-end gap-2.5'
+    this.column.append(this.slot)
+    this.root.append(this.menuSlot, this.column)
   }
 
-  // The credits sit under the buttons, so nothing else on the map has to clear them sideways, and
-  // open leftward from there.
+  // The credits sit under the buttons, so nothing beside the column has to clear them, and open
+  // leftward from there.
   onAdd(map: MapboxMap) {
-    this.root.append(this.attribution.onAdd(map))
+    this.column.append(this.attribution.onAdd(map))
 
     return this.root
   }
@@ -84,14 +90,13 @@ export const MapControls = memo(function MapControls({
 
   useEffect(() => column.hide(hidden), [column, hidden])
 
-  const { current: map } = useMap()
-  const setContainer = useMapControls((s) => s.setContainer)
+  const setMenuSlot = useMapControls((s) => s.setMenuSlot)
 
   useEffect(() => {
-    setContainer(map?.getContainer() ?? null)
+    setMenuSlot(column.menuSlot)
 
-    return () => setContainer(null)
-  }, [map, setContainer])
+    return () => setMenuSlot(null)
+  }, [column, setMenuSlot])
 
   const locateLabel = t('common.map.find_my_location')
 

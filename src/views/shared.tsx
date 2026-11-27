@@ -20,7 +20,7 @@ import { useApproxLocation, useCameraHistory, useSearchFocus } from '@/config/st
 import { useWidgetMode } from '@/config/mode'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
-import { useFilterRow } from '@/hooks/use-filter-chips'
+import { useFilterRow } from '@/hooks/use-filter-row'
 import { useLocale } from '@/hooks/use-locale'
 import { useNearMe } from '@/hooks/use-near-me'
 import { useMapController } from '@/hooks/use-map-controller'

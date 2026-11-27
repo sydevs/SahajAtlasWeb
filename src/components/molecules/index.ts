@@ -13,18 +13,18 @@
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 
-// ActiveFilterPills — the applied filters as removable pills at the top
+// ActiveFilterChips — the applied filters as removable chips at the top
 // of the search results, rendered by the events list. It takes no props.
 // It reads the filters from the URL itself.
-export { ActiveFilterPills } from './ActiveFilterPills'
+export { ActiveFilterChips } from './ActiveFilterChips'
 
 // ListToolbar — the controls row above a results list: a Filters
 // button, plus a SortMenu on the search results. It is a thin
 // justify-between layout. The views supply the controls.
 export { ListToolbar } from './ListToolbar'
 
-// CheckboxGroup — a list of checkboxes with counts; a long one is searchable and opens with its
-// checked options first.
+// CheckboxGroup — a list of checkboxes with counts; a long one is searchable and keeps its checked
+// options at the top.
 export { CheckboxGroup } from './CheckboxGroup'
 export type { CheckboxGroupOption, CheckboxGroupProps } from './CheckboxGroup'
 export type { ListToolbarProps } from './ListToolbar'

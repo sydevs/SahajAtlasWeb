@@ -50,8 +50,7 @@ function Example({ n, initial }: { n: number; initial: string[] }) {
 
 /**
  * CheckboxGroup — checkboxes with a count at each row's end. Past 10 options the list gets a search
- * box (case- and accent-blind: "ces" finds "Čeština") and opens with its checked options first; the
- * order is taken when the list mounts, so checking one leaves it in place.
+ * box (case- and accent-blind: "ces" finds "Čeština") and keeps its checked options at the top.
  */
 export const CheckboxGroupStory: Story = () => (
   <StoryWrapper>

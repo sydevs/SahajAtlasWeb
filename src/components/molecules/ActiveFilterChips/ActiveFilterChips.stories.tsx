@@ -2,7 +2,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { StoryWrapper, StorySection, SeedSearchParams } from '../../ladle'
 
-import { ActiveFilterPills } from './ActiveFilterPills'
+import { ActiveFilterChips } from './ActiveFilterChips'
 
 import { filtersToParams } from '@/lib/shape'
 
@@ -11,7 +11,7 @@ export default {
 } satisfies StoryDefault
 
 // A mix of active filters, seeded into the URL query, the filters' source of
-// truth. The pills read it through useEventFilters.
+// truth. The chips read it through useEventFilters.
 const seededParams = filtersToParams({
   format: 'online',
   cadence: 'WEEKLY',
@@ -22,15 +22,15 @@ const seededParams = filtersToParams({
   region: null,
 })
 
-/** ActiveFilterPills — the applied filters as removable pills (one per filter type). */
+/** ActiveFilterChips — the applied filters as removable chips (one per filter type). */
 export const Default: Story = () => (
   <SeedSearchParams params={seededParams}>
     <StoryWrapper>
       <StorySection
-        description="The applied filters as removable pills — the day-of-week and language selections each collapse into one pill. Only the user's own filters appear: the results list's automatic distance cut is signposted by its own control at the foot of the list, not by a pill."
-        title="Active filter pills"
+        description="The applied filters as removable chips — the day-of-week and language selections each collapse into one chip. Only the user's own filters appear: the results list's automatic distance cut is signposted by its own control at the foot of the list, not by a chip."
+        title="Active filter chips"
       >
-        <ActiveFilterPills />
+        <ActiveFilterChips />
       </StorySection>
 
       <div />
@@ -38,4 +38,4 @@ export const Default: Story = () => (
   </SeedSearchParams>
 )
 
-Default.storyName = 'Active Filter Pills'
+Default.storyName = 'Active Filter Chips'

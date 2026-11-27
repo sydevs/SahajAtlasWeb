@@ -3,7 +3,7 @@ import { formatTimeRange, wallClock } from '@/lib/time'
 
 /**
  * The selected time-of-day periods as hour ranges, written like a class's time
- * (`formatTimeRange`), for the filter form's readout and the active-filter pill. Empty string when
+ * (`formatTimeRange`), for the filter form's readout and the active-filter chip. Empty string when
  * nothing is selected.
  */
 export function formatTimePeriods(formatLocale: string, periods: readonly TimePeriod[]): string {

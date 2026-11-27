@@ -99,7 +99,7 @@ export const Default: Story = () => (
     </StorySection>
 
     <StorySection
-      description="`onClose` adds a trailing remove button — pairs with `radius=full` for the active-filter pills. Shown on every colour."
+      description="`onClose` adds a trailing remove button — pairs with `radius=full` for the active-filter chips. Shown on every colour."
       title="Removable"
     >
       <div className="flex flex-wrap items-center gap-2">

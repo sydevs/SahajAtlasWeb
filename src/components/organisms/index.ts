@@ -18,10 +18,10 @@ export type { DynamicEventsListProps } from './EventsList'
 export { RecoveryButton, SearchFilters } from './SearchFilters'
 export type { RecoveryButtonProps, SearchFiltersProps } from './SearchFilters'
 
-// FilterChips — the filters on a computer: Where, When and Language as buttons over the map, or
+// FilterMenus — the filters on a computer: Where, When and Language as buttons over the map, or
 // in the calendar's header, each opening a menu of the same blocks.
-export { FilterChips } from './FilterChips'
-export type { FilterChipsProps } from './FilterChips'
+export { FilterMenus } from './FilterMenus'
+export type { FilterMenusProps } from './FilterMenus'
 
 // Only the mounted host is public. The form inside it is module-private
 // (see the folder's index.ts). Unlike the code-split families below, this

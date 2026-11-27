@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { MeditateFigure } from '@/components/atoms/Icons'
-import { ActiveFilterPills, FallbackPanel, List, ListItem } from '@/components/molecules'
+import { ActiveFilterChips, FallbackPanel, List, ListItem } from '@/components/molecules'
 import api, { clientQuery, countriesQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
@@ -105,7 +105,7 @@ export function CountriesView() {
         <SearchField near="home" />
       </DrawerToolbar>
       <DrawerBody>
-        <ActiveFilterPills />
+        <ActiveFilterChips />
         {/* Online classes belong to no country — a leading entry into the online-filtered search
             rather than a place in the list below. `noMatches` implies no online classes, so this
             never sits above the fallback. */}

@@ -368,7 +368,7 @@ custom property, and a CSS rule that moves mapbox's container — which is the s
 #330 shipped first and its review replaced.
 
 **The top right holds ONE control: find-me and settings in a column, with the credits under
-them.** Mapbox's corner containers float and `clear: both`, so separate controls there
+them, and on a computer the filter menus beside them.** Mapbox's corner containers float and `clear: both`, so separate controls there
 stack in mount order with Mapbox's own margins, and lining them up with a control of ours would
 take exactly the stylesheet rules above. So `MapControls` is a single `useControl` whose element
 lays out its own children:
@@ -376,6 +376,12 @@ lays out its own children:
 - **Find-me and settings are floating `Button`s**, so they take the theme in every state, and
   each draws its name out of its end in a `HoverLabel` on hover and keyboard focus, the same pill
   shape as the credits button opened.
+- **The filter menus render into the control's own slot beside the column** (`menuSlot`,
+  published through `useMapControls`; `DrawerStack` portals `FilterMenuBar` into it while
+  `filterRowPlace` answers `map`), so Mapbox places them with the buttons and no stylesheet rule
+  positions them. They cap their width against the map, which `globals.css` makes the size
+  container, so they wrap rather than run under the side panel. Being in the same control, the
+  column's hover labels draw over them.
 - **The whole column hides on `useMapControls`.** Today only the phone sheet's near-full stop sets
   it, since there the sheet covers all of the column but a sliver of its top; a drawer elsewhere
   leaves it clear or covers it whole. Anything else that covers the map, or takes these controls

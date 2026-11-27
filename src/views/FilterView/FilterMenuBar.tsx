@@ -4,7 +4,7 @@ import { useLocation, useSearchParams } from 'react-router'
 import { usePanelFilters } from './use-panel-filters'
 import { WhereFilter } from './WhereFilter'
 
-import { FilterChips } from '@/components/organisms/FilterChips'
+import { FilterMenus } from '@/components/organisms/FilterMenus'
 import { regionsQuery } from '@/config/api'
 import { useSearchFocus } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
@@ -24,7 +24,7 @@ const focusSearch = () => {
  * The filter buttons wired to the URL (`usePanelFilters`), with the Where menu's place half, which
  * needs the router and the geocoder.
  */
-export function FilterChipBar({ placement }: { placement: 'map' | 'inline' }) {
+export function FilterMenuBar({ placement }: { placement: 'map' | 'toolbar' }) {
   const { t } = useLocale()
   const { filters, write, clear, pickPlace, clearWhere } = usePanelFilters()
   const [searchParams] = useSearchParams()
@@ -35,7 +35,7 @@ export function FilterChipBar({ placement }: { placement: 'map' | 'inline' }) {
   const searchable = useLocation().pathname !== '/calendar'
 
   return (
-    <FilterChips
+    <FilterMenus
       placement={placement}
       value={filters}
       where={{

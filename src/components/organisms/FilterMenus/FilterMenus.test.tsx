@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import { FilterChips, type FilterChipsWhere } from './FilterChips'
+import { FilterMenus, type FilterMenusWhere } from './FilterMenus'
 
 import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 
@@ -21,16 +21,16 @@ vi.mock('@/hooks/use-filter-facets', () => ({
   useFilterScope: () => undefined,
 }))
 
-const where = (overrides: Partial<FilterChipsWhere> = {}): FilterChipsWhere => ({
+const where = (overrides: Partial<FilterMenusWhere> = {}): FilterMenusWhere => ({
   placeAnswered: false,
   always: true,
   menu: () => null,
   ...overrides,
 })
 
-const render = (value: Partial<EventFilters> = {}, whereProps?: Partial<FilterChipsWhere>) =>
+const render = (value: Partial<EventFilters> = {}, whereProps?: Partial<FilterMenusWhere>) =>
   renderToStaticMarkup(
-    <FilterChips
+    <FilterMenus
       placement="map"
       value={{ ...DEFAULT_FILTERS, ...value }}
       where={where(whereProps)}
@@ -42,7 +42,7 @@ const render = (value: Partial<EventFilters> = {}, whereProps?: Partial<FilterCh
 const buttons = (html: string) => html.match(/<button[^>]*>.*?<\/button>/g) ?? []
 const filled = (button?: string) => Boolean(button?.includes('bg-primary-12'))
 
-describe('FilterChips — nothing chosen', () => {
+describe('FilterMenus — nothing chosen', () => {
   const html = render()
 
   it('shows Where and When as questions, none filled, and no Clear', () => {
@@ -54,20 +54,15 @@ describe('FilterChips — nothing chosen', () => {
     ])
     expect(shown.some(filled)).toBe(false)
   })
-
-  it('lets the map beside it take every press but its buttons', () => {
-    expect(html).toMatch(/^<div[^>]*class="[^"]*pointer-events-none/)
-    expect(buttons(html).every((button) => button.includes('pointer-events-auto'))).toBe(true)
-  })
 })
 
-describe('FilterChips — Tuesday evening, online', () => {
+describe('FilterMenus — Tuesday evening, online', () => {
   const [clear, whereButton, when] = buttons(
     render({ daysOfWeek: [2], timeOfDay: ['evening'], format: 'online' }),
   )
 
   it('puts Clear first in the row', () => {
-    expect(clear).toContain('filters.chrome.clear_one')
+    expect(clear).toContain('aria-label="filters.chrome.clear"')
   })
 
   it('fills each answered button and names its answer', () => {
@@ -82,7 +77,7 @@ describe('FilterChips — Tuesday evening, online', () => {
   })
 })
 
-describe('FilterChips — Where', () => {
+describe('FilterMenus — Where', () => {
   it('names a place page without filling', () => {
     const [whereButton] = buttons(render({ region: 'gb' }, { place: 'United Kingdom' }))
 
@@ -102,7 +97,7 @@ describe('FilterChips — Where', () => {
   })
 })
 
-describe('FilterChips — past two answers, a count', () => {
+describe('FilterMenus — past two answers, a count', () => {
   it('counts the When answers rather than listing them', () => {
     const [, , when] = buttons(render({ daysOfWeek: [2, 3], timeOfDay: ['evening'] }))
 
@@ -120,5 +115,24 @@ describe('FilterChips — past two answers, a count', () => {
     const shown = buttons(render({ languages: ['en', 'fr', 'de'] }))
 
     expect(shown.at(-1)).toContain('filters.language.count')
+  })
+})
+
+describe('FilterMenus — in a toolbar', () => {
+  it('ends the row on Clear, so its arrival moves nothing already there', () => {
+    const shown = buttons(
+      renderToStaticMarkup(
+        <FilterMenus
+          placement="toolbar"
+          value={{ ...DEFAULT_FILTERS, daysOfWeek: [2] }}
+          where={where()}
+          onChange={() => {}}
+          onClear={() => {}}
+        />,
+      ),
+    )
+
+    expect(shown.at(-1)).toContain('aria-label="filters.chrome.clear"')
+    expect(shown[0]).toContain('filters.where.label')
   })
 })

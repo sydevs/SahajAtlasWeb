@@ -674,6 +674,12 @@ html.sy-atlas {
   z-index: 20;
 }
 
+/* The map is the size container its control corner measures against: the filter menus beside the
+   column cap their width to what the side panel leaves (`FilterMenus`). */
+.mapboxgl-map {
+  container-type: inline-size;
+}
+
 /* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
    Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and map
    mode renders its control column there (`Mapbox/MapControls`). This is unconditional,

@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DrawerBody } from '@/components/atoms/Drawer'
-import { ActiveFilterPills, EventListItem, FallbackPanel, List } from '@/components/molecules'
+import { ActiveFilterChips, EventListItem, FallbackPanel, List } from '@/components/molecules'
 import { regionQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
@@ -59,7 +59,7 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
         title={t('online.title')}
       />
       <DrawerBody>
-        <ActiveFilterPills />
+        <ActiveFilterChips />
         {events.length === 0 && hasActiveFilters(filters) ? (
           <FallbackPanel
             align="start"

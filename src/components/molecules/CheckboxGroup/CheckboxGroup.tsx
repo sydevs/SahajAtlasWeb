@@ -45,9 +45,8 @@ const fold = (text: string) =>
 
 /**
  * A list of checkboxes, each with an optional count at its end. A long list (more than
- * `searchableAbove` options) gets a search box at its top, and opens with what is already checked
- * first, so the visitor's own choices are in view. The order is taken once, when the list mounts:
- * checking an option leaves it where it is, so nothing moves under the pointer.
+ * `searchableAbove` options) gets a search box at its top, and keeps what is checked at its top,
+ * so the visitor's own choices stay in view as they pick.
  */
 export function CheckboxGroup({
   options,
@@ -60,11 +59,12 @@ export function CheckboxGroup({
   const slots = group()
   const long = options.length > searchableAbove
   const [query, setQuery] = useState('')
-  const [firstChecked] = useState(() => new Set(long ? value : []))
-  const ordered = [
-    ...options.filter((option) => firstChecked.has(option.value)),
-    ...options.filter((option) => !firstChecked.has(option.value)),
-  ]
+  const ordered = long
+    ? [
+        ...options.filter((option) => value.includes(option.value)),
+        ...options.filter((option) => !value.includes(option.value)),
+      ]
+    : options
   const shown = query
     ? ordered.filter((option) => fold(option.label).includes(fold(query)))
     : ordered

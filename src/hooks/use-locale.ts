@@ -83,7 +83,7 @@ export function useLocale() {
 
   // This is a guarded language-name lookup.
   // `Intl.DisplayNames.of` throws on a malformed code, so this falls back to the raw code.
-  // The filter form and the active-filter pills use this.
+  // The filter form and the active-filter chips use this.
   const languageLabel = useCallback(
     (code: string) => {
       try {
