@@ -102,12 +102,7 @@ export function RegistrationView({
         title={t('registration.form.title')}
       />
       <DrawerBody className="px-gutter py-4">
-        <EventFacts
-          className="mx-auto mb-4 w-full max-w-md"
-          event={event}
-          title={event.title}
-          variant="card"
-        />
+        <EventFacts className="form-column mb-4" event={event} title={event.title} variant="card" />
 
         {open && !external ? (
           <RegistrationForm
@@ -128,7 +123,7 @@ export function RegistrationView({
           // (inactive / ended / closed) external event has a `blockedMessage` and no
           // register slot, so it falls through to the state message below rather than
           // rendering an empty EventRegisterBar (issue #52).
-          <div className="mx-auto w-full max-w-md py-4">
+          <div className="form-column py-4">
             <EventRegisterBar basePath={eventPath} event={event} />
           </div>
         ) : (
@@ -162,7 +157,7 @@ export function RegistrationView({
             depend on whether registration is open. */}
         {isUnverified(event) && (
           <Alert
-            className="mx-auto mt-4 w-full max-w-md"
+            className="form-column mt-4"
             color="contrast"
             description={t('event.display.unverified_note')}
             size="sm"

@@ -490,6 +490,12 @@ html.sy-atlas {
   @apply flex items-center;
 }
 
+/* A form, or the card above one, in a panel: centred at 448px on a wide sheet, and as wide as
+   its column inline, where `--sy-content-max: none` lifts every width cap. */
+@utility form-column {
+  @apply mx-auto w-full max-w-[var(--sy-content-max,448px)];
+}
+
 /* The iOS zoom floor (#322). Safari scales the host's whole page in when a focused field
    computes under 16px, and nothing of ours can undo it. The smaller 14px size needs a wide screen
    AND a fine pointer — focus zoom is the engine's behaviour, not the viewport's, and an iPhone

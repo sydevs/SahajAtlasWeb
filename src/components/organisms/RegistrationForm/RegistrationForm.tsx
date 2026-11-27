@@ -369,7 +369,7 @@ export function RegistrationForm({
 
   return (
     <form
-      className="mx-auto flex w-full max-w-md flex-col gap-3"
+      className="form-column flex flex-col gap-3"
       onSubmit={handleSubmit((data) => {
         // `token` is also what gates the submit button, so this check is an
         // extra safeguard for the Enter-key path. It is also what makes

@@ -35,14 +35,9 @@ export function ShareView({ eventPath }: { eventPath: string }) {
     <>
       <NavHeader title={t('share.title')} />
       <DrawerBody fitSheet className="px-gutter py-4">
-        <EventFacts
-          className="mx-auto mb-4 w-full max-w-md"
-          event={event}
-          title={event.title}
-          variant="card"
-        />
+        <EventFacts className="form-column mb-4" event={event} title={event.title} variant="card" />
         {/* Match the summary card's width so the share block lines up with it. */}
-        <div className="mx-auto w-full max-w-md">
+        <div className="form-column">
           {url ? (
             <div className="flex flex-col gap-4">
               <ShareContent country={country} label={event.title} url={url} />
