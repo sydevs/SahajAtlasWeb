@@ -5,7 +5,7 @@ import type { Feature } from 'geojson'
 import { create } from 'zustand'
 
 import { deepActiveElement } from '@/lib/active-element'
-import { decodeApproxLocation } from '@/lib/approx-location'
+import { parseApproxLocation } from '@/lib/approx-location'
 
 // ===== VIEW STATE ===== //
 
@@ -278,34 +278,19 @@ export const useReportModal = create<ReportModalState>((set) => ({
 
 // ===== APPROXIMATE LOCATION ===== //
 
-// Where the visitor roughly is, decided once at boot from what the app Worker wrote into the
-// page (`lib/approx-location.ts`), and `null` without it. A store rather than a constant so a
-// story can set one.
+// Where the visitor roughly is: the default export of `/geo.js` (`lib/approx-location.ts`), or
+// `null` without one. A store because it can arrive after the first render — the module is
+// imported beside the widget, and usually lands first — and a story sets one the same way.
 type ApproxLocationState = { location: ApproxLocation | null }
 
 export const useApproxLocation = create<ApproxLocationState>(() => ({ location: null }))
 
-/** Decodes the Worker-written token once, at boot. */
-export const bootApproxLocation = (token: string | null | undefined): void =>
-  useApproxLocation.setState({ location: decodeApproxLocation(token, Date.now()) })
-
-// ===== LOCATOR ===== //
-
-/** One way to ask for the visitor's position, answering through the callbacks it is handed. */
-export type PositionSource = (answer: {
-  resolve: (position: GeolocationPosition) => void
-  reject: () => void
-}) => void
-
-// The one location request in flight, whichever control asked (`hooks/use-locator.ts`). The map
-// registers its GeolocateControl as the source while it is mounted, so every request also draws
-// the blue dot; without a map the browser is asked directly.
-type LocatorState = {
-  waiting: boolean
-  source: PositionSource | null
-}
-
-export const useLocator = create<LocatorState>(() => ({ waiting: false, source: null }))
+/** Takes the location from `/geo.js` once it has loaded; a failed import is no location. */
+export const bootApproxLocation = (geo: Promise<unknown>): void =>
+  void geo.then(
+    (value) => useApproxLocation.setState({ location: parseApproxLocation(value) }),
+    () => {},
+  )
 
 // ===== NEAR ME ===== //
 

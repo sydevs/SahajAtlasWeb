@@ -457,8 +457,8 @@ backend, and a key that backend accepts. The seeded local backend refuses both k
 `.env.local` (the header of `scripts/serve-embed-review.mjs`), a fork's CI holds no key at all, and
 a run against production would test production's data rather than this commit. So the lane
 brings its own backend: every SahajCloud request is answered from `src/mocks/sahajcloud.ts`, keyed to
-`SAHAJCLOUD_API_KEY`, Mapbox from a minimal style. The review server serves `dist/` as built, so no Worker writes a
-location into `loader.js` and no scenario shows the nearby suggestion. That also makes the
+`SAHAJCLOUD_API_KEY`, Mapbox from a minimal style. The review server answers the app Worker's `/geo.js` with no
+location, so no scenario shows the nearby suggestion. That also makes the
 lane deterministic, since nothing it reads changes under it, and lets a fork and a merge-queue
 entry run it exactly as a pull request does — which is what lets it be a required check.
 

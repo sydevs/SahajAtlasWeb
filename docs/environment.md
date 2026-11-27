@@ -153,9 +153,8 @@ and `src/config/api/auth.ts`.
 
 ## Third-party services (no key)
 
-- **No IP-geolocation service.** The visitor's approximate location comes from Cloudflare's own
-  `request.cf`, written into `loader.js` and the standalone page by the app Worker
-  (`worker/index.ts`, `worker/geo.mjs`); nothing to configure. `pnpm dev` writes a fixed Prague
-  answer instead (`devApproxLocation` in `vite.config.ts`), and `ATLAS_DEV_GEO=off` serves the
-  placeholder untouched, which the widget reads as no guess. The `ipwho.is` lookup this replaced
-  is gone.
+- **No IP-geolocation service.** The visitor's approximate location is `/geo.js`, a module the
+  app Worker builds per visitor from Cloudflare's own `request.cf` (`worker/index.ts`,
+  `worker/geo.mjs`); nothing to configure. `pnpm dev` and `vite preview` answer it with Prague
+  instead (`devApproxLocation` in `vite.config.ts`), and `ATLAS_DEV_GEO=off` answers no location.
+  The `ipwho.is` lookup this replaced is gone.

@@ -9,8 +9,8 @@ import { SAHAJCLOUD_API_KEY, answerSahajCloud, sahajCloud } from '@/mocks/sahajc
  * lane's fixtures (`src/mocks/sahajcloud.ts`), over the bigger atlas `sahajcloud-demo.ts` adds, through
  * the app's real fetchers. So the interactive widget can browse, open and register with lists long
  * enough to scroll, and a view's own idle prefetch never reaches production.
- * The approximate location is the one the view stories seed, standing in for what the app
- * Worker writes into `loader.js`. Mapbox and picsum go out as normal.
+ * The approximate location is the one the view stories seed, standing in for the app Worker's
+ * `/geo.js`. Mapbox and picsum go out as normal.
  *
  * It patches `fetch` rather than mocking a module, because the app's SDK calls the global one
  * (`interceptFetch`, `config/api/client.ts`), and a patched module would skip the parse.

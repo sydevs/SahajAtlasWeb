@@ -11,5 +11,5 @@ export function useViewerCountry(): string | undefined {
   const countryCode = useApproxLocation((s) => s.location?.countryCode)
   const { locale } = useLocale()
 
-  return isoCountryCode(countryCode) ?? isoCountryCode(locale.split('-')[1])
+  return countryCode ?? isoCountryCode(locale.split('-')[1])
 }

@@ -39,10 +39,9 @@
     "directory": "dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    // `loader.js` for every script embed, `/` for the standalone page and the iframe embed. A
-    // deep link to the standalone page (`/gb/london`) still takes the SPA fallback without the
-    // script, so it gets no location — measured under `wrangler dev`.
-    "run_worker_first": ["/loader.js", "/"]
+    // The per-visitor location module, and nothing else: every embed and the standalone page
+    // import it, and every other file stays a static asset.
+    "run_worker_first": ["/geo.js"]
   },
 
   // Not the default — wrangler's own schema says `false`.

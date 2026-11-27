@@ -23,18 +23,19 @@ move ran one site at a time, and the app's own cutover was split from building i
 #280, #283):
 
 - **`sahajatlas-web`, the app** — from `wrangler.jsonc`, pointed at `dist/`, which
-  `pnpm build:worker` fills, plus one small script, `worker/index.ts`, that writes the visitor's
-  approximate location from `request.cf` into `loader.js` and the standalone page
-  (`worker/geo.mjs`). `run_worker_first` names only `/loader.js` and `/`, so a standalone deep link
-  (`/gb/london`) takes the SPA fallback without it and carries no location (measured under
-  `wrangler dev`). Every other file is a static asset and never runs it, so the script's cost is one Workers request per embed load —
-  about 1,800 a week in 2026-11, against the 10 million a month Workers Paid includes.
+  `pnpm build:worker` fills, plus one small script, `worker/index.ts`, that serves `/geo.js`: the
+  visitor's approximate location from `request.cf`, as a module (`worker/geo.mjs`). The loader
+  imports it beside the widget, and the standalone page from `main.tsx`. `run_worker_first`
+  names only `/geo.js`, so every other file is a static asset and never runs the script; its
+  cost is one Workers request per embed load — about 1,800 a week in 2026-11, against the 10
+  million a month Workers Paid includes. A failure there costs the location, never the embed:
+  the widget boots without it.
   ⚠ **On the Free plan a `run_worker_first` path answers 429 once the daily limit is spent**,
-  rather than falling back to the asset — so leaving Workers Paid would take every embed down.
-  ⚠ **`public/_headers` does not reach a response the script builds**, so it sets the `/*` rule's
-  CORS and `noindex` itself, and `private, max-age=0, no-store` on what it writes into.
-  `pnpm build` ends in `pnpm assert:geo`, which fails unless the placeholder survives exactly
-  once in each of the two files. Served at `sahajatlas.com` as a Workers Custom Domain and at its own
+  rather than falling back to the asset.
+  ⚠ **`public/_headers` does not reach a response the script builds**, so it sets the `/*`
+  rule's CORS and `noindex` itself — without CORS a host page's import of the module fails —
+  and `private, max-age=0, no-store`, since the module is per visitor. Served at `sahajatlas.com` as a Workers Custom Domain and at its own
+Served at `sahajatlas.com` as a Workers Custom Domain and at its own
   `workers.dev` host. Workers Builds holds the build command and the trigger's variables and
   branch rules **per trigger**, not per project — which is what `docs/environment.md` works out
   for each variable. Its one trigger builds `main` alone; PR previews come from `ci.yml`'s own

@@ -191,12 +191,13 @@ export const shouldShowGeolocationPrompt = ({
  */
 export const guessedPlace = (
   guess: { city: string; center: [number, number] },
-  country: { code?: string; name?: string },
+  countryCode?: string,
+  countryName?: string,
 ): PlaceSearch => ({
-  q: country.name ? `${guess.city}, ${country.name}` : guess.city,
+  q: countryName ? `${guess.city}, ${countryName}` : guess.city,
   center: guess.center,
   bbox: approxBounds(guess.center, NEARBY_RADIUS_KM),
-  countryCode: country.code,
+  countryCode,
 })
 
 /**

@@ -970,9 +970,10 @@ chunks, Mapbox's RTL plugin and analytics, and `style-src`, `font-src`, `img-src
 |                            | `*.sentry.io`                                 | crash reporting. Contacted **only after the widget has already failed**, and only on a build with a DSN.                                                                                                                                                                                                                                                                                                                                                                                                                                                             | **degrades**: the widget notices the refusal and stops trying for the rest of the page's life                                                                                                                 |
 | `frame-src`                | `cloud.sydevelopers.com`                      | **The captcha — required.** Every write the widget makes is captcha-gated. The challenge renders in a frame `cloud.sydevelopers.com` serves, so `challenges.cloudflare.com` belongs in no directive of yours. The frame mounts with the interface, so a policy that omits this is named on the console within about 40 seconds (two 20-second waits, since a refused frame and a slow one look the same) rather than when somebody registers.                                                                                                                        | **browsing still works, but registration and reports can't be sent.** The forms say so — see the note below                                                                                                   |
 
-**`ipwho.is` is no longer contacted.** The widget's approximate location now comes inside its
-own `loader.js` (see [Privacy, storage and third-party requests](#privacy-storage-and-third-party-requests)),
-so a policy that still names `https://ipwho.is` is harmless, and the entry can be removed.
+**`ipwho.is` is no longer contacted.** The widget's approximate location now comes from its own
+origin, as the module `/geo.js`, which `script-src` already covers (see [Privacy, storage and
+third-party requests](#privacy-storage-and-third-party-requests)). A policy that still names
+`https://ipwho.is` is harmless, and the entry can be removed.
 
 Notes on that table:
 
@@ -1111,14 +1112,15 @@ the events — the widget ships an English copy compiled in and fetches every ot
 the CMS, so a blocked `connect-src` leaves a non-English page reading English rather than showing
 raw key names.
 
-Three files sit at the widget's own origin, `https://sahajatlas.com`, and only the first is
+Four files sit at the widget's own origin, `https://sahajatlas.com`, and only the first is
 one you reference:
 
-| File        | What it is                                                     |
-| ----------- | -------------------------------------------------------------- |
-| `auto.js`   | the one you install — it starts the loader, as a module or not |
-| `loader.js` | the loader, which `auto.js` adds to your page                  |
-| `embed.js`  | the widget itself, fetched by the loader on demand             |
+| File        | What it is                                                         |
+| ----------- | ------------------------------------------------------------------ |
+| `auto.js`   | the one you install — it starts the loader, as a module or not     |
+| `loader.js` | the loader, which `auto.js` adds to your page                      |
+| `embed.js`  | the widget itself, fetched by the loader on demand                 |
+| `geo.js`    | the visitor's approximate location, imported by the loader with it |
 
 ## Browser support
 
@@ -1350,14 +1352,13 @@ maintainers rather than editing the snippet:
   carries the visitor's **`navigator.userAgent`**. No global error handler is installed, so your
   own scripts' exceptions are never captured. No breadcrumbs, no session replay.
 
-**The visitor's approximate location never leaves our own origin.** Cloudflare, which serves
-`sahajatlas.com`, reads a town, a country and a point off the request that fetched `loader.js`
-(and the standalone page at its root), and the app Worker writes them into that response, sent
+**The visitor's approximate location never leaves our own origin.** The loader imports
+`https://sahajatlas.com/geo.js` beside the widget: Cloudflare, which serves that origin, reads a
+town, a country and a point off that request, and our Worker answers with them, sent
 `private, no-store`. No third party is asked, nothing is stored, and the widget sends them on
 nowhere: they pick "classes near you", order the share targets, and name a town to recover to
-when a link is dead. A copy older than 30 minutes is ignored, so a caching plugin that saves
-`loader.js` onto your own domain cannot hand one visitor's town to the next. **An IP is personal
-data in the EU**; it reaches only the server that already answers the script request.
+when a link is dead. If the module fails, the widget simply has no guess. **An IP is personal
+data in the EU**; it reaches only the server that already answers the widget's own scripts.
 
 **The captcha talks to Cloudflare from a frame, not from your page.** The Turnstile challenge
 gating every form is a small frame served from `cloud.sydevelopers.com`, and that frame's document
@@ -1393,13 +1394,12 @@ our origin and updated in place, roughly daily, so every host serves the current
 [`CHANGELOG.md`](../CHANGELOG.md) is written for embedding sites and records what you can
 observe — parameters, origins, CSP, visible behaviour.
 
-**We serve `auto.js` and `embed.js` with `Cache-Control: public, max-age=0, must-revalidate`,
-and `loader.js` with `private, max-age=0, no-store`**, so a browser always asks before reusing
-one, and never keeps `loader.js` at all: it carries the visitor's own approximate location. That
-is deliberate, and it is the contract: the files are unhashed and mutable, and they import
-content-hashed chunks by name.
+**We serve all three root files with `Cache-Control: public, max-age=0, must-revalidate`**, so
+a browser always asks before reusing one. That is deliberate, and it is the contract: the files
+are unhashed and mutable, and they import content-hashed chunks by name. `geo.js`, the visitor's
+own location, is `private, max-age=0, no-store`.
 
-- **Don't cache `auto.js`, `loader.js` or `embed.js` aggressively at your edge.** A stale copy held by a proxy
+- **Don't cache `auto.js`, `loader.js`, `embed.js` or `geo.js` at your edge.** A stale copy held by a proxy
   or service worker will ask for chunk filenames the CDN no longer serves, and those 404s kill
   the widget with no fallback. Let it revalidate. The hashed chunks underneath it are immutable
   and safe to cache hard.

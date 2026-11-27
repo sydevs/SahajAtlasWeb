@@ -13,7 +13,8 @@
  * Duplication is safe here only because it is pinned. `src/loader/literals.test.ts` imports this
  * module AND the widget's copies, and asserts they agree — the same way `src/lib/scope.ts` and
  * `scripts/postcss-scope-widget.test.ts` pin `WIDGET_SCOPE` across the PostCSS boundary. Add
- * nothing here without adding it to that spec.
+ * nothing here without adding it to that spec — except `GEO_MODULE`, whose twin is the app
+ * Worker's, pinned from `worker/geo.test.ts`, which can import both.
  *
  * Types are exempt. They erase at build time, so `import type` costs no runtime graph.
  */
@@ -25,13 +26,12 @@
 export const ELEMENT_NAME = 'sahaj-atlas'
 
 /**
- * The visitor's approximate location, as the app Worker writes it over this literal in the built
- * `loader.js` — or the literal itself, unreplaced, which the widget reads as no guess. The
- * Worker's copy is `GEO_PLACEHOLDER` in `worker/geo.mjs`, pinned by `worker/geo.test.ts`.
- * ⚠ Used once, and passed on as it is: a comparison against it would let the minifier fold the
- * check away, and `scripts/assert-geo-placeholder.mjs` fails a build that loses the literal.
+ * The visitor's approximate location, a module the app Worker serves beside `loader.js` per
+ * visitor. The Worker's copy is `GEO_PATH` in `worker/geo.mjs`, pinned by `worker/geo.test.ts`.
+ * ⚠ Held in a constant, not written into `new URL('./geo.js', import.meta.url)`: Vite rewrites
+ * that literal form at build time, and fails to find the file, which only the Worker serves.
  */
-export const WRITTEN_GEO = '__SY_ATLAS_GEO__'
+export const GEO_MODULE = './geo.js'
 
 /**
  * A site-relative path, or `undefined`.

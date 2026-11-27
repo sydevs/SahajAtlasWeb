@@ -1,4 +1,4 @@
-import type { Plugin, PluginOption } from 'vite'
+import type { Connect, Plugin, PluginOption } from 'vite'
 
 import { readdir, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -13,7 +13,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 import circleFlags from './scripts/circle-flags.mjs'
 import flattenEntryImports from './scripts/flatten-entry-imports.mjs'
-import { GEO_PLACEHOLDER, encodeGeo, fixtureGeo } from './worker/geo.mjs'
+import { GEO_PATH, approxLocation, geoModule } from './worker/geo.mjs'
 
 /**
  * Where the emitted CSS goes instead of `document.head` (#236).
@@ -267,27 +267,21 @@ function stripDsStore(): Plugin {
 }
 
 /**
- * The dev server's stand-in for the app Worker: it writes a fixed Prague location
- * (`fixtureGeo`) where the Worker writes the visitor's, so `pnpm dev` shows the nearby
- * suggestion as production would. `ATLAS_DEV_GEO=off` serves the placeholder untouched, which
- * the widget reads as no guess. A build never runs it: the Worker owns that file's bytes.
+ * The dev and preview servers' stand-in for the app Worker's one route: `/geo.js` answers Prague,
+ * so `pnpm dev` shows the nearby suggestion as production would. `ATLAS_DEV_GEO=off` answers no
+ * location instead.
  */
 function devApproxLocation(): Plugin {
-  const token = () => encodeGeo(fixtureGeo(Date.now())!)
-  const off = process.env.ATLAS_DEV_GEO === 'off'
-
-  return {
-    name: 'sy-dev-approx-location',
-    apply: 'serve',
-    transform(code, id) {
-      if (off || !id.endsWith('/src/loader/literals.ts')) return undefined
-
-      return code.replace(GEO_PLACEHOLDER, token())
-    },
-    transformIndexHtml(html) {
-      return off ? html : html.replace(GEO_PLACEHOLDER, token())
-    },
+  const prague = { country: 'CZ', city: 'Prague', latitude: '50.0880', longitude: '14.4208' }
+  const serve = (server: { middlewares: Connect.Server }) => {
+    server.middlewares.use(GEO_PATH, (_req, res) => {
+      res.setHeader('content-type', 'text/javascript')
+      res.setHeader('cache-control', 'no-store')
+      res.end(geoModule(process.env.ATLAS_DEV_GEO === 'off' ? null : approxLocation(prague)))
+    })
   }
+
+  return { name: 'sy-dev-approx-location', configureServer: serve, configurePreviewServer: serve }
 }
 
 /** The build entries emitted under a fixed name, by `rolldownOptions.input` key. */

@@ -34,7 +34,6 @@ import {
   ancestorSlugs,
   atlasDepth,
   calendarPath,
-  isoCountryCode,
   placeSearchPath,
   resolvePath,
   topViewKey,
@@ -466,8 +465,8 @@ export function GeolocationSuggestion({
   const { regionNames } = useLocale()
   const [dismissed, setDismissed] = useState(readGeolocationDismissed)
   const activeSearch = hasActivePlaceSearch(searchParams)
-  const location = useApproxLocation((s) => s.location)
-  const guess = location?.place
+  const guess = useApproxLocation((s) => s.location?.place)
+  const countryCode = useApproxLocation((s) => s.location?.countryCode)
 
   // The cached event feed powers the "is anything actually near?" guard.
   const { data: geojson } = useQuery(geojsonQuery())
@@ -488,8 +487,6 @@ export function GeolocationSuggestion({
   const handleSelect = useCallback(() => {
     if (!guess) return
 
-    const code = isoCountryCode(location?.countryCode)
-
     // Accepting must NOT persist a dismissal — only the close button does (handleDismiss).
     // The new URL carries `?center`/`?q`, so `hasActivePlaceSearch` suppresses the prompt while
     // the visitor is looking at that area; clearing the search brings it back.
@@ -498,10 +495,10 @@ export function GeolocationSuggestion({
         searchParams,
         // The searched-country marker SearchField writes, so an accepted suggestion that lands
         // in a program-less country gets the country-site offer too.
-        guessedPlace(guess, { code, name: code ? regionNames.of(code) : undefined }),
+        guessedPlace(guess, countryCode, countryCode && regionNames.of(countryCode)),
       ),
     )
-  }, [guess, location, navigate, regionNames, searchParams])
+  }, [guess, countryCode, navigate, regionNames, searchParams])
 
   const handleDismiss = useCallback(() => {
     markGeolocationDismissed()

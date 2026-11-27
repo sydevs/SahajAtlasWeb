@@ -1,92 +1,65 @@
 import { describe, expect, it } from 'vitest'
 
-import { APPROX_LOCATION_MAX_AGE_MS, decodeApproxLocation } from '../src/lib/approx-location'
-import { WRITTEN_GEO } from '../src/loader/literals'
+import { parseApproxLocation } from '../src/lib/approx-location'
+import { GEO_MODULE } from '../src/loader/literals'
 
-import { GEO_PLACEHOLDER, encodeGeo, fixtureGeo, geoPayload, injectGeo } from './geo.mjs'
-
-const NOW = Date.UTC(2026, 10, 26, 12)
+import { GEO_PATH, approxLocation, geoModule } from './geo.mjs'
 
 // Cloudflare's own shapes: coordinates arrive as strings.
 const PRAGUE = { country: 'CZ', city: 'Prague', latitude: '50.0880', longitude: '14.4208' }
 
-const roundTrip = (cf: Parameters<typeof geoPayload>[0], readAt = NOW) => {
-  const payload = geoPayload(cf, NOW)
+/** What the widget reads after importing the module the Worker built for `cf`. */
+const roundTrip = async (cf: Parameters<typeof approxLocation>[0]) => {
+  const source = geoModule(approxLocation(cf))
+  const module = await import(`data:text/javascript,${encodeURIComponent(source)}`)
 
-  return payload ? decodeApproxLocation(encodeGeo(payload), readAt) : null
+  return parseApproxLocation(module.default)
 }
 
 describe('the Worker and widget halves agree', () => {
-  it('on the placeholder the loader leaves for the Worker', () => {
-    expect(WRITTEN_GEO).toBe(GEO_PLACEHOLDER)
+  it('on where the module is served', () => {
+    expect(new URL(GEO_MODULE, 'https://sahajatlas.com/loader.js').pathname).toBe(GEO_PATH)
   })
 
-  it('round-trips a town and its country', () => {
-    expect(roundTrip(PRAGUE)).toEqual({
+  it('round-trips a town and its country', async () => {
+    expect(await roundTrip(PRAGUE)).toEqual({
       countryCode: 'CZ',
       place: { city: 'Prague', center: [14.4208, 50.088] },
     })
   })
 
-  // A name the payload must carry intact through base64url and UTF-8.
-  it('round-trips a city name a JS string or an HTML attribute would choke on', () => {
+  // A name the module must carry intact, as JavaScript.
+  it('round-trips a city name with quotes, a line separator and non-Latin letters', async () => {
     const city = `Kraków "</script>" it's   São`
-    const token = encodeGeo(geoPayload({ ...PRAGUE, city }, NOW)!)
 
-    expect(token).toMatch(/^[A-Za-z0-9_-]+$/)
-    expect(decodeApproxLocation(token, NOW)?.place?.city).toBe(city)
+    expect((await roundTrip({ ...PRAGUE, city }))?.place?.city).toBe(city)
   })
 
-  it('keeps the country alone when Cloudflare places no town', () => {
-    expect(roundTrip({ country: 'IN' })).toEqual({ countryCode: 'IN' })
+  it('keeps the country alone when Cloudflare places no town', async () => {
+    expect(await roundTrip({ country: 'IN' })).toEqual({ countryCode: 'IN' })
   })
 
-  it('reads the untouched placeholder as no guess', () => {
-    expect(decodeApproxLocation(GEO_PLACEHOLDER, NOW)).toBeNull()
-  })
-
-  it('refuses a stale token, as a copied loader would carry', () => {
-    expect(roundTrip(PRAGUE, NOW + APPROX_LOCATION_MAX_AGE_MS + 1000)).toBeNull()
-    expect(roundTrip(PRAGUE, NOW - APPROX_LOCATION_MAX_AGE_MS - 1000)).toBeNull()
-    expect(roundTrip(PRAGUE, NOW + APPROX_LOCATION_MAX_AGE_MS - 1000)).not.toBeNull()
-  })
-
-  it('writes the dev fixture as Prague', () => {
-    expect(decodeApproxLocation(encodeGeo(fixtureGeo(NOW)!), NOW)?.place?.city).toBe('Prague')
+  it('exports null when Cloudflare knows nothing, which the widget reads as no guess', async () => {
+    expect(geoModule(approxLocation({ country: 'XX' }))).toBe('export default null\n')
+    expect(await roundTrip(undefined)).toBeNull()
   })
 })
 
-describe('geoPayload', () => {
+describe('approxLocation', () => {
   it('drops what names no country: unknown, Tor, or not a code', () => {
     for (const country of ['XX', 'T1', 'cz', 'CZE', 7]) {
-      expect(geoPayload({ country }, NOW)).toBeNull()
+      expect(approxLocation({ country })).toBeNull()
     }
   })
 
-  it('keeps a city only with both coordinates in range', () => {
-    expect(geoPayload({ ...PRAGUE, latitude: '91' }, NOW)).toEqual({
-      v: 1,
-      t: NOW / 1000,
-      cc: 'CZ',
-    })
-    expect(geoPayload({ ...PRAGUE, longitude: 'east' }, NOW)?.city).toBeUndefined()
-    expect(geoPayload({ ...PRAGUE, city: 'x'.repeat(101) }, NOW)?.city).toBeUndefined()
+  it('keeps a town only with both coordinates in range', () => {
+    expect(approxLocation({ ...PRAGUE, latitude: '91' })).toEqual({ countryCode: 'CZ' })
+    expect(approxLocation({ ...PRAGUE, longitude: 'east' })?.place).toBeUndefined()
+    expect(approxLocation({ ...PRAGUE, city: 'x'.repeat(101) })?.place).toBeUndefined()
   })
 
-  it('answers nothing without a request.cf', () => {
-    expect(geoPayload(undefined, NOW)).toBeNull()
-  })
-})
-
-describe('injectGeo', () => {
-  const body = `boot(a,b,"${GEO_PLACEHOLDER}")`
-
-  it('replaces the one placeholder', () => {
-    expect(injectGeo(body, 'TOKEN')).toBe('boot(a,b,"TOKEN")')
-  })
-
-  it('refuses a body with none, or with two', () => {
-    expect(injectGeo('boot(a,b)', 'TOKEN')).toBeNull()
-    expect(injectGeo(body + body, 'TOKEN')).toBeNull()
+  // `Number('')` is 0: a blank coordinate would put the town on Null Island.
+  it('refuses a blank coordinate rather than reading it as zero', () => {
+    expect(approxLocation({ ...PRAGUE, latitude: '', longitude: ' ' })?.place).toBeUndefined()
   })
 })

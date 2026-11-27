@@ -44,8 +44,8 @@ export type RecoveryOffer =
  *     But a France-scoped embed's visitor almost certainly wants France.
  *     `AppShell` already suspends on the client record, so this costs no request.
  *  3. **The visitor's approximate town**, such as "See classes near Bordeaux."
- *     It was written into the page at load, so an error screen never waits on a request for it,
- *     and a blocked network cannot take this rung down with the thing it is recovering from.
+ *     It was loaded beside the widget, so an error screen never fires a request for it; if that
+ *     load failed too, this rung is simply skipped.
  *  4. **The country list.**
  *     This names nowhere in particular, which is why it is last.
  *     It always exists, which is why it is the floor.
@@ -66,7 +66,6 @@ export const useRecoveryOffer = (): RecoveryOffer => {
   // So in practice both are present. A genuine miss costs a rung, which is what the ladder's floor is for.
   const { data: regions } = useQuery({ ...regionsQuery(), enabled: false })
   const { data: client } = useQuery({ ...clientQuery(atlasAuth.apiKey), enabled: false })
-  // Written into the page at load, so this rung needs no network either.
   const guess = useApproxLocation((s) => s.location?.place)
 
   return useMemo(() => {

@@ -28,17 +28,17 @@ try {
 // the approximate location's country (see `useViewerCountry`). So each example seeds one country code.
 // `Default` carries none, and falls back to the universal set. Email always gets appended, so
 // it is the last icon in every case.
-const REGIONS: Record<string, { code?: string; city: string }> = {
-  Default: { city: 'Anywhere' },
-  Russia: { code: 'RU', city: 'Moscow' },
-  'East Asia': { code: 'JP', city: 'Tokyo' },
-  'South Asia': { code: 'IN', city: 'Mumbai' },
-  'Southeast Asia': { code: 'ID', city: 'Jakarta' },
-  'Middle East': { code: 'AE', city: 'Dubai' },
-  Europe: { code: 'DE', city: 'Berlin' },
-  Americas: { code: 'US', city: 'New York' },
-  Africa: { code: 'NG', city: 'Lagos' },
-  Oceania: { code: 'AU', city: 'Sydney' },
+const REGIONS: Record<string, string | undefined> = {
+  Default: undefined,
+  Russia: 'RU',
+  'East Asia': 'JP',
+  'South Asia': 'IN',
+  'Southeast Asia': 'ID',
+  'Middle East': 'AE',
+  Europe: 'DE',
+  Americas: 'US',
+  Africa: 'NG',
+  Oceania: 'AU',
 }
 
 type RegionKey = keyof typeof REGIONS
@@ -88,7 +88,7 @@ export const Default: Story<{ region: RegionKey; share: ShareKey; state: StoryFa
   state,
 }) => {
   const { locale } = useLocale()
-  const { code, city } = REGIONS[region]
+  const code = REGIONS[region]
   const { webUrl, linkable } = SHARE_CASES[share]
 
   return (
@@ -98,9 +98,7 @@ export const Default: Story<{ region: RegionKey; share: ShareKey; state: StoryFa
       path={`${mockEvent.path}/share`}
       seed={(client: QueryClient) => {
         client.setQueryData<Event>(['event', mockEvent.id, locale], { ...mockEvent, webUrl })
-        useApproxLocation.setState({
-          location: { ...(code && { countryCode: code }), place: { city, center: [0, 0] } },
-        })
+        useApproxLocation.setState({ location: code ? { countryCode: code } : null })
       }}
       state={state}
     >

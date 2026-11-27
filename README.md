@@ -71,9 +71,9 @@ The language picker persists **nothing** — i18next's detector would cache
 comes from a `?locale=` on your page's URL, then the loader script's `locale=`,
 then your page's `<html lang>`, then the browser, per page load.
 
-The visitor's approximate town and country arrive inside the widget's own
-`loader.js`: Cloudflare reads them off the request that fetched it, and the
-widget sends them nowhere. They power "classes near you" and the order of the
+The visitor's approximate town and country come from the widget's own origin,
+as `/geo.js`: Cloudflare reads them off that request, and the widget sends them
+nowhere. They power "classes near you" and the order of the
 share targets, and are not stored.
 
 Requests leave the browser for these hosts, none of them yours or

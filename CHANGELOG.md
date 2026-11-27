@@ -24,12 +24,11 @@ cover everything a host would notice since the widget was first deployed.
 ### Removed
 
 - **The widget no longer contacts `ipwho.is`.** ([#PR]) The visitor's approximate town and
-  country now arrive inside `loader.js`, read by Cloudflare off the request that fetched it, so
-  no third party sees your visitor's IP. Nothing breaks if your CSP still lists
-  `https://ipwho.is` in `connect-src`; you can remove it. `loader.js` is now sent
-  `Cache-Control: private, max-age=0, no-store`, since it carries that visitor's own location —
-  don't cache it at your edge (it was never safe to). A copy saved onto your own domain is
-  ignored after 30 minutes, so the nearby suggestion simply does not show from it.
+  country now come from the widget's own origin: the loader imports
+  `https://sahajatlas.com/geo.js`, which Cloudflare answers from the request itself, so no third
+  party sees your visitor's IP. Your CSP's `script-src` already covers it. Nothing breaks if
+  `connect-src` still lists `https://ipwho.is`; you can remove it. `geo.js` is sent
+  `Cache-Control: private, max-age=0, no-store` — don't cache it at your edge.
 - ⚠ **BREAKING: `sahajatlas.pages.dev` is no longer a supported origin.** ([#283]) Load the
   script from `https://sahajatlas.com`, the one origin that serves the bundle. If your snippet's
   `src`, or your CSP's `script-src` and `font-src`, name the `pages.dev` host, point all three at

@@ -238,7 +238,7 @@ describe('guessedPlace', () => {
   const guess = { city: 'Paris', center: PARIS_POINT }
 
   it('names the town with its country, and marks the country for the search', () => {
-    expect(guessedPlace(guess, { code: 'FR', name: 'France' })).toMatchObject({
+    expect(guessedPlace(guess, 'FR', 'France')).toMatchObject({
       q: 'Paris, France',
       center: PARIS_POINT,
       countryCode: 'FR',
@@ -246,11 +246,11 @@ describe('guessedPlace', () => {
   })
 
   it('names the town alone without a country', () => {
-    expect(guessedPlace(guess, {}).q).toBe('Paris')
+    expect(guessedPlace(guess).q).toBe('Paris')
   })
 
   // An IP guess is too coarse for its nearest classes to be the visitor's.
   it('frames a city-sized box around the guess, whatever the feed holds', () => {
-    expect(guessedPlace(guess, {}).bbox).toEqual(approxBounds(PARIS_POINT, NEARBY_RADIUS_KM))
+    expect(guessedPlace(guess).bbox).toEqual(approxBounds(PARIS_POINT, NEARBY_RADIUS_KM))
   })
 })
