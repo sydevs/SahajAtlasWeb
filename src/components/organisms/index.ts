@@ -15,8 +15,13 @@ export type { DynamicEventsListProps } from './EventsList'
 
 // SearchFilters — the controlled filter form FilterView drafts in: Where, Online or in person,
 // Day, Time of day, Language, then Frequency and Dates under More filters.
-export { SearchFilters } from './SearchFilters'
-export type { SearchFiltersProps } from './SearchFilters'
+export { RecoveryButton, SearchFilters } from './SearchFilters'
+export type { RecoveryButtonProps, SearchFiltersProps } from './SearchFilters'
+
+// FilterChips — the filters on a computer: Where, When and Language as buttons over the map, or
+// in the calendar's header, each opening a menu of the same blocks.
+export { FilterChips } from './FilterChips'
+export type { FilterChipsProps } from './FilterChips'
 
 // Only the mounted host is public. The form inside it is module-private
 // (see the folder's index.ts). Unlike the code-split families below, this

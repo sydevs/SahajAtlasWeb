@@ -259,3 +259,15 @@ export const mockApproxLocation: ApproxLocation = {
   countryCode: 'GB',
   place: { city: 'Cambridge', center: [0.12, 52.2] },
 }
+
+// The feed as a Czech place holds it: classes in Czech, in English, and in both, so the Language
+// question offers Czech and English with their counts.
+const CZECH_SETS = [['cs'], ['en'], ['cs', 'en']]
+
+export const mockCzechGeojson: Geojson = {
+  ...mockGeojson,
+  features: mockGeojson.features.map((feature, index) => ({
+    ...feature,
+    properties: { ...feature.properties, languages: CZECH_SETS[index % CZECH_SETS.length] },
+  })),
+}

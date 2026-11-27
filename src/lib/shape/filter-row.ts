@@ -8,26 +8,27 @@ export type FilterRowPlace = 'map' | 'header' | null
  * the map's row, the calendar's header row, the Filters button and the list's filter tags cannot
  * disagree.
  *
- * - Over the map when the widget is wide enough and a map shows beside the drawer.
- * - In the calendar's header when the calendar covers the map (its month and week grids), or
- *   there is no map at all.
+ * - In the full-width calendar's header (its month and week grids), from the drawer's own width
+ *   crossing: with no side panel beside it, the header has room for them.
+ * - Over the map when the widget is wide enough for them beside the panel and a map shows.
  * - Nowhere over the filters' own drawer, which asks the same questions.
  */
 export const filterRowPlace = ({
   chipsWide,
   hasMap,
   top,
-  calendarCoversMap,
+  calendarFullWidth,
 }: {
   /** The widget meets `FILTER_CHIPS_MIN_PX`. */
   chipsWide: boolean
   hasMap: boolean
   /** The view the drawer shows; `undefined` is the countries root. */
   top: StackEntry['kind'] | undefined
-  calendarCoversMap: boolean
+  /** The calendar is full width: its month or week grid, at or above `WIDE_MIN_PX`. */
+  calendarFullWidth: boolean
 }): FilterRowPlace => {
-  if (!chipsWide || top === 'filters') return null
-  if (top === 'calendar' && (calendarCoversMap || !hasMap)) return 'header'
+  if (top === 'calendar' && calendarFullWidth) return 'header'
+  if (!chipsWide || !hasMap || top === 'filters') return null
 
-  return hasMap ? 'map' : null
+  return 'map'
 }

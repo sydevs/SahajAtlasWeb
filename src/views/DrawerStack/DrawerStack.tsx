@@ -249,7 +249,7 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
-  const filterRow = filterRowPlace({ chipsWide, hasMap, top: top?.kind, calendarCoversMap: wide })
+  const filterRow = filterRowPlace({ chipsWide, hasMap, top: top?.kind, calendarFullWidth: wide })
   // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
   // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes

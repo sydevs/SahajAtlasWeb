@@ -50,8 +50,6 @@ export function usePanelFilters() {
   return {
     filters,
     write,
-    /** Clear shows once a question is answered; the Where alone is not an answer. */
-    canClear: hasActiveFilters({ ...filters, region: null }),
     /**
      * Clear resets the questions, not the Where: the visitor is still looking in the same place.
      * Results opened from that place's page go back to it, as if the filters were never touched.
