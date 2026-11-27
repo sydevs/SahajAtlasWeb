@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 
 /**
  * The `aria-describedby` target for a field's error text. The id
@@ -52,6 +53,9 @@ export type FormFieldProps = FieldTarget & {
   label: ReactNode
   /** Appends the required marker to the label. The caller still marks the control. */
   required?: boolean
+  /** Marks a field that may be left empty, "(optional)" after its label, in a form where every
+   *  unmarked field is needed. */
+  optional?: boolean
   /** Supporting copy under the control. The error replaces it while one is showing. */
   help?: ReactNode
   error?: ReactNode
@@ -101,6 +105,7 @@ export type FormFieldProps = FieldTarget & {
 export function FormField({
   label,
   required,
+  optional,
   help,
   error,
   htmlFor,
@@ -110,6 +115,7 @@ export function FormField({
   announceError = true,
   clear,
 }: FormFieldProps) {
+  const { t } = useTranslation()
   const group = as === 'fieldset'
   const key = htmlFor ?? name
   const showHelp = Boolean(help) && !error
@@ -127,6 +133,9 @@ export function FormField({
     <>
       {label}
       {required && ' *'}
+      {optional && (
+        <span className="font-normal text-gray-11"> ({t('common.chrome.optional')})</span>
+      )}
     </>
   )
   const Root = group ? 'fieldset' : 'div'

@@ -1,15 +1,18 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Alert } from '@/components/atoms/Alert'
-import { DrawerBody } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerFooter, STICKY_FOOTER_CLEARANCE } from '@/components/atoms/Drawer'
 import { EventSummary, FallbackPanel } from '@/components/molecules'
 import { EventRegisterBar } from '@/components/organisms/EventDetails/EventRegister'
 import { RegistrationForm } from '@/components/organisms/RegistrationForm'
+import { useIsWideWidget } from '@/config/responsive'
+import { useWidgetMode } from '@/config/mode'
 import { useEventDisplay } from '@/hooks/use-event-display'
 import { useShareUrl } from '@/hooks/use-share-url'
 import { enabledQuestions, eventTimeZone, isOnline, isUnverified } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
-import { useDrawerControl, useEventFromPath, useFrameEventOnTop } from '@/views/shared'
+import { useEventFromPath, useFrameEventOnTop } from '@/views/shared'
 
 // The registration form for an event, at route `<event-path>/register`. The event's Register
 // CTA reaches this view, and the route is deep-linkable, so the resolver gates it. A closed,
@@ -28,7 +31,13 @@ export function RegistrationView({
   initialSubmitted?: boolean
 }) {
   const { t } = useTranslation()
-  const { dismiss } = useDrawerControl()
+  const [submitted, setSubmitted] = useState(Boolean(initialSubmitted))
+  // The footer the form's Register bar renders into, a sibling of the body so it stays on screen
+  // while the fields scroll. On a phone sheet it pins to the viewport edge, as EventView's does.
+  const [registerSlot, setRegisterSlot] = useState<HTMLDivElement | null>(null)
+  const { hasMap } = useWidgetMode()
+  const isWide = useIsWideWidget()
+  const pinned = hasMap && !isWide
 
   const { data: event } = useEventFromPath(eventPath)
   const strings = useEventDisplay(event)
@@ -73,6 +82,8 @@ export function RegistrationView({
   // have no business in. The event's own page carries the join link in its description
   // instead — Atlas never holds that link itself, because the CMS delivers it after
   // registration.
+  const formShowing = open && !external && !submitted
+
   const calendarExport = event.schedule
     ? {
         id: event.id,
@@ -99,10 +110,16 @@ export function RegistrationView({
   return (
     <>
       <NavHeader
-        subtitle={t('common.chrome.all_classes_free')}
-        title={t('registration.form.title')}
+        subtitle={submitted ? undefined : t('registration.form.reassurance')}
+        title={submitted ? t('registration.form.confirmed_title') : t('registration.form.title')}
       />
-      <DrawerBody className="px-gutter py-4">
+      {/* The body slot's own spacer clears the pinned bar's content; focus needs the clearance. */}
+      <DrawerBody
+        className={`px-gutter py-4 ${formShowing && pinned ? STICKY_FOOTER_CLEARANCE : ''}`}
+      >
+        {/* The class's summary leads every state and stays put when the form gives way to the
+            confirmation. Without its muted lines: the form asks which date, and the
+            confirmation names the one chosen, which may not be the next. */}
         <EventSummary
           boxed
           hideSubtext
@@ -121,9 +138,10 @@ export function RegistrationView({
             isOnline={isOnline(event)}
             questions={enabledQuestions(event)}
             recurrenceType={event.schedule?.recurrenceType}
+            registerSlot={registerSlot}
             timeZone={eventTimeZone(event)}
             upcomingDates={selectableDates}
-            onClose={dismiss}
+            onSubmitted={() => setSubmitted(true)}
           />
         ) : external && !blockedMessage ? (
           // Only when the external event is actually registerable — a terminal
@@ -172,6 +190,11 @@ export function RegistrationView({
           />
         )}
       </DrawerBody>
+      {formShowing && (
+        <DrawerFooter className="px-gutter pt-3" sticky={pinned}>
+          <div ref={setRegisterSlot} className="mx-auto w-full max-w-md" />
+        </DrawerFooter>
+      )}
     </>
   )
 }

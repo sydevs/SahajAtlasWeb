@@ -3,6 +3,7 @@ import { DateTime, Settings } from 'luxon'
 
 import {
   formatDate,
+  formatLongDate,
   formatMonth,
   formatRelativeDate,
   formatTimeRange,
@@ -161,6 +162,16 @@ describe('formatDate', () => {
   it('adds the year only when it is not this one', () => {
     expect(formatDate(at('2022-12-21T19:30'), 'en-GB')).toBe('Wed, 21 Dec 2022')
     expect(formatDate(at('2027-01-06T19:30'), 'en-GB', { weekday: false })).toBe('6 Jan 2027')
+  })
+})
+
+describe('formatLongDate', () => {
+  it('writes the date in full words, the visitor’s way', () => {
+    const date = at('2026-11-17T19:30')
+
+    expect(formatLongDate(date, 'en-GB')).toBe('Tuesday 17 November')
+    expect(formatLongDate(date, 'en-US')).toBe('Tuesday, November 17')
+    expect(formatLongDate(at('2027-01-05T19:30'), 'en-GB')).toBe('Tuesday, 5 January 2027')
   })
 })
 

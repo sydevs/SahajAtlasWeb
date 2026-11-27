@@ -84,7 +84,7 @@ test('a slot too small for any layout renders the compact card', async ({ page }
 
   const atlas = widget(page)
 
-  await expect(atlas.getByRole('button', { name: en.compact.open })).toBeVisible()
+  await expect(atlas.getByRole('button', { name: en.common.map.expand })).toBeVisible()
   await settled
   await expect(atlas.getByRole('dialog')).toHaveCount(0)
   await expect(atlas.getByRole('link', { name: UNITED_KINGDOM })).toHaveCount(0)

@@ -12,6 +12,8 @@ import { expect, hostPage, test, widget } from './fixtures'
 // The failure is a server error rather than offline mode, which takes a copy path of its own.
 
 const REGISTER = `${SAHAJCLOUD_EVENT.path}/register`
+// The confirmation's own line names the address the visitor entered.
+const CONFIRMED = en.registration.form.confirm_email.replace('%{email}', 'ada@example.org')
 
 /** Fills the form and submits it once the challenge has handed over its token. */
 async function register(page: Page) {
@@ -45,7 +47,8 @@ test('a registration SahajCloud accepts shows the confirmation', async ({ page }
     senderEmail: 'ada@example.org',
   })
   expect(await request.headerValue('x-turnstile-token')).toMatch(/^browser-lane-token-\d+$/)
-  await expect(widget(page).getByText(en.registration.form.followup)).toBeVisible()
+  await expect(widget(page).getByText(CONFIRMED)).toBeVisible()
+  await expect(widget(page).getByText(en.registration.form.confirmed_title)).toBeVisible()
 })
 
 test('a registration SahajCloud fails shows the failure, not the confirmation', async ({
@@ -60,5 +63,5 @@ test('a registration SahajCloud fails shows the failure, not the confirmation', 
 
   await expect(alert).toContainText(en.registration.form.error_title)
   await expect(alert).toContainText(en.registration.form.captcha_retry)
-  await expect(widget(page).getByText(en.registration.form.followup)).toHaveCount(0)
+  await expect(widget(page).getByText(CONFIRMED)).toHaveCount(0)
 })

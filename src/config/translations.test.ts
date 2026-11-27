@@ -217,7 +217,13 @@ describe('every key a call site asks for', () => {
  * Delete an entry in the PR that wires it: the pin below fails until you do.
  */
 const PENDING_KEYS: Record<string, string> = {
+  'common.map.close': 'sydevs/SahajAtlasWeb#466',
+  'countries.locating': 'sydevs/SahajCloud#1295',
+  'countries.near_city': 'sydevs/SahajCloud#1295',
+  'countries.near_me': 'sydevs/SahajCloud#1295',
+  'countries.place_title': 'sydevs/SahajAtlasWeb#466',
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
+  'search.chrome.city_or_postcode': 'sydevs/SahajCloud#1295',
 }
 
 /**
@@ -231,21 +237,10 @@ const PENDING_KEYS: Record<string, string> = {
  * Delete an entry in the sync PR that drops the key: the pin below fails until you do.
  */
 const RETIRING_KEYS: Record<string, string> = {
-  'calendar.next': 'sydevs/SahajCloud#1246',
-  'calendar.pick_date': 'sydevs/SahajCloud#1246',
-  'calendar.previous': 'sydevs/SahajCloud#1246',
-  'common.chrome.explore': 'sydevs/SahajCloud#1246',
-  'common.chrome.loading': 'sydevs/SahajCloud#1246',
-  'common.errors.captcha_blocked': 'sydevs/SahajCloud#1278',
-  'common.settings.title': 'sydevs/SahajCloud#1246',
-  'event.actions.pause_slideshow': 'sydevs/SahajCloud#1246',
-  'event.actions.view_photo': 'sydevs/SahajCloud#1246',
   'filters.chrome.apply': 'sydevs/SahajCloud#1293',
-  'filters.chrome.remove': 'sydevs/SahajCloud#1246',
+  'registration.form.okay': 'sydevs/SahajCloud#1294',
   'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',
-  'search.nearby_prompt.dismiss': 'sydevs/SahajCloud#1246',
-  'search.results.showing': 'sydevs/SahajCloud#1246',
-  'share.share_on': 'sydevs/SahajCloud#1246',
+  'registration.form.starting_date': 'sydevs/SahajCloud#1294',
   'share.title': 'sydevs/SahajCloud#1290',
 }
 

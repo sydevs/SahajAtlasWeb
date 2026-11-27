@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 import {
   type FieldControlProps,
@@ -8,6 +8,9 @@ import {
   fieldHelpId,
   fieldLabelId,
 } from './FormField'
+
+// Every key renders as itself, so the marker's copy is visible by name.
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 
 // Node-only SSR assertions (see `docs/testing.md`). This pins the pair of
 // contracts every form atom in the app leans on: the describedby ids, and,
@@ -192,5 +195,29 @@ describe('the optional Clear', () => {
   it('keeps its place while the field is empty, hidden rather than unmounted', () => {
     expect(field({ active: false })).toMatch(/<button[^>]*\binvisible\b[^>]*>Clear<\/button>/)
     expect(field({ active: true })).not.toMatch(/\binvisible\b/)
+  })
+})
+
+describe('FormField optional marker', () => {
+  it('puts the translated word in brackets inside the label, after its text', () => {
+    const html = renderToStaticMarkup(
+      <FormField optional htmlFor="question" label="Your question">
+        <textarea id="question" />
+      </FormField>,
+    )
+
+    expect(html).toMatch(
+      /<label[^>]*for="question"[^>]*>Your question<span[^>]*> \(common\.chrome\.optional\)<\/span><\/label>/,
+    )
+  })
+
+  it('marks nothing without the word', () => {
+    const html = renderToStaticMarkup(
+      <FormField htmlFor="question" label="Your question">
+        <textarea id="question" />
+      </FormField>,
+    )
+
+    expect(html).not.toContain('(')
   })
 })
