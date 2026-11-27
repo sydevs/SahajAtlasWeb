@@ -348,7 +348,9 @@ export function RegistrationForm({
     if (initialRefusal) flagRefusal(initialRefusal, false)
     // A remount restores what was typed, so a mistyped address comes back flagged on its box, as
     // leaving the field had flagged it.
-    if (defaultValues.email) void trigger('email')
+    if (defaultValues.email && refusedField(initialRefusal, questions) !== 'email') {
+      void trigger('email')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: the story's refusal and the restored draft never change
   }, [])
 
@@ -689,9 +691,12 @@ function RegistrationFields({
   )
 
   // The form validates on submit, so an empty box waits for Register. A mistyped address is
-  // flagged as soon as the visitor leaves it, and once flagged, each edit re-checks it.
+  // flagged as soon as the visitor leaves it, and once flagged, each edit re-checks it — before
+  // a submit, react-hook-form re-validates on nothing. Leaving the box never re-checks a
+  // SahajCloud refusal: the schema would pass the address and erase the reason unedited.
   const email = register('email', { required: true })
   const emailFlagged = Boolean(errors.email)
+  const emailRefused = errors.email?.type === REFUSED
 
   return (
     <div className="flex flex-col gap-4">
@@ -752,7 +757,7 @@ function RegistrationFields({
           ...email,
           onBlur: async (event) => {
             await email.onBlur(event)
-            if ((event.target as HTMLInputElement).value) void trigger('email')
+            if ((event.target as HTMLInputElement).value && !emailRefused) void trigger('email')
           },
           onChange: async (event) => {
             await email.onChange(event)

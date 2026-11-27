@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegistrationForm } from './RegistrationForm'
 
+import { RegistrationRefusedError } from '@/config/api/mutate'
 import { useRegistrationDraft } from '@/config/store'
 
 vi.mock('@payloadcms/sdk', () => ({
@@ -44,13 +45,14 @@ afterEach(async () => {
   container.remove()
 })
 
-async function mount() {
+async function mount(initialRefusal?: RegistrationRefusedError) {
   await act(async () => {
     root.render(
       <QueryClientProvider client={new QueryClient()}>
         <RegistrationForm
           eventId={EVENT_ID}
           eventTitle="Evening meditation"
+          initialRefusal={initialRefusal}
           isOnline={false}
           questions={[]}
           recurrenceType="WEEKLY"
@@ -98,6 +100,20 @@ describe('a mistyped email', () => {
     expect(email().getAttribute('aria-describedby')).toBe('email-error')
     // The browser's own bubble never gets a say.
     expect(container.querySelector('form')?.noValidate).toBe(true)
+  })
+
+  // Only an edit clears SahajCloud's refusal: the schema would pass this address.
+  it('keeps a refusal on its box when the visitor leaves it unedited', async () => {
+    useRegistrationDraft.getState().setDraft(EVENT_ID, { email: 'anna@mailinator.com' })
+
+    await mount(new RegistrationRefusedError('disposable_email', '', 'senderEmail'))
+    await act(async () => {
+      email().dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+    })
+
+    expect(container.querySelector('#email-error')?.textContent).toBe(
+      'common.report_errors.disposable_email',
+    )
   })
 
   it('waits for Register when the box is left empty', async () => {
