@@ -136,6 +136,16 @@ describe('a mistyped email', () => {
 })
 
 describe('the first-class date', () => {
+  it('drops a restored date that is no longer offered, and opens on the next', async () => {
+    useRegistrationDraft.getState().setDraft(EVENT_ID, {
+      startingAt: new Date(Date.now() - WEEK_MS).toISOString(),
+    })
+
+    await mount()
+
+    expect(container.querySelector('#startingAt')?.textContent).toContain('Next week')
+  })
+
   it('opens on the next date, named by how far off it is', async () => {
     await mount()
 

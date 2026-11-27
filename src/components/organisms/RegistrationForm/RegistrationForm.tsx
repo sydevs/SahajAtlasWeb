@@ -285,7 +285,14 @@ export function RegistrationForm({
   const [defaultValues] = useState<Partial<RegistrationInput>>(() => {
     const draft = useRegistrationDraft.getState()
 
-    return draft.eventId === eventId ? (draft.values as Partial<RegistrationInput>) : {}
+    if (draft.eventId !== eventId) return {}
+
+    const { startingAt, ...values } = draft.values as Partial<RegistrationInput>
+    // A date that has since passed is no option any more, and the dropdown would show it blank
+    // while still submitting it. Dropped, the next date is chosen again.
+    const offered = upcomingDates.some((date) => date.toISOString() === startingAt)
+
+    return offered ? { ...values, startingAt } : values
   })
 
   const {
