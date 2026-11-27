@@ -260,9 +260,6 @@
       "cta": "Visit the %{country} website",
       "title": "No classes listed in %{country} yet."
     },
-    "nearby_prompt": {
-      "title": "Looking for classes near %{city}?"
-    },
     "results": {
       "farther": "Show distant events",
       "more": "Show more",
