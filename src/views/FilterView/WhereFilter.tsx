@@ -9,12 +9,16 @@ import { Chip } from '@/components/atoms/Chip'
 import { FormField } from '@/components/molecules/FormField'
 import { regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
-import { useSearchFocus } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
 import { useNearMe, useNearVisitor } from '@/hooks/use-near-me'
 import { formatDistance } from '@/lib'
-import { NEARBY_KM, type PlaceSearch, parseCenter, searchedPlaceName } from '@/lib/shape'
-import { useDrawerControl } from '@/views/shared'
+import {
+  type FacetCounts,
+  NEARBY_KM,
+  type PlaceSearch,
+  parseCenter,
+  searchedPlaceName,
+} from '@/lib/shape'
 
 export type WhereFilterProps = {
   /** The region slug in scope, if any. */
@@ -26,12 +30,9 @@ export type WhereFilterProps = {
   /** Near me only makes sense where the results rank by place. */
   searchable: boolean
   /** What a searched place's scope holds, so "near" never suggests more locality than it has. */
-  counts?: { inPerson: number; online: number }
-  /**
-   * Where "Search instead", after a failed location, takes the visitor. By default it closes the
-   * filters onto the list, whose search box then takes the focus.
-   */
-  onSearchInstead?: () => void
+  counts?: FacetCounts['format']
+  /** After a failed location: the visitor types a town into the list's search box instead. */
+  onSearchInstead: () => void
 }
 
 /**
@@ -50,12 +51,10 @@ export function WhereFilter({
   const { formatLocale } = useLocale()
   const [searchParams] = useSearchParams()
   const { hasMap } = useWidgetMode()
-  const { dismiss } = useDrawerControl()
   const center = parseCenter(searchParams.get('center'))
   const nearMeOn = useNearVisitor(center)
   const { data: regions } = useQuery(regionsQuery())
   const { status, locate } = useNearMe({ naming: hasMap, onPlace })
-  const requestSearchFocus = useSearchFocus((s) => s.request)
 
   const regionName = region ? (regions?.find((node) => node.slug === region)?.name ?? region) : null
   const placeName = center && !nearMeOn ? searchedPlaceName(searchParams.get('q')) : null
@@ -64,13 +63,6 @@ export function WhereFilter({
   // The calendar's filters have no place to search and, unscoped, nothing in scope to show: a
   // heading over nothing would read as something failing to load.
   if (!searchable && !scopeLabel) return null
-
-  // Only the top view is rendered, so the list's search box takes the focus once it mounts.
-  const searchInstead = () => {
-    requestSearchFocus()
-    if (onSearchInstead) onSearchInstead()
-    else dismiss()
-  }
 
   return (
     <FormField as="fieldset" label={t('filters.where.label')} name="filter-where">
@@ -97,7 +89,7 @@ export function WhereFilter({
               data-vaul-no-drag
               className="touch-target relative w-full text-start text-sm focus-ring hover:underline"
               type="button"
-              onClick={searchInstead}
+              onClick={onSearchInstead}
             >
               {t('common.map.location_failed')}
             </button>
@@ -119,7 +111,7 @@ export function WhereFilter({
         {center && counts && (
           <p className="text-sm text-gray-11">
             {t('filters.where.scope', {
-              near: counts.inPerson,
+              near: counts.offline,
               distance: formatDistance(NEARBY_KM, formatLocale),
               online: counts.online,
             })}

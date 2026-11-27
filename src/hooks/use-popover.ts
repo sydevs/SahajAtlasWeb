@@ -1,6 +1,6 @@
 import type { Placement } from '@floating-ui/react'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   autoUpdate,
   flip,
@@ -22,8 +22,8 @@ import {
 //
 // This shares the BEHAVIOR, not the markup.
 // The two surfaces anchor differently on purpose.
-// Dropdown wraps its trigger in a focusable `role="button"` div.
-// The contact action is already a real Button and forwards its own ref.
+// Dropdown wraps a plain trigger in a focusable `role="button"` div, or hands a function trigger the
+// props to put on its own Button. The contact action is already a real Button and forwards its own ref.
 // So collapsing them into one component would have forced a nested-interactive trigger on one of them.
 // A hook leaves each free to render its own anchor.
 
@@ -37,15 +37,6 @@ export type UsePopoverOptions = {
   /** Toggle on a click of the trigger (default). Off, the caller opens it with `setIsOpen`. */
   toggleOnClick?: boolean
 }
-
-/**
- * Marks every open popover panel. Floating UI closes a popover on Escape pressed anywhere, but the
- * stack's drawer is a Radix layer and hears the key first, so the drawer looks for this mark to
- * leave the key to the popover (`popupOwnsEscape`).
- */
-export const OPEN_POPOVER_ATTRIBUTE = 'data-popover-open'
-
-const openPopoverMark = { [OPEN_POPOVER_ATTRIBUTE]: '' }
 
 export function usePopover({
   placement = 'bottom-start',
@@ -76,6 +67,23 @@ export function usePopover({
     ],
   })
 
+  // ⚠ Escape belongs to the open popover alone (#PRNUM). The drawer around it is a Radix layer,
+  // which hears the key in the document's capture phase, before Floating UI's own dismiss, and
+  // would close the page with it. The window's capture phase runs before both.
+  useEffect(() => {
+    if (!isOpen) return
+
+    const claim = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.isComposing) return
+      event.stopPropagation()
+      setIsOpen(false)
+    }
+
+    window.addEventListener('keydown', claim, true)
+
+    return () => window.removeEventListener('keydown', claim, true)
+  }, [isOpen])
+
   const { getReferenceProps, getFloatingProps } = useInteractions([
     useClick(context, { enabled: toggleOnClick }),
     useDismiss(context),
@@ -94,7 +102,6 @@ export function usePopover({
     floatingStyles: { ...floatingStyles, pointerEvents: 'auto' as const },
     context,
     getReferenceProps,
-    getFloatingProps: (props?: Parameters<typeof getFloatingProps>[0]) =>
-      getFloatingProps({ ...props, ...openPopoverMark }),
+    getFloatingProps,
   }
 }

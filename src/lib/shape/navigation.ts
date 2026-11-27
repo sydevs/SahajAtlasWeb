@@ -165,7 +165,7 @@ export const backStep = (
     const origin = parentOf(pathname) ?? '/'
     const params = new URLSearchParams(search)
     const filters = filtersFromParams(params)
-    const listsFiltered = origin === '/search' || origin === '/calendar'
+    const listsFiltered = listsFilteredClasses(origin)
     const from = atlasDepth(location) > 0 ? stamp(location, 'from') : undefined
     const answered = listsFiltered || hasActiveFilters(filters)
     const to = answered
@@ -230,6 +230,10 @@ export const loneClassExit = (
 
   return undefined
 }
+
+/** Whether a view's own list is the filtered classes, so answers rewrite its query in place. */
+export const listsFilteredClasses = (pathname: string): boolean =>
+  pathname === '/search' || pathname === '/calendar'
 
 /** The region a place page shows, or `null` off one: `/gb/south-east/london` → `london`. */
 export const pageRegion = (pathname: string): string | null => {

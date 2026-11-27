@@ -193,7 +193,6 @@ function DateBound({
   )
 }
 
-/** What every filter block takes: the answers, a way to change some of them, and the counts. */
 export type FilterBlockProps = {
   value: EventFilters
   patch: (next: Partial<EventFilters>) => void
@@ -201,7 +200,8 @@ export type FilterBlockProps = {
   facets?: FilterFacets
 }
 
-type ControlProps = FilterBlockProps
+/** `list` puts every language on its own row, for a menu too small for the many-language dropdown. */
+type LanguageLayout = 'auto' | 'list'
 
 /**
  * Languages: one tap each when there are few, a dropdown when there are many. The options are
@@ -214,7 +214,7 @@ function LanguageChoices({
   facets,
   control,
   layout,
-}: ControlProps & { control: FieldControlProps; layout: 'auto' | 'list' }) {
+}: FilterBlockProps & { control: FieldControlProps; layout: LanguageLayout }) {
   const { t } = useTranslation()
   const { languageLabel } = useLocale()
   const { languages } = value
@@ -286,7 +286,7 @@ function LanguageChoices({
 }
 
 /** Frequency and Dates, folded away: most classes are weekly, so neither narrows much. */
-export function MoreFilters({ value, patch, facets }: ControlProps) {
+export function MoreFilters({ value, patch, facets }: FilterBlockProps) {
   const { t } = useTranslation()
   const { cadence, dateRange } = value
   // The date picker is bounded to today through today plus 12 months, the window the URL codec
@@ -486,13 +486,12 @@ export function TimeFilter({ value, patch, facets }: FilterBlockProps) {
 
 /**
  * The languages classes here are held in. Shown wherever they have one, even only one, since it
- * then says which. `list` puts every language on its own row, for a surface too small for the
- * many-language dropdown, such as a filter button's own menu.
+ * then says which.
  */
 export function LanguageFilter({
   layout = 'auto',
   ...props
-}: FilterBlockProps & { layout?: 'auto' | 'list' }) {
+}: FilterBlockProps & { layout?: LanguageLayout }) {
   const { t } = useTranslation()
   const { value, patch, facets } = props
 

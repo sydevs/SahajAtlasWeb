@@ -17,7 +17,6 @@ const state = vi.hoisted(() => ({
 vi.mock('./use-panel-filters', () => ({
   usePanelFilters: () => ({
     filters: state.filters,
-    facets: undefined,
     write: () => {},
     canClear: state.canClear,
     clear: () => {},
@@ -27,6 +26,7 @@ vi.mock('./use-panel-filters', () => ({
 }))
 vi.mock('react-router', async (original) => ({
   ...(await original<object>()),
+  useLocation: () => ({ pathname: '/search' }),
   useSearchParams: () => [new URLSearchParams(state.search)],
 }))
 vi.mock('@tanstack/react-query', async (original) => ({
@@ -38,10 +38,18 @@ vi.mock('react-i18next', async (original) => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', formatLocale: 'en-US', languageLabel: (code: string) => code }),
+  useLocale: () => ({
+    t: (key: string) => key,
+    locale: 'en',
+    formatLocale: 'en-US',
+    languageLabel: (code: string) => code,
+  }),
 }))
 vi.mock('@/hooks/use-near-me', () => ({ useNearVisitor: () => false }))
-vi.mock('@/views/shared', () => ({ useDrawerControl: () => ({ dismiss: () => {} }) }))
+vi.mock('@/hooks/use-filter-facets', () => ({
+  useFilterFacets: () => undefined,
+  useFilterScope: () => undefined,
+}))
 
 const render = (filters: Partial<EventFilters> = {}, search = '') => {
   state.filters = { ...DEFAULT_FILTERS, ...filters }

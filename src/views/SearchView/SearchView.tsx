@@ -52,7 +52,10 @@ export function SearchView() {
       <DrawerToolbar>
         <ListToolbar>
           <FilterButton />
-          <SortMenu />
+          {/* At the end even where the filter buttons take Filters' place. */}
+          <div className="ms-auto">
+            <SortMenu />
+          </div>
         </ListToolbar>
       </DrawerToolbar>
       <DrawerBody>

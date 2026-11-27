@@ -1,15 +1,8 @@
 import { type ReactNode } from 'react'
 
-import {
-  DayFilter,
-  type FilterBlockProps,
-  FormatFilter,
-  LanguageFilter,
-  MoreFilters,
-  TimeFilter,
-} from './filter-blocks'
+import { DayFilter, FormatFilter, LanguageFilter, MoreFilters, TimeFilter } from './filter-blocks'
 
-import { type EventFilters } from '@/lib/shape'
+import { type EventFilters, type FilterFacets } from '@/lib/shape'
 
 export type SearchFiltersProps = {
   /** The filter values the form edits. */
@@ -19,7 +12,7 @@ export type SearchFiltersProps = {
   /** The Where group, which needs the router and the geocoder, so the view supplies it. */
   where?: ReactNode
   /** Live counts and relevance. Without them every group but Language shows, with no numbers. */
-  facets?: FilterBlockProps['facets']
+  facets?: FilterFacets
 }
 
 /**

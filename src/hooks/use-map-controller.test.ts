@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { readSource as read, sourceFiles } from '@/test-support/source-tree'
 
 // The drawer's width lives in two places that cannot reference each other.
-// One is `DRAWER_W_PX` in `config/responsive.ts`, which becomes the map's LEFT CAMERA PADDING (`use-map-controller-real.tsx`), so the map knows how much of itself the panel covers.
+// One is `DRAWER_W_PX` in `use-map-controller-real.tsx`, which becomes the map's LEFT CAMERA PADDING, so the map knows how much of itself the panel covers.
 // The other is the `352px` fallback baked into the `w-[var(--sy-drawer-w,352px)]` Tailwind classes.
 // A class string cannot read a TS constant, since the JIT scanner needs a literal.
 // So nothing but agreement keeps them equal, and divergence fails silently.
@@ -34,9 +34,7 @@ const FALLBACK = /--sy-drawer-w,\s*(\d+(?:\.\d+)?[a-z%]*)/g
 
 describe('drawer width — the TS constant and its CSS twin', () => {
   const controller = read('hooks/use-map-controller-real.tsx')
-  const declaredPx = read('config/responsive.ts').match(
-    /export const DRAWER_W_PX = (\d+(?:\.\d+)?)\b/,
-  )?.[1]
+  const declaredPx = controller.match(/const DRAWER_W_PX = (\d+(?:\.\d+)?)\b/)?.[1]
 
   it('declares DRAWER_W_PX, and pads the camera with it', () => {
     expect(declaredPx).toBeDefined()

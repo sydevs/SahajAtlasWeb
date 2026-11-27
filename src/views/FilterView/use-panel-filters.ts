@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router'
 
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
-import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useMapController } from '@/hooks/use-map-controller'
 import {
   DEFAULT_FILTERS,
@@ -12,13 +11,11 @@ import {
   clearsBackToPlace,
   filtersToParams,
   hasActiveFilters,
-  noPlaceSearch,
+  listsFilteredClasses,
   pageRegion,
   placeSearchPath,
+  preserveSearchState,
 } from '@/lib/shape'
-
-// The views whose own list is the filtered classes, so an answer rewrites their query in place.
-const FILTERED_VIEWS = ['/search', '/calendar']
 
 /**
  * The filters as the buttons over the map edit them: beside the list rather than in a drawer over
@@ -37,9 +34,8 @@ export function usePanelFilters() {
     () => ({ ...applied, region: applied.region ?? originRegion }),
     [applied, originRegion],
   )
-  const facets = useFilterFacets(filters)
   const params = () => new URLSearchParams(location.search)
-  const inPlace = FILTERED_VIEWS.includes(location.pathname)
+  const inPlace = listsFilteredClasses(location.pathname)
 
   const write = (next: EventFilters, base = params()) => {
     const search = filtersToParams(next, base).toString()
@@ -53,7 +49,6 @@ export function usePanelFilters() {
 
   return {
     filters,
-    facets,
     write,
     /** Clear shows once a question is answered; the Where alone is not an answer. */
     canClear: hasActiveFilters({ ...filters, region: null }),
@@ -69,12 +64,11 @@ export function usePanelFilters() {
     /** Back to everywhere: the place and the region go, and the other answers stay. */
     clearWhere: () => {
       const rest = { ...filters, region: null }
+      const onCalendar = location.pathname === '/calendar'
 
-      if (location.pathname === '/calendar')
-        return write(rest, new URLSearchParams(noPlaceSearch(params())))
-      reset()
-      if (!hasActiveFilters(rest)) push({ pathname: '/', search: '' })
-      else write(rest, new URLSearchParams(noPlaceSearch(params())))
+      if (!onCalendar) reset()
+      if (!onCalendar && !hasActiveFilters(rest)) push({ pathname: '/', search: '' })
+      else write(rest, preserveSearchState(params()))
     },
   }
 }

@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { Chip } from '@/components/atoms/Chip'
 import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
-import { useFilterChips } from '@/hooks/use-filter-chips'
+import { useFilterRow } from '@/hooks/use-filter-chips'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import { formatDate, weekdayNames } from '@/lib/time'
@@ -27,10 +27,10 @@ import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
  * across instead, signposted by its own control at the foot of the list
  * (see `revealRows` in `@/lib/shape/reveal`).
  *
- * Beside the filter buttons over the map, which already name every answer, it shows nothing.
+ * Beside the filter buttons, which already name every answer, it shows nothing.
  */
 export function ActiveFilterPills() {
-  const chips = useFilterChips()
+  const row = useFilterRow()
   const { t } = useTranslation()
   const { formatLocale, languageLabel } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
@@ -107,7 +107,7 @@ export function ActiveFilterPills() {
     pills.push({ key: 'dates', label, onRemove: () => setDateRange({ start: null, end: null }) })
   }
 
-  if (chips || pills.length === 0) return null
+  if (row || pills.length === 0) return null
 
   return (
     <div className="flex flex-wrap gap-1.5 px-gutter pt-1 pb-2">

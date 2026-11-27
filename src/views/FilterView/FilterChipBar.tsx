@@ -1,9 +1,8 @@
 import type { TranslationKey } from '@/types/i18next'
 
-import { type ButtonHTMLAttributes, type ReactNode, type Ref } from 'react'
+import { type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router'
-import { useTranslation } from 'react-i18next'
+import { useLocation, useSearchParams } from 'react-router'
 import { ChevronDown, X } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -21,34 +20,104 @@ import {
   TimeFilter,
 } from '@/components/organisms/SearchFilters'
 import { regionsQuery } from '@/config/api'
-import { DRAWER_W_PX } from '@/config/responsive'
+import { useSearchFocus } from '@/config/store'
+import { useFilterFacets, useFilterScope } from '@/hooks/use-filter-facets'
 import { useLocale } from '@/hooks/use-locale'
 import { useNearVisitor } from '@/hooks/use-near-me'
 import { weekdayNames } from '@/lib/time'
 import {
   type EventFilters,
+  type PlaceSearch,
   isDateRestricted,
+  isOnline,
   parseCenter,
   searchedPlaceName,
-  shownGroups,
 } from '@/lib/shape'
 
-// The map's control column: its 16px inset, its 40px buttons, and the compact credits button that
-// sits level with their top, to their left.
-const CONTROLS_CLEARANCE_PX = 16 + 40 + 8 + 24 + 12
-// The side panel floats 16px in from the left, and the row keeps that much again from it.
-const PANEL_CLEARANCE_PX = DRAWER_W_PX + 16 + 16
-
 /** The parts of an answer that are set, as one line: "Tue, Wed · Evening". */
-const summarize = (parts: (string | false | null | undefined)[]): string | undefined =>
-  parts.filter(Boolean).join(' · ') || undefined
+const summarize = (parts: (string | false | null | undefined)[]): string =>
+  parts.filter(Boolean).join(' · ')
+
+// Focuses the list's search box beside the buttons, and leaves no request behind where none is
+// on screen to take it.
+const focusSearch = () => {
+  const { request, consume } = useSearchFocus.getState()
+
+  request()
+  consume()
+}
+
+type ChipMenuProps = {
+  menu: 'where' | 'when' | 'language'
+  filters: EventFilters
+  write: (next: EventFilters) => void
+  searchable: boolean
+  onPlace: (place: PlaceSearch) => void
+  onClearWhere: () => void
+}
+
+/**
+ * One button's menu. It mounts only while open, so the live counts are taken only while someone
+ * is choosing; the closed buttons need none. With nothing left, it ends on the one change that
+ * brings the most classes back.
+ */
+function ChipMenu({ menu, filters, write, searchable, onPlace, onClearWhere }: ChipMenuProps) {
+  const { t } = useLocale()
+  const facets = useFilterFacets(filters)
+  const block = {
+    value: filters,
+    facets,
+    patch: (next: Partial<EventFilters>) => write({ ...filters, ...next }),
+  }
+
+  return (
+    <>
+      {menu === 'where' && (
+        <>
+          <WhereFilter
+            counts={facets?.counts.format}
+            region={filters.region}
+            searchable={searchable}
+            onClear={onClearWhere}
+            onPlace={onPlace}
+            onSearchInstead={focusSearch}
+          />
+          <FormatFilter {...block} />
+        </>
+      )}
+      {menu === 'when' && (
+        <>
+          <DayFilter {...block} />
+          <TimeFilter {...block} />
+          <MoreFilters {...block} />
+        </>
+      )}
+      {menu === 'language' && <LanguageFilter {...block} layout="list" />}
+      {facets?.counts.total === 0 && (
+        <div className="flex flex-col gap-2 border-t border-divider pt-3">
+          <p className="text-sm text-foreground" role="status">
+            {t('filters.chrome.no_match')}
+          </p>
+          {facets.recovery && (
+            <RecoveryButton
+              className="h-auto min-h-11 w-full py-2 whitespace-normal"
+              filters={filters}
+              recovery={facets.recovery}
+              onApply={write}
+            />
+          )}
+        </div>
+      )}
+    </>
+  )
+}
 
 type FilterChipProps = {
   label: string
   /** The answer, which the button names in place of the question. */
-  summary?: string
-  /** Shown filled. Where can name its place without counting as answered. */
-  filled: boolean
+  summary: string
+  /** Shown filled. By default, whenever there is an answer. */
+  filled?: boolean
   children: ReactNode
 }
 
@@ -56,16 +125,15 @@ type FilterChipProps = {
  * One filter button and its menu, which opens under the button's end edge so it stays on the
  * map's side, clear of the list. A screen reader hears the question before the answer.
  */
-function FilterChip({ label, summary, filled, children }: FilterChipProps) {
+function FilterChip({ label, summary, filled = summary !== '', children }: FilterChipProps) {
   return (
     <Dropdown
       align="end"
       aria-label={label}
       role="dialog"
-      trigger={({ ref, ...props }) => (
+      trigger={(props) => (
         <Button
-          {...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
-          ref={ref as Ref<HTMLButtonElement>}
+          {...props}
           className="pointer-events-auto max-w-56 pe-3"
           color={filled ? 'primary' : 'neutral'}
           radius="full"
@@ -85,8 +153,7 @@ function FilterChip({ label, summary, filled, children }: FilterChipProps) {
         </Button>
       )}
     >
-      {/* The gutter is the menu's own 16px, so More filters bleeds to its edges as in a drawer. */}
-      <div className="flex max-h-[calc(var(--sy-frame-h,100dvh)-96px)] w-[320px] max-w-[calc(100vw-32px)] flex-col gap-5 overflow-y-auto rounded-lg bg-background p-4 text-foreground [--spacing-gutter:16px]">
+      <div className="flex max-h-[calc(var(--sy-frame-h,100dvh)-96px)] w-[320px] flex-col gap-5 overflow-y-auto rounded-lg bg-background p-4 text-foreground">
         {children}
       </div>
     </Dropdown>
@@ -102,34 +169,22 @@ export type FilterChipBarProps = {
 }
 
 /**
- * The filters on a computer: Where, When and Language, each opening a small menu with the same
- * questions and live counts the phone's filters ask (`shownGroups`). Nothing is open until a button
- * is pressed, and every tap applies at once (`usePanelFilters`).
- *
- * - **Where**: Near me, the place in scope, and online or in person.
- * - **When**: the days and the times of day, with frequency and dates under More filters.
- * - **Language**: the languages classes here are held in.
+ * The filters on a computer: Where, When and Language, each a button whose menu asks the phone's
+ * own questions (`shownGroups`), from the same blocks, and applies each tap at once
+ * (`usePanelFilters`).
  */
 export function FilterChipBar({ placement }: FilterChipBarProps) {
-  const { t } = useTranslation()
-  const { formatLocale, languageLabel } = useLocale()
-  const { filters, facets, write, canClear, clear, pickPlace, clearWhere } = usePanelFilters()
+  const { t, formatLocale, languageLabel } = useLocale()
+  const { filters, write, canClear, clear, pickPlace, clearWhere } = usePanelFilters()
+  const scope = useFilterScope(filters)
   const [searchParams] = useSearchParams()
   const center = parseCenter(searchParams.get('center'))
   const nearMe = useNearVisitor(center)
   const { data: regions } = useQuery(regionsQuery())
-  const block = {
-    value: filters,
-    facets,
-    patch: (next: Partial<EventFilters>) => write({ ...filters, ...next }),
-  }
-  const shown = shownGroups(filters, facets)
-  // After a failed location, the list's search box beside these buttons takes the focus, and
-  // nothing needs closing to reach it.
-  const stayOpen = () => {}
   // The calendar does not rank by place, so it has no Near me, and its Where is only a scope.
-  const searchable = placement === 'map'
+  const searchable = useLocation().pathname !== '/calendar'
   const weekdays = weekdayNames(formatLocale, 'short')
+  const menu = { filters, write, searchable, onPlace: pickPlace, onClearWhere: clearWhere }
 
   // A searched place's first part is what fits on a button.
   const placeName = center
@@ -145,38 +200,28 @@ export function FilterChipBar({ placement }: FilterChipBarProps) {
       t(`filters.cadence.${filters.cadence.toLowerCase()}` as TranslationKey),
     isDateRestricted(filters.dateRange) && t('filters.dates.label'),
   ])
-  const languageSummary = summarize([filters.languages.map(languageLabel).join(', ')])
-  const recovery = facets?.counts.total === 0 ? facets.recovery : undefined
-  // With nothing left, each menu ends on the one change that brings the most classes back.
-  const footer = facets?.counts.total === 0 && (
-    <div className="flex flex-col gap-2 border-t border-divider pt-3">
-      <p className="text-sm text-foreground" role="status">
-        {t('filters.chrome.no_match')}
-      </p>
-      {recovery && (
-        <RecoveryButton
-          className="h-auto min-h-11 w-full py-2 whitespace-normal"
-          filters={filters}
-          recovery={recovery}
-          onApply={write}
-        />
-      )}
-    </div>
-  )
+  // What the closed buttons need of the scope, judged without counting it (`shownGroups` asks the
+  // same of the counts inside each menu).
+  const hasLanguages =
+    filters.languages.length > 0 || Boolean(scope?.some((event) => event.languages?.length))
+  const mixesFormats =
+    filters.format !== 'any' ||
+    Boolean(scope?.some(isOnline) && scope.some((event) => !isOnline(event)))
 
   return (
     <div
       aria-label={t('filters.chrome.title')}
-      // Over the map the row spans the map between the panel and the controls, so it lets every
-      // press through but its buttons' own. Physical sides, as the panel and the controls have.
+      // Over the map the row spans the map between the panel and the map's control column, so it
+      // lets every press through but its buttons' own. Physical sides, as the panel and the column
+      // have. ⚠ The 352px is the panel's (`DRAWER_W_PX`); the 100px clears the column's buttons
+      // and the credits beside them (`MapControls`).
       className={clsx(
         'pointer-events-none flex flex-wrap items-center justify-end gap-2',
-        placement === 'map' ? 'fixed top-4 z-30' : 'ms-auto',
+        placement === 'map'
+          ? 'fixed top-4 right-[100px] left-[calc(var(--sy-drawer-w,352px)+32px)] z-30'
+          : 'ms-auto',
       )}
       role="group"
-      style={
-        placement === 'map' ? { left: PANEL_CLEARANCE_PX, right: CONTROLS_CLEARANCE_PX } : undefined
-      }
     >
       {/* First in a row that ends on the right, so its arrival moves nothing already there: a
           button whose menu is open must not slide out from under the pointer. */}
@@ -192,48 +237,25 @@ export function FilterChipBar({ placement }: FilterChipBarProps) {
           {t('filters.chrome.clear_one')}
         </Button>
       )}
-      {(searchable || shown.format || filters.region) && (
+      {(searchable || mixesFormats || filters.region) && (
         <FilterChip
           // A place page names its place without counting it as an answer.
           filled={Boolean(center) || filters.format !== 'any'}
           label={t('filters.where.label')}
           summary={summarize([placeName, formatName])}
         >
-          <WhereFilter
-            counts={
-              facets && {
-                inPerson: facets.counts.format.offline,
-                online: facets.counts.format.online,
-              }
-            }
-            region={filters.region}
-            searchable={searchable}
-            onClear={clearWhere}
-            onPlace={pickPlace}
-            onSearchInstead={stayOpen}
-          />
-          <FormatFilter {...block} />
-          {footer}
+          <ChipMenu {...menu} menu="where" />
         </FilterChip>
       )}
-      <FilterChip
-        filled={Boolean(whenSummary)}
-        label={t('filters.when.label')}
-        summary={whenSummary}
-      >
-        <DayFilter {...block} />
-        <TimeFilter {...block} />
-        <MoreFilters {...block} />
-        {footer}
+      <FilterChip label={t('filters.when.label')} summary={whenSummary}>
+        <ChipMenu {...menu} menu="when" />
       </FilterChip>
-      {shown.languages && (
+      {hasLanguages && (
         <FilterChip
-          filled={Boolean(languageSummary)}
           label={t('filters.language.label')}
-          summary={languageSummary}
+          summary={filters.languages.map(languageLabel).join(', ')}
         >
-          <LanguageFilter {...block} layout="list" />
-          {footer}
+          <ChipMenu {...menu} menu="language" />
         </FilterChip>
       )}
     </div>

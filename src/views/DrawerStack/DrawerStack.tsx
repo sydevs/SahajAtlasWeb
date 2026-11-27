@@ -1,6 +1,7 @@
 import type { Geojson, RegionNode } from '@/types'
 
 import {
+  type ReactNode,
   Suspense,
   lazy,
   startTransition,
@@ -19,6 +20,7 @@ import { AnimatePresence } from 'framer-motion'
 
 import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useExpansion } from '@/hooks/use-expansion'
+import { FilterRowContext } from '@/hooks/use-filter-chips'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
@@ -29,7 +31,7 @@ import {
   SHEET_PEEK_PX,
   FILTER_CHIPS_MIN_PX,
   WIDE_SNAP,
-  WidgetWidthProvider,
+  WidgetWidthContext,
   capStop,
   shortSheetCap,
   useIsShortViewport,
@@ -44,11 +46,13 @@ import {
 } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
+  type FilterRowPlace,
   type StackEntry,
   CALENDAR_VIEW_LIST,
   backStep,
   sameRoute,
   baseStackEntry,
+  filterRowPlace,
   isFilterOverlay,
   isOnline,
   isoCountryCode,
@@ -57,7 +61,6 @@ import {
   resolveStack,
   viewLayerKey,
 } from '@/lib/shape'
-import { popupOwnsEscape } from '@/views/DrawerStack/escape-owner'
 import { wakesSheetLoop } from '@/views/DrawerStack/sheet-wake'
 import { ViewLayer } from '@/views/DrawerStack/ViewLayer'
 import {
@@ -152,6 +155,23 @@ function TopView({ entry, secondary }: { entry: StackEntry | null; secondary: Se
   }
 }
 
+// What DrawerStack measures, shared with the subtree, so nothing below can disagree with it.
+function WidthContexts({
+  isWide,
+  filterRow,
+  children,
+}: {
+  isWide: boolean
+  filterRow: FilterRowPlace
+  children: ReactNode
+}) {
+  return (
+    <WidgetWidthContext.Provider value={isWide}>
+      <FilterRowContext.Provider value={filterRow}>{children}</FilterRowContext.Provider>
+    </WidgetWidthContext.Provider>
+  )
+}
+
 // The whole drawer navigation, derived purely from the pathname. ONE persistent vaul
 // drawer holds the active (top) view. The sheet renders once — DrawerStack owns the
 // DrawerContent, and views are just its inner content. So navigating never remounts or
@@ -187,11 +207,11 @@ export function DrawerStack() {
   // no frame, this call is `useIsWide(null)`, exactly what it always computed. So a 320px
   // column embed on a desktop gets the bottom sheet, its drag handle, and its
   // swipe-dismiss — and a 600px contained map now does too. This value is shared with the
-  // subtree via `WidgetWidthProvider` at the foot of this component, so no descendant can
+  // subtree via `WidgetWidthContext` at the foot of this component, so no descendant can
   // disagree with the drawer it sits in.
   const isWide = useIsWide(container ?? frameElement())
-  // The same box, asked whether the filters fit as buttons beside the panel (`useFilterChips`).
-  const chipsWide = useIsWide(container ?? frameElement(), undefined, FILTER_CHIPS_MIN_PX)
+  // The same box, asked whether the filters fit as buttons beside the panel.
+  const chipsWide = useIsWide(container ?? frameElement(), FILTER_CHIPS_MIN_PX)
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   // Set by "Show N classes": the results it closes onto open at the near-full stop.
@@ -229,6 +249,7 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = top?.kind === 'calendar' && isWide && calendarView !== CALENDAR_VIEW_LIST
+  const filterRow = filterRowPlace({ chipsWide, hasMap, top: top?.kind, calendarCoversMap: wide })
   // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
   // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes
@@ -613,20 +634,14 @@ export function DrawerStack() {
        * only way out. If the host has hidden, confined, or scrolled that control away, a
        * visitor with no Escape is locked out of the page until they reload (issue #161).
        *
-       * The ladder runs innermost-first. An open popover keeps the key. The stack dismisses
-       * while it has somewhere to go. The sheet collapses to its peek while it can. Only then does the key belong
+       * The ladder runs innermost-first. The stack dismisses while it has somewhere to
+       * go. The sheet collapses to its peek while it can. Only then does the key belong
        * outward. `collapse()` is a no-op with no surface above this component — the
        * seam's whole point — so a normal embed reaches this line and nothing changes. At
        * that point vaul's own dismissal was already a no-op too: there is no Back step, and
        * the sheet is either already collapsed or has no snap points left to collapse to.
        */
       onEscapeKeyDown={(event) => {
-        // A filter button's menu closes on its own, and the page and its filters stay.
-        if (popupOwnsEscape(overlayContainer())) {
-          event.preventDefault()
-
-          return
-        }
         if (step || (canCollapse && snap !== PEEK_SNAP)) return
 
         event.preventDefault()
@@ -695,7 +710,7 @@ export function DrawerStack() {
   // (100dvh). Embedded fills the host's slot (100%).
   if (!hasMap) {
     return (
-      <WidgetWidthProvider chipsWide={chipsWide} wide={isWide}>
+      <WidthContexts filterRow={filterRow} isWide={isWide}>
         <DrawerControlContext.Provider value={control}>
           {/* ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Nothing was
               measured overflowing here, since the sheet takes no snap ladder map-less — the
@@ -734,7 +749,7 @@ export function DrawerStack() {
             </div>
           </div>
         </DrawerControlContext.Provider>
-      </WidgetWidthProvider>
+      </WidthContexts>
     )
   }
 
@@ -742,7 +757,7 @@ export function DrawerStack() {
   const target = overlayContainer()
 
   return (
-    <WidgetWidthProvider chipsWide={chipsWide} wide={isWide}>
+    <WidthContexts filterRow={filterRow} isWide={isWide}>
       <DrawerControlContext.Provider value={control}>
         {target &&
           createPortal(
@@ -753,10 +768,7 @@ export function DrawerStack() {
                 className="pointer-events-none fixed top-0 h-0 w-0"
               />
               {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
-              {/* The calendar carries its own row, and the filters' own drawer needs none. */}
-              {chipsWide && top?.kind !== 'calendar' && top?.kind !== 'filters' && (
-                <FilterChipBar placement="map" />
-              )}
+              {filterRow === 'map' && <FilterChipBar placement="map" />}
             </>,
             target,
           )}
@@ -786,6 +798,6 @@ export function DrawerStack() {
         </Drawer>
         {filterDrawer}
       </DrawerControlContext.Provider>
-    </WidgetWidthProvider>
+    </WidthContexts>
   )
 }

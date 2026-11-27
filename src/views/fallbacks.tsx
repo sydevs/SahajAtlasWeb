@@ -192,7 +192,9 @@ export function DrawerChrome({
         <DrawerToolbar>
           <ListToolbar>
             <FilterButton />
-            <SortMenu />
+            <div className="ms-auto">
+              <SortMenu />
+            </div>
           </ListToolbar>
         </DrawerToolbar>
       </>

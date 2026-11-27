@@ -1,12 +1,4 @@
-import {
-  type ReactNode,
-  createContext,
-  createElement,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useState,
-} from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react'
 import { useMediaQuery } from 'react-responsive'
 
 /**
@@ -60,19 +52,11 @@ import { useMediaQuery } from 'react-responsive'
 export const WIDE_MIN_PX = 768
 
 /**
- * From this widget width the filters are buttons over the map (and in the calendar's header)
- * rather than a drawer behind the Filters button: Where, When and Language each need about 140px
- * beside a 352px panel and the map's control column.
+ * From this widget width the filters are buttons over the map (or in the full-width calendar's
+ * header) rather than a drawer behind the Filters button: Where, When and Language each need about
+ * 140px beside the 352px panel and the map's control column. `filterRowPlace` decides where.
  */
 export const FILTER_CHIPS_MIN_PX = 1024
-
-/**
- * The anchored side panel's width, in px. ⚠ It is one half of a pair: the other is the `352px`
- * fallback in every `--sy-drawer-w` class (`components/atoms/Drawer/drawer-style.ts`), which a
- * class string cannot read from here. `hooks/use-map-controller.test.ts` fails if the two differ.
- * The map's camera padding and the filter buttons' row both place themselves by it.
- */
-export const DRAWER_W_PX = 352
 
 /**
  * This is how long a width has to hold before the app acts on it.
@@ -89,8 +73,8 @@ const SETTLE_MS = 200
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
 /** This checks whether the VIEWPORT is wide. Read this only where the screen is genuinely the question. */
-export function useIsWideViewport(): boolean {
-  return useMediaQuery({ query: `(min-width: ${WIDE_MIN_PX}px)` })
+export function useIsWideViewport(minPx = WIDE_MIN_PX): boolean {
+  return useMediaQuery({ query: `(min-width: ${minPx}px)` })
 }
 
 /**
@@ -189,10 +173,10 @@ export function useHasRealPointer(): boolean {
  */
 export function useIsWide(
   element: HTMLElement | null,
-  delayMs = SETTLE_MS,
   minPx = WIDE_MIN_PX,
+  delayMs = SETTLE_MS,
 ): boolean {
-  const viewportWide = useMediaQuery({ query: `(min-width: ${minPx}px)` })
+  const viewportWide = useIsWideViewport(minPx)
   // This is the container's answer, or null while there is nothing to measure.
   const [containerWide, setContainerWide] = useState<boolean | null>(null)
   const raw = containerWide ?? viewportWide
@@ -273,38 +257,6 @@ export function useIsWideWidget(): boolean {
   // Nothing reading this outside a provider remounts on it, so the fallback path has nothing to damp, and paying for it on every consumer buys nothing.
   // This call runs unconditionally, for hook order. With no provider above, this IS the answer.
   const fallback = useIsWideViewport()
-
-  return provided ?? fallback
-}
-
-/**
- * Whether the widget is wide enough for the filter buttons (`FILTER_CHIPS_MIN_PX`), measured by
- * `DrawerStack` on the same box as `WidgetWidthContext`. `null` means nobody is measuring: the
- * viewport answers, as for `useIsWideWidget`.
- */
-export const FilterChipsWidthContext = createContext<boolean | null>(null)
-
-/** Shares both of `DrawerStack`'s width answers with the subtree. */
-export function WidgetWidthProvider({
-  wide,
-  chipsWide,
-  children,
-}: {
-  wide: boolean
-  chipsWide: boolean
-  children: ReactNode
-}) {
-  return createElement(
-    WidgetWidthContext.Provider,
-    { value: wide },
-    createElement(FilterChipsWidthContext.Provider, { value: chipsWide }, children),
-  )
-}
-
-/** Whether the widget is wide enough for the filter buttons. */
-export function useIsChipsWide(): boolean {
-  const provided = useContext(FilterChipsWidthContext)
-  const fallback = useMediaQuery({ query: `(min-width: ${FILTER_CHIPS_MIN_PX}px)` })
 
   return provided ?? fallback
 }

@@ -15,15 +15,8 @@ export type { DynamicEventsListProps } from './EventsList'
 
 // SearchFilters — the controlled filter form FilterView drafts in: Where, Online or in person,
 // Day, Time of day, Language, then Frequency and Dates under More filters.
-export {
-  DayFilter,
-  FormatFilter,
-  LanguageFilter,
-  MoreFilters,
-  SearchFilters,
-  TimeFilter,
-} from './SearchFilters'
-export type { FilterBlockProps, SearchFiltersProps } from './SearchFilters'
+export { SearchFilters } from './SearchFilters'
+export type { SearchFiltersProps } from './SearchFilters'
 
 // Only the mounted host is public. The form inside it is module-private
 // (see the folder's index.ts). Unlike the code-split families below, this

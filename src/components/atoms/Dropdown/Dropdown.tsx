@@ -1,4 +1,4 @@
-import { type ReactNode, type Ref } from 'react'
+import { type HTMLAttributes, type ReactNode } from 'react'
 import { FloatingPortal, FloatingFocusManager, type Placement } from '@floating-ui/react'
 
 import { tv } from '@/styles/tv'
@@ -18,7 +18,9 @@ export type DropdownAlign = 'start' | 'center' | 'end' | 'left' | 'right'
 export type DropdownRole = 'menu' | 'dialog' | 'listbox'
 
 /** What a render-function trigger spreads onto its own focusable element. */
-export type DropdownTriggerProps = Record<string, unknown> & { ref: Ref<HTMLElement> }
+type DropdownTriggerProps = HTMLAttributes<HTMLElement> & {
+  ref: (node: HTMLElement | null) => void
+}
 
 export interface DropdownProps {
   /**
@@ -131,7 +133,7 @@ export function Dropdown({
   return (
     <>
       {typeof trigger === 'function' ? (
-        trigger({ ref: refs.setReference, ...getReferenceProps() })
+        trigger({ ref: refs.setReference, ...(getReferenceProps() as HTMLAttributes<HTMLElement>) })
       ) : (
         <div
           ref={refs.setReference}

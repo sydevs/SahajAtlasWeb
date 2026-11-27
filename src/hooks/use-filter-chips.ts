@@ -1,15 +1,15 @@
-import { useWidgetMode } from '@/config/mode'
-import { useIsChipsWide } from '@/config/responsive'
+import { createContext, useContext } from 'react'
+
+import { type FilterRowPlace } from '@/lib/shape'
 
 /**
- * Whether the filters are buttons on this layout rather than a drawer behind the Filters button.
- * From `FILTER_CHIPS_MIN_PX` they sit over the map, so a map-less widget keeps the button; the
- * calendar carries its own row in its header, map or not. While they show, the Filters button and
- * the list's filter tags step aside, so each answer shows once.
+ * Where the filter buttons are on this layout (`filterRowPlace`), shared by `DrawerStack`, which
+ * measures the widget. `null`, as outside it, means the filters stay behind the Filters button.
  */
-export function useFilterChips(surface: 'map' | 'calendar' = 'map'): boolean {
-  const wide = useIsChipsWide()
-  const { hasMap } = useWidgetMode()
+export const FilterRowContext = createContext<FilterRowPlace>(null)
 
-  return wide && (surface === 'calendar' || hasMap)
-}
+/**
+ * Where the filter buttons are. While they show anywhere, the Filters button and the list's filter
+ * tags step aside, so each answer shows once.
+ */
+export const useFilterRow = (): FilterRowPlace => useContext(FilterRowContext)

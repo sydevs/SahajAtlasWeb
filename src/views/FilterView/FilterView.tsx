@@ -11,6 +11,7 @@ import { Button } from '@/components/atoms/Button'
 import { SearchFilters } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
+import { useSearchFocus } from '@/config/store'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useLocale } from '@/hooks/use-locale'
@@ -22,6 +23,7 @@ import {
   filterOriginRegion,
   filtersToParams,
   hasActiveFilters,
+  listsFilteredClasses,
   noPlaceSearch,
   parentOf,
   parseBounds,
@@ -58,7 +60,7 @@ export function FilterView() {
   // The view beneath. Only the calendar and the search list show filtered classes, so over any
   // other view a place search moves the filters onto a search.
   const origin = parentOf(location.pathname)
-  const filtersOrigin = origin === '/calendar' || origin === '/search' ? origin : '/search'
+  const filtersOrigin = origin && listsFilteredClasses(origin) ? origin : '/search'
 
   const moveTo = (to: { pathname: string; search: string } | string) =>
     navigate(to, { replace: true, state: location.state })
@@ -111,6 +113,13 @@ export function FilterView() {
     [place],
   )
 
+  // Only the top view is rendered, so the list's search box takes the focus once it mounts.
+  const requestSearchFocus = useSearchFocus((s) => s.request)
+  const searchInstead = () => {
+    requestSearchFocus()
+    control.dismiss()
+  }
+
   // Clear resets the answers, not the Where: the visitor is still looking in the same place.
   const answered = hasActiveFilters({ ...filters, region: null })
   const clear = () => write({ ...DEFAULT_FILTERS, region: filters.region })
@@ -136,16 +145,12 @@ export function FilterView() {
           value={filters}
           where={
             <WhereFilter
-              counts={
-                facets && {
-                  inPerson: facets.counts.format.offline,
-                  online: facets.counts.format.online,
-                }
-              }
+              counts={facets?.counts.format}
               region={filters.region}
               searchable={origin !== '/calendar'}
               onClear={clearWhere}
               onPlace={pickPlace}
+              onSearchInstead={searchInstead}
             />
           }
           onChange={write}
