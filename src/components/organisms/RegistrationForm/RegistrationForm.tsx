@@ -466,32 +466,28 @@ export function RegistrationForm({
     >
       {submitted ? (
         <div className="flex flex-col gap-5">
-          <div
-            ref={confirmationRef}
-            className="flex scroll-mt-4 items-start gap-3 outline-none"
-            role="status"
-            tabIndex={-1}
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-9 text-primary-foreground">
-              <Check aria-hidden size={16} strokeWidth={3} />
-            </span>
-            <div className="flex flex-col gap-0.5 text-base">
-              {registered && (
-                <p className="font-medium">
-                  {t('registration.form.see_you', {
-                    date: formatLongDate(
-                      inClassZone(registered.startingAt, timeZone),
-                      formatLocale,
-                    ),
-                  })}
-                </p>
-              )}
-              <p className="text-gray-11">
-                {registered
+          {/* Focus lands here after a live submit; the Alert holds no ref of its own. */}
+          <div ref={confirmationRef} className="scroll-mt-4 outline-none" tabIndex={-1}>
+            <Alert
+              color="primary"
+              description={
+                registered
                   ? t('registration.form.confirm_email', { email: registered.email })
-                  : t('registration.form.followup')}
-              </p>
-            </div>
+                  : undefined
+              }
+              icon={<Check size={20} />}
+              role="status"
+              title={
+                registered
+                  ? t('registration.form.see_you', {
+                      date: formatLongDate(
+                        inClassZone(registered.startingAt, timeZone),
+                        formatLocale,
+                      ),
+                    })
+                  : t('registration.form.followup')
+              }
+            />
           </div>
 
           {onlineNotice}
@@ -500,7 +496,12 @@ export function RegistrationForm({
               primitives from RegistrationView, never an Event (issue #105). It anchors on
               the session actually submitted, or on the next occurrence when the
               confirmation is previewed rather than earned. */}
-          {calendar && <AddToCalendar event={{ ...calendar, from: registered?.startingAt }} />}
+          {/* Its own row, so the trigger keeps its width and the menu opens under its start edge. */}
+          {calendar && (
+            <div className="flex">
+              <AddToCalendar event={{ ...calendar, from: registered?.startingAt }} />
+            </div>
+          )}
 
           {/* No link, no section. "Invite a friend" over nothing to press is a worse
               confirmation screen than one that simply does not offer it. */}
