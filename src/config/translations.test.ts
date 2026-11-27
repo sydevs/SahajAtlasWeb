@@ -241,7 +241,6 @@ const RETIRING_KEYS: Record<string, string> = {
   'registration.form.okay': 'sydevs/SahajCloud#1294',
   'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',
   'registration.form.starting_date': 'sydevs/SahajCloud#1294',
-  'registration.form.title_class': 'sydevs/SahajCloud#1298',
   'share.title': 'sydevs/SahajCloud#1290',
 }
 
