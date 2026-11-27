@@ -29,7 +29,7 @@ import {
   MIN_MAP_STRIP_PX,
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
-  FILTER_CHIPS_MIN_PX,
+  FILTER_MENUS_MIN_PX,
   WIDE_SNAP,
   WidgetWidthContext,
   capStop,
@@ -205,7 +205,7 @@ export function DrawerStack() {
   // disagree with the drawer it sits in.
   const isWide = useIsWide(container ?? frameElement())
   // The same box, asked whether the filters fit as buttons beside the panel.
-  const chipsWide = useIsWide(container ?? frameElement(), FILTER_CHIPS_MIN_PX)
+  const menusWide = useIsWide(container ?? frameElement(), FILTER_MENUS_MIN_PX)
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   // Set by "Show N classes": the results it closes onto open at the near-full stop.
@@ -243,7 +243,7 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = isCalendarFullWidth(top?.kind, isWide, calendarView)
-  const filterRow = filterRowPlace({ chipsWide, hasMap, top: top?.kind, calendarFullWidth: wide })
+  const filterRow = filterRowPlace({ menusWide, hasMap, top: top?.kind, calendarFullWidth: wide })
   const setFindMeHidden = useMapControls((s) => s.setFindMeHidden)
   const menuSlot = useMapControls((s) => s.menuSlot)
 

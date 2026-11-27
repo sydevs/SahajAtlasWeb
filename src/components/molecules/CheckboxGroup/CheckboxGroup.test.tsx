@@ -29,7 +29,7 @@ describe('CheckboxGroup', () => {
     expect(html).not.toContain('Search languages')
   })
 
-  it('prints each option\'s count, and nothing where an option has none', () => {
+  it("prints each option's count, and nothing where an option has none", () => {
     expect(render(2, [])).toContain('>2</span>')
     expect(
       renderToStaticMarkup(
