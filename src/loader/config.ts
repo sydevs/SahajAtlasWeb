@@ -28,8 +28,9 @@
  *   It would also hand a branding decision to whoever copies a script tag.
  * - **There are no privacy opt-outs.** `analytics`, `geolocation`, and `error-reporting` are gone.
  *   Analytics is cookieless and aggregate. Crash reports carry no cookies, breadcrumbs, or session
- *   replay, and reduce the host page to origin plus path. The IP lookup is a keyless,
- *   once-per-session city lookup. An IP is personal data in the EU, and the visitor is on the
+ *   replay, and reduce the host page to origin plus path. The approximate location is Cloudflare's
+ *   reading of the loader's own request for `/geo.js`, answered by the app Worker, and sent
+ *   nowhere else. An IP is personal data in the EU, and the visitor is on the
  *   HOST's page. So if a host ever needs to refuse a flow, the setting belongs on the client
  *   record. The embed URL is not where somebody else's compliance posture should live. Anyone who
  *   can edit a page can change it.

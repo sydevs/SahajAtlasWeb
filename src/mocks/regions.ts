@@ -1,15 +1,8 @@
 // Region / country / geojson fixtures for the view stories. Type-valid against the
 // zod-inferred entity types — the view stories seed these straight into the React
 // Query cache (bypassing the fetchers' zod parse), so TypeScript is the guard.
-import type {
-  EventSlim,
-  Geojson,
-  IpLocation,
-  Region,
-  RegionListItem,
-  RegionNode,
-  RegionRef,
-} from '@/types'
+import type { ApproxLocation } from '@/lib/approx-location'
+import type { EventSlim, Geojson, Region, RegionListItem, RegionNode, RegionRef } from '@/types'
 
 import { mockEventSlim, mockEventSlimOnline, mockEventVariants } from './events'
 
@@ -256,18 +249,13 @@ export const mockGeojson: Geojson = {
   ],
 }
 
-/** A passive IP guess (Cambridge), so the nearby-suggestion prompt renders on the
+/** An approximate location (Cambridge), so the nearby-suggestion prompt renders on the
  *  views that show it (Countries / Region / Search). It sits where the feed has a
  *  located class within reach, and far from the country/region the default example
  *  frames, so `shouldShowGeolocationPrompt` resolves true (a region already being
- *  viewed locally correctly suppresses it). */
-export const mockIpLocation: IpLocation = {
-  latitude: 52.2,
-  longitude: 0.12,
-  city: 'Cambridge',
-  country: 'United Kingdom',
-  // A real guess carries the code, and two features read it: the Share popover's
-  // region ordering (`useViewerCountry`) and the `?cc` the accepted suggestion
-  // writes — neither of which a code-less guess would exercise.
-  country_code: 'GB',
+ *  viewed locally correctly suppresses it). The country code feeds the Share popover's
+ *  region ordering (`useViewerCountry`) and the `?cc` an accepted suggestion writes. */
+export const mockApproxLocation: ApproxLocation = {
+  countryCode: 'GB',
+  place: { city: 'Cambridge', center: [0.12, 52.2] },
 }

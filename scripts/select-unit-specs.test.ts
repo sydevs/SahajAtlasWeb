@@ -256,7 +256,7 @@ describe('this repository', () => {
     expect(selectSpecs(`scripts/${script}`, ROOT)).toContain(`scripts/${spec}`)
   })
 
-  it('looks where the lane collects, so a spec outside those two directories fails here', () => {
+  it('looks where the lane collects, so a spec outside those directories fails here', () => {
     const config = readFileSync(join(ROOT, 'vitest.config.ts'), 'utf8')
     const array = (key: string): string[] =>
       JSON.parse(matched(config, new RegExp(`${key}: (\\[[^\\]]*\\])`)).replace(/'/g, '"'))
@@ -271,7 +271,7 @@ describe('this repository', () => {
         if (!entry.isDirectory()) return SPEC_NAME.test(entry.name) ? [rel] : []
         if (pruned.has(entry.name) || pruned.has(rel)) return []
 
-        return rel === 'src' || rel === 'scripts' ? [] : outside(rel)
+        return ['src', 'scripts', 'worker'].includes(rel) ? [] : outside(rel)
       })
 
     expect(outside('')).toEqual([])

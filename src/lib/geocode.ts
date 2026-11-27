@@ -61,7 +61,7 @@ export const geocodeBounds = (feature: GeocodingFeature): BBox | undefined => {
  *
  * **Never throws, and resolves `null` on anything unexpected.** It runs after a navigation has
  * already happened — the results are on screen, ranked by distance from the fix — so a failure
- * here costs a place name and a country code, not the feature. Same posture as `fetchIpLocation`.
+ * here costs a place name and a country code, not the feature.
  *
  * No CSP consequence: `api.mapbox.com` is already in the documented `connect-src`, because the
  * forward geocoder behind the search field calls the same host.

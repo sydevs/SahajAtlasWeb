@@ -37,7 +37,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
  * @property {string} [compatibility_date]
  * @property {boolean} [preview_urls]
  * @property {Record<string, unknown>} [previews]
- * @property {{ directory?: string, not_found_handling?: string }} [assets]
+ * @property {string} [main]
+ * @property {{ directory?: string, binding?: string, not_found_handling?: string, run_worker_first?: boolean | string[] }} [assets]
  */
 
 /**

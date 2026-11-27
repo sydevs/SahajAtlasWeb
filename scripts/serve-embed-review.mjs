@@ -70,6 +70,7 @@ import { parseArgs } from 'node:util'
 import { loadEnv } from 'vite'
 
 import { MIME } from './_mime.mjs'
+import { GEO_PATH, geoModule } from '../worker/geo.mjs'
 
 /**
  * One origin for the built app and every host page, which keeps the
@@ -385,6 +386,15 @@ const server = createServer((req, res) => {
       res.write(head)
       setTimeout(() => res.end(rest), STREAM_PAUSE_MS)
     }
+
+    return
+  }
+
+  // The app Worker's one route: no location here, as for a visitor Cloudflare cannot place, so
+  // no review page or browser-lane scenario depends on where it is run.
+  if (pathname === GEO_PATH) {
+    res.writeHead(200, { 'content-type': 'text/javascript', 'cache-control': 'no-store' })
+    res.end(geoModule(null))
 
     return
   }

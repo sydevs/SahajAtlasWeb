@@ -22,9 +22,20 @@ points here. Two Cloudflare sites deploy from this repo, both on **Workers stati
 move ran one site at a time, and the app's own cutover was split from building it (#266, #279,
 #280, #283):
 
-- **`sahajatlas-web`, the app** — from `wrangler.jsonc`, assets-only, pointed at `dist/`, which
-  `pnpm build:worker` fills. Served at `sahajatlas.com` as a Workers Custom Domain and at its own
-  `workers.dev` host. Workers Builds holds the build command and the trigger's variables and
+- **`sahajatlas-web`, the app** — from `wrangler.jsonc`, pointed at `dist/`, which
+  `pnpm build:worker` fills, plus one small script, `worker/index.ts`, that serves `/geo.js`: the
+  visitor's approximate location from `request.cf`, as a module (`worker/geo.mjs`). The loader
+  imports it beside the widget, and the standalone page from `main.tsx`. `run_worker_first`
+  names only `/geo.js`, so every other file is a static asset and never runs the script; its
+  cost is one Workers request per embed load — about 1,800 a week in 2026-11, against the 10
+  million a month Workers Paid includes. A failure there costs the location, never the embed:
+  the widget boots without it.
+  ⚠ **On the Free plan a `run_worker_first` path answers 429 once the daily limit is spent**,
+  rather than falling back to the asset.
+  ⚠ **`public/_headers` does not reach a response the script builds**, so it sets the `/*`
+  rule's CORS and `noindex` itself — without CORS a host page's import of the module fails —
+  and `private, max-age=0, no-store`, since the module is per visitor.
+  Served at `sahajatlas.com` as a Workers Custom Domain and at its own `workers.dev` host. Workers Builds holds the build command and the trigger's variables and
   branch rules **per trigger**, not per project — which is what `docs/environment.md` works out
   for each variable. Its one trigger builds `main` alone; PR previews come from `ci.yml`'s own
   `versions upload`, never from Workers Builds (#282).
@@ -37,7 +48,7 @@ move ran one site at a time, and the app's own cutover was split from building i
   anyone.
 - **`sahajatlas-design`** — the Ladle component playground, on **Workers static assets**.
   Builds with `pnpm ladle:build` into `build/`, served at `design.sahajatlas.com`.
-  `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`),
+  `wrangler.design.jsonc` in the repo root is its config: assets-only (no `main`, unlike the app),
   `not_found_handling: "single-page-application"`, previews on. Workers Builds holds the
   build command and the trigger's branch and path rules.
   The Workers build image honours `.node-version` and `packageManager`: the first build

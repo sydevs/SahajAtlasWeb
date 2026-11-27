@@ -38,7 +38,7 @@ import type { DetectionSignals, EmbedFingerprint } from './detect'
 
 import { parseConfig } from './config'
 import { fingerprint } from './detect'
-import { ELEMENT_NAME } from './literals'
+import { ELEMENT_NAME, GEO_MODULE } from './literals'
 
 /** The console prefix. Duplicated from `reportIntegrationWarning`'s — see `./literals.ts`. */
 const LOG_PREFIX = '[sahaj-atlas]'
@@ -304,6 +304,13 @@ function start(script: HTMLScriptElement | null): void {
   // viewport, painting over the host's page when the tab opened while its own box stayed blank.
   // So a deep link into a hidden element waits for it to be shown, as a lazy one does.
   const mount = () => {
+    // Started beside the widget's own import, so the location usually lands before the first
+    // render; the widget takes it whenever it does. A failed import is no location.
+    const geo = import(/* @vite-ignore */ new URL(GEO_MODULE, import.meta.url).href).then(
+      (module: { default?: unknown }) => module.default,
+      () => null,
+    )
+
     // This resolves to `src/Widget.tsx`, its own build entry. It is the seam that keeps the
     // widget out of the loader's graph, and `pnpm size` asserts the two closures stay disjoint.
     void import('../Widget')
@@ -312,13 +319,13 @@ function start(script: HTMLScriptElement | null): void {
         // own router has had a turn. A host SPA that rewrites the URL during boot would
         // otherwise get measured mid-flight.
         //
-        // **This hands over the observation, and nothing else.** The loader used to compose a
+        // **The observation goes over as it is.** The loader used to compose a
         // report here too — the observation joined to the page's URL. That meant capturing the
         // URL at this moment, and carrying it on the boot singleton until the widget mounted
         // and sent it. The mount is now read by the send site itself (`lib/mount.ts`), so the
         // loader has no business with the host's URL at all. There is one observation now, not
         // two copies.
-        whenIdle(() => boot(config, detect(config)))
+        whenIdle(() => boot(config, detect(config), geo))
       })
       // A blocked or 404'd chunk is the one failure here a host can act on, and unhandled it is
       // an anonymous rejection beside an empty slot (#239). The browser's own error names the

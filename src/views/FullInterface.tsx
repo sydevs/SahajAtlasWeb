@@ -5,6 +5,7 @@ import { MapProvider } from 'react-map-gl/mapbox'
 
 import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
+import { LocatorProvider } from '@/hooks/use-locator'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
@@ -185,9 +186,12 @@ function FullInterface({
     api.warmCaches()
   }, [])
 
-  return hasMap ? (
-    <MapProvider>
-      {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
+  // One locator for the map's find-me and the filters' Near me, gone with this interface.
+  return (
+    <LocatorProvider>
+      {hasMap ? (
+        <MapProvider>
+          {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
           one.** Everything below is byte-identical in both. The canvas stays `position: fixed;
           inset: 0`, the drawers stay fixed, and no view branches on which one
           it is. `contain: layout` on the frame re-parents the whole fixed layer onto the
@@ -202,24 +206,26 @@ function FullInterface({
           gets the compact card rather than a takeover. `lib/slot-decision.ts` measures at
           mount, and `AppShell` renders `CompactEmbedView`, whose button opens the map
           full-screen. */}
-      <MapFrame contained={contained}>
-        {/* Inline fixed/inset so the map always fills its frame behind the drawers —
+          <MapFrame contained={contained}>
+            {/* Inline fixed/inset so the map always fills its frame behind the drawers —
             independent of Tailwind viewport-unit utility generation. */}
-        <div style={{ position: 'fixed', inset: 0 }}>
-          {/* The one thing a contained map does differently: `gestures=cooperative` leaves
+            <div style={{ position: 'fixed', inset: 0 }}>
+              {/* The one thing a contained map does differently: `gestures=cooperative` leaves
               scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
-          <Mapbox cooperative={contained && embed.config.cooperative} />
-          <MapCurtain />
-        </div>
-        <RealMapControllerProvider>
+              <Mapbox cooperative={contained && embed.config.cooperative} />
+              <MapCurtain />
+            </div>
+            <RealMapControllerProvider>
+              <DrawerStack />
+            </RealMapControllerProvider>
+          </MapFrame>
+        </MapProvider>
+      ) : (
+        <NoopMapControllerProvider>
           <DrawerStack />
-        </RealMapControllerProvider>
-      </MapFrame>
-    </MapProvider>
-  ) : (
-    <NoopMapControllerProvider>
-      <DrawerStack />
-    </NoopMapControllerProvider>
+        </NoopMapControllerProvider>
+      )}
+    </LocatorProvider>
   )
 }
 

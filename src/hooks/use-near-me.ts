@@ -6,7 +6,8 @@ import { useQuery } from '@tanstack/react-query'
 import { geojsonQuery } from '@/config/api'
 import { useNearMeState } from '@/config/store'
 import { useLocale } from '@/hooks/use-locale'
-import { LOCATE_POSITION_OPTIONS, locatedPlace } from '@/lib/geolocation'
+import { useLocator } from '@/hooks/use-locator'
+import { locatedPlace } from '@/lib/geolocation'
 
 /** How long to wait for a place name before searching without one. */
 const NAME_WAIT_MS = 1500
@@ -21,8 +22,9 @@ export function useNearVisitor(center: [number, number] | undefined): boolean {
 }
 
 /**
- * The Near me choice: asks the browser for a position only when pressed, and answers with a place
- * in the same terms as a typed search (`locatedPlace`), waiting briefly for the place's name.
+ * The Near me choice: asks for a position only when pressed, through the locator the map's
+ * find-me shares (`useLocator`), and answers with a place in the same terms as a typed
+ * search (`locatedPlace`), waiting briefly for the place's name.
  */
 export function useNearMe({
   naming,
@@ -34,6 +36,7 @@ export function useNearMe({
   const { locale } = useLocale()
   const setCenter = useNearMeState((s) => s.setCenter)
   const { data: geojson } = useQuery(geojsonQuery())
+  const locator = useLocator()
   const [status, setStatus] = useState<NearMeStatus>('idle')
   // The fix can arrive seconds later, by when the visitor may have left. An answer belongs only
   // to the request still waiting.
@@ -47,10 +50,8 @@ export function useNearMe({
   const locate = useCallback(() => {
     const id = ++request.current
 
-    if (!navigator.geolocation) return setStatus('failed')
-
     setStatus('locating')
-    navigator.geolocation.getCurrentPosition(
+    locator.request().then(
       async (position) => {
         if (id !== request.current) return
 
@@ -71,9 +72,8 @@ export function useNearMe({
       () => {
         if (id === request.current) setStatus('failed')
       },
-      LOCATE_POSITION_OPTIONS,
     )
-  }, [geojson, locale, naming, setCenter])
+  }, [geojson, locale, locator, naming, setCenter])
 
   return { status, locate }
 }
