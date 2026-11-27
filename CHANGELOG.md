@@ -227,7 +227,8 @@ cover everything a host would notice since the widget was first deployed.
   columns: the classes on the left, and a square map on the right that stays in view below
   your header. A list takes 40% of the width and the map 60%; a class takes 60% and its map
   40%; neither column goes under 352px. What the column shows fills its width, the registration form
-  included. A class's Register and actions sit under the map, above the classes on a narrow widget. A narrow widget stacks a short map strip above the classes; `map=false` shows
+  included. A class's Register and actions sit under the map; on a narrow widget, Register sticks to the
+  bottom of the screen while the class is in view, and its actions follow its details. A narrow widget stacks a short map strip above the classes; `map=false` shows
   the classes alone. "Expand map" opens the full map, with its panel, in a modal covering the
   screen below your header, and "Close map" brings the visitor back. See
   [Sizing the element](docs/embedding.md#sizing-the-element). What you can observe:

@@ -418,13 +418,14 @@ export function DrawerFooter({
    * viewport at any snap but the top one, and the bar paints at the viewport
    * (#326).
    *
-   * Ignored inline, where there is no sheet to pin to: the footer ends the content in the
-   * page's own flow.
+   * Inline, where there is no sheet, it sticks to the bottom of the screen instead, in the page's
+   * own flow, for as long as its view is on screen. In flow, it needs no clearance.
    */
   sticky?: boolean
 }) {
   const { slots, mode } = useDrawerSlots()
   const pinned = sticky && mode !== 'inline'
+  const stuck = sticky && mode === 'inline'
   const ref = useRef<HTMLDivElement>(null)
 
   // The body clears this footer by its own trailing length, and no caller can
@@ -467,7 +468,7 @@ export function DrawerFooter({
     <div
       ref={ref}
       className={slots.footer({
-        className: `${pinned ? 'fixed inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
+        className: `${pinned ? 'fixed inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${stuck ? 'sticky bottom-0 z-10 bg-background' : ''} ${className ?? ''}`,
       })}
     >
       {children}
@@ -475,7 +476,7 @@ export function DrawerFooter({
           home indicator, so a bar flush with it puts its control in the gesture
           area. The spacer carries the inset rather than the footer's padding,
           which a caller's own `py-*` would merge away. */}
-      {pinned && <div className="h-[env(safe-area-inset-bottom)]" />}
+      {(pinned || stuck) && <div className="h-[env(safe-area-inset-bottom)]" />}
     </div>
   )
 }

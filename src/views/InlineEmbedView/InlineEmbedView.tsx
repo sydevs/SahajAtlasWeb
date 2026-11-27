@@ -4,6 +4,7 @@ import {
   Activity,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -259,11 +260,16 @@ export function InlineColumns({
   const { pathname } = useLocation()
   // A class's own register and share views keep its split, so opening one moves no column.
   const classPage = CLASS_VIEWS.has(resolveStack(pathname).at(-1)?.kind ?? '')
+  const [grid, setGrid] = useState<HTMLDivElement | null>(null)
   const [aside, setAside] = useState<HTMLDivElement | null>(null)
   const asideHeight = useHeight(aside)
+  // Under the map only beside it: a narrow page stacks the map above the content, where a
+  // class's Register pins to the screen's bottom and its actions follow its details instead.
+  const sideBySide = useTwoColumns(grid)
 
   return (
     <div
+      ref={setGrid}
       className={clsx(
         'grid gap-4',
         hasMap &&
@@ -274,7 +280,7 @@ export function InlineColumns({
     >
       {/* The page heading sets the width here, so the bands' own cap is lifted. */}
       <div className="flex min-w-0 flex-col [--sy-content-max:none]">
-        <InlineAsideProvider value={aside}>{children}</InlineAsideProvider>
+        <InlineAsideProvider value={sideBySide ? aside : null}>{children}</InlineAsideProvider>
       </div>
       {hasMap && (
         <div className="order-first px-gutter @min-sy-cols:order-none @min-sy-cols:ps-0">
@@ -300,6 +306,30 @@ export function InlineColumns({
       )}
     </div>
   )
+}
+
+/**
+ * Whether the grid lays out two columns, read off its computed tracks, so the answer is the
+ * container query's own (`@min-sy-cols:`) rather than a second copy of its width.
+ */
+function useTwoColumns(grid: HTMLElement | null) {
+  const [two, setTwo] = useState(false)
+
+  useLayoutEffect(() => {
+    if (!grid) return
+    const read = () =>
+      setTwo(getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length > 1)
+
+    read()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(read)
+
+    observer.observe(grid)
+
+    return () => observer.disconnect()
+  }, [grid])
+
+  return two
 }
 
 /** An element's height, kept current; 0 while it is absent or hidden. */
