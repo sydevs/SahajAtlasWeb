@@ -21,9 +21,13 @@ export { SearchFilters } from './SearchFilters'
 export type { SearchFiltersProps } from './SearchFilters'
 
 // FilterMenus — the filters on a computer: Where, When and Language as buttons over the map, or
-// in the calendar's header, each opening a menu of the same blocks.
+// in the calendar's header, each opening a menu of the same blocks. They read and write the URL.
 export { FilterMenus } from './FilterMenus'
 export type { FilterMenusProps } from './FilterMenus'
+
+// WhereFilter — the Where question, shared by the phone's filters and the Where menu.
+export { WhereFilter } from './WhereFilter'
+export type { WhereFilterProps } from './WhereFilter'
 
 // Only the mounted host is public. The form inside it is module-private
 // (see the folder's index.ts). Unlike the code-split families below, this

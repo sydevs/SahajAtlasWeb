@@ -2,11 +2,9 @@ import { useLocation, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { WhereFilter } from './WhereFilter'
-
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
-import { SearchFilters } from '@/components/organisms'
+import { SearchFilters, WhereFilter } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useSearchFocus } from '@/config/store'

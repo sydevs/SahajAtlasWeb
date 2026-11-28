@@ -41,7 +41,7 @@ import { formatDateRange, formatMonth, zoneCity } from '@/lib/time'
 import { BackButton } from '@/views/nav'
 import { DrawerTitle, ExpandSheetButton, FilterButton, useDrawerControl } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
-import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
+import { FilterMenus } from '@/components/organisms/FilterMenus'
 
 // The date the Month has in view, or today until the visitor moves it.
 const useFocusedDate = () => useCalendarPosition((s) => s.date) ?? todayISO()
@@ -138,7 +138,7 @@ function CalendarHeader({
         <BackButton />
         {/* Full width, the calendar covers the map, so its header carries the filter buttons. */}
         {fullWidth ? (
-          <FilterMenuBar />
+          <FilterMenus />
         ) : (
           <div className="flex shrink-0 items-center gap-1">
             <FilterButton iconOnly counted={chosen(filters)} />

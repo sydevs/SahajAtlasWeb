@@ -1,69 +1,48 @@
 import type { Story, StoryDefault } from '@ladle/react'
 
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect } from 'react'
 import { DateTime } from 'luxon'
 import clsx from 'clsx'
 
-import { StorySection, StoryWrapper } from '../../ladle'
+import { StoryAddress, StorySection, StoryWrapper } from '../../ladle'
 
 import { FilterMenus, type FilterMenusProps } from './FilterMenus'
 
-import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 import { refuseGeolocation } from '@/mocks/story-geolocation'
-import { WhereFilter } from '@/views/Filters/WhereFilter'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 
 const inAWeek = DateTime.local().plus({ weeks: 1 }).toISODate()
 const inAMonth = DateTime.local().plus({ months: 1 }).toISODate()
 
-type ExampleProps = {
-  initial?: Partial<EventFilters>
-  /** The place the Where button names, and whether it counts as an answer. */
-  place?: string
-  placeAnswered?: boolean
-  variant?: FilterMenusProps['variant']
-}
+const LONDON = 'q=London,+UK&center=-0.12,51.5&cc=GB'
 
-/** One live row: every tap edits its own answers, and Clear resets them. */
-function Example({ initial, place, placeAnswered = false, variant }: ExampleProps) {
-  const [value, setValue] = useState<EventFilters>({ ...DEFAULT_FILTERS, ...initial })
-
+/** One live row at its own address: every tap writes that address, and Clear resets it. */
+function Example({ path, variant }: { path: string; variant?: FilterMenusProps['variant'] }) {
   return (
-    <div className={clsx('flex justify-end', variant === 'floating' && 'rounded-lg bg-gray-4 p-4')}>
-      <FilterMenus
-        value={value}
-        variant={variant}
-        where={{
-          place,
-          placeAnswered,
-          always: true,
-          menu: (facets) => (
-            <WhereFilter
-              searchable
-              counts={facets?.counts.format}
-              region={value.region}
-              onClear={() => setValue({ ...value, region: null })}
-              onPlace={() => {}}
-              onSearchInstead={() => {}}
-            />
-          ),
-        }}
-        onChange={setValue}
-        onClear={() => setValue(DEFAULT_FILTERS)}
-      />
-    </div>
+    <StoryAddress path={path}>
+      <Row variant={variant}>
+        <FilterMenus variant={variant} />
+      </Row>
+    </StoryAddress>
   )
 }
 
+const Row = ({ variant, children }: { variant?: string; children: ReactNode }) => (
+  <div className={clsx('flex justify-end', variant === 'floating' && 'rounded-lg bg-gray-4 p-4')}>
+    {children}
+  </div>
+)
+
 /**
  * FilterMenus — the filters on a computer: Where, When and Language as buttons, each opening a
- * small menu with the same questions and live counts as the phone's filters. Every tap applies at
- * once. The row is right-aligned, and Clear (an ×, named "Clear filters") leads it once anything is
- * chosen, so its arrival moves nothing already there.
+ * small menu with the same questions and live counts as the phone's filters (Where's place half is
+ * `WhereFilter`). They read and write the URL, and every tap applies at once. The row is
+ * right-aligned, and Clear (an ×, named "Clear filters") leads it once anything is chosen, so its
+ * arrival moves nothing already there.
  *
- * A set that matches nothing is not the menus' to explain: the list of classes says so, with the
- * way out (`FilterNotice`).
+ * Each row below sits at its own address, so each is live. A set that matches nothing is not the
+ * menus' to explain: the list of classes says so, with the way out (`FilterNotice`).
  *
  * The browser here refuses the visitor's location, so Near me in any Where menu shows what it says
  * then.
@@ -78,8 +57,8 @@ export const Default: Story = () => {
         title="Variants"
       >
         <div className="flex flex-col gap-4">
-          <Example initial={{ daysOfWeek: [2], timeOfDay: ['evening'] }} />
-          <Example initial={{ daysOfWeek: [2], timeOfDay: ['evening'] }} variant="floating" />
+          <Example path="/search?days=2&time=evening" />
+          <Example path="/search?days=2&time=evening" variant="floating" />
         </div>
       </StorySection>
 
@@ -88,8 +67,8 @@ export const Default: Story = () => {
         title="Nothing chosen"
       >
         <div className="flex flex-col gap-4">
-          <Example />
-          <Example initial={{ region: 'gb' }} place="United Kingdom" />
+          <Example path="/search" />
+          <Example path="/gb" />
         </div>
       </StorySection>
 
@@ -97,16 +76,7 @@ export const Default: Story = () => {
         description="An answered button fills and names its answer. A searched place, Near me or a format fills Where."
         title="One answer each"
       >
-        <Example
-          initial={{
-            format: 'offline',
-            daysOfWeek: [2],
-            timeOfDay: ['evening'],
-            languages: ['en'],
-          }}
-          place="London"
-          placeAnswered={true}
-        />
+        <Example path={`/search?${LONDON}&format=offline&days=2&time=evening&langs=en`} />
       </StorySection>
 
       <StorySection
@@ -114,17 +84,15 @@ export const Default: Story = () => {
         title="Everything chosen"
       >
         <Example
-          initial={{
-            format: 'offline',
-            daysOfWeek: [1, 2, 3],
-            timeOfDay: ['morning', 'evening'],
-            cadence: 'WEEKLY',
-            dateRange: { start: inAWeek, end: inAMonth },
-            languages: ['de', 'en', 'fr'],
-          }}
-          place="London"
-          placeAnswered={true}
+          path={`/search?${LONDON}&format=offline&days=1,2,3&time=morning,evening&cadence=WEEKLY&dates=${inAWeek},${inAMonth}&langs=de,en,fr`}
         />
+      </StorySection>
+
+      <StorySection
+        description="On the calendar Where is only a scope, so it offers no Near me, and shows only where the calendar has a place or mixes online and in-person classes."
+        title="On the calendar"
+      >
+        <Example path="/calendar?region=gb" />
       </StorySection>
 
       <div />

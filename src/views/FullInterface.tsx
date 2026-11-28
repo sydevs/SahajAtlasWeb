@@ -10,7 +10,7 @@ import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { MapboxControllerProvider } from '@/hooks/use-map-controller-mapbox'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
-import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
+import { FilterMenus } from '@/components/organisms/FilterMenus'
 import { MapFrame } from '@/views/MapFrame'
 import api from '@/config/api'
 import embed from '@/config/embed'
@@ -217,7 +217,7 @@ function FullInterface({
                 scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
                 <Mapbox
                   cooperative={contained && embed.config.cooperative}
-                  filterMenus={<FilterMenuBar variant="floating" />}
+                  filterMenus={<FilterMenus variant="floating" />}
                 />
                 <MapCurtain />
               </div>
