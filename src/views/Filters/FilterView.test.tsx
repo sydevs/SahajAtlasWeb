@@ -22,7 +22,12 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   useQuery: () => ({ data: undefined }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', formatLocale: 'en-GB', languageLabel: (code: string) => code }),
+  useLocale: () => ({
+    t: (key: string) => key,
+    locale: 'en',
+    formatLocale: 'en-GB',
+    languageLabel: (code: string) => code,
+  }),
 }))
 vi.mock('@/config/api', () => ({ regionQuery: () => ({ queryKey: ['region'] }) }))
 vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => facets.current }))

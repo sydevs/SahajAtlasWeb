@@ -16,7 +16,11 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ formatLocale: 'en-US', languageLabel: (code: string) => code }),
+  useLocale: () => ({
+    t: (key: string) => key,
+    formatLocale: 'en-US',
+    languageLabel: (code: string) => code,
+  }),
 }))
 vi.mock('@/hooks/use-filters', () => ({
   useEventFilters: () => ({ ...DEFAULT_FILTERS, daysOfWeek: [1] }),

@@ -194,7 +194,8 @@ export const shownGroups = (filters: EventFilters, facets: FilterFacets | undefi
 /**
  * `shownGroups`' Where and Language answers, judged on the scope without counting it, for the
  * closed filter buttons, which need nothing else: whether the scope mixes online and in-person
- * classes, and whether any of its classes has a language.
+ * classes, and whether any of its classes has a language. Unlike `shownGroups` before the counts
+ * arrive, an empty scope (the feed still loading) offers neither, so the buttons wait for it.
  */
 export const scopeOffers = (filters: EventFilters, events: readonly FilterableEvent[]) => ({
   format:

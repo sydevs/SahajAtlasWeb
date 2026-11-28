@@ -1,23 +1,18 @@
 import type { TranslationKey } from '@/types/i18next'
 
 import { useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 
 import { useLocale } from '@/hooks/use-locale'
 import { type EventFilters, type FilterRecovery, isDateRestricted } from '@/lib/shape'
 import { weekdayNames } from '@/lib/time'
 
-/** One question of the filters, as the removal names it (`FilterRecovery`). */
-export type AnswerGroup = FilterRecovery['group']
-
 /**
- * Each answered question in words, the one way the filter buttons, the filter tags and the
- * removal under an empty list name it ("Tue, Wed", "Evening", "English, French"). An open
- * question is ''.
+ * Each answered question in words, as the filter buttons and the removal under an empty list
+ * name it ("Tue, Wed", "Evening", "English, French"). An open question is ''. The filter tags
+ * take it too, except for times and dates, which they spell out in full (hours, the range).
  */
-export function useAnswerLabels(filters: EventFilters): Record<AnswerGroup, string> {
-  const { t } = useTranslation()
-  const { formatLocale, languageLabel } = useLocale()
+export function useAnswerLabels(filters: EventFilters): Record<FilterRecovery['group'], string> {
+  const { t, formatLocale, languageLabel } = useLocale()
   const weekdays = useMemo(() => weekdayNames(formatLocale, 'short'), [formatLocale])
 
   return {

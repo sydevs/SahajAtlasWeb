@@ -75,9 +75,6 @@ export { List, ListRow } from './List'
 export { ListItem } from './ListItem'
 export type { ListItemProps } from './ListItem'
 
-export { RecoveryButton } from './RecoveryButton'
-export type { RecoveryButtonProps } from './RecoveryButton'
-
 export { EventListItem } from './EventListItem'
 export type { EventListItemProps } from './EventListItem'
 

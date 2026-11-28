@@ -33,7 +33,7 @@ export function useFilterFacets(filters: EventFilters): FilterFacets | undefined
 
   return useMemo(() => {
     if (!scope || !unfiltered) return undefined
-    // The region is the scope itself, so a draft with nothing else picked counts as the scope does.
+    // The region is the scope itself, so filters with only a region picked count as the scope does.
     if (!hasActiveFilters({ ...filters, region: null })) return unfiltered
 
     const counts = facetCounts(scope, filters)

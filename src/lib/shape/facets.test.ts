@@ -182,4 +182,12 @@ describe('scopeOffers', () => {
       }
     }
   })
+
+  it('offers neither while the feed loads, unless already answered', () => {
+    expect(scopeOffers(DEFAULT_FILTERS, [])).toEqual({ format: false, languages: false })
+    expect(scopeOffers({ ...DEFAULT_FILTERS, format: 'online', languages: ['en'] }, [])).toEqual({
+      format: true,
+      languages: true,
+    })
+  })
 })

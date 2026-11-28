@@ -193,8 +193,9 @@ The widget is embedded in layouts we do not own, so **"how big is the screen" an
 browser window.** Every decision names one of three signals
 (`src/config/responsive.ts`):
 
-- **container** — `useIsWide(element)` in `DrawerStack`, which owns the measurement,
-  and `useIsWideWidget()` for descendants reading it back off `WidgetWidthContext`.
+- **container** — `useIsWide(element)`, measured once: on a map by `RealMapControllerProvider`
+  (the frame), map-less by `DrawerStack` (its own box). Everything else reads it back off
+  `WidgetWidthContext` with `useIsWideWidget()`.
 - **viewport** — `useIsWideViewport()`. Only where the screen genuinely is the
   question.
 - **input** — `useCoarsePointer()`. For affordances that depend on the device.

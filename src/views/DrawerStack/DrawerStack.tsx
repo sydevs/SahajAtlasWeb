@@ -5,6 +5,7 @@ import {
   lazy,
   startTransition,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -173,10 +174,14 @@ export function DrawerStack() {
   // 352px side panel leave usable space beside it?", because the panel sits inside it. With
   // no frame, this call is `useIsWide(null)`, exactly what it always computed. So a 320px
   // column embed on a desktop gets the bottom sheet, its drag handle, and its
-  // swipe-dismiss — and a 600px contained map now does too. This value is shared with the
-  // subtree via `WidgetWidthContext` at the foot of this component, so no descendant can
+  // swipe-dismiss — and a 600px contained map now does too. On a map the map controller measures
+  // that frame and provides the answer to the map and to this stack alike
+  // (`RealMapControllerProvider`), so the map's controls cannot disagree with the panel; map-less,
+  // this stack measures its own box and provides it at its foot. Either way no descendant can
   // disagree with the drawer it sits in.
-  const isWide = useIsWide(container ?? frameElement())
+  const provided = useContext(WidgetWidthContext)
+  const measured = useIsWide(provided === null ? (container ?? frameElement()) : null)
+  const isWide = provided ?? measured
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   // Set by "Show N classes": the results it closes onto open at the near-full stop.
@@ -723,46 +728,44 @@ export function DrawerStack() {
   const target = overlayContainer()
 
   return (
-    <WidgetWidthContext.Provider value={isWide}>
-      <DrawerControlContext.Provider value={control}>
-        {target &&
-          createPortal(
-            <>
-              <div
-                ref={sheetOriginRef}
-                aria-hidden
-                className="pointer-events-none fixed top-0 h-0 w-0"
-              />
-              {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
-            </>,
-            target,
-          )}
-        <Drawer
-          key={direction}
-          dismissible
-          enterInPlace
-          open
-          activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
-          container={target}
-          direction={direction}
-          // The left panel (≥md) has no handle and no snap points, so restricting
-          // drag to the (absent) handle makes it undraggable — dismiss stays Back
-          // only. The mobile bottom sheet keeps its full-panel snap-drag.
-          handleOnly={direction === 'left'}
-          // The box vaul measures snap points against — the frame, or the window.
-          // Deliberately NOT `target`: that is the portal target, which embedded is
-          // the `display: contents` theme root and measures 0×0. See the note in
-          // `Drawer.tsx`.
-          measureAgainst={frameElement()}
-          setActiveSnapPoint={direction === 'bottom' ? setShownSnap : undefined}
-          snapPoints={direction === 'bottom' ? shownSnapPoints : undefined}
-          wide={wide}
-          onOpenChange={(o) => !o && control.dismiss()}
-        >
-          {sheet}
-        </Drawer>
-        {filterDrawer}
-      </DrawerControlContext.Provider>
-    </WidgetWidthContext.Provider>
+    <DrawerControlContext.Provider value={control}>
+      {target &&
+        createPortal(
+          <>
+            <div
+              ref={sheetOriginRef}
+              aria-hidden
+              className="pointer-events-none fixed top-0 h-0 w-0"
+            />
+            {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
+          </>,
+          target,
+        )}
+      <Drawer
+        key={direction}
+        dismissible
+        enterInPlace
+        open
+        activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
+        container={target}
+        direction={direction}
+        // The left panel (≥md) has no handle and no snap points, so restricting
+        // drag to the (absent) handle makes it undraggable — dismiss stays Back
+        // only. The mobile bottom sheet keeps its full-panel snap-drag.
+        handleOnly={direction === 'left'}
+        // The box vaul measures snap points against — the frame, or the window.
+        // Deliberately NOT `target`: that is the portal target, which embedded is
+        // the `display: contents` theme root and measures 0×0. See the note in
+        // `Drawer.tsx`.
+        measureAgainst={frameElement()}
+        setActiveSnapPoint={direction === 'bottom' ? setShownSnap : undefined}
+        snapPoints={direction === 'bottom' ? shownSnapPoints : undefined}
+        wide={wide}
+        onOpenChange={(o) => !o && control.dismiss()}
+      >
+        {sheet}
+      </Drawer>
+      {filterDrawer}
+    </DrawerControlContext.Provider>
   )
 }

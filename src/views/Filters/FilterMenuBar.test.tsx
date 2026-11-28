@@ -11,7 +11,6 @@ import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 const state = vi.hoisted(() => ({
   filters: {} as EventFilters,
   search: '',
-  pathname: '/search',
   props: undefined as FilterMenusProps | undefined,
 }))
 
@@ -32,7 +31,6 @@ vi.mock('@/hooks/use-filter-editor', () => ({
 }))
 vi.mock('react-router', async (original) => ({
   ...(await original<object>()),
-  useLocation: () => ({ pathname: state.pathname }),
   useSearchParams: () => [new URLSearchParams(state.search)],
 }))
 vi.mock('@tanstack/react-query', async (original) => ({
@@ -42,8 +40,8 @@ vi.mock('@tanstack/react-query', async (original) => ({
 vi.mock('@/hooks/use-locale', () => ({ useLocale: () => ({ t: (key: string) => key }) }))
 vi.mock('@/hooks/use-near-me', () => ({ useNearVisitor: () => false }))
 
-const whereFor = (filters: Partial<EventFilters>, search = '', pathname = '/search') => {
-  Object.assign(state, { filters: { ...DEFAULT_FILTERS, ...filters }, search, pathname })
+const whereFor = (filters: Partial<EventFilters>, search = '') => {
+  Object.assign(state, { filters: { ...DEFAULT_FILTERS, ...filters }, search })
   renderToStaticMarkup(<FilterMenuBar variant="floating" />)
 
   return state.props?.where

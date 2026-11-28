@@ -24,7 +24,7 @@ import {
 } from '@/lib/shape'
 
 /** The parts of an answer that are set, as one line: "Tue, Wed · Evening". */
-const summarize = (parts: (string | false | null | undefined)[]): string =>
+const summarize = (parts: (string | null | undefined)[]): string =>
   parts.filter(Boolean).join(' · ')
 
 type Menu = 'where' | 'when' | 'language'

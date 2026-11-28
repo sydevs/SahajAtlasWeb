@@ -33,8 +33,8 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
   const { formatLocale } = useLocale()
   const applied = useEventFilters()
   // A view may show fewer than the URL holds: the calendar's place is its title, not a pill.
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } =
-    filters ?? applied
+  const shown = filters ?? applied
+  const { timeOfDay, dateRange, region } = shown
   const {
     setFormat,
     setCadence,
@@ -45,7 +45,7 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
     setRegion,
   } = useSetFilters()
 
-  const labels = useAnswerLabels(filters ?? applied)
+  const labels = useAnswerLabels(shown)
 
   // The cache-once region tree, to resolve the selected slug to its display name below.
   const { data: regions } = useQuery(regionsQuery())
@@ -60,21 +60,21 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
 
     chips.push({ key: 'region', label: name, onRemove: () => setRegion(null) })
   }
-  if (format !== 'any') {
+  if (labels.format) {
     chips.push({
       key: 'format',
       label: labels.format,
       onRemove: () => setFormat('any'),
     })
   }
-  if (cadence !== 'any') {
+  if (labels.cadence) {
     chips.push({
       key: 'cadence',
       label: labels.cadence,
       onRemove: () => setCadence('any'),
     })
   }
-  if (daysOfWeek.length > 0) {
+  if (labels.days) {
     chips.push({
       key: 'days',
       label: labels.days,
@@ -89,7 +89,7 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
       onRemove: () => setTimeOfDay([]),
     })
   }
-  if (languages.length > 0) {
+  if (labels.languages) {
     chips.push({
       key: 'languages',
       label: labels.languages,
