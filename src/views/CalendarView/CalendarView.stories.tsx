@@ -138,6 +138,7 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
   return (
     <ViewStory
       example={example}
+      path="/calendar"
       seed={(client: QueryClient) => {
         // The calendar reads one key for every date, so the place's key answers it.
         for (const filters of seededFilters) {

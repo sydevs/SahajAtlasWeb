@@ -10,13 +10,18 @@ export type { MapSearchProps } from './Mapbox'
 // Only the data-connected container is public: the presentational `EventsList`
 // is consumed solely by `DynamicEventsList` and its own story, so per
 // DESIGN_SYSTEM.md's single-use rule it stays module-private.
-export { DynamicEventsList } from './EventsList'
+export { DynamicEventsList, NoFilterMatches } from './EventsList'
 export type { DynamicEventsListProps } from './EventsList'
 
 // SearchFilters — the controlled filter form FilterView drafts in: Where, Online or in person,
 // Day, Time of day, Language, then Frequency and Dates under More filters.
-export { SearchFilters } from './SearchFilters'
-export type { SearchFiltersProps } from './SearchFilters'
+export { RecoveryButton, SearchFilters } from './SearchFilters'
+export type { RecoveryButtonProps, SearchFiltersProps } from './SearchFilters'
+
+// FilterMenus — the filters on a computer: Where, When and Language as buttons over the map, or
+// in the calendar's header, each opening a menu of the same blocks.
+export { FilterMenus } from './FilterMenus'
+export type { FilterMenusProps } from './FilterMenus'
 
 // Only the mounted host is public. The form inside it is module-private
 // (see the folder's index.ts). Unlike the code-split families below, this

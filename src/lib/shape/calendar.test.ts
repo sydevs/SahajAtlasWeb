@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
 import {
+  isCalendarFullWidth,
   type CalendarEntry,
   type CalendarSourceEvent,
   calendarViewFromParams,
@@ -341,5 +342,17 @@ describe('the calendar’s own rules', () => {
   it('reads an entry’s day and its wall clock off its start', () => {
     expect(entryDay({ start: '2026-11-27 19:45' })).toBe('2026-11-27')
     expect(entryTime('2026-11-27 19:45').toFormat('HH:mm')).toBe('19:45')
+  })
+})
+
+describe('isCalendarFullWidth', () => {
+  it('is the calendar on top, wide, in its Month', () => {
+    expect(isCalendarFullWidth('calendar', true, 'month')).toBe(true)
+  })
+
+  it('keeps the Week, a narrow widget and every other view at the panel width', () => {
+    expect(isCalendarFullWidth('calendar', true, 'week')).toBe(false)
+    expect(isCalendarFullWidth('calendar', false, 'month')).toBe(false)
+    expect(isCalendarFullWidth('region', true, 'month')).toBe(false)
   })
 })

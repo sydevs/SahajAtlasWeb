@@ -43,6 +43,7 @@ import {
   backStep,
   sameRoute,
   baseStackEntry,
+  isCalendarFullWidth,
   isFilterOverlay,
   isOnline,
   isoCountryCode,
@@ -69,7 +70,7 @@ import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
-import { FilterView } from '@/views/FilterView/FilterView'
+import { FilterView } from '@/views/Filters/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
 import { EventView } from '@/views/EventView/EventView'
@@ -210,10 +211,22 @@ export function DrawerStack() {
   // margins, instead of the 352px left panel (the Drawer `wide` variant). Its Week is one column
   // and keeps the panel, so the map stays in view. `isWide` is here because the wide panel exists
   // only above the crossing (#331).
-  const wide =
-    top?.kind === 'calendar' &&
-    isWide &&
-    calendarViewFromParams(new URLSearchParams(location.search)) === 'month'
+  const wide = isCalendarFullWidth(
+    top?.kind,
+    isWide,
+    calendarViewFromParams(new URLSearchParams(location.search)),
+  )
+  // The filter buttons show beside the map's controls wherever the panel sits beside it, except
+  // under the full-width calendar, which carries them in its own header, and over the filters'
+  // own drawer, which asks the same questions.
+  const filterMenus = isWide && hasMap && !wide && top?.kind !== 'filters'
+  const setFilterMenus = useMapControls((s) => s.setFilterMenus)
+
+  useEffect(() => {
+    setFilterMenus(filterMenus)
+
+    return () => setFilterMenus(false)
+  }, [filterMenus, setFilterMenus])
   // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
   // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes

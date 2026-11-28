@@ -14,7 +14,6 @@ const waysOut = (policy: FallbackPolicy) => ({
   retry: policy.retry,
   onward: policy.onward,
   search: policy.search,
-  clearFilters: policy.clearFilters,
   contact: policy.contact,
   report: policy.report,
 })
@@ -87,7 +86,6 @@ describe('ERROR_POLICY', () => {
     for (const kind of [
       'not-found',
       'empty',
-      'no-results',
       'no-nearby',
       'country-site',
       'unavailable',
@@ -228,12 +226,6 @@ describe('visibleActions', () => {
     expect(
       visibleActions(ERROR_POLICY.unavailable, { canRetry: false, canContact: false }),
     ).toMatchObject({ contact: false, onward: true, report: false })
-  })
-
-  it('drops the clear-filters CTA when no filter set was handed in', () => {
-    expect(
-      visibleActions(ERROR_POLICY['no-results'], { canRetry: false, canClearFilters: false }),
-    ).toMatchObject({ clearFilters: false, report: true })
   })
 
   it('has a policy for whatever any fixture classifies as', () => {

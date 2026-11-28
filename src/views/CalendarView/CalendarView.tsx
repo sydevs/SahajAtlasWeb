@@ -12,12 +12,12 @@ import { Button } from '@/components/atoms/Button'
 import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
 import { CALENDAR_HEADER } from '@/components/organisms/Skeleton/Skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
-import { ActiveFilterPills, ResetErrorBoundary } from '@/components/molecules'
+import { ActiveFilterChips, ResetErrorBoundary } from '@/components/molecules'
 import api, { regionsQuery } from '@/config/api'
 import { regionRoute } from '@/config/api/fetch'
 import { useIsWideWidget } from '@/config/responsive'
 import { useCalendarPosition } from '@/config/store'
-import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
+import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import {
   type CalendarViewName,
@@ -25,6 +25,7 @@ import {
   type EventFilters,
   DEFAULT_FILTERS,
   calendarViewFromParams,
+  isCalendarFullWidth,
   calendarViewToParams,
   calendarWindow,
   cameFrom,
@@ -40,6 +41,7 @@ import { formatDateRange, formatMonth, zoneCity } from '@/lib/time'
 import { BackButton } from '@/views/nav'
 import { DrawerTitle, ExpandSheetButton, FilterButton, useDrawerControl } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
+import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
 
 // The date the Month has in view, or today until the visitor moves it.
 const useFocusedDate = () => useCalendarPosition((s) => s.date) ?? todayISO()
@@ -86,6 +88,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   const dateInputRef = useRef<HTMLInputElement>(null)
   const today = todayISO()
   const isWeek = view === 'week'
+  const fullWidth = isCalendarFullWidth('calendar', useIsWideWidget(), view)
   const month = DateTime.fromISO(focused).startOf('month')
   const label = !isWeek
     ? formatMonth(month, formatLocale)
@@ -125,9 +128,14 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
     <>
       <div className="flex w-full items-center justify-between gap-2">
         <BackButton />
-        <div className="flex shrink-0 items-center gap-1">
-          <FilterButton iconOnly counted={chosen(filters)} />
-        </div>
+        {/* Full width, the calendar covers the map, so its header carries the filter buttons. */}
+        {fullWidth ? (
+          <FilterMenuBar />
+        ) : (
+          <div className="flex shrink-0 items-center gap-1">
+            <FilterButton iconOnly counted={chosen(filters)} />
+          </div>
+        )}
       </div>
       {/* Pulled down to the peek, the way to raise the sheet again, as every other header has. */}
       <ExpandSheetButton />
@@ -210,13 +218,15 @@ export function CalendarView() {
   const [params] = useSearchParams()
   const view = calendarViewFromParams(params)
   const week = calendarWindow(params, todayISO())
+  const fullWidth = isCalendarFullWidth('calendar', useIsWideWidget(), view)
 
   return (
     <>
       <DrawerHeader className={CALENDAR_HEADER}>
         <CalendarHeader view={view} week={week} />
       </DrawerHeader>
-      <ActiveFilterPills filters={chosen(filters)} />
+      {/* Full width, the filter buttons in the header name every answer. */}
+      {!fullWidth && <ActiveFilterChips filters={chosen(filters)} />}
       {/* The body owns the `['calendar', …]` read, so a failed read keeps the working header
           above it rather than escalating to the drawer boundary (#89). `resetKeys` moves it on
           when the filters do (`listResetKey`, lib/shape/path.ts). */}
@@ -244,7 +254,6 @@ function CalendarBody({
   const { locale, formatLocale } = useLocale()
   const isWide = useIsWideWidget()
   const focused = useFocusedDate()
-  const { setFilters } = useSetFilters()
   const setView = useSetCalendarView()
   const today = todayISO()
   // A busy Month day's "+ N classes", or an empty week's next class, opens the Week from it.
@@ -288,7 +297,6 @@ function CalendarBody({
             filtered={hasActiveFilters(chosen(filters))}
             locale={formatLocale}
             week={week}
-            onClearFilters={() => setFilters({ ...DEFAULT_FILTERS, region: filters.region })}
             onWeekFrom={openWeek}
           />
         ) : (

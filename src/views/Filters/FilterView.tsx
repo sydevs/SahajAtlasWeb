@@ -1,33 +1,20 @@
-import { useMemo } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { RecoveryButton } from './RecoveryButton'
 import { WhereFilter } from './WhereFilter'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
-import { SearchFilters } from '@/components/organisms'
+import { RecoveryButton, SearchFilters } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
-import { useEventFilters } from '@/hooks/use-filters'
+import { useSearchFocus } from '@/config/store'
+import { useFilterEditor } from '@/hooks/use-filter-editor'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import {
-  DEFAULT_FILTERS,
-  type EventFilters,
-  type PlaceSearch,
-  filterOriginRegion,
-  filtersToParams,
-  hasActiveFilters,
-  noPlaceSearch,
-  parentOf,
-  parseBounds,
-  parseCenter,
-  placeFiltersPath,
-} from '@/lib/shape'
+import { hasActiveFilters, pageRegion, parentOf, parseBounds, parseCenter } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 
@@ -38,58 +25,15 @@ import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 // shows the matching classes (`backStep`).
 export function FilterView() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const { locale } = useLocale()
   const control = useDrawerControl()
-  const applied = useEventFilters()
-  const originRegion = filterOriginRegion(location.pathname)
-
-  // Opened over a region, the filters are scoped to it without saying so in the URL, so an
-  // untouched `/gb/filters` still reads as nothing chosen and closes back onto `/gb`.
-  const filters = useMemo(
-    () => ({ ...applied, region: applied.region ?? originRegion }),
-    [applied, originRegion],
-  )
+  const { filters, write, pickPlace, clearWhere, clear } = useFilterEditor('drawer')
+  const originRegion = pageRegion(location.pathname)
   const facets = useFilterFacets(filters)
   const count = facets?.counts.total
-
-  // The view beneath. Only the calendar and the search list show filtered classes, so over any
-  // other view a place search moves the filters onto a search.
   const origin = parentOf(location.pathname)
-  const filtersOrigin = origin === '/calendar' || origin === '/search' ? origin : '/search'
-
-  const moveTo = (to: { pathname: string; search: string } | string) =>
-    navigate(to, { replace: true, state: location.state })
-
-  const write = (next: EventFilters) => {
-    const region = next.region === originRegion ? null : next.region
-
-    moveTo({
-      pathname: location.pathname,
-      search: filtersToParams({ ...next, region }, new URLSearchParams(location.search)).toString(),
-    })
-  }
-
-  // A place replaces any region, and the drawer moves over that search.
-  const pickPlace = (place: PlaceSearch) =>
-    moveTo(
-      placeFiltersPath(
-        filtersToParams({ ...filters, region: null }, new URLSearchParams(location.search)),
-        place,
-      ),
-    )
-
-  // Drops the place and the region, and keeps every other answer. Over a region's own page the
-  // drawer moves onto the unscoped search, so the list behind it no longer names that region.
-  const clearWhere = () =>
-    moveTo({
-      pathname: `${filtersOrigin}/filters`,
-      search: noPlaceSearch(
-        filtersToParams({ ...filters, region: null }, new URLSearchParams(location.search)),
-      ),
-    })
 
   // A fresh link to the filters has no view beneath that framed the map, so the filters frame
   // their own place, once.
@@ -111,9 +55,14 @@ export function FilterView() {
     [place],
   )
 
-  // Clear resets the answers, not the Where: the visitor is still looking in the same place.
+  // Only the top view is rendered, so the list's search box takes the focus once it mounts.
+  const requestSearchFocus = useSearchFocus((s) => s.request)
+  const searchInstead = () => {
+    requestSearchFocus()
+    control.dismiss()
+  }
+
   const answered = hasActiveFilters({ ...filters, region: null })
-  const clear = () => write({ ...DEFAULT_FILTERS, region: filters.region })
   const recovery = count === 0 ? facets?.recovery : undefined
   // Nothing matches, and removing any one answer still finds nothing: Clear is the way out.
   const clearLeads = count === 0 && !recovery
@@ -136,10 +85,12 @@ export function FilterView() {
           value={filters}
           where={
             <WhereFilter
+              counts={facets?.counts.format}
               region={filters.region}
               searchable={origin !== '/calendar'}
               onClear={clearWhere}
               onPlace={pickPlace}
+              onSearchInstead={searchInstead}
             />
           }
           onChange={write}

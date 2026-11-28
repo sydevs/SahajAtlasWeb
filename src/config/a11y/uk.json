@@ -18,7 +18,8 @@
     "copy_address": "Копіювати адресу"
   },
   "filters": {
-    "remove": "Вилучити: %{label}"
+    "remove": "Вилучити: %{label}",
+    "search_languages": "Пошук мов"
   },
   "search": {
     "results_showing": "Показано занять: %{shown} з %{total}",

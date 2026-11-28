@@ -70,7 +70,8 @@ const emptied = (region: Region): Region => ({
  *    The bare "Browse all countries" floor only appears when even the guess is absent
  *    (Molecules › Fallbacks shows it).
  *
- * `Empty · filtered` is `Empty` with two days filtered, so the panel offers "Clear all" instead.
+ * `Empty · filtered` is `Empty` with two days filtered, so the list says "No classes match your filters"
+ * and offers the one removal that brings classes back, then Clear filters, as links.
  *
  * `Empty` and the not-found cases render the very same `FallbackPanel`, one policy row apart —
  * which is the point. A barren region gets the same way out as a URL that never existed

@@ -20,6 +20,7 @@ import { useApproxLocation, useCameraHistory, useSearchFocus } from '@/config/st
 import { useWidgetMode } from '@/config/mode'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
+import { useFilterMenusOnMap } from '@/hooks/use-filter-menus'
 import { useLocale } from '@/hooks/use-locale'
 import { useNearMe } from '@/hooks/use-near-me'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -200,9 +201,14 @@ export function FilterButton({
   const applied = useEventFilters()
   const count = activeFilterCount(counted ?? applied)
 
+  const menusShown = useFilterMenusOnMap()
+
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
   const open = () => navigate({ pathname: to, search: location.search })
+
+  // The filter buttons ask the same questions, so this one has nothing left to open.
+  if (menusShown) return null
 
   if (iconOnly) {
     return (
@@ -253,29 +259,39 @@ export function SearchField({
   const { t } = useTranslation()
   const box = useRef<HTMLDivElement>(null)
 
-  // Takes focus when asked to (`useSearchFocus`). The geocoder renders its input a moment after
-  // mounting, so this watches for it rather than waiting a set time, as `Modal`'s first-field
-  // focus does.
+  // Takes focus when asked to (`useSearchFocus`), on mount or while already on screen beside the
+  // filter buttons. The geocoder renders its input a moment after mounting, so this watches for it
+  // rather than waiting a set time, as `Modal`'s first-field focus does. The request is cleared only
+  // once the input has the focus, so the field's own re-render cannot drop it first.
   useEffect(() => {
     const host = box.current
 
-    if (!host || !useSearchFocus.getState().consume()) return
+    if (!host) return
 
+    let watch: MutationObserver | undefined
     const focusInput = () => {
       const input = host.querySelector('input')
 
-      input?.focus({ preventScroll: true })
+      if (!input) return false
+      input.focus({ preventScroll: true })
+      useSearchFocus.getState().consume()
 
-      return input !== null
+      return true
+    }
+    const take = () => {
+      if (!useSearchFocus.getState().requested || focusInput()) return
+      watch?.disconnect()
+      watch = new MutationObserver(() => focusInput() && watch?.disconnect())
+      watch.observe(host, { childList: true, subtree: true })
     }
 
-    if (focusInput()) return
+    take()
+    const unsubscribe = useSearchFocus.subscribe(take)
 
-    const watch = new MutationObserver(() => focusInput() && watch.disconnect())
-
-    watch.observe(host, { childList: true, subtree: true })
-
-    return () => watch.disconnect()
+    return () => {
+      unsubscribe()
+      watch?.disconnect()
+    }
   }, [])
   const navigate = useAtlasNavigate()
   const [searchParams] = useSearchParams()

@@ -36,11 +36,12 @@ vi.mock('@/components/atoms/Drawer', () => ({
   ),
 }))
 vi.mock('@/components/molecules', () => ({
-  ActiveFilterPills: () => null,
+  ActiveFilterChips: () => null,
   FallbackPanel: ({ hasSearchChrome }: { hasSearchChrome?: boolean }) => (
     <i>{hasSearchChrome ? 'panel' : 'panel-with-search-field'}</i>
   ),
 }))
+vi.mock('@/components/organisms', () => ({ NoFilterMatches: () => <i>no-filter-matches</i> }))
 vi.mock('@/views/nav', () => ({
   NavHeader: ({ title, actions }: { title: ReactNode; actions: ReactNode }) => (
     <header>

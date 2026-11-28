@@ -10,7 +10,7 @@ import { IconSvgProps } from '@/types'
 // is that same tint at a lighter content weight. `ghost` is text-only,
 // matching Button's `ghost`. `radius` picks the controls' 8px (`sm`) or pill (`full`)
 // corners. Pass `onClose` to render a trailing remove button, as the
-// active-filter pills do.
+// active-filter chips do.
 const chip = tv({
   slots: {
     base: 'inline-flex max-w-full items-center gap-1',

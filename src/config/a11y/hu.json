@@ -18,7 +18,8 @@
     "copy_address": "Cím másolása"
   },
   "filters": {
-    "remove": "Eltávolítás: %{label}"
+    "remove": "Eltávolítás: %{label}",
+    "search_languages": "Nyelvek keresése"
   },
   "search": {
     "results_showing": "Megjelenítve: %{shown} / %{total} foglalkozás",

@@ -1158,7 +1158,7 @@ elements. On top of that, every selector is still confined to the widget's own s
 fails the build if a rule escapes. Your headings, links, lists, forms, `.container`, a `.dark`
 theme class, and your own Swiper or Mapbox instances are all left alone.
 
-Eight honest exceptions, none of them styling your content:
+Nine honest exceptions, none of them styling your content:
 
 - **One `<script>` is appended to your `<head>`, and it stays there.** `auto.js` is a bridge: it
   adds `<script type="module" src="…/loader.js?…">` to start the loader. That tag carries your own
@@ -1206,6 +1206,12 @@ Eight honest exceptions, none of them styling your content:
   so that a page where registration is impossible says so within about 40 seconds. It is
   `position: fixed`, transparent, unfocusable, hidden from assistive technology, and adds no
   scroll height.
+
+- **While a menu is open inside the widget, an Escape pressed inside the widget is consumed.** The
+  widget listens on your `window` for that one key, so the menu can close without the panel
+  behind it closing too, and it stops the key there. It claims nothing else, and only a key
+  pressed inside the widget's own subtree: an Escape in your own modal, menu or `<dialog>`
+  reaches you untouched, whatever the widget has open at the time.
 
 **The reverse direction is a boundary, not a defence.** The widget renders inside a **shadow
 root**, so a selector in your stylesheet cannot match an element inside it — at any specificity,

@@ -575,6 +575,12 @@ html.sy-atlas {
   z-index: 20;
 }
 
+/* The map is the size container its control corner measures against: the filter menus beside the
+   column cap their width to what the side panel leaves (`FilterMenus`). */
+.mapboxgl-map {
+  container-type: inline-size;
+}
+
 /* Keeps Mapbox's own control column clear of the expanded surface's collapse control.
    Both sit in the top-inline-end corner (`CompactEmbedView`'s `ExpandedDialog`), and map
    mode renders its control column there (`Mapbox/MapControls`). This is unconditional,
@@ -590,8 +596,9 @@ html.sy-atlas {
    top edge, so they are reset; the column's own gap spaces it. On a touch screen it gets the 44px
    tap area every other control has, without growing the 24px button.
    `attribution.test.ts` fails if a mapbox-gl upgrade renames the classes this targets. */
+/* Centred under the 40px buttons above it while closed; open, it grows leftward from there. */
 .sy-map-controls .mapboxgl-ctrl-attrib.mapboxgl-compact {
-  margin: 0;
+  margin: 0 8px 0 0;
   float: none;
 }
 

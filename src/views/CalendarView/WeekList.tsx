@@ -8,6 +8,7 @@ import { DayClasses } from './EntryList'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel } from '@/components/molecules'
+import { NoFilterMatches } from '@/components/organisms'
 import { daysBetween, entriesByDay } from '@/lib/shape'
 import { formatDate } from '@/lib/time'
 
@@ -18,19 +19,11 @@ type WeekListProps = {
   locale: string
   /** Whether filters other than the place and the dates are chosen. */
   filtered: boolean
-  onClearFilters: () => void
   onWeekFrom: (day: string) => void
 }
 
 /** The Week: the seven days on screen, each day's classes under its date. */
-export function WeekList({
-  entries,
-  week,
-  locale,
-  filtered,
-  onClearFilters,
-  onWeekFrom,
-}: WeekListProps) {
+export function WeekList({ entries, week, locale, filtered, onWeekFrom }: WeekListProps) {
   const { t } = useTranslation()
   const byDay = useMemo(() => entriesByDay(entries), [entries])
   const days = daysBetween(week.start, week.end).filter((day) => byDay.has(day))
@@ -39,15 +32,13 @@ export function WeekList({
     // `entriesByDay` keeps the days in order.
     const next = [...byDay.keys()].find((day) => day > week.end)
 
-    // The widget's one empty-state table, as the place pages use it: filters that hid every class
-    // offer to clear them, and a quiet week offers the next class's week.
+    // Filters that hid every class say so as every list does; a quiet week offers the next
+    // class's week.
+    if (filtered) return <NoFilterMatches />
+
     return (
-      <FallbackPanel
-        align="start"
-        kind={filtered ? 'no-results' : 'empty'}
-        onClearFilters={onClearFilters}
-      >
-        {!filtered && next && (
+      <FallbackPanel align="start" kind="empty">
+        {next && (
           <Button color="neutral" variant="flat" onClick={() => onWeekFrom(next)}>
             {t('calendar.next_class', { date: formatDate(DateTime.fromISO(next), locale) })}
           </Button>

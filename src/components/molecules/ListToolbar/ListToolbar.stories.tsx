@@ -22,9 +22,9 @@ const FiltersButton = () => (
 )
 
 /**
- * ListToolbar — the controls row above a results list. It is a
- * `justify-between` flex row. The Filters button sits at the start, and the
- * optional SortMenu sits at the end. On the root Countries list, only the
+ * ListToolbar — the controls row above a results list. The Filters button
+ * sits at the start, and the optional SortMenu (`end`) at the end, even where
+ * the Filters button steps aside. On the root Countries list, only the
  * Filters button shows, since sorting a country index has no meaning. The
  * search results add the SortMenu.
  */
@@ -35,9 +35,8 @@ export const Default: Story = () => (
       title="With sort (search results)"
     >
       <div className="w-full max-w-sm rounded-lg border border-divider">
-        <ListToolbar>
+        <ListToolbar end={<SortMenu />}>
           <FiltersButton />
-          <SortMenu />
         </ListToolbar>
       </div>
     </StorySection>
@@ -50,6 +49,15 @@ export const Default: Story = () => (
         <ListToolbar>
           <FiltersButton />
         </ListToolbar>
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="On a computer the filter buttons take the Filters button's place: Sort keeps the end."
+      title="Sort only (filter buttons showing)"
+    >
+      <div className="w-full max-w-sm rounded-lg border border-divider">
+        <ListToolbar end={<SortMenu />} />
       </div>
     </StorySection>
 

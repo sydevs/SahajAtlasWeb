@@ -80,7 +80,7 @@ const arrayLiterals = (source: string, name: string): string[] => {
 // spec reads would be the wrong trade — so it is read out of its source, the way `WEEK_NUMBERS`
 // reads `use-event-display.ts`. `EVENT_CADENCES`, `TIME_PERIODS` and `SORT_ORDERS` are already
 // exported from `lib/shape`, so those import.
-const filtersSource = readSource('components/organisms/SearchFilters/SearchFilters.tsx')
+const filtersSource = readSource('components/organisms/SearchFilters/filter-blocks.tsx')
 
 const FORMATS = arrayLiterals(filtersSource, 'const FORMAT_OPTIONS[^=]*=')
 const CADENCES = EVENT_CADENCES.map((o) => o.toLowerCase())
@@ -219,10 +219,6 @@ describe('every key a call site asks for', () => {
 const PENDING_KEYS: Record<string, string> = {
   'common.map.close': 'sydevs/SahajAtlasWeb#466',
   'countries.place_title': 'sydevs/SahajAtlasWeb#466',
-  'filters.language.count': 'sydevs/SahajAtlasWeb#542',
-  'filters.when.count': 'sydevs/SahajAtlasWeb#542',
-  'filters.when.label': 'sydevs/SahajAtlasWeb#542',
-  'filters.where.scope': 'sydevs/SahajAtlasWeb#542',
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
 }
 

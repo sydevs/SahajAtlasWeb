@@ -27,7 +27,9 @@ vi.mock('@/hooks/use-locale', () => ({
 vi.mock('@/config/api', () => ({ regionQuery: () => ({ queryKey: ['region'] }) }))
 vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => facets.current }))
 vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
-vi.mock('@/components/organisms', () => ({
+vi.mock('@/components/organisms', async () => ({
+  RecoveryButton: (await import('@/components/organisms/SearchFilters/RecoveryButton'))
+    .RecoveryButton,
   SearchFilters: ({ value }: { value: EventFilters }) => <i>region:{value.region ?? '∅'}</i>,
 }))
 vi.mock('@/views/nav', () => ({ NavHeader: () => null }))
@@ -82,7 +84,7 @@ describe('FilterView — the bottom button', () => {
     expect(markup).not.toContain('filters.chrome.clear')
   })
 
-  it('shows the matching classes beside Clear all once an answer is picked', () => {
+  it('shows the matching classes beside Clear filters once an answer is picked', () => {
     const markup = view('/gb/filters?days=2')
 
     expect(markup).toContain('filters.chrome.show_classes(41)')

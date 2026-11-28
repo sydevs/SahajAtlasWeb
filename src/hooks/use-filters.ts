@@ -37,7 +37,7 @@ export const useFilterSearch = (): string => {
 
 /**
  * These are filter setters. They rewrite the current URL's filter params, while preserving the rest, `q`, `bbox`, and `center`.
- * The results' quick-edit pills use these. `setFilters` commits a whole set.
+ * The results' quick-edit chips use these. `setFilters` commits a whole set.
  * This uses `replace`, so tweaking a filter does not stack a history entry.
  *
  * The results list's reveal resets with any of these, with no reset call here.

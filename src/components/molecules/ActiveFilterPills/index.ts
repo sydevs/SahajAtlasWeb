@@ -1,1 +1,0 @@
-export { ActiveFilterPills } from './ActiveFilterPills'

@@ -11,6 +11,7 @@ import {
   matchesFilters,
   todayISO,
 } from './filters'
+import { isOnline } from './event'
 
 /**
  * What each filter can still do in the current scope: how many classes every option would
@@ -115,6 +116,23 @@ export const bestRecovery = (
 
     return count > (best?.count ?? 0) ? { ...candidate, count } : best
   }, null)
+}
+
+/**
+ * The in-person classes in scope that the filters hide: exactly what clearing them brings back
+ * to the area. Online classes are left out, since they belong to no area.
+ */
+export const hiddenInPerson = (
+  events: readonly FilterableEvent[],
+  filters: EventFilters,
+  today: string = todayISO(),
+): number => {
+  const applied = { ...filters, region: null }
+
+  return events.reduce(
+    (sum, event) => (!isOnline(event) && !matchesFilters(event, applied, today) ? sum + 1 : sum),
+    0,
+  )
 }
 
 export type FacetRelevance = {

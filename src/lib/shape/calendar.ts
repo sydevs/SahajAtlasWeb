@@ -154,6 +154,17 @@ const WEEK_PARAM = 'week'
 export const calendarViewFromParams = (params: URLSearchParams): CalendarViewName =>
   params.get(VIEW_PARAM) === 'week' ? 'week' : 'month'
 
+/**
+ * Whether the calendar on top fills the widget rather than the 352px panel: its Month, above the
+ * wide crossing (#331). Its Week is one column and keeps the panel. The drawer's size and the
+ * calendar's own header row both read this.
+ */
+export const isCalendarFullWidth = (
+  top: string | undefined,
+  isWide: boolean,
+  view: CalendarViewName,
+): boolean => top === 'calendar' && isWide && view === 'month'
+
 /** Writes the view onto `params`: `view=week` and its `week`, or neither for the Month. */
 export const calendarViewToParams = (
   view: CalendarViewName,

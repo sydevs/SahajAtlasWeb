@@ -184,7 +184,7 @@ export const EMPTY = 'Empty'
 
 /**
  * `EMPTY` with filters applied: the list came back empty because of them, so the panel's way
- * out is "Clear all" rather than somewhere else to look. Data too, like `EMPTY` — the story
+ * out is "Clear filters" rather than somewhere else to look. Data too, like `EMPTY` — the story
  * seeds the filters and the emptied list together.
  */
 export const EMPTY_FILTERED = 'Empty · filtered'

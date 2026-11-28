@@ -50,9 +50,8 @@ export function SearchView() {
           carrying them away — the list pages as you scroll, so the one moment Filters
           and Sort matter most is the moment a body-mounted toolbar would be gone. */}
       <DrawerToolbar>
-        <ListToolbar>
+        <ListToolbar end={<SortMenu />}>
           <FilterButton />
-          <SortMenu />
         </ListToolbar>
       </DrawerToolbar>
       <DrawerBody>

@@ -53,7 +53,7 @@ export interface LoadMoreProps {
  * `more` also carries WHICH reveal is on offer. `'more'` pages through the
  * segment on screen. `'farther'` reaches past the distance boundary, into the
  * events beyond it. That second label is the only distance affordance in the
- * list — there is no "< N km" filter pill — so it has to say plainly what it
+ * list — there is no "< N km" filter chip — so it has to say plainly what it
  * does. It signposts that nearby events have run out, rather than that the
  * list simply ended.
  *

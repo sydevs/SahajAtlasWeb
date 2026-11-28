@@ -18,7 +18,8 @@
     "copy_address": "Copia indirizzo"
   },
   "filters": {
-    "remove": "Rimuovi %{label}"
+    "remove": "Rimuovi %{label}",
+    "search_languages": "Cerca lingue"
   },
   "search": {
     "results_showing": "Visualizzati %{shown} corsi su %{total}",
