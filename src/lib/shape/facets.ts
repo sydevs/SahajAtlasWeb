@@ -190,3 +190,14 @@ export const shownGroups = (filters: EventFilters, facets: FilterFacets | undefi
   cadence: filters.cadence !== 'any' || (facets?.relevance.cadence ?? true),
   languages: filters.languages.length > 0 || (facets?.counts.languages.length ?? 0) > 0,
 })
+
+/**
+ * `shownGroups`' Where and Language answers, judged on the scope without counting it, for the
+ * closed filter buttons, which need nothing else: whether the scope mixes online and in-person
+ * classes, and whether any of its classes has a language.
+ */
+export const scopeOffers = (filters: EventFilters, events: readonly FilterableEvent[]) => ({
+  format:
+    filters.format !== 'any' || (events.some(isOnline) && events.some((event) => !isOnline(event))),
+  languages: filters.languages.length > 0 || events.some((event) => event.languages?.length),
+})

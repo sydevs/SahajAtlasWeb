@@ -20,7 +20,7 @@ import {
   type FilterFacets,
   hasActiveFilters,
   isDateRestricted,
-  isOnline,
+  scopeOffers,
 } from '@/lib/shape'
 
 /** The parts of an answer that are set, as one line: "Tue, Wed · Evening". */
@@ -191,13 +191,7 @@ export function FilterMenus({
     whenCount > MAX_NAMED
       ? t('filters.when.count', { count: whenCount })
       : summarize([labels.days, labels.time, labels.cadence, labels.dates])
-  // What the closed buttons need of the scope, judged without counting it (`shownGroups` asks the
-  // same of the counts inside each menu).
-  const hasLanguages =
-    value.languages.length > 0 || Boolean(scope?.some((event) => event.languages?.length))
-  const mixesFormats =
-    value.format !== 'any' ||
-    Boolean(scope?.some(isOnline) && scope.some((event) => !isOnline(event)))
+  const offers = scopeOffers(value, scope ?? [])
 
   // Clear leads a row that ends on the right, in either variant, so its arrival moves nothing
   // already there (a button whose menu is open must not slide out from under the pointer), and in
@@ -233,7 +227,7 @@ export function FilterMenus({
       role="group"
     >
       {clear}
-      {where && (where.always || mixesFormats || value.region) && (
+      {where && (where.always || offers.format || value.region) && (
         <FilterMenu
           filled={where.placeAnswered || value.format !== 'any'}
           label={t('filters.where.label')}
@@ -246,7 +240,7 @@ export function FilterMenus({
       <FilterMenu label={t('filters.when.label')} summary={whenSummary} variant={variant}>
         <MenuBody {...menu} menu="when" />
       </FilterMenu>
-      {hasLanguages && (
+      {offers.languages && (
         <FilterMenu
           label={t('filters.language.label')}
           summary={
