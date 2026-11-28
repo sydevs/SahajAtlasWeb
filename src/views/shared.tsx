@@ -311,20 +311,24 @@ export function SearchField({
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
       const kept = preserveSearchState(searchParams)
+      const ids = geocodeRegionIds(value)
       const region = searchedRegionRoute(
         queryClient.getQueryData(regionsQuery().queryKey),
         queryClient.getQueryData(geojsonQuery().queryKey),
-        geocodeRegionIds(value),
+        ids,
         filtersFromParams(kept),
       )
 
-      if (region) {
-        // Picked from the region's own page, the pick stays put rather than stacking the page on
-        // itself.
-        if (!isCanonicalPath(pathname, region)) navigate(withQuery(region, kept))
+      if (region && !isCanonicalPath(pathname, region.route)) {
+        navigate(withQuery(region.route, kept))
 
         return
       }
+
+      // Picking the place whose page this already is stays put, rather than stacking the page on
+      // itself. A pick that only CLIMBED to this page asked for somewhere narrower, so it falls
+      // through to the search on that point rather than answering with nothing.
+      if (region && region.id === ids[0]) return
 
       navigate(
         // `placeSearchPath` carries the active filters and sort across and

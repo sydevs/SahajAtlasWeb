@@ -761,7 +761,7 @@ describe('getRegion (region-tree derivation)', () => {
     }
     const located = tree.map((node) => ({ ...node, mapboxId: ids[node.slug] ?? null }))
     // Through the real reads, so the tree's parse is shown to keep `mapboxId`.
-    const route = async (candidates: string[], filters?: EventFilters) => {
+    const match = async (candidates: string[], filters?: EventFilters) => {
       mockBackend(countryFeed, located)
       const [regions, geojson] = await Promise.all([
         queryClient.fetchQuery(regionsQuery()),
@@ -770,6 +770,8 @@ describe('getRegion (region-tree derivation)', () => {
 
       return searchedRegionRoute(regions, geojson, candidates, filters)
     }
+    const route = async (candidates: string[], filters?: EventFilters) =>
+      (await match(candidates, filters))?.route
 
     it('opens the first region holding one of the ids', async () => {
       expect(await route(['id-antwerp'])).toBe('/belgium/antwerpen')
@@ -786,6 +788,19 @@ describe('getRegion (region-tree derivation)', () => {
       expect(await route(['id-ghent'], offline)).toBeUndefined()
       // An empty pick still opens the town around it.
       expect(await route(['id-ghent', 'id-antwerp'], offline)).toBe('/belgium/antwerpen')
+    })
+
+    // Without this, the field cannot tell a pick of this very page from one that only climbed to
+    // it, and the second answers with no navigation at all.
+    it('names the id that matched, never the one asked for first', async () => {
+      expect(await match(['id-antwerp'])).toEqual({
+        id: 'id-antwerp',
+        route: '/belgium/antwerpen',
+      })
+      expect(await match(['id-unknown', 'id-antwerp'])).toEqual({
+        id: 'id-antwerp',
+        route: '/belgium/antwerpen',
+      })
     })
 
     it('searches instead while either cache is cold', () => {
