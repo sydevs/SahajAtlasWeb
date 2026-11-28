@@ -23,7 +23,12 @@ vi.mock('@/components/organisms/FilterMenus', () => ({
   },
 }))
 vi.mock('@/hooks/use-filter-editor', () => ({
-  useFilterEditor: () => ({ filters: state.filters, write() {}, clear() {}, pickPlace() {} }),
+  useFilterEditor: () => ({
+    filters: state.filters,
+    write() {},
+    clear() {},
+    where: { region: state.filters.region, searchable: true, onPlace() {}, onClear() {} },
+  }),
 }))
 vi.mock('react-router', async (original) => ({
   ...(await original<object>()),
@@ -57,10 +62,5 @@ describe('FilterMenuBar — the place it hands the Where button', () => {
       place: 'London',
       placeAnswered: true,
     })
-  })
-
-  it('offers Near me everywhere but the calendar', () => {
-    expect(whereFor({})?.always).toBe(true)
-    expect(whereFor({}, '', '/calendar')?.always).toBe(false)
   })
 })

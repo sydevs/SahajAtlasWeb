@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useLocation, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
 
 import { WhereFilter } from './WhereFilter'
 
@@ -26,13 +26,11 @@ const focusSearch = () => {
  */
 export function FilterMenuBar({ variant }: Pick<FilterMenusProps, 'variant'>) {
   const { t } = useLocale()
-  const { filters, write, clear, pickPlace, clearWhere } = useFilterEditor('buttons')
+  const { filters, write, clear, where } = useFilterEditor('buttons')
   const [searchParams] = useSearchParams()
   const center = parseCenter(searchParams.get('center'))
   const nearMe = useNearVisitor(center)
   const { data: regions } = useQuery(regionsQuery())
-  // The calendar does not rank by place, so it has no Near me, and its Where is only a scope.
-  const searchable = useLocation().pathname !== '/calendar'
 
   return (
     <FilterMenus
@@ -45,16 +43,9 @@ export function FilterMenuBar({ variant }: Pick<FilterMenusProps, 'variant'>) {
             : searchedPlaceName(searchParams.get('q'))
           : regions?.find((node) => node.slug === filters.region)?.name,
         placeAnswered: Boolean(center),
-        always: searchable,
+        always: where.searchable,
         menu: (facets) => (
-          <WhereFilter
-            counts={facets?.counts.format}
-            region={filters.region}
-            searchable={searchable}
-            onClear={clearWhere}
-            onPlace={pickPlace}
-            onSearchInstead={focusSearch}
-          />
+          <WhereFilter {...where} counts={facets?.counts.format} onSearchInstead={focusSearch} />
         ),
       }}
       onChange={write}

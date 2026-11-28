@@ -14,7 +14,7 @@ import { useFilterEditor } from '@/hooks/use-filter-editor'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { hasActiveFilters, pageRegion, parentOf, parseBounds, parseCenter } from '@/lib/shape'
+import { hasActiveFilters, pageRegion, parseBounds, parseCenter } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 
@@ -29,11 +29,10 @@ export function FilterView() {
   const [searchParams] = useSearchParams()
   const { locale } = useLocale()
   const control = useDrawerControl()
-  const { filters, write, pickPlace, clearWhere, clear } = useFilterEditor('drawer')
+  const { filters, write, where, clear } = useFilterEditor('drawer')
   const originRegion = pageRegion(location.pathname)
   const facets = useFilterFacets(filters)
   const count = facets?.counts.total
-  const origin = parentOf(location.pathname)
 
   // A fresh link to the filters has no view beneath that framed the map, so the filters frame
   // their own place, once.
@@ -85,11 +84,8 @@ export function FilterView() {
           value={filters}
           where={
             <WhereFilter
+              {...where}
               counts={facets?.counts.format}
-              region={filters.region}
-              searchable={origin !== '/calendar'}
-              onClear={clearWhere}
-              onPlace={pickPlace}
               onSearchInstead={searchInstead}
             />
           }

@@ -97,11 +97,16 @@ export function useFilterEditor(surface: FilterSurface) {
     else write(rest, preserveSearchState(params()))
   }
 
+  // The page the filters narrow: beneath the drawer, or the one the buttons sit on. The calendar
+  // does not rank by place, so it has no Near me, and its Where is only a scope.
+  const page = surface === 'drawer' ? parentOf(location.pathname) : location.pathname
+  const searchable = page !== '/calendar'
+
   return {
     filters,
     write,
-    pickPlace,
-    clearWhere,
+    /** The Where menu's place half, the same on both surfaces (`WhereFilter`). */
+    where: { region: filters.region, searchable, onPlace: pickPlace, onClear: clearWhere },
     /**
      * Clear resets the answers, not the Where: the visitor is still looking in the same place.
      * Results the buttons opened from a place's page go back to it, as if never touched.
