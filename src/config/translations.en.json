@@ -13,7 +13,7 @@
     "see_calendar": "See calendar",
     "see_list": "See list",
     "share_title": "Meditation classes, %{dates}",
-    "times_note": "Times are local to each class. Online classes show your time (%{zone}).",
+    "times_note": "Online class times are in your time zone (%{zone}).",
     "title": "Calendar",
     "view_list": "List",
     "view_month": "Month",
@@ -174,7 +174,7 @@
     "chrome": {
       "any_time": "Any time",
       "apply": "Apply",
-      "clear": "Clear all",
+      "clear": "Clear filters",
       "clear_one": "Clear",
       "no_match": "No classes match",
       "no_results_classes": "No classes match your filters.",

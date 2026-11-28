@@ -1,9 +1,10 @@
 import type { GlobalProvider, GlobalState } from '@ladle/react'
 
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useLayoutEffect, useState } from 'react'
 import { ActionType, ThemeState, useLadleContext } from '@ladle/react'
 import { MemoryRouter } from 'react-router'
 import clsx from 'clsx'
+import { Context as ResponsiveContext } from 'react-responsive'
 import { I18nextProvider } from 'react-i18next'
 
 import { installBackend } from './backend'
@@ -106,21 +107,15 @@ export const Provider: GlobalProvider = ({ children }) => {
     applyTheme(ladleTheme === ThemeState.Dark ? 'dark' : 'light')
   }, [ladleTheme])
 
-  const wrapperRef = useRef<HTMLElement>(null)
+  const [wrapper, setWrapper] = useState<HTMLElement | null>(null)
   const { theme } = useTheme()
 
-  // View stories are full-view drawer pages. Each one owns the whole
-  // canvas through the ViewHarness. So view stories drop the usual
-  // component-preview padding, and fill their width-xsmall frame edge to
-  // edge. The whole widget's story is a host page, so it drops Ladle's own
-  // padding around it too, and fills the main area. Every other tier keeps
-  // the padded gutter.
-  const isView = globalState.story?.startsWith('views--')
+  // Ladle's own gutter is padding on its `main`, outside this wrapper, so in the dark theme it
+  // drew a light frame round every story. The gutter moves inside, onto the wrapper that paints
+  // the theme's background. The whole widget's story is a host page, so it fills the area.
   const isWidget = globalState.story?.startsWith('interactive--')
 
   useEffect(() => {
-    if (!isWidget) return
-
     const root = document.documentElement.style
 
     root.setProperty('--ladle-main-padding', '0')
@@ -130,7 +125,7 @@ export const Provider: GlobalProvider = ({ children }) => {
       root.removeProperty('--ladle-main-padding')
       root.removeProperty('--ladle-main-padding-mobile')
     }
-  }, [isWidget])
+  }, [])
 
   // The brand palette is a first-class Ladle control, in the Controls
   // panel, not a custom <select>. Ladle wipes control state on each
@@ -169,12 +164,25 @@ export const Provider: GlobalProvider = ({ children }) => {
   // applies new ones. So switching back to the default restores the
   // built-in palette on its own.
   useEffect(() => {
-    const el = wrapperRef.current
+    if (wrapper) applyPalette(wrapper, palette, theme)
+  }, [wrapper, palette, theme])
 
-    if (!el) return
+  // The story's own page takes the theme's background, so a dark story scrolled past its first
+  // screen, or framed at a fixed width, never shows the light page behind it.
+  useEffect(() => {
+    if (!wrapper) return
 
-    applyPalette(el, palette, theme)
-  }, [palette, theme])
+    const page = wrapper.ownerDocument
+    const background = getComputedStyle(wrapper).backgroundColor
+
+    page.documentElement.style.backgroundColor = background
+    page.body.style.backgroundColor = background
+
+    return () => {
+      page.documentElement.style.backgroundColor = ''
+      page.body.style.backgroundColor = ''
+    }
+  }, [wrapper, palette, theme])
 
   return (
     <I18nextProvider i18n={storyI18n}>
@@ -192,18 +200,51 @@ export const Provider: GlobalProvider = ({ children }) => {
               everything below it — which left every story light while <html>
               said dark. */}
           <main
-            ref={wrapperRef}
+            ref={setWrapper}
             className={clsx(
               WIDGET_SCOPE_CLASS,
               theme,
               'min-h-screen bg-background text-foreground',
-              !isView && !isWidget && 'p-6',
+              !isWidget && 'p-4 md:p-12',
             )}
           >
-            <BrandPaletteContext.Provider value={palette}>{children}</BrandPaletteContext.Provider>
+            <StoryDevice element={wrapper}>
+              <BrandPaletteContext.Provider value={palette}>
+                {children}
+              </BrandPaletteContext.Provider>
+            </StoryDevice>
           </main>
         </Providers>
       </MemoryRouter>
     </I18nextProvider>
   )
+}
+
+/**
+ * At a fixed story width Ladle renders the story into an iframe from this same script, so
+ * `window` and its media queries are still the outer page's, and a phone-sized story laid out as a
+ * desktop. Every width question in the app goes through react-responsive (`config/responsive.ts`),
+ * which answers from this context's size instead when one is given: the story's own window.
+ */
+function StoryDevice({ element, children }: { element: HTMLElement | null; children: ReactNode }) {
+  const [device, setDevice] = useState<{ width: number; height: number }>()
+
+  useLayoutEffect(() => {
+    const frame = element?.ownerDocument.defaultView
+
+    if (!frame || frame === window) {
+      setDevice(undefined)
+
+      return
+    }
+
+    const measure = () => setDevice({ width: frame.innerWidth, height: frame.innerHeight })
+
+    measure()
+    frame.addEventListener('resize', measure)
+
+    return () => frame.removeEventListener('resize', measure)
+  }, [element])
+
+  return <ResponsiveContext.Provider value={device}>{children}</ResponsiveContext.Provider>
 }

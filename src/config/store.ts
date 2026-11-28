@@ -1,5 +1,4 @@
 import type { ApproxLocation } from '@/lib/approx-location'
-import type { CalendarViewOption } from '@/lib/shape'
 import type { Feature } from 'geojson'
 
 import { create } from 'zustand'
@@ -183,26 +182,17 @@ export const useCameraSettled = create<CameraSettled>((set) => ({
 
 // ===== CALENDAR POSITION ===== //
 
-// This holds the full-width `CalendarView`'s last view — one of the three the switch offers, never the `month-agenda` a width collapses onto — plus its focused date.
-// The store keeps this so applying a filter, which remounts the filters-keyed grid, does not reset Schedule-X to today's month grid.
-// Opening an event and coming back also does not reset it.
-// This state is session-scoped and clears on reload.
-// The grid SEEDS from this store once at mount, through `getState`.
-// It then writes both fields imperatively as the user navigates.
-// So a write never re-renders the calendar.
-// `DrawerStack` also reads `view` reactively, through a selector, to size the drawer — the wide panel exists only above the width crossing, and the list view never takes it (#331).
-// `date` is only ever read through `getState`, so its frequent writes stay render-free.
+// This holds the day the calendar's Month has in view: its month, and on a phone the day whose
+// classes it lists. The store keeps it so applying a filter or opening a class and coming back
+// does not reset the Month to today. The view itself lives in the URL (`?view=week`), with the
+// Week's dates. This state is session-scoped and clears on reload.
 type CalendarPositionState = {
-  view: CalendarViewOption | null
   date: string | null
-  setView: (view: CalendarViewOption) => void
   setDate: (date: string) => void
 }
 
 export const useCalendarPosition = create<CalendarPositionState>((set) => ({
-  view: null,
   date: null,
-  setView: (view) => set(() => ({ view })),
   setDate: (date) => set(() => ({ date })),
 }))
 

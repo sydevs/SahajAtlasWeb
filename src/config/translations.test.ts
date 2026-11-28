@@ -217,17 +217,6 @@ describe('every key a call site asks for', () => {
  * Delete an entry in the PR that wires it: the pin below fails until you do.
  */
 const PENDING_KEYS: Record<string, string> = {
-  'calendar.clear_filters': 'sydevs/SahajAtlasWeb#538',
-  'calendar.day_count': 'sydevs/SahajAtlasWeb#538',
-  'calendar.more': 'sydevs/SahajAtlasWeb#538',
-  'calendar.next_7_days': 'sydevs/SahajAtlasWeb#538',
-  'calendar.next_class': 'sydevs/SahajAtlasWeb#538',
-  'calendar.none': 'sydevs/SahajAtlasWeb#538',
-  'calendar.none_in_window': 'sydevs/SahajAtlasWeb#538',
-  'calendar.none_match_filters': 'sydevs/SahajAtlasWeb#538',
-  'calendar.see_calendar': 'sydevs/SahajAtlasWeb#538',
-  'calendar.see_list': 'sydevs/SahajAtlasWeb#538',
-  'calendar.share_title': 'sydevs/SahajAtlasWeb#538',
   'common.map.close': 'sydevs/SahajAtlasWeb#466',
   'countries.place_title': 'sydevs/SahajAtlasWeb#466',
   'filters.language.count': 'sydevs/SahajAtlasWeb#542',
@@ -248,6 +237,12 @@ const PENDING_KEYS: Record<string, string> = {
  * Delete an entry in the sync PR that drops the key: the pin below fails until you do.
  */
 const RETIRING_KEYS: Record<string, string> = {
+  'calendar.see_calendar': 'sydevs/SahajAtlasWeb#538',
+  'calendar.see_list': 'sydevs/SahajAtlasWeb#538',
+  'calendar.share_title': 'sydevs/SahajAtlasWeb#538',
+  'calendar.none_in_window': 'sydevs/SahajAtlasWeb#538',
+  'calendar.none_match_filters': 'sydevs/SahajAtlasWeb#538',
+  'calendar.clear_filters': 'sydevs/SahajAtlasWeb#538',
   'filters.chrome.apply': 'sydevs/SahajCloud#1293',
   'registration.form.okay': 'sydevs/SahajCloud#1294',
   'registration.form.show_more_dates': 'sydevs/SahajCloud#1282',

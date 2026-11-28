@@ -205,20 +205,21 @@ export function SkeletonHeader({
   )
 }
 
-/** The calendar's own header row (CalendarView's controls): Back, the view switch, then the date
- *  between its arrows and Filters, which wrap to a second line where the drawer is narrow. */
+/** The calendar's own header (CalendarView's): Back and Filters, the place's name, then the view
+ *  switch beside the date between its arrows. */
 export function SkeletonCalendarControls() {
   return (
     <>
-      <SkeletonGroup className="flex h-8 w-40 items-center">
-        <SkeletonLine className="text-sm" width="w-full" />
+      <SkeletonGroup className="flex h-8 w-full items-center justify-between">
+        <SkeletonLine className="text-sm" width="w-36" />
+        <SkeletonBlock className="h-5 w-5 rounded-full" />
       </SkeletonGroup>
-      <SkeletonGroup>
-        <SkeletonBlock className="h-8 w-32" />
+      <SkeletonGroup className="w-full">
+        <SkeletonLine className="text-xl" width="w-1/2" />
       </SkeletonGroup>
-      <SkeletonGroup className="flex flex-wrap items-center gap-2">
-        <SkeletonBlock className="h-8 w-44" />
-        <SkeletonBlock className="h-8 w-24" />
+      <SkeletonGroup className="flex w-full flex-wrap items-center gap-2">
+        <SkeletonBlock className="h-8 w-36 pointer-coarse:h-11" />
+        <SkeletonBlock className="h-8 w-44 pointer-coarse:h-11" />
       </SkeletonGroup>
     </>
   )

@@ -31,7 +31,7 @@
  *   3. no request to a third-party font CDN survives (a Raleway `@import`
  *      once disclosed every visitor's IP address to Google — LG München I
  *      3 O 17493/20),
- *   4. no `rem` length ships outside the calendar's chunk — a `rem`
+ *   4. no `rem` length ships in any sheet — a `rem`
  *      resolves against the HOST's root font size, so the reverse
  *      direction leaks too: `html { font-size: 62.5% }` shrank the side
  *      panel to 220px while the map still padded for 352 (#238),
@@ -165,12 +165,6 @@ const ALLOWED_PROPERTY = /^--tw-[a-z0-9-]+$/
 // two copies equal. A registration this misses is one the document never gets.
 const PROPERTY_RULE = /@property\s+--[\w-]+\s*\{[^}]*\}/g
 
-// Schedule-X's theme is the one sheet allowed `rem`: third-party, pinned,
-// and injected only by the lazy calendar chunk. Its rem lengths also prove
-// the detector below still matches the minifier's output — finding none
-// there fails the gate, rather than letting every other sheet pass blind.
-const REM_EXEMPT_CHUNK = /(^|[\\/])CalendarView-[\w-]+\.js$/
-
 // Declarations only: a media query's `rem` is the browser's initial font
 // size, which no stylesheet can change. A sign is allowed, an identifier
 // (`--x-2rem`) is not.
@@ -183,7 +177,6 @@ const REM_LENGTH = /(?<![\w.-])-?(?:\d*\.)?\d+rem\b/i
 // `ALLOWED_PROPERTY` already follow.
 const RUNTIME_SET_PROPERTY = new RegExp(
   [
-    '^--sx-', // Schedule-X — event-modal position, draw-plugin spacer
     '^--radix-', // Radix UI — trigger width, measured when the surface opens
   ].join('|'),
 )
@@ -403,43 +396,20 @@ export function propertyFailures(root, css) {
 }
 
 /**
- * Check 4's verdict, over every injection in the build.
- *
- * The exemption belongs to a FILE, so this is checked per injection, not per
- * unique sheet: an identical copy injected from another chunk must not ride
- * on the calendar's pass.
+ * Check 4's verdict, over every injection in the build: no sheet ships a `rem`.
  *
  * @param {{ file: string, rem: string[] }[]} injections Each with what `remLengths` found
  *   in its sheet.
  * @returns {string[]}
  */
 export function remFailures(injections) {
-  const failures = []
-  let calendarRem = 0
-
-  for (const { file, rem } of injections) {
-    if (REM_EXEMPT_CHUNK.test(file)) {
-      calendarRem += rem.length
-      continue
-    }
-
-    if (rem.length > 0) {
-      failures.push(
-        `${file}: ${rem.length} rem length(s) — a host's root font size rescales them, so write px ` +
-          `(1rem = 16px). If this is the calendar's chunk under a new name, update REM_EXEMPT_CHUNK.\n  ` +
-          rem.slice(0, 5).join('\n  '),
-      )
-    }
-  }
-
-  if (calendarRem === 0) {
-    failures.push(
-      'found no rem in the calendar chunk — either REM_EXEMPT_CHUNK names no file any more, or the ' +
-        'rem detector stopped matching the emitted CSS and checked nothing',
+  return injections
+    .filter(({ rem }) => rem.length > 0)
+    .map(
+      ({ file, rem }) =>
+        `${file}: ${rem.length} rem length(s) — a host's root font size rescales them, so write ` +
+        `px (1rem = 16px).\n  ${rem.slice(0, 5).join('\n  ')}`,
     )
-  }
-
-  return failures
 }
 
 /**
@@ -595,6 +565,12 @@ export function auditBuild(files, read, fail) {
     fail(failure)
   }
 
+  // No sheet carries a `rem`, so finding none is also what a detector the minifier had outgrown
+  // would report. It must still find the one in a declaration written the way the build writes it.
+  if (remLengths(postcss.parse(':where(.sy-atlas) .x{width:1rem}')).length !== 1) {
+    fail('the rem detector found no rem in `width:1rem` — it no longer reads the emitted CSS')
+  }
+
   // Tailwind 4 registers these for every composed utility in the sheet, so
   // none at all means the walk stopped matching, not that the sheet stopped
   // registering. Without this the check above would pass vacuously.
@@ -627,7 +603,7 @@ function main() {
   console.log(
     `✓ assert-css-scoped: ${rules} rules across ${sheets} injected stylesheet(s) confined to .${WIDGET_SCOPE}, ` +
       `${properties} @property registration(s) allowlisted, ${varRefs} var() reference(s) resolved, ` +
-      `with no rem outside the calendar chunk`,
+      `with no rem in any sheet`,
   )
 }
 

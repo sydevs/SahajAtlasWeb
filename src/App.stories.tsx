@@ -26,7 +26,8 @@ export const Default: Story<{ map: boolean }> = ({ map }) => {
         {/* The host's own `h1` is why the widget's heading is an `h2`. */}
         <h1 className="text-2xl font-semibold">Meditate with us</h1>
         <p className="text-gray-11">The host page&apos;s own copy, above the widget.</p>
-        <div className="h-[640px] overflow-clip rounded-2xl bg-background">
+        {/* Short of the preview window, so a phone-sized story shows the whole embed and its sheet. */}
+        <div className="h-[min(640px,75dvh)] overflow-clip rounded-2xl bg-background">
           <App key={String(hasMap)} contained apiKey={SAHAJCLOUD_API_KEY} hasMap={hasMap} />
         </div>
         <p className="text-gray-11">And more of it below, so the page scrolls past the widget.</p>

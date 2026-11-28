@@ -34,10 +34,12 @@ import {
   shouldShowGeolocationPrompt,
 } from '@/lib/geolocation'
 import {
+  type EventFilters,
   activeFilterCount,
   ancestorSlugs,
   atlasDepth,
   calendarPath,
+  cameFrom,
   placeSearchPath,
   resolvePath,
   topViewKey,
@@ -132,23 +134,29 @@ export const HEADER_CONTROL = { variant: 'ghost', isIconOnly: true, size: 'sm' }
 // with the tap area whole.
 export const HEADER_EDGE = 'last:-me-1.5 pointer-coarse:last:-me-3'
 
-// The calendar affordance for region headers (RegionView): opens the full-width
-// calendar pre-scoped to this region (`/calendar?region=<slug>`, pre-setting the
-// Region filter). This uses the same header-control chrome as the other header controls,
-// so the header reads as one set of buttons.
+/**
+ * "Calendar" on a place page: the calendar scoped to that place. Where the page was opened
+ * from that calendar, this steps back to it, so flipping between the two never piles up entries
+ * behind Back.
+ */
 export function CalendarButton({ regionSlug }: { regionSlug: string }) {
   // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
+  const location = useLocation()
+  const { dismiss } = useDrawerControl()
+  const to = calendarPath(regionSlug)
 
   return (
     <Button
-      {...HEADER_CONTROL}
-      aria-label={t('calendar.title')}
-      className={HEADER_EDGE}
-      onClick={() => navigate(calendarPath(regionSlug))}
+      className="shrink-0"
+      color="primary"
+      size="sm"
+      variant="flat"
+      onClick={() => (cameFrom(location, to) ? dismiss() : navigate(to))}
     >
-      <CalendarDays size={20} />
+      <CalendarDays aria-hidden size={18} />
+      {t('calendar.title')}
     </Button>
   )
 }
@@ -177,12 +185,20 @@ export function ExpandSheetButton() {
 // (SearchView), and — with `iconOnly` — an icon-only header control carrying the
 // active count as a badge (CountriesView's header), so it reads as one set with
 // the other header controls.
-export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
+export function FilterButton({
+  iconOnly = false,
+  counted,
+}: {
+  iconOnly?: boolean
+  /** What the badge counts, where the view names some filters itself (the calendar's place). */
+  counted?: EventFilters
+}) {
   // Renders in the fallback chrome too, so it must not suspend (see `HEADER_CONTROL`).
   const { t } = useTranslation()
   const navigate = useAtlasNavigate()
   const location = useLocation()
-  const count = activeFilterCount(useEventFilters())
+  const applied = useEventFilters()
+  const count = activeFilterCount(counted ?? applied)
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`

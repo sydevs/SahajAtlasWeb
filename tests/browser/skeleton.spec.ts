@@ -48,7 +48,8 @@ const shape = (page: Page) =>
       ...from(panel.top, el),
     }))
     const bodyTop = body.getBoundingClientRect().top
-    const rows = [...body.querySelectorAll('li')].filter(visible).slice(0, 2)
+    // A Month day's classes are a list inside a grid cell, not a row of the panel's own list.
+    const rows = [...body.querySelectorAll('li:not(table li)')].filter(visible).slice(0, 2)
 
     return { bands, rows: rows.map((row) => from(bodyTop, row)) }
   })

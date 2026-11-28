@@ -100,16 +100,16 @@ export const wallClock = (hour: number): DateTime => DateTime.utc(2000, 1, 1, ho
 /**
  * A date the way the class page writes it: "Wed 11 Nov" on a UK browser, "Wed, Nov 11" on a US
  * one. `weekday: false` drops the day name where the words around it already say it ("Started 8
- * Jul"). The year joins only when it is not this year's, so a series that began in 2022 does not
+ * Jul"), and `'long'` writes it in full for a heading ("Thursday 12 Nov"). The year joins only when it is not this year's, so a series that began in 2022 does not
  * pass for this December.
  */
 export function formatDate(
   at: DateTime,
   locale: string,
-  { weekday = true }: { weekday?: boolean } = {},
+  { weekday = 'short' }: { weekday?: 'short' | 'long' | false } = {},
 ): string {
   return at.setLocale(locale).toLocaleString({
-    weekday: weekday ? 'short' : undefined,
+    weekday: weekday || undefined,
     day: 'numeric',
     month: 'short',
     year: at.year === DateTime.now().setZone(at.zone).year ? undefined : 'numeric',
@@ -124,6 +124,24 @@ export const formatLongDate = (at: DateTime, locale: string): string =>
     month: 'long',
     year: at.year === DateTime.now().setZone(at.zone).year ? undefined : 'numeric',
   })
+
+/**
+ * Two dates as one span, the way the locale joins them: "16 – 22 Nov" in the UK, "Nov 16 – 22" in
+ * the US, with the month or year written twice only where they differ.
+ */
+export const formatDateRange = (start: DateTime, end: DateTime, locale: string): string =>
+  new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: end.year === DateTime.now().setZone(end.zone).year ? undefined : 'numeric',
+    timeZone: 'UTC',
+  }).formatRange(
+    new Date(Date.UTC(start.year, start.month - 1, start.day)),
+    new Date(Date.UTC(end.year, end.month - 1, end.day)),
+  )
+
+/** The weekday a locale's weeks start on, as Luxon numbers them: 1 for Monday, 7 for Sunday. */
+export const firstWeekday = (locale: string): number => Info.getStartOfWeek({ locale })
 
 /** A weekday's name: "Wednesday", or "Wed" when `short`. */
 export const formatWeekday = (
