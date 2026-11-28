@@ -27,21 +27,6 @@ export type PositionSource = (answer: PositionAnswer) => void
  */
 export type Locator = ReturnType<typeof createLocator>
 
-type LocatorApi = {
-  /**
-   * One request at a time: an ask while one is out shares its answer, so two controls never
-   * start two permission prompts. Rejects on refusal, timeout, or a page with no geolocation.
-   */
-  request: () => Promise<GeolocationPosition>
-  /** A fix nobody asked for — Mapbox answering after the request had failed. */
-  fix: (position: GeolocationPosition) => void
-  /** The map registers its control while mounted, and `null` on the way out. */
-  setSource: (source: PositionSource | null) => void
-  getPhase: () => LocatePhase
-  /** The id of the request now out, or of the last one (`LocateContext.requestId`). */
-  getRequestId: () => number
-}
-
 const devicePosition: PositionSource = ({ resolve, reject }) => {
   if (!navigator.geolocation) return reject()
 
@@ -64,9 +49,12 @@ export function createLocator() {
     }),
   ).start()
 
-  const phase = () => actor.getSnapshot().value as LocatePhase
-
-  const locator: LocatorApi = {
+  return {
+    actor,
+    /**
+     * One request at a time: an ask while one is out shares its answer, so two controls never
+     * start two permission prompts. Rejects on refusal, timeout, or a page with no geolocation.
+     */
     request() {
       // The machine ignores `request` while one is out, so a second ask waits on the first.
       actor.send({ type: 'request' })
@@ -77,17 +65,18 @@ export function createLocator() {
           : Promise.reject(snapshot.context.error),
       )
     },
-    fix(position) {
+    /** A fix nobody asked for — Mapbox answering after the request had failed. */
+    fix(position: GeolocationPosition) {
       actor.send({ type: 'fix', position })
     },
-    setSource(next) {
+    /** The map registers its control while mounted, and `null` on the way out. */
+    setSource(next: PositionSource | null) {
       source = next
     },
-    getPhase: phase,
+    getPhase: () => actor.getSnapshot().value,
+    /** The id of the request now out, or of the last one (`LocateContext.requestId`). */
     getRequestId: () => actor.getSnapshot().context.requestId,
   }
-
-  return { ...locator, actor }
 }
 
 const LocatorContext = createContext<Locator | null>(null)
@@ -111,7 +100,7 @@ export const useLocator = (): Locator =>
 /** The shared request's phase, and which request it belongs to. */
 export function useLocateState(): { phase: LocatePhase; requestId: number } {
   const { actor } = useLocator()
-  const phase = useActorSelector(actor, (snapshot) => snapshot.value as LocatePhase, 'idle')
+  const phase = useActorSelector(actor, (snapshot) => snapshot.value, 'idle')
   const requestId = useActorSelector(actor, (snapshot) => snapshot.context.requestId, 0)
 
   return { phase, requestId }
