@@ -130,6 +130,28 @@ describe('useTurnstile', () => {
     expect(hook.status).toBe('ready')
   })
 
+  it('hands a token to one submit only, until a reset', async () => {
+    await mount()
+    fromFrame({ type: 'ready' })
+    fromFrame({ type: 'token', token: 'tok-1' })
+
+    let first: string | null = null
+    let second: string | null = 'unread'
+
+    act(() => {
+      first = hook.take()
+      second = hook.take()
+    })
+
+    expect(first).toBe('tok-1')
+    expect(second).toBeNull()
+    expect(hook.token).toBe('tok-1')
+
+    act(() => hook.reset())
+    expect(hook.token).toBeNull()
+    expect(hook.take()).toBeNull()
+  })
+
   it('keeps the frame collapsed until the challenge needs the visitor', async () => {
     await mount()
     fromFrame({ type: 'ready' })

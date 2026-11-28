@@ -14,8 +14,11 @@ export type ChallengeMessage =
   | { type: 'error' }
   | { type: 'token'; token: string }
 
-/** The frame's messages, plus `reset`: the owner asking the frame to run the challenge again. */
-export type ChallengeEvent = ChallengeMessage | { type: 'reset' }
+/**
+ * The frame's messages, plus the owner's two: `reset`, asking the frame to run the challenge
+ * again, and `spend`, taking the token for one submit.
+ */
+export type ChallengeEvent = ChallengeMessage | { type: 'reset' } | { type: 'spend' }
 
 /**
  * `loading` until the challenge renders, `blocked` when Turnstile is unavailable. A caller must
@@ -39,12 +42,13 @@ export const HANDSHAKE_TIMEOUT_MS = 20_000
  * - `unsolved`: Turnstile is running and has not asked for anything.
  * - `needsClick`: Cloudflare wants a click, so the frame is shown.
  * - `solved`: holding a token. `shown` while the frame that asked for the click is still on screen,
- *   until `settled` collapses it.
+ *   until `settled` collapses it. `spent` once a submit has taken it: a token is single-use, so a
+ *   second submit sent in the same tick finds none to take, and the owner resets after a failure.
  * - `blocked`: errored or silent. ⚠ It must NOT latch: Turnstile's `retry` defaults to `auto`, so a
  *   transient failure is often followed by a retry that solves, and a latched `blocked` would leave
  *   a visitor holding a valid token behind the mailto escape.
  *
- * Only `solved` holds a token: every other state enters with none.
+ * Only `solved` holds a token, and leaving it drops the token.
  */
 export const challengeMachine = setup({
   types: {} as { context: { token: string | null }; events: ChallengeEvent },
@@ -67,11 +71,9 @@ export const challengeMachine = setup({
       on: { ready: 'unsolved', expired: 'unsolved', interactive: 'needsClick' },
     },
     unsolved: {
-      entry: 'dropToken',
       on: { interactive: 'needsClick' },
     },
     needsClick: {
-      entry: 'dropToken',
       on: {
         settled: 'unsolved',
         token: { target: 'solved.shown', actions: 'takeToken' },
@@ -80,14 +82,15 @@ export const challengeMachine = setup({
     },
     solved: {
       initial: 'collapsed',
+      exit: 'dropToken',
       on: { expired: 'unsolved', reset: 'unsolved' },
       states: {
-        shown: { on: { settled: 'collapsed' } },
-        collapsed: {},
+        shown: { on: { settled: 'collapsed', spend: 'spent' } },
+        collapsed: { on: { spend: 'spent' } },
+        spent: {},
       },
     },
     blocked: {
-      entry: 'dropToken',
       // A challenge that errored can still recover by itself, as above.
       on: { ready: 'unsolved', interactive: 'needsClick' },
     },
@@ -97,9 +100,9 @@ export const challengeMachine = setup({
 export type ChallengeActor = ActorRefFrom<typeof challengeMachine>
 export type ChallengeSnapshot = SnapshotFrom<typeof challengeMachine>
 
-export type ChallengeView = {
+type ChallengeView = {
   status: TurnstileStatus
-  /** The solved token, or null while unsolved, expired or reset. */
+  /** The solved token — spent or not — or null while unsolved, expired or reset. */
   token: string | null
   /** Cloudflare is waiting on the visitor's click. */
   needsClick: boolean

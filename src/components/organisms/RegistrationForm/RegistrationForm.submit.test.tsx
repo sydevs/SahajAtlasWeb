@@ -6,7 +6,12 @@
 // and its refusal re-cast stay inside the system under test.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
+import {
+  QueryClient,
+  QueryClientProvider,
+  notifyManager,
+  onlineManager,
+} from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegistrationForm } from './RegistrationForm'
@@ -32,6 +37,11 @@ vi.mock('react-i18next', () => ({
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
   }),
 }))
+
+// ⚠ React Query publishes a settled mutation from a 0ms timer, which async `act` sometimes runs
+// and sometimes does not (`docs/testing.md`, the Radix focus-restore race), so a read of the
+// failure screen passed at random. A microtask lands inside the submit's `act` every time.
+notifyManager.setScheduler(queueMicrotask)
 
 let container: HTMLDivElement
 // The challenge page, not our hook: the real `useTurnstile` frames that page and takes its

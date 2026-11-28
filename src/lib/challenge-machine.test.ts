@@ -152,6 +152,27 @@ describe('challengeMachine', () => {
       [ev('expired')],
       { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
     ],
+    [
+      'a submit spends the token, and the frame collapses',
+      [ev('ready'), ev('interactive'), token(), ev('spend')],
+      {
+        state: { solved: 'spent' },
+        status: 'ready',
+        token: 'tok-1',
+        needsClick: false,
+        frameShown: false,
+      },
+    ],
+    [
+      'a reset after a spend drops the token',
+      [ev('ready'), token(), ev('spend'), ev('reset')],
+      { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
+    ],
+    [
+      'nothing to spend before a token',
+      [ev('ready'), ev('spend')],
+      { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
+    ],
   ])('%s', (_label, events, expected) => {
     expect(after(...events)).toEqual(expected)
   })

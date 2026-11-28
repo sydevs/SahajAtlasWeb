@@ -1,27 +1,18 @@
-import {
-  type RefObject,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react'
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
 import { createActor } from 'xstate'
 
+import { useActorSelector } from '@/hooks/use-actor-selector'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import {
   type ChallengeActor,
   type ChallengeMessage,
-  type ChallengeSnapshot,
   HANDSHAKE_TIMEOUT_MS,
   UNMOUNTED_CHALLENGE,
   challengeMachine,
   type TurnstileStatus,
   challengeView,
 } from '@/lib/challenge-machine'
-
-export type { TurnstileStatus }
 
 // Turnstile rendered explicitly, hand-rolled rather than through `@marsidev/react-turnstile`
 // (#79): this bundle ships on host pages we do not control, so a dependency is weight.
@@ -48,7 +39,7 @@ const CHALLENGE_PATH = '/api/atlas/challenge'
  */
 const CHALLENGE_CHANNEL = 'sahaj-atlas-turnstile'
 
-function readChallengeEvent(data: unknown): ChallengeMessage | null {
+function readChallengeMessage(data: unknown): ChallengeMessage | null {
   if (typeof data !== 'object' || data === null) return null
 
   const { channel, type, token } = data as Record<string, unknown>
@@ -177,7 +168,7 @@ function createChallengeFrame(
     if (!frame.contentWindow || event.source !== frame.contentWindow) return
     if (event.origin !== url.origin) return
 
-    const message = readChallengeEvent(event.data)
+    const message = readChallengeMessage(event.data)
 
     if (!message) return
 
@@ -254,8 +245,17 @@ export async function probeTurnstile(): Promise<boolean> {
 export type UseTurnstile = {
   /** Attach to the element the challenge frame is appended to. */
   challengeRef: RefObject<HTMLDivElement | null>
-  /** The solved token, or null while unsolved or expired. */
+  /**
+   * The solved token, or null while unsolved or expired. What gates a submit button: a submit
+   * itself sends what `take` hands it.
+   */
   token: string | null
+  /**
+   * The token for one submit, or `null` when there is none to take — unsolved, or already taken
+   * by a submit sent in the same tick, which would otherwise send one single-use token twice.
+   * Read off the machine, not the render, so two submits from one render's closure get one.
+   */
+  take: () => string | null
   status: TurnstileStatus
   /** Cloudflare is waiting on the visitor's click, in the frame now shown. */
   needsClick: boolean
@@ -286,17 +286,7 @@ export function useTurnstile(): UseTurnstile {
   const { theme } = useTheme()
   const { languageCode } = useLocale()
   const [attempt, setAttempt] = useState(0)
-
-  const subscribe = useCallback(
-    (onChange: () => void) => {
-      const subscription = actor?.subscribe(onChange)
-
-      return () => subscription?.unsubscribe()
-    },
-    [actor],
-  )
-  const readSnapshot = (): ChallengeSnapshot | null => actor?.getSnapshot() ?? null
-  const snapshot = useSyncExternalStore(subscribe, readSnapshot, () => null)
+  const snapshot = useActorSelector(actor, (next) => next, null)
   const view = snapshot ? challengeView(snapshot) : UNMOUNTED_CHALLENGE
 
   // Re-mounting on a theme or language change is deliberate: Turnstile bakes both in at render
@@ -313,19 +303,16 @@ export function useTurnstile(): UseTurnstile {
     )
 
     // The frame takes room only while the machine says the visitor should see it.
-    let shown: boolean | null = null
-    const place = (next: ChallengeSnapshot) => {
-      const { frameShown } = challengeView(next)
+    const place = () => {
+      const { frameShown } = challengeView(machine.getSnapshot())
 
-      if (frameShown === shown) return
-      shown = frameShown
       collapseFrame(frame, !frameShown)
       collapseSlot(slot, !frameShown)
     }
     const placement = machine.subscribe(place)
 
     machine.start()
-    place(machine.getSnapshot())
+    place()
     live.current = { frame, origin, actor: machine }
     slot.appendChild(frame)
     setActor(machine)
@@ -335,6 +322,8 @@ export function useTurnstile(): UseTurnstile {
       machine.stop()
       dispose()
       live.current = null
+      // A stopped machine's last snapshot would hand out its token until the next one mounts.
+      setActor(null)
     }
   }, [attempt, theme, languageCode])
 
@@ -356,9 +345,21 @@ export function useTurnstile(): UseTurnstile {
     )
   }, [retry])
 
+  const take = useCallback(() => {
+    const machine = live.current?.actor
+    const current = machine?.getSnapshot()
+
+    if (!machine || !current?.can({ type: 'spend' })) return null
+
+    machine.send({ type: 'spend' })
+
+    return current.context.token
+  }, [])
+
   return {
     challengeRef,
     token: view.token,
+    take,
     status: view.status,
     needsClick: view.needsClick,
     reset,

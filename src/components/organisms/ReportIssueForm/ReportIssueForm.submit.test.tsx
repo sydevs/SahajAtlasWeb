@@ -15,7 +15,12 @@
 // thank-you screen is a resolved POST.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
+import {
+  QueryClient,
+  QueryClientProvider,
+  notifyManager,
+  onlineManager,
+} from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ReportIssueForm } from './ReportIssueForm'
@@ -60,6 +65,11 @@ const context: ReportContext = {
   locale: 'en',
   userAgent: 'TestAgent/1.0',
 }
+
+// ⚠ React Query publishes a settled mutation from a 0ms timer, which async `act` sometimes runs
+// and sometimes does not (`docs/testing.md`, the Radix focus-restore race), so a read of the
+// failure screen passed at random. A microtask lands inside the submit's `act` every time.
+notifyManager.setScheduler(queueMicrotask)
 
 let container: HTMLDivElement
 // This stands in for the challenge PAGE, rather than for OUR hook. The real `useTurnstile`
@@ -125,10 +135,6 @@ async function submit() {
   await act(async () => {
     form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
   })
-  // ⚠ React Query publishes a settled mutation from a 0ms timer, which async `act` sometimes
-  // runs and sometimes does not (`docs/testing.md`, the Radix focus-restore race). Wait it out
-  // after the submit's `act` returns, never inside it.
-  await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
 }
 
 const MESSAGE = 'The venue address on this class is wrong.'

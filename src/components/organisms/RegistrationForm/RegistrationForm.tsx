@@ -324,6 +324,7 @@ export function RegistrationForm({
   const {
     challengeRef,
     token,
+    take: takeToken,
     status: challengeStatus,
     needsClick,
     reset: resetChallenge,
@@ -350,19 +351,8 @@ export function RegistrationForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: the story's refusal and the restored draft never change
   }, [])
 
-  // Holds a second submit while one is out. Validation is async, so two Enter presses can both
-  // reach the submit callback from the same render — `mutation.isPending` in that closure is
-  // still false for both — and the `scope` would queue the second to send the same single-use
-  // token after the first had spent it. A ref is read live, not off the render.
-  // A ref, not `mutation.isPending`: two submits that clear validation together both run from
-  // one render's closure, where `isPending` still reads false, and would send one token twice.
-  const sending = useRef(false)
-
   const mutation = useMutation({
     scope: { id: `registration-for-${eventId}` },
-    onSettled: () => {
-      sending.current = false
-    },
     mutationFn: ({ registration, captcha }: { registration: Registration; captcha: string }) => {
       return api.createRegistration(eventId, registration, captcha)
     },
@@ -466,14 +456,13 @@ export function RegistrationForm({
       className="mx-auto flex w-full max-w-md flex-col gap-4"
       id={formId}
       onSubmit={handleSubmit((data) => {
-        // `token` is also what gates the submit button, so this check is an
-        // extra safeguard for the Enter-key path. It is also what makes
-        // `captcha` a plain string, rather than a nullable one, all the way
-        // down to the header.
-        if (isPreview || !token || sending.current) return
+        // `token` gates the submit button; this covers the Enter-key path, and two submits that
+        // clear the async validation together, which `takeToken` hands one token between them.
+        if (isPreview) return
 
-        sending.current = true
-        mutation.mutate({ registration: data, captcha: token })
+        const captcha = takeToken()
+
+        if (captcha) mutation.mutate({ registration: data, captcha })
       })}
     >
       {submitted ? (
