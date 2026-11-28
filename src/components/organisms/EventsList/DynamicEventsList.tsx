@@ -8,7 +8,7 @@ import { LoadMore } from './LoadMore'
 
 import { ActiveFilterChips } from '@/components/molecules/ActiveFilterChips'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
-import { useFilterScope } from '@/hooks/use-filter-facets'
+import { useFilterScope } from '@/hooks/use-filter-counts'
 import {
   DEFAULT_REVEAL,
   hasActiveFilters,

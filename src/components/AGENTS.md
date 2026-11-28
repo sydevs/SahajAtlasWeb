@@ -193,7 +193,7 @@ The widget is embedded in layouts we do not own, so **"how big is the screen" an
 browser window.** Every decision names one of three signals
 (`src/config/responsive.ts`):
 
-- **container** — `useIsWide(element)`, measured once: on a map by `RealMapControllerProvider`
+- **container** — `useIsWide(element)`, measured once: on a map by `MapboxControllerProvider`
   (the frame), map-less by `DrawerStack` (its own box). Everything else reads it back off
   `WidgetWidthContext` with `useIsWideWidget()`.
 - **viewport** — `useIsWideViewport()`. Only where the screen genuinely is the
@@ -210,7 +210,7 @@ shipping a narrow embed that quietly behaves like a desktop.
 | Drawer direction — left panel vs. bottom sheet (`DrawerStack`) | container (the map-less root, or the frame) | A fit question: does a 352px side panel leave usable space beside it? Since #169 map mode has a frame where one exists — a contained embed's box, or the compact card's expanded dialog. |
 | Drag handle, swipe-dismiss, `handleOnly`, the snap ladder | container (follows direction) | The handle exists only for a bottom sheet. `DrawerStack` passes it explicitly rather than trust the atom's own default, which would leave a narrow map-less sheet draggable with nothing on screen saying so. |
 | Filter-overlay direction (right vs. bottom) | container | Same panel-vs-sheet question, same answer. |
-| Filter buttons vs. the Filters button (`useFilterMenusOnMap`) | container (follows direction) | The buttons show over the map wherever the panel sits beside it, wrapping where the map is narrow. The full-width calendar carries them in its header instead (`isCalendarFullWidth`). |
+| Filter buttons vs. the Filters button (`useFilterButtonsShown`) | container (follows direction) | The buttons show over the map wherever the panel sits beside it, wrapping where the map is narrow. The full-width calendar carries them in its header instead (`isCalendarFullWidth`). |
 | Sticky Register bar (`EventView`) | container | A snap sheet can scroll the CTA out of sight. This is a property of the sheet. |
 | Map camera padding (`use-map-controller`) | container (the frame) | Camera padding must agree with whatever picked the panel it pads around. Reads `frameElement()` — `null`, and so the viewport, wherever no frame exists. |
 | Map controls: column vs row (`MapControls`) | viewport (via `useIsShortViewport`) | A phone on its side is too short for a column. The same answer caps the frameless phone sheet's stops (`DrawerStack`), so the row stays above that sheet's top. |

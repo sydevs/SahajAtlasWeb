@@ -1,16 +1,16 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { useAnswerLabels } from './use-answer-labels'
+import { useFilterLabels } from './use-filter-labels'
 
 import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 
 // Node-only SSR, on the English snapshot the widget boots from.
 
 const labelsOf = (filters: Partial<EventFilters>) => {
-  let labels: ReturnType<typeof useAnswerLabels> | undefined
+  let labels: ReturnType<typeof useFilterLabels> | undefined
   const Probe = () => {
-    labels = useAnswerLabels({ ...DEFAULT_FILTERS, ...filters })
+    labels = useFilterLabels({ ...DEFAULT_FILTERS, ...filters })
 
     return null
   }
@@ -20,7 +20,7 @@ const labelsOf = (filters: Partial<EventFilters>) => {
   return labels!
 }
 
-describe('useAnswerLabels', () => {
+describe('useFilterLabels', () => {
   it('names each answered question once, short days first-to-last as chosen', () => {
     expect(
       labelsOf({

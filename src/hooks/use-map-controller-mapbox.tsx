@@ -80,13 +80,13 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType' | 'inactive' 
 }
 
 /**
- * This is the real camera provider.
+ * This is the Mapbox-backed camera provider.
  * It is split out of `use-map-controller.tsx`, so that module can stay free of `react-map-gl`.
  * See the warning at the top of that module.
  * The app reaches this provider only through the lazy `FullInterface`.
  * So a compact embed never loads this provider or mapbox-gl.
  */
-export function RealMapControllerProvider({ children }: { children: ReactNode }) {
+export function MapboxControllerProvider({ children }: { children: ReactNode }) {
   const { mapbox, padding, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)

@@ -7,7 +7,7 @@ import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { LocatorProvider } from '@/hooks/use-locator'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
-import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
+import { MapboxControllerProvider } from '@/hooks/use-map-controller-mapbox'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
 import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
@@ -209,7 +209,7 @@ function FullInterface({
           full-screen. */}
           <MapFrame contained={contained}>
             {/* Around the map too: the filter buttons beside its controls move the camera. */}
-            <RealMapControllerProvider>
+            <MapboxControllerProvider>
               {/* Inline fixed/inset so the map always fills its frame behind the drawers —
               independent of Tailwind viewport-unit utility generation. */}
               <div style={{ position: 'fixed', inset: 0 }}>
@@ -222,7 +222,7 @@ function FullInterface({
                 <MapCurtain />
               </div>
               <DrawerStack />
-            </RealMapControllerProvider>
+            </MapboxControllerProvider>
           </MapFrame>
         </MapProvider>
       ) : (

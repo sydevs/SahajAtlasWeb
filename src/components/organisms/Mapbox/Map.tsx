@@ -240,7 +240,7 @@ function EventPinPopover({
 /**
  * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
  *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
- * @param filterMenus The filter buttons, shown beside the map's own while `useFilterMenusOnMap`
+ * @param filterMenus The filter buttons, shown beside the map's own while `useFilterButtonsShown`
  *   holds. The view renders them, since they read the URL and the geocoder.
  */
 export function Mapbox({

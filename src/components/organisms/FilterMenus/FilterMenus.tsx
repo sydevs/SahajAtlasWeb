@@ -12,8 +12,8 @@ import {
   MoreFilters,
   TimeFilter,
 } from '@/components/organisms/SearchFilters'
-import { useFilterFacets, useFilterScope } from '@/hooks/use-filter-facets'
-import { useAnswerLabels } from '@/hooks/use-answer-labels'
+import { useFilterCounts, useFilterScope } from '@/hooks/use-filter-counts'
+import { useFilterLabels } from '@/hooks/use-filter-labels'
 import { useLocale } from '@/hooks/use-locale'
 import {
   type EventFilters,
@@ -85,7 +85,7 @@ function MenuBody({
   onChange: (next: EventFilters) => void
   where?: FilterMenusWhere
 }) {
-  const facets = useFilterFacets(value)
+  const facets = useFilterCounts(value)
   const block = {
     value,
     facets,
@@ -177,7 +177,7 @@ export function FilterMenus({
 }: FilterMenusProps) {
   const { t } = useLocale()
   const scope = useFilterScope(value)
-  const labels = useAnswerLabels(value)
+  const labels = useFilterLabels(value)
   const menu = { value, onChange, where }
 
   const whereSummary = summarize([where?.place, labels.format])

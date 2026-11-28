@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
 import { RecoveryButton } from '@/components/molecules/RecoveryButton'
-import { useFilterFacets } from '@/hooks/use-filter-facets'
+import { useFilterCounts } from '@/hooks/use-filter-counts'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { DEFAULT_FILTERS } from '@/lib/shape'
 
@@ -19,7 +19,7 @@ export function NoFilterMatches() {
   const { setFilters } = useSetFilters()
   // Clear resets the answers, not the Where: the visitor is still looking in the same place.
   const clearFilters = () => setFilters({ ...DEFAULT_FILTERS, region: filters.region })
-  const recovery = useFilterFacets(filters)?.recovery
+  const recovery = useFilterCounts(filters)?.recovery
 
   return (
     <div className="flex flex-col items-start gap-1 px-gutter py-4 text-sm" role="status">

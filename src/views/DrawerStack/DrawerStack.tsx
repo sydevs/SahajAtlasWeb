@@ -176,7 +176,7 @@ export function DrawerStack() {
   // column embed on a desktop gets the bottom sheet, its drag handle, and its
   // swipe-dismiss — and a 600px contained map now does too. On a map the map controller measures
   // that frame and provides the answer to the map and to this stack alike
-  // (`RealMapControllerProvider`), so the map's controls cannot disagree with the panel; map-less,
+  // (`MapboxControllerProvider`), so the map's controls cannot disagree with the panel; map-less,
   // this stack measures its own box and provides it at its foot. Either way no descendant can
   // disagree with the drawer it sits in.
   const provided = useContext(WidgetWidthContext)

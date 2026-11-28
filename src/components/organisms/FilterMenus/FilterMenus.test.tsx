@@ -16,8 +16,8 @@ vi.mock('@/hooks/use-locale', () => ({
     languageLabel: (code: string) => code,
   }),
 }))
-vi.mock('@/hooks/use-filter-facets', () => ({
-  useFilterFacets: () => undefined,
+vi.mock('@/hooks/use-filter-counts', () => ({
+  useFilterCounts: () => undefined,
   useFilterScope: () => undefined,
 }))
 

@@ -26,8 +26,8 @@ vi.mock('@/hooks/use-filters', () => ({
   useEventFilters: () => ({ ...DEFAULT_FILTERS, daysOfWeek: [1] }),
   useSetFilters: () => ({ clearFilters: () => {}, setFilters: () => {} }),
 }))
-vi.mock('@/hooks/use-filter-facets', () => ({
-  useFilterFacets: () => ({ recovery }),
+vi.mock('@/hooks/use-filter-counts', () => ({
+  useFilterCounts: () => ({ recovery }),
 }))
 
 beforeEach(() => {

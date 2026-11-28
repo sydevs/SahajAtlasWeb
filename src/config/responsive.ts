@@ -230,7 +230,7 @@ export function useIsWide(element: HTMLElement | null, delayMs = SETTLE_MS): boo
 /**
  * This is the measured answer, shared with the subtree.
  *
- * One owner measures it: on a map, `RealMapControllerProvider`, which wraps the map and `DrawerStack` alike and measures the frame both sit in; map-less, `DrawerStack`, which renders the widget's layout root and needs the answer before it can choose a direction.
+ * One owner measures it: on a map, `MapboxControllerProvider`, which wraps the map and `DrawerStack` alike and measures the frame both sit in; map-less, `DrawerStack`, which renders the widget's layout root and needs the answer before it can choose a direction.
  * So descendants read it from here, instead of each mounting an observer of their own.
  * More importantly, this means they cannot disagree with the drawer they are rendered inside.
  * `null` means nobody is measuring, which is how a Ladle story or a bare unit render behaves.

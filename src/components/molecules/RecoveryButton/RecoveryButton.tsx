@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { Button, type ButtonProps } from '@/components/atoms/Button'
-import { useAnswerLabels } from '@/hooks/use-answer-labels'
+import { useFilterLabels } from '@/hooks/use-filter-labels'
 import { type EventFilters, type FilterRecovery } from '@/lib/shape'
 
 export type RecoveryButtonProps = {
@@ -22,7 +22,7 @@ export function RecoveryButton({
   variant,
 }: RecoveryButtonProps) {
   const { t } = useTranslation()
-  const labels = useAnswerLabels(filters)
+  const labels = useFilterLabels(filters)
 
   return (
     <Button

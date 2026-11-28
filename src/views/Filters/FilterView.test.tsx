@@ -30,7 +30,7 @@ vi.mock('@/hooks/use-locale', () => ({
   }),
 }))
 vi.mock('@/config/api', () => ({ regionQuery: () => ({ queryKey: ['region'] }) }))
-vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => facets.current }))
+vi.mock('@/hooks/use-filter-counts', () => ({ useFilterCounts: () => facets.current }))
 vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
 vi.mock('@/components/organisms', () => ({
   SearchFilters: ({ value }: { value: EventFilters }) => <i>region:{value.region ?? '∅'}</i>,

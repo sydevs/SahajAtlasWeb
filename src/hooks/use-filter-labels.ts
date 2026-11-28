@@ -11,7 +11,7 @@ import { weekdayNames } from '@/lib/time'
  * name it ("Tue, Wed", "Evening", "English, French"). An open question is ''. The filter tags
  * take it too, except for times and dates, which they spell out in full (hours, the range).
  */
-export function useAnswerLabels(filters: EventFilters): Record<FilterRecovery['group'], string> {
+export function useFilterLabels(filters: EventFilters): Record<FilterRecovery['group'], string> {
   const { t, formatLocale, languageLabel } = useLocale()
   const weekdays = useMemo(() => weekdayNames(formatLocale, 'short'), [formatLocale])
 

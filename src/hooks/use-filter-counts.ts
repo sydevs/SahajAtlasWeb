@@ -25,7 +25,7 @@ import {
  * else the whole feed. `undefined` until the feed has loaded, and the form then shows every group
  * but Language, without numbers.
  */
-export function useFilterFacets(filters: EventFilters): FilterFacets | undefined {
+export function useFilterCounts(filters: EventFilters): FilterFacets | undefined {
   const scope = useFilterScope(filters)
 
   // Judged with nothing picked, so answering one question never removes another from the form.
@@ -47,7 +47,7 @@ export function useFilterFacets(filters: EventFilters): FilterFacets | undefined
 }
 
 /**
- * The classes the counts are taken over, uncounted. Cheap beside `useFilterFacets`, so a surface
+ * The classes the counts are taken over, uncounted. Cheap beside `useFilterCounts`, so a surface
  * that only needs to know what the scope holds (the filter buttons, closed) reads this instead.
  */
 export function useFilterScope(filters: EventFilters): FilterableEvent[] | undefined {

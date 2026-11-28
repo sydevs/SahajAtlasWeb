@@ -204,7 +204,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   whole world, and it asks by name via `reset()`.
 - **Framing moves only as needed, and flies** (the zoom constants — `EVENT_ZOOM`,
   `VENUE_MAX_ZOOM`, `AREA_MAX_ZOOM`, `REGION_FIT_PADDING`, `ONLINE_ZOOM` — are in
-  `use-map-controller-real.tsx`; the feel is tuned by `FLY_CURVE` / `FLY_SPEED` in
+  `use-map-controller-mapbox.tsx`; the feel is tuned by `FLY_CURVE` / `FLY_SPEED` in
   `use-mapbox.ts`). `frameEvent` keeps the current zoom only for
   an on-screen pin already at detail zoom, and flies in otherwise. A city, region or
   country fit caps at `AREA_MAX_ZOOM` with edge padding, so a place whose classes meet
@@ -377,7 +377,7 @@ lays out its own children:
   each draws its name out of its end in a `HoverLabel` on hover and keyboard focus, the same pill
   shape as the credits button opened.
 - **The filter buttons render in the same control, beside the column.** `FullInterface` hands
-  them to the map as a prop, and `MapControls` shows them while `useFilterMenusOnMap` holds (the
+  them to the map as a prop, and `MapControls` shows them while `useFilterButtonsShown` holds (the
   rule the Filters button and the list's filter tags read too), so Mapbox places them with the buttons and no stylesheet rule positions them. They cap their width against the map, which `globals.css` makes the size
   container, so they wrap rather than run under the side panel. Being in the same control, the
   column's hover labels draw over them.

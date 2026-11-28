@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { Chip } from '@/components/atoms/Chip'
 import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
-import { useAnswerLabels } from '@/hooks/use-answer-labels'
-import { useFilterMenusOnMap } from '@/hooks/use-filter-menus'
+import { useFilterLabels } from '@/hooks/use-filter-labels'
+import { useFilterButtonsShown } from '@/hooks/use-filter-buttons'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import { formatDate } from '@/lib/time'
@@ -28,7 +28,7 @@ import { type EventFilters, isDateRestricted, isTimeRestricted } from '@/lib/sha
  * Beside the filter buttons, which already name every answer, it shows nothing.
  */
 export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) {
-  const menusShown = useFilterMenusOnMap()
+  const menusShown = useFilterButtonsShown()
   const { t } = useTranslation()
   const { formatLocale } = useLocale()
   const applied = useEventFilters()
@@ -45,7 +45,7 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
     setRegion,
   } = useSetFilters()
 
-  const labels = useAnswerLabels(shown)
+  const labels = useFilterLabels(shown)
 
   // The cache-once region tree, to resolve the selected slug to its display name below.
   const { data: regions } = useQuery(regionsQuery())

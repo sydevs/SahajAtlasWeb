@@ -91,7 +91,7 @@ type PlacedEvent = { address: { latitude: number; longitude: number } }
  * Whether an event has a stored point to frame. An online event often has none: it has
  * no place of its own, so a deep link to it frames its parent region instead.
  *
- * It narrows, so `eventPoint` (`use-map-controller-real.tsx`) reads the coordinates
+ * It narrows, so `eventPoint` (`use-map-controller-mapbox.tsx`) reads the coordinates
  * through this one verdict instead of re-testing them. Two tests that disagreed would
  * leave `frameEvent` running on an event it then frames nothing for.
  */

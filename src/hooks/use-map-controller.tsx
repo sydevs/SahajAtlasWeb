@@ -2,7 +2,7 @@
 // The chain App → DrawerStack → the views imports this module EAGERLY, so an import here puts react-map-gl in every embed's eager payload, a collapsed compact card's included.
 // `pnpm size` counts that, because react-map-gl 8 is static code: it has no module-scope `import('mapbox-gl')`.
 // react-map-gl 7 fired that `import()` at MODULE scope instead, which the budget never counts, so one import here fetched the whole library on every page view.
-// The real provider, and every react-map-gl edge with it, lives in `use-map-controller-real.tsx`, behind the lazy `FullInterface` boundary.
+// The Mapbox provider, and every react-map-gl edge with it, lives in `use-map-controller-mapbox.tsx`, behind the lazy `FullInterface` boundary.
 
 import type { CameraSnapshot } from '@/config/store'
 import type { Event, EventSlim, Region } from '@/types'
@@ -11,7 +11,7 @@ import { type ReactNode, createContext, useContext } from 'react'
 
 // This is the camera seam. See issue #30.
 // Views call these functions UNCONDITIONALLY.
-// When a map is present, the real provider drives Mapbox.
+// When a map is present, the Mapbox provider drives it.
 // When `map=false`, the no-op provider does nothing.
 // So no view ever branches on the map flag, and this is the one place that knows whether a map exists.
 // This centralizes the framing that used to live in `pages/{region,event,index}.tsx`.

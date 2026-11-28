@@ -16,7 +16,7 @@ import {
  * questions. While they show, find-me, the Filters button and the list's filter tags step aside,
  * so each answer shows once.
  */
-export const useFilterMenusOnMap = (): boolean => {
+export const useFilterButtonsShown = (): boolean => {
   const isWide = useIsWideWidget()
   const { hasMap } = useMapController()
   const { pathname } = useLocation()

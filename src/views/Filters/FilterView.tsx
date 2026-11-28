@@ -12,7 +12,7 @@ import { regionQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useSearchFocus } from '@/config/store'
 import { useFilterEditor } from '@/hooks/use-filter-editor'
-import { useFilterFacets } from '@/hooks/use-filter-facets'
+import { useFilterCounts } from '@/hooks/use-filter-counts'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { hasActiveFilters, pageRegion, parseBounds, parseCenter } from '@/lib/shape'
@@ -32,7 +32,7 @@ export function FilterView() {
   const control = useDrawerControl()
   const { filters, write, where, clear } = useFilterEditor('drawer')
   const originRegion = pageRegion(location.pathname)
-  const facets = useFilterFacets(filters)
+  const facets = useFilterCounts(filters)
   const count = facets?.counts.total
 
   // A fresh link to the filters has no view beneath that framed the map, so the filters frame
