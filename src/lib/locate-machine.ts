@@ -13,6 +13,12 @@ export type LocateEvent =
   | { type: 'fix'; position: GeolocationPosition }
 
 type LocateContext = {
+  /**
+   * Which request the phase belongs to, counted from 1. A control remembers the id it asked
+   * under, so a refusal shows only where it was asked for — never another control's, and never
+   * one from before this control mounted.
+   */
+  requestId: number
   position: GeolocationPosition | null
   /** What a throwing source threw; a refusal or the backstop leaves it undefined. */
   error: unknown
@@ -46,14 +52,14 @@ export const locateMachine = setup({
 }).createMachine({
   id: 'locate',
   initial: 'idle',
-  context: { position: null, error: undefined },
+  context: { requestId: 0, position: null, error: undefined },
   // An answer that arrives after a reported failure wins: the map and list are right, and an
   // error on top of them would be false.
   on: { fix: { target: '.found', actions: 'keepPosition' } },
   states: {
     idle: { on: { request: 'locating' } },
     locating: {
-      entry: assign({ error: undefined }),
+      entry: assign({ requestId: ({ context }) => context.requestId + 1, error: undefined }),
       invoke: {
         src: 'ask',
         onError: { target: 'failed', actions: assign({ error: ({ event }) => event.error }) },

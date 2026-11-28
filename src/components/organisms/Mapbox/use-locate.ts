@@ -1,13 +1,9 @@
 import type { GeolocateControl } from 'mapbox-gl'
 import type { PositionAnswer, PositionSource } from '@/hooks/use-locator'
-import type { LocatePhase } from '@/lib/locate-machine'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { useLocatePhase, useLocator } from '@/hooks/use-locator'
-
-/** Where the visitor's last "find me" request stands — from either control. */
-export type LocateState = LocatePhase
+import { useLocator } from '@/hooks/use-locator'
 
 /**
  * "Find my location", driven from our own button through Mapbox's `GeolocateControl`, rendered
@@ -16,26 +12,19 @@ export type LocateState = LocatePhase
  * Mapbox never shows (#321).
  *
  * While the map is mounted its control is the locator's source (`hooks/use-locator.tsx`), so the
- * filters' Near me asks through it too, draws the same blue dot, and lights this button.
+ * filters' Near me asks through it too, draws the same blue dot, and lights this button
+ * (`MapControls` reads the shared phase itself, so a phase change re-renders only the button).
  *
  * @param onLocated what a fix does — `useGeolocateToSearch`, which opens the results around it.
  */
 export function useLocate(onLocated: (position: GeolocationPosition) => void) {
   const locator = useLocator()
-  const state = useLocatePhase()
   const geolocateRef = useRef<GeolocateControl>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   // Only this button's own failure opens the dialog; Near me reports its own in place.
   const [dialogOpen, setDialogOpen] = useState(false)
   // The request Mapbox is answering now, from either control.
   const answer = useRef<PositionAnswer | null>(null)
-  const live = useRef(true)
-
-  useEffect(() => {
-    live.current = true
-
-    return () => void (live.current = false)
-  }, [])
 
   useEffect(() => {
     const source: PositionSource = (next) => {
@@ -95,15 +84,10 @@ export function useLocate(onLocated: (position: GeolocationPosition) => void) {
     if (locator.getPhase() === 'locating') return
 
     setDialogOpen(false)
-    locator.request().then(
-      (position) => {
-        if (live.current) onLocated(position)
-      },
-      () => {
-        if (live.current) setDialogOpen(true)
-      },
-    )
+    // An unmount rejects the request this map was answering (the source's cleanup above), so
+    // neither callback can act for a map that has gone.
+    locator.request().then(onLocated, () => setDialogOpen(true))
   }, [locator, onLocated])
 
-  return { geolocateRef, buttonRef, state, locate, onError, onGeolocate, dialogOpen, setDialogOpen }
+  return { geolocateRef, buttonRef, locate, onError, onGeolocate, dialogOpen, setDialogOpen }
 }

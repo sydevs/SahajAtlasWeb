@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useLocate } from './use-locate'
 
 import { useNearMe } from '@/hooks/use-near-me'
-import { LocatorProvider } from '@/hooks/use-locator'
+import { LocatorProvider, useLocateState } from '@/hooks/use-locator'
 
 /**
  * The WIRING between the two controls and the one locator they share, which the machine's own
@@ -29,6 +29,8 @@ const FIX = { coords: { latitude: 50.088, longitude: 14.42 } } as GeolocationPos
 
 type Probe = {
   map?: ReturnType<typeof useLocate>
+  /** The shared phase, as the map's button reads it. */
+  phase?: string
   nearMe?: ReturnType<typeof useNearMe>
 }
 
@@ -50,6 +52,7 @@ function mount({ map = true, nearMe = true } = {}) {
 
     ;(locate.geolocateRef as { current: unknown }).current = fake as unknown as GeolocateControl
     seen.map = locate
+    seen.phase = useLocateState().phase
 
     return null
   }
@@ -105,10 +108,10 @@ describe('the shared locate status', () => {
     act(() => seen.map!.locate())
     act(() => seen.map!.locate())
     expect(fake.trigger).toHaveBeenCalledTimes(1)
-    expect(seen.map!.state).toBe('locating')
+    expect(seen.phase).toBe('locating')
 
     await answer(seen)
-    expect(seen.map!.state).toBe('found')
+    expect(seen.phase).toBe('found')
     expect(onLocated).toHaveBeenCalledTimes(1)
   })
 
@@ -117,11 +120,11 @@ describe('the shared locate status', () => {
 
     act(() => seen.map!.locate())
     await refuse(seen)
-    expect(seen.map!.state).toBe('failed')
+    expect(seen.phase).toBe('failed')
     expect(seen.map!.dialogOpen).toBe(true)
 
     await answer(seen)
-    expect(seen.map!.state).toBe('found')
+    expect(seen.phase).toBe('found')
     expect(seen.map!.dialogOpen).toBe(false)
     expect(onLocated).toHaveBeenCalledWith(FIX)
   })
@@ -130,11 +133,11 @@ describe('the shared locate status', () => {
     const { seen, onLocated, onPlace } = mount()
 
     act(() => seen.nearMe!.locate())
-    expect(seen.map!.state).toBe('locating')
+    expect(seen.phase).toBe('locating')
     expect(seen.nearMe!.status).toBe('locating')
 
     await answer(seen)
-    expect(seen.map!.state).toBe('found')
+    expect(seen.phase).toBe('found')
     expect(seen.nearMe!.status).toBe('idle')
     expect(onPlace).toHaveBeenCalledTimes(1)
     // The fix was Near me's to act on, not the map button's.
@@ -146,7 +149,7 @@ describe('the shared locate status', () => {
 
     act(() => seen.map!.locate())
     await refuse(seen)
-    expect(seen.map!.state).toBe('failed')
+    expect(seen.phase).toBe('failed')
     // Near me's alert would announce the map button's failure as its own.
     expect(seen.nearMe!.status).toBe('idle')
     expect(onRefused).not.toHaveBeenCalled()
@@ -160,13 +163,31 @@ describe('the shared locate status', () => {
     expect(seen.map!.dialogOpen).toBe(false)
   })
 
+  it("keeps Near me's alert off a refusal that followed its own", async () => {
+    const { seen, render } = mount()
+
+    act(() => seen.nearMe!.locate())
+    await refuse(seen)
+    expect(seen.nearMe!.status).toBe('failed')
+
+    act(() => seen.map!.locate())
+    await refuse(seen)
+    expect(seen.phase).toBe('failed')
+    expect(seen.nearMe!.status).toBe('idle')
+
+    // Nor does a remount bring back a refusal from before it.
+    render({ map: true, nearMe: false })
+    render({ map: true, nearMe: true })
+    expect(seen.nearMe!.status).toBe('idle')
+  })
+
   it('drops an answer that arrives after Near me has gone', async () => {
     const { seen, onPlace, render } = mount()
 
     act(() => seen.nearMe!.locate())
     render({ map: true, nearMe: false })
     await answer(seen)
-    expect(seen.map!.state).toBe('found')
+    expect(seen.phase).toBe('found')
     expect(onPlace).not.toHaveBeenCalled()
   })
 

@@ -52,6 +52,19 @@ describe('the locate machine', () => {
     expect(asked).toHaveLength(2)
   })
 
+  it('numbers each request it starts, and not one it ignores', () => {
+    const { actor, asked } = start()
+    const id = () => actor.getSnapshot().context.requestId
+
+    expect(id()).toBe(0)
+    actor.send({ type: 'request' })
+    actor.send({ type: 'request' })
+    expect(id()).toBe(1)
+    asked[0]({ type: 'refuse' })
+    actor.send({ type: 'request' })
+    expect(id()).toBe(2)
+  })
+
   // Two controls pressed together must not start two permission prompts.
   it('ignores a request while one is out', () => {
     const { actor, asked } = start()
