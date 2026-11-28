@@ -5,13 +5,19 @@ import { type EventFilters, type FilterRecovery, isDateRestricted } from '@/lib/
 import { weekdayNames } from '@/lib/time'
 
 /**
- * Each answered question in words, as the filter buttons and the removal under an empty list
- * name it ("Tue, Wed", "Evening", "English, French"). An open question is ''. The filter tags
- * take it too, except for times and dates, which they spell out in full (hours, the range).
+ * Each answered question in words, as the filter buttons and tags name it ("Tue, Wed",
+ * "Evening", "English, French"). An open question is ''. The tags take it except for times and
+ * dates, which they spell out in full (hours, the range).
+ *
+ * `width` is the day names': short where space is tight, `long` where the answer sits in a
+ * sentence, as the removal under an empty list does ("Remove Monday").
  */
-export function useAnswerLabels(filters: EventFilters): Record<FilterRecovery['group'], string> {
+export function useAnswerLabels(
+  filters: EventFilters,
+  width: 'long' | 'short' = 'short',
+): Record<FilterRecovery['group'], string> {
   const { t, formatLocale, languageLabel } = useLocale()
-  const weekdays = weekdayNames(formatLocale, 'short')
+  const weekdays = weekdayNames(formatLocale, width)
 
   return {
     format: filters.format === 'any' ? '' : t(`filters.format.${filters.format}`),

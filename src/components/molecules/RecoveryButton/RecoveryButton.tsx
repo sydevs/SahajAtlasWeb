@@ -22,7 +22,7 @@ export function RecoveryButton({
   variant,
 }: RecoveryButtonProps) {
   const { t } = useTranslation()
-  const labels = useAnswerLabels(filters)
+  const labels = useAnswerLabels(filters, 'long')
 
   return (
     <Button
