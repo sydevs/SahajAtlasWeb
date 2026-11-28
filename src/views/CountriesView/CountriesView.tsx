@@ -99,7 +99,11 @@ export function CountriesView() {
           index is meaningless, so there is no sort menu here. */}
       <DrawerHeader className="justify-between">
         <DrawerTitle title={t('countries.title')} />
-        {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+        {/* A control's height even where the Filters button steps aside for the filter buttons,
+            so the header, and its loading chrome, keep one height. */}
+        <div className="flex min-h-8 items-center pointer-coarse:min-h-11">
+          {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+        </div>
       </DrawerHeader>
       <DrawerToolbar field>
         <SearchField near="home" />
