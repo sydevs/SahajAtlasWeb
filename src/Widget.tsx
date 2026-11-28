@@ -498,15 +498,13 @@ const R2WC_CONNECTED = Symbol.for('r2wc.connected')
 // simple, and closed buys nothing a host cannot already defeat from script.
 const AtlasElementBase = r2wc(Widget, { shadow: 'open' }) as unknown as new () => AtlasElement
 
-/**
- * Which element owns the page, and whether a removed owner is still inside its grace window.
- * The states, the transitions and the reasons for each live in `lib/ownership.ts`; this element
- * feeds the machine its lifecycle callbacks and carries out the two effects the machine names.
- */
+// Which element owns the page (`lib/ownership.ts`). ⚠ Neither action may throw, or the actor
+// stops for good: `reportIntegrationWarning` swallows a throwing console, and the release is
+// assignments and idempotent DOM writes.
 const ownership = createActor(
   createOwnershipMachine<AtlasElement>().provide({
     actions: {
-      release: () => releaseOwnership(),
+      release: releaseOwnership,
       refuse: () =>
         reportIntegrationWarning(
           `only one <${ELEMENT_NAME}> runs per page — this one will not render.`,
@@ -515,15 +513,9 @@ const ownership = createActor(
   }),
 ).start()
 
-/** The element that owns the page, or `null` while nothing does. */
 const currentOwner = () => ownership.getSnapshot().context.owner
 
-/**
- * Releases the page-global state an element owned. Idempotent.
- *
- * ⚠ Must not throw: it runs as a machine action, and a throwing action stops the actor for good
- * (`lib/ownership.ts`). Every call below is a plain assignment or an idempotent DOM write.
- */
+/** Releases the page-global state an element owned. Idempotent. */
 function releaseOwnership() {
   atlasAuth.apiKey = null
   queryClient.clear()

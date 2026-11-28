@@ -1,6 +1,7 @@
 import type { Geojson, RegionNode } from '@/types'
 
 import {
+  type RefObject,
   Suspense,
   lazy,
   startTransition,
@@ -14,11 +15,12 @@ import {
   useSyncExternalStore,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { useLocation, useNavigate } from 'react-router'
+import { type NavigateFunction, useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
 
 import { geojsonQuery, regionsQuery } from '@/config/api'
+import { useActorSelector } from '@/hooks/use-actor-selector'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
@@ -62,6 +64,7 @@ import {
   resolveStop,
   sheetLadder,
   sheetOpening,
+  type Stop,
 } from '@/views/DrawerStack/sheet-ladder'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
 import { createSheetStore, escapeGoesOutward, isCollapsed } from '@/views/DrawerStack/sheet-machine'
@@ -111,6 +114,14 @@ type SecondaryViews = ReturnType<typeof loadSecondaryViews>
 const IDLE_FRAMES = 30
 
 type Direction = 'left' | 'bottom'
+
+/**
+ * The sheet's actor, its landing rewrite navigating through the latest `navigate`. Built here
+ * rather than in the component, so the long-lived callback holds the ref alone and not the first
+ * render's whole scope.
+ */
+const sheetStoreFor = (navigate: RefObject<NavigateFunction>) =>
+  createSheetStore((to, state) => navigate.current(to, { replace: true, state }))
 
 // Dispatches the active (top) view's inner content. Only the top view renders, so each view
 // frames the map for its own level on mount.
@@ -188,19 +199,8 @@ export function DrawerStack() {
   useLayoutEffect(() => {
     navigateRef.current = navigate
   })
-  const [sheetStore] = useState(() =>
-    createSheetStore((to, state) => navigateRef.current(to, { replace: true, state })),
-  )
-
-  const subscribeSheet = useCallback(
-    (onChange: () => void) => {
-      const subscription = sheetStore.subscribe(onChange)
-
-      return () => subscription.unsubscribe()
-    },
-    [sheetStore],
-  )
-  const snap = useSyncExternalStore(subscribeSheet, () => sheetStore.getSnapshot().context.snap)
+  const [sheetStore] = useState(() => sheetStoreFor(navigateRef))
+  const snap = useActorSelector(sheetStore, (sheet) => sheet.context.snap, OPEN_SNAP)
   // Whether the sheet is sitting at its peek, measured by the sheet-top loop below. Never true
   // where the sheet cannot collapse, since the loop does not run there.
   const [atPeek, setAtPeek] = useState(false)
@@ -311,7 +311,7 @@ export function DrawerStack() {
   const shownSnapPoints = useMemo(() => capPoints(snapPoints, snapCap), [snapPoints, snapCap])
   const shownSnap = capStop(vaulSnap, snapCap)
   // vaul echoes every stop it is handed back through this setter (`onVaulSnap` says what one means).
-  const setShownSnap = (next: number | string | null) =>
+  const setShownSnap = (next: Stop) =>
     sheetStore.send({ type: 'VAUL_SNAP', next, ladder, cap: snapCap, openSnap })
   // What the sheet covers of the map, resolved from the snap it sits at, so the camera reserves
   // the collapsed peek while the sheet is collapsed and a class's taller sheet while it is open.
@@ -493,14 +493,16 @@ export function DrawerStack() {
   }, [canCollapse])
 
   // Each view opens at its own height (`sheetOpening`), keyed on the view KIND (not `wide`).
-  useEffect(() => {
-    if (direction === 'bottom') sheetStore.send({ type: 'VIEW_CHANGED', opening, openSnap })
-  }, [direction, opening, openSnap, top?.kind, openedClass, sheetStore])
+  const view = `${top?.kind}:${openedClass ?? ''}`
 
-  // ⚠ After the reset above, which runs first in the same commit and spends a "Show N classes"
-  // intent; a move that changed no view drops it here instead.
   useEffect(() => {
-    sheetStore.send({ type: 'LOCATION_SETTLED' })
+    if (direction === 'bottom') sheetStore.send({ type: 'VIEW_CHANGED', view, opening, openSnap })
+  }, [direction, opening, openSnap, view, sheetStore])
+
+  // A move that changed no view drops a "Show N classes" intent (`sheet-machine.ts`).
+  useEffect(() => {
+    sheetStore.send({ type: 'LOCATION_SETTLED', view })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per committed location: `view` is read, not watched
   }, [location.key, sheetStore])
 
   useEffect(() => {

@@ -16,11 +16,13 @@ const sheet = (...events: SheetEvent[]) => {
   return { store, rewrite, snap: () => store.getSnapshot().context.snap }
 }
 
-const view = (opening: 'tall' | 'fit' | 'open' | 'home', openSnap = OPEN_SNAP): SheetEvent => ({
-  type: 'VIEW_CHANGED',
-  opening,
-  openSnap,
-})
+const view = (
+  opening: 'tall' | 'fit' | 'open' | 'home',
+  openSnap = OPEN_SNAP,
+  key = 'search:',
+): SheetEvent => ({ type: 'VIEW_CHANGED', view: key, opening, openSnap })
+
+const settled = (key = 'search:'): SheetEvent => ({ type: 'LOCATION_SETTLED', view: key })
 
 describe('the opening on a view change', () => {
   it.each([
@@ -148,18 +150,30 @@ describe('"Show N classes"', () => {
 
   it('is spent by a move that changed no view', () => {
     const { store, snap } = sheet(
+      view('open', OPEN_SNAP, 'filters:'),
       { type: 'SHOW_RESULTS', tall: true },
-      { type: 'LOCATION_SETTLED' },
+      settled('filters:'),
     )
 
     store.send(view('open'))
     expect(snap()).toBe(OPEN_SNAP)
   })
 
+  it('waits for the view change of a move that settled first', () => {
+    const { snap } = sheet(
+      view('open', OPEN_SNAP, 'filters:'),
+      { type: 'SHOW_RESULTS', tall: true },
+      settled('search:'),
+      view('open', OPEN_SNAP, 'search:'),
+    )
+
+    expect(snap()).toBe(WIDE_SNAP)
+  })
+
   it('survives the settle of the move that changed the view, which already spent it', () => {
     const { store } = sheet({ type: 'SHOW_RESULTS', tall: true }, view('open'))
 
-    store.send({ type: 'LOCATION_SETTLED' })
+    store.send(settled())
     expect(store.getSnapshot().value).toEqual({ results: 'idle', landing: 'idle' })
   })
 })

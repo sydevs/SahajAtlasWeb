@@ -1,20 +1,17 @@
-import type { Ladder, SheetOpening } from '@/views/DrawerStack/sheet-ladder'
+import type { Ladder, SheetOpening, Stop } from '@/views/DrawerStack/sheet-ladder'
 
-import { assign, createActor, setup } from 'xstate'
+import { and, assign, createActor, setup } from 'xstate'
 
 import { WIDE_SNAP, capStop } from '@/config/responsive'
 import { sameRoute } from '@/lib/shape'
 import { FIT_SNAP, PEEK_SNAP, OPEN_SNAP, resolveStop } from '@/views/DrawerStack/sheet-ladder'
 
-/**
- * The sheet's logical stop: a ladder rung, the `FIT_SNAP` token, or the literal px of a key-facts
- * stop a visitor dragged to (`heldFoldPx`). `null` only before vaul has a ladder.
- */
-export type Stop = number | string | null
-
 export type SheetEvent =
-  /** The top view (or the class on it) changed: open at that view's own height. */
-  | { type: 'VIEW_CHANGED'; opening: SheetOpening; openSnap: string }
+  /**
+   * The top view (or the class on it) changed: open at that view's own height. `view` names it,
+   * the same key `LOCATION_SETTLED` carries.
+   */
+  | { type: 'VIEW_CHANGED'; view: string; opening: SheetOpening; openSnap: string }
   /** A new `?center` was searched. */
   | { type: 'SEARCH_MOVED' }
   /** The header's collapse/expand control. */
@@ -29,11 +26,13 @@ export type SheetEvent =
   | { type: 'STEP_BACK'; key: string; to: string }
   /** The router committed a location (layout phase, so a rewrite lands before paint). */
   | { type: 'LOCATION'; key: string; pathname: string; search: string; state: unknown }
-  /** The location `key` committed and every view-change reset has already run. */
-  | { type: 'LOCATION_SETTLED' }
+  /** A location committed, onto the view `view` names. */
+  | { type: 'LOCATION_SETTLED'; view: string }
 
-export type SheetContext = {
+type SheetContext = {
   snap: Stop
+  /** The view the sheet last opened for, so a settle can tell whether its move changed one. */
+  view: string | null
   /** The step back in flight: the entry it left, and where it is due to land. */
   landing: { key: string; to: string } | null
 }
@@ -106,19 +105,20 @@ export const sheetMachine = setup({
   guards: {
     landedElsewhere: ({ context, event }) =>
       event.type === 'LOCATION' && context.landing !== null && context.landing.key !== event.key,
-    // Landed on the path it said, under a different query than the one it left behind.
-    rewriteDue: ({ context: { landing }, event }) =>
+    // On the path it said, under a different query than the one it left behind.
+    queryMoved: ({ context: { landing }, event }) =>
       event.type === 'LOCATION' &&
       landing !== null &&
-      landing.key !== event.key &&
       event.pathname === landing.to.split('?')[0] &&
       !sameRoute(`${event.pathname}${event.search}`, landing.to),
     tall: ({ event }) => event.type === 'SHOW_RESULTS' && event.tall,
+    sameView: ({ context, event }) =>
+      event.type === 'LOCATION_SETTLED' && event.view === context.view,
   },
 }).createMachine({
   id: 'sheet',
   type: 'parallel',
-  context: { snap: OPEN_SNAP, landing: null },
+  context: { snap: OPEN_SNAP, view: null, landing: null },
   on: {
     // A new searched place lifts the sheet out of its peek, so results are never fetched into a
     // sheet the visitor cannot see. A view change does not cover it: the geolocate control lives on
@@ -152,6 +152,7 @@ export const sheetMachine = setup({
             VIEW_CHANGED: {
               actions: assign({
                 snap: ({ event }) => (event.opening === 'tall' ? WIDE_SNAP : event.openSnap),
+                view: ({ event }) => event.view,
               }),
             },
             COLLAPSE: { actions: assign({ snap: PEEK_SNAP }) },
@@ -160,12 +161,16 @@ export const sheetMachine = setup({
         },
         tallNext: {
           on: {
-            VIEW_CHANGED: { target: 'idle', actions: assign({ snap: WIDE_SNAP }) },
+            VIEW_CHANGED: {
+              target: 'idle',
+              actions: assign({ snap: WIDE_SNAP, view: ({ event }) => event.view }),
+            },
             // No step back means no next view to open tall: the root collapses instead.
             COLLAPSE: { target: 'idle', actions: assign({ snap: PEEK_SNAP }) },
             SHOW_RESULTS: [{ guard: 'tall' }, { target: 'idle' }],
-            // A move that changed no view has spent the intent too.
-            LOCATION_SETTLED: { target: 'idle' },
+            // A move that changed no view has spent the intent too. One that did is the view
+            // change's to spend, whichever of the two arrives first.
+            LOCATION_SETTLED: { guard: 'sameView', target: 'idle' },
           },
         },
       },
@@ -192,7 +197,7 @@ export const sheetMachine = setup({
             },
             LOCATION: [
               {
-                guard: 'rewriteDue',
+                guard: and(['landedElsewhere', 'queryMoved']),
                 target: 'idle',
                 actions: [
                   {
@@ -213,8 +218,6 @@ export const sheetMachine = setup({
     },
   },
 })
-
-export type SheetStore = ReturnType<typeof createSheetStore>
 
 /**
  * One sheet's actor, for `useSyncExternalStore`.

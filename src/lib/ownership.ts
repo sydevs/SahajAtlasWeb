@@ -16,7 +16,7 @@ import { assign, setup } from 'xstate'
 /** What the machine reads off an element: whether it still stands in the document. */
 export type Ownable = { readonly isConnected: boolean }
 
-export type OwnershipEvent<E extends Ownable> =
+type OwnershipEvent<E extends Ownable> =
   | {
       type: 'connect'
       element: E
@@ -28,7 +28,7 @@ export type OwnershipEvent<E extends Ownable> =
     }
   | { type: 'disconnect'; element: E }
 
-export type OwnershipContext<E extends Ownable> = { owner: E | null }
+type OwnershipContext<E extends Ownable> = { owner: E | null }
 
 /**
  * How long a removed element has to come back before its page-global state is released.
@@ -52,13 +52,11 @@ export type OwnershipContext<E extends Ownable> = { owner: E | null }
 export const TEARDOWN_GRACE_MS = 1_000
 
 /**
- * The machine, typed to the element it counts.
+ * The machine, typed to the element it counts. `release` and `refuse` are no-ops here; the caller
+ * supplies them with `.provide()`.
  *
- * `release` and `refuse` are no-ops here; the caller supplies them with `.provide()`.
- *
- * ⚠ **The caller's implementations must not throw.** An action that throws puts an XState actor
- * in its error state, which stops it — and a stopped ownership actor accepts no element again, so
- * the widget would never render for the rest of the page's life.
+ * ⚠ **An action that throws stops the actor**, and a stopped ownership actor accepts no element
+ * again: the widget would never render for the rest of the page's life.
  */
 export function createOwnershipMachine<E extends Ownable>() {
   return setup({
@@ -67,9 +65,7 @@ export function createOwnershipMachine<E extends Ownable>() {
       events: {} as OwnershipEvent<E>,
     },
     actions: {
-      /** Give back the page-global state the owner held: the key, the cache, the marker. */
       release: () => {},
-      /** Say that an arrival will not render. */
       refuse: () => {},
       claim: assign({
         owner: ({ context, event }) => (event.type === 'connect' ? event.element : context.owner),
