@@ -33,7 +33,7 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
   // This is the RAW navigate, for the naming replace below.
   // `useAtlasNavigate` is for pushes. It stamps an incrementing `atlasDepth` and remembers the outgoing camera.
   // Doing either for an entry that added no history would leave Back naming a step that does not exist.
-  // Its own docblock reserves it for pushes, the same way FilterView's apply-replace does.
+  // Its own docblock reserves it for pushes, the same way the filters' in-place writes do.
   const replace = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()

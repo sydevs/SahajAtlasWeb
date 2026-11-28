@@ -13,7 +13,7 @@ import { atlasPushState } from '@/lib/shape'
  * Use this for imperative pushes, such as a map pin or a header CTA.
  * Link navigations carry the same stamping through the Link atom.
  * Non-push navigations deliberately keep the raw `navigate`.
- * Those are the deep-link dismiss fallback, a structural climb at depth 0, and FilterView's "apply," a `replace` that resets to results, not a new entry.
+ * Those are the deep-link dismiss fallback, a structural climb at depth 0, and the filters' writes (`useFilterEditor`), a `replace` that edits the entry in place.
  */
 export function useAtlasNavigate() {
   const navigate = useNavigate()

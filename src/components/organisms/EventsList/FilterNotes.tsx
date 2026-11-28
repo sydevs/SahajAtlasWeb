@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/atoms/Button'
-import { RecoveryButton } from '@/components/organisms/SearchFilters'
+import { RecoveryButton } from '@/components/molecules/RecoveryButton'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 import { DEFAULT_FILTERS } from '@/lib/shape'

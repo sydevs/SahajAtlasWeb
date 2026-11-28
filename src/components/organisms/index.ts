@@ -13,10 +13,10 @@ export type { MapSearchProps } from './Mapbox'
 export { DynamicEventsList, NoFilterMatches } from './EventsList'
 export type { DynamicEventsListProps } from './EventsList'
 
-// SearchFilters — the controlled filter form FilterView drafts in: Where, Online or in person,
+// SearchFilters — the controlled filter form in the phone's filter drawer: Where, Online or in person,
 // Day, Time of day, Language, then Frequency and Dates under More filters.
-export { RecoveryButton, SearchFilters } from './SearchFilters'
-export type { RecoveryButtonProps, SearchFiltersProps } from './SearchFilters'
+export { SearchFilters } from './SearchFilters'
+export type { SearchFiltersProps } from './SearchFilters'
 
 // FilterMenus — the filters on a computer: Where, When and Language as buttons over the map, or
 // in the calendar's header, each opening a menu of the same blocks.

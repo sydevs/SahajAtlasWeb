@@ -220,9 +220,7 @@ export function FilterMenus({
       // wraps rather than running under the panel. `font-sans` undoes the map's own Helvetica.
       className={clsx(
         'flex flex-wrap items-center justify-end gap-2',
-        variant === 'floating'
-          ? 'max-w-[calc(100cqw-var(--sy-drawer-w,352px)-96px)] font-sans'
-          : 'ms-auto',
+        variant === 'floating' && 'max-w-[calc(100cqw-var(--sy-drawer-w,352px)-96px)] font-sans',
       )}
       role="group"
     >

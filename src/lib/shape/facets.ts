@@ -21,7 +21,7 @@ import { isOnline } from './event'
  * The events passed in are already cut to the scope (the world, a region, or the area around a
  * searched place), so the region filter is not consulted again. Every count goes through
  * `matchesFilters`, the predicate the list and the map apply, so the numbers cannot drift from
- * what Apply then shows.
+ * what the list then shows.
  */
 
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as const

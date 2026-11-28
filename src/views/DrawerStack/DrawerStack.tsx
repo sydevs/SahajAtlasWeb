@@ -643,7 +643,7 @@ export function DrawerStack() {
 
   // The filter overlay drawer (map mode only): a modal panel over the mounted
   // calendar — right at ≥md, a bottom sheet on mobile — with its own control.
-  // FilterView's Apply and Clear actions navigate to /calendar too, which closes it.
+  // Closing it, by its button, the X or Esc, lands back on /calendar.
   const filterDrawer = filterOverlay ? (
     <DrawerControlContext.Provider value={overlayControl}>
       <Drawer

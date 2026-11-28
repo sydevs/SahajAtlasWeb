@@ -27,9 +27,7 @@ vi.mock('@/hooks/use-locale', () => ({
 vi.mock('@/config/api', () => ({ regionQuery: () => ({ queryKey: ['region'] }) }))
 vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => facets.current }))
 vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
-vi.mock('@/components/organisms', async () => ({
-  RecoveryButton: (await import('@/components/organisms/SearchFilters/RecoveryButton'))
-    .RecoveryButton,
+vi.mock('@/components/organisms', () => ({
   SearchFilters: ({ value }: { value: EventFilters }) => <i>region:{value.region ?? '∅'}</i>,
 }))
 vi.mock('@/views/nav', () => ({ NavHeader: () => null }))

@@ -46,7 +46,7 @@ export function DynamicEventsList({
   // `matchesFilters` predicate. The map filters its pins and clusters with the
   // same filters, so the list and the map agree. The key includes the
   // filters, so applying a new set triggers a refetch. Filters are edited in
-  // the FilterView drawer, not here.
+  // the filters' drawer or buttons, not here.
   const filters = useEventFilters()
   const { locale, languageCode } = useLocale()
 

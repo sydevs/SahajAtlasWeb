@@ -2,6 +2,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { useEffect, useState } from 'react'
 import { DateTime } from 'luxon'
+import clsx from 'clsx'
 
 import { StorySection, StoryWrapper } from '../../ladle'
 
@@ -29,7 +30,7 @@ function Example({ initial, place, placeAnswered = false, variant }: ExampleProp
   const [value, setValue] = useState<EventFilters>({ ...DEFAULT_FILTERS, ...initial })
 
   return (
-    <div className={variant === 'floating' ? 'flex justify-end rounded-lg bg-gray-4 p-4' : 'flex'}>
+    <div className={clsx('flex justify-end', variant === 'floating' && 'rounded-lg bg-gray-4 p-4')}>
       <FilterMenus
         value={value}
         variant={variant}
