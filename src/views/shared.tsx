@@ -432,7 +432,7 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
 }
 
 /**
- * The region a placeless view should frame: the nearest one at or above `regionSlug` that
+ * The region a view should frame: the nearest one at or above `regionSlug` that
  * `frameRegion` can actually move the camera to. Undefined for no slug, for `map=false`,
  * or while the reads are in flight.
  *
