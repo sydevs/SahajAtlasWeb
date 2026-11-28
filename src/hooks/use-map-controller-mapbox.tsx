@@ -8,7 +8,7 @@ import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useSheetCover, useViewState } from '@/config/store'
-import { MIN_MAP_STRIP_PX, SHEET_OPEN_PX, useIsWide } from '@/config/responsive'
+import { MIN_MAP_STRIP_PX, SHEET_OPEN_PX, WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { eventFrameZoom, hasMapPoint, worldViewCamera } from '@/lib/camera'
 import { hasApproximatePlace, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
@@ -80,13 +80,13 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType' | 'inactive' 
 }
 
 /**
- * This is the real camera provider.
+ * This is the Mapbox-backed camera provider.
  * It is split out of `use-map-controller.tsx`, so that module can stay free of `react-map-gl`.
  * See the warning at the top of that module.
  * The app reaches this provider only through the lazy `FullInterface`.
  * So a compact embed never loads this provider or mapbox-gl.
  */
-export function RealMapControllerProvider({ children }: { children: ReactNode }) {
+export function MapboxControllerProvider({ children }: { children: ReactNode }) {
   const { mapbox, padding, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)
@@ -103,10 +103,8 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   // A contained 600px map breaks that agreement.
   // The drawer becomes a bottom sheet, while a viewport read would still reserve 352px of camera on the left for a panel that is not there.
   //
-  // This code cannot read `WidgetWidthContext` instead.
-  // `DrawerStack` provides that context, and this provider RENDERS `DrawerStack`.
-  // `frameElement()` is a shared node, not a shared context, so both sides can reach it.
-  // This is also why `MapFrame` publishes that node in the layout phase, before either side first renders.
+  // So this provider is the one that measures it on a map, and provides the answer as `WidgetWidthContext` to the map and to `DrawerStack`, which reads it rather than measuring again.
+  // `MapFrame` publishes the frame in the layout phase, so the first render already measures it.
   const isWide = useIsWide(frameElement())
 
   // Keep the drawer's known footprint out of the usable camera area.
@@ -233,6 +231,8 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
   )
 
   return (
-    <MapControllerContext.Provider value={controller}>{children}</MapControllerContext.Provider>
+    <WidgetWidthContext.Provider value={isWide}>
+      <MapControllerContext.Provider value={controller}>{children}</MapControllerContext.Provider>
+    </WidgetWidthContext.Provider>
   )
 }

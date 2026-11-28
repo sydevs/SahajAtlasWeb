@@ -2,19 +2,18 @@ import { useLocation, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { WhereFilter } from './WhereFilter'
-
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
-import { RecoveryButton, SearchFilters } from '@/components/organisms'
+import { SearchFilters, WhereFilter } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useSearchFocus } from '@/config/store'
 import { useFilterEditor } from '@/hooks/use-filter-editor'
-import { useFilterFacets } from '@/hooks/use-filter-facets'
+import { useFilterCounts } from '@/hooks/use-filter-counts'
+import { useFilterRecovery } from '@/hooks/use-filter-recovery'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import { hasActiveFilters, pageRegion, parentOf, parseBounds, parseCenter } from '@/lib/shape'
+import { hasActiveFilters, pageRegion, parseBounds, parseCenter } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 
@@ -29,11 +28,10 @@ export function FilterView() {
   const [searchParams] = useSearchParams()
   const { locale } = useLocale()
   const control = useDrawerControl()
-  const { filters, write, pickPlace, clearWhere, clear } = useFilterEditor('drawer')
+  const { filters, write, where, clear } = useFilterEditor('drawer')
   const originRegion = pageRegion(location.pathname)
-  const facets = useFilterFacets(filters)
+  const facets = useFilterCounts(filters)
   const count = facets?.counts.total
-  const origin = parentOf(location.pathname)
 
   // A fresh link to the filters has no view beneath that framed the map, so the filters frame
   // their own place, once.
@@ -63,9 +61,9 @@ export function FilterView() {
   }
 
   const answered = hasActiveFilters({ ...filters, region: null })
-  const recovery = count === 0 ? facets?.recovery : undefined
+  const removal = useFilterRecovery(filters, count === 0 ? facets?.recovery : undefined, write)
   // Nothing matches, and removing any one answer still finds nothing: Clear is the way out.
-  const clearLeads = count === 0 && !recovery
+  const clearLeads = count === 0 && !removal
   // On the phone sheet the bar is pinned to the screen's bottom edge, so the way out stays in
   // reach whatever the sheet's height. The calendar's overlay fills the screen, so its own end is
   // already there.
@@ -85,11 +83,8 @@ export function FilterView() {
           value={filters}
           where={
             <WhereFilter
+              {...where}
               counts={facets?.counts.format}
-              region={filters.region}
-              searchable={origin !== '/calendar'}
-              onClear={clearWhere}
-              onPlace={pickPlace}
               onSearchInstead={searchInstead}
             />
           }
@@ -114,13 +109,10 @@ export function FilterView() {
               {t('filters.chrome.clear')}
             </Button>
           )}
-          {recovery ? (
-            <RecoveryButton
-              className="min-w-0 flex-1"
-              filters={filters}
-              recovery={recovery}
-              onApply={write}
-            />
+          {removal ? (
+            <Button className="min-w-0 flex-1" color="primary" onClick={removal.apply}>
+              <span className="truncate">{removal.label}</span>
+            </Button>
           ) : (
             !clearLeads && (
               <Button

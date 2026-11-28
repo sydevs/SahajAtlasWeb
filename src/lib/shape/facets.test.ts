@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { bestRecovery, facetCounts, hiddenInPerson, scopeFacets, shownGroups } from './facets'
+import {
+  bestRecovery,
+  facetCounts,
+  hiddenInPerson,
+  scopeFacets,
+  scopeOffers,
+  shownGroups,
+} from './facets'
 import { DEFAULT_FILTERS, matchesFilters } from './filters'
 
 // Tuesday 2026-11-10 19:00 and Saturday 2026-11-14 10:00, London.
@@ -159,5 +166,28 @@ describe('hiddenInPerson', () => {
 
   it('hides nothing with nothing chosen', () => {
     expect(hiddenInPerson(feed, DEFAULT_FILTERS, today)).toBe(0)
+  })
+})
+
+describe('scopeOffers', () => {
+  it('answers as shownGroups does from the counts, without counting', () => {
+    const inPersonOnly = feed.filter((event) => event.eventType === 'offline')
+    const noLanguage = feed.map((event) => ({ ...event, languages: [] }))
+
+    for (const events of [feed, inPersonOnly, noLanguage]) {
+      for (const filters of [DEFAULT_FILTERS, { ...DEFAULT_FILTERS, format: 'online' as const }]) {
+        const { format, languages } = shownGroups(filters, scopeFacets(events, today))
+
+        expect(scopeOffers(filters, events)).toEqual({ format, languages })
+      }
+    }
+  })
+
+  it('offers neither while the feed loads, unless already answered', () => {
+    expect(scopeOffers(DEFAULT_FILTERS, [])).toEqual({ format: false, languages: false })
+    expect(scopeOffers({ ...DEFAULT_FILTERS, format: 'online', languages: ['en'] }, [])).toEqual({
+      format: true,
+      languages: true,
+    })
   })
 })

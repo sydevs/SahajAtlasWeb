@@ -49,14 +49,13 @@ const VIEWPORT_CALLERS: Record<string, string> = {
  * Reading either one kept the padding on the same crossing as the panel it pads around.
  * Containment breaks that equality.
  * A 600px contained map gets the bottom sheet, while a viewport read would still reserve 352px of camera for a panel that is not there.
- * This code cannot take `WidgetWidthContext`, since it RENDERS the provider.
- * So both now measure `frameElement()`, which is `null`, and therefore the viewport, wherever no frame exists.
+ * So the map controller now measures `frameElement()` (`null`, and therefore the viewport, wherever no frame exists) and provides it to the map and to `DrawerStack` alike.
  */
 const CONTAINER_CALLERS = [
   'views/DrawerStack/DrawerStack.tsx',
   'views/EventView/EventView.tsx',
   'views/CalendarView/CalendarView.tsx',
-  'hooks/use-map-controller-real.tsx',
+  'hooks/use-map-controller-mapbox.tsx',
 ]
 
 // `useIsDesktop` is gone.
@@ -140,7 +139,7 @@ const RAW_VIEWPORT_READERS: Record<string, string> = {
   'components/atoms/HoverLabel/HoverLabel.tsx': 'grows a label rightward when the left has no room',
   // The height of the window a frameless phone sheet sits in, shared by the sheet and the boot panel.
   'config/responsive.ts': "caps a short window's sheet stops (`shortSheetCap`)",
-  'hooks/use-map-controller-real.tsx': 'caps camera padding for a short viewport',
+  'hooks/use-map-controller-mapbox.tsx': 'caps camera padding for a short viewport',
   'lib/slot-decision.ts':
     'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
   // The height of the box the sheet slides in, when no frame owns it: to tell the peek, and to

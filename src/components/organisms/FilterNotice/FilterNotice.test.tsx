@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { HiddenByFilters, NoFilterMatches } from './FilterNotes'
+import { FilterNotice } from './FilterNotice'
 
 import { DEFAULT_FILTERS, type FilterRecovery } from '@/lib/shape'
 
@@ -16,24 +16,28 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ formatLocale: 'en-US', languageLabel: (code: string) => code }),
+  useLocale: () => ({
+    t: (key: string) => key,
+    formatLocale: 'en-US',
+    languageLabel: (code: string) => code,
+  }),
 }))
 vi.mock('@/hooks/use-filters', () => ({
   useEventFilters: () => ({ ...DEFAULT_FILTERS, daysOfWeek: [1] }),
   useSetFilters: () => ({ clearFilters: () => {}, setFilters: () => {} }),
 }))
-vi.mock('@/hooks/use-filter-facets', () => ({
-  useFilterFacets: () => ({ recovery }),
+vi.mock('@/hooks/use-filter-counts', () => ({
+  useFilterCounts: () => ({ recovery }),
 }))
 
 beforeEach(() => {
   recovery = null
 })
 
-describe('NoFilterMatches', () => {
+describe('FilterNotice — no match', () => {
   it('offers the one removal before Clear filters', () => {
     recovery = { group: 'days', count: 3, patch: { daysOfWeek: [] } }
-    const html = renderToStaticMarkup(<NoFilterMatches />)
+    const html = renderToStaticMarkup(<FilterNotice kind="no-match" />)
 
     expect(html).toContain('filters.chrome.no_results_classes')
     expect(html.indexOf('filters.chrome.widen')).toBeGreaterThan(-1)
@@ -41,16 +45,16 @@ describe('NoFilterMatches', () => {
   })
 
   it('leaves Clear filters as the only way out when no single removal helps', () => {
-    const html = renderToStaticMarkup(<NoFilterMatches />)
+    const html = renderToStaticMarkup(<FilterNotice kind="no-match" />)
 
     expect(html).not.toContain('filters.chrome.widen')
     expect(html).toContain('filters.chrome.clear')
   })
 })
 
-describe('HiddenByFilters', () => {
+describe('FilterNotice — hidden', () => {
   it('names how many classes clearing brings back, then offers it', () => {
-    const html = renderToStaticMarkup(<HiddenByFilters count={4} />)
+    const html = renderToStaticMarkup(<FilterNotice count={4} kind="hidden" />)
 
     expect(html).toContain('filters.chrome.more_area(4)')
     expect(html).toContain('filters.chrome.clear')

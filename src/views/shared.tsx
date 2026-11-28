@@ -20,7 +20,7 @@ import { useApproxLocation, useCameraHistory, useSearchFocus } from '@/config/st
 import { useWidgetMode } from '@/config/mode'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
-import { useFilterMenusOnMap } from '@/hooks/use-filter-menus'
+import { useFilterButtonsShown } from '@/hooks/use-filter-buttons'
 import { useLocale } from '@/hooks/use-locale'
 import { useNearMe } from '@/hooks/use-near-me'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -201,7 +201,7 @@ export function FilterButton({
   const applied = useEventFilters()
   const count = activeFilterCount(counted ?? applied)
 
-  const menusShown = useFilterMenusOnMap()
+  const menusShown = useFilterButtonsShown()
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`

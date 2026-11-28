@@ -17,7 +17,7 @@ import atlasAuth from '@/config/api/auth'
 import { useApproxLocation } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox/Map'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
-import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
+import { MapboxControllerProvider } from '@/hooks/use-map-controller-mapbox'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
 import { parentOf } from '@/lib/shape'
 import { mockApproxLocation, mockGeojson, mockRegionNodes } from '@/mocks/regions'
@@ -385,7 +385,7 @@ export function ViewHarness({
  *
  * This mirrors the app rather than approximating it: the canvas is `fixed; inset: 0`
  * behind the drawer, `MapProvider` is what `useMapbox` reads, and
- * `RealMapControllerProvider` must render inside it. Off, it is the same
+ * `MapboxControllerProvider` must render inside it. Off, it is the same
  * `NoopMapControllerProvider` every view story had before, so nothing that does not ask
  * for a map changes.
  */
@@ -397,7 +397,7 @@ function MapFrame({ enabled, children }: { enabled: boolean; children: ReactNode
       <div style={{ position: 'absolute', inset: 0 }}>
         <Mapbox />
       </div>
-      <RealMapControllerProvider>{children}</RealMapControllerProvider>
+      <MapboxControllerProvider>{children}</MapboxControllerProvider>
     </MapProvider>
   )
 }

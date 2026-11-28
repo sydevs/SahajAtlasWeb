@@ -84,7 +84,7 @@ cover everything a host would notice since the widget was first deployed.
   only that menu, not the panel behind it; pressed anywhere on your page outside the widget it
   reaches you untouched, as before. Nothing changes in the snippet or the CSP.
   A list the filters empty says "No classes match your filters." in one line, then offers the one
-  removal that brings classes back ("Remove Mon (3 classes)") and Clear filters as links, the same
+  removal that brings classes back ("Remove Monday (3 classes)") and Clear filters as links, the same
   on every list. A searched place's list ends on "4 more classes in this area. Clear filters"
   when the filters hide in-person classes around it.
 - **A class's Share, Directions and Contact act in place, and Register follows them.** ([#540]) Share

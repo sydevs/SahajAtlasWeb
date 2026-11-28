@@ -38,7 +38,7 @@ const mockGeojson: Geojson = {
 const scope = mockGeojson.features.map((feature) => feature.properties)
 const { relevance } = scopeFacets(scope)
 
-/** SearchFilters — the event-filters form, as rendered inside the FilterView drawer. */
+/** SearchFilters — the event-filters form, as rendered inside the phone's filter drawer. */
 export const Default: Story = () => {
   const [plain, setPlain] = useState(DEFAULT_FILTERS)
   const [counted, setCounted] = useState(DEFAULT_FILTERS)

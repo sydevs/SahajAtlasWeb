@@ -16,7 +16,7 @@ import { ErrorPanel } from '@/views/fallbacks'
 // the live viewport, so the list does not re-sort on map pan. The distance query key stays
 // quantized inside DynamicEventsList, which also applies the active event filters — online
 // events included, unless the format filter narrows them out. Filters change in the
-// FilterView drawer, opened from the header, so this view just reflects the current filters
+// filters' drawer or buttons, so this view just reflects the current filters
 // when it (re)mounts.
 export function SearchView() {
   const [searchParams] = useSearchParams()

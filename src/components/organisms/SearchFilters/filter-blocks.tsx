@@ -147,8 +147,8 @@ function Question({ name, label, active, onClear, children }: QuestionProps) {
 
 // Clamp a typed date into [min, max]. A native date input enforces min
 // and max in its calendar UI, but not for keyboard entry. So this clamps
-// on change. That keeps the draft, and its live "Apply (N)" count, in
-// step with what the URL codec accepts, and keeps the From/To pair from
+// on change. That keeps the URL, and the live counts read from it, in
+// step with what the codec accepts, and keeps the From/To pair from
 // being typed into a reversed range.
 const clampDate = (value: string, min: string, max: string): string => {
   if (value < min) return min

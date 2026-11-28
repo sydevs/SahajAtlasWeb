@@ -174,9 +174,8 @@ Ten stores, each the single source of truth for its own slice:
   the drawer must not import the map's hooks. It carries `null` wherever there is no
   bottom sheet, and the camera falls back to the open snap's height.
 - **`useMapControls`** — whether the map's control column (find-me, settings, the credits)
-  is hidden, and whether the filter buttons show beside it. `DrawerStack` sets both: the first
-  at the phone sheet's near-full stop, which covers all of the column but a sliver of its top,
-  the second wherever the panel sits beside the map. A store for `useSheetCover`'s reason: whatever covers the map
+  is hidden. `DrawerStack` sets it at the phone sheet's near-full stop, which covers all of the
+  column but a sliver of its top. A store for `useSheetCover`'s reason: whatever covers the map
   decides, `Mapbox/MapControls` draws the column, and neither renders the other's context.
 - **`useBrowsedCountry`** — the ISO code of the last country page shown, which scopes
   the place search's suggestions. ⚠ **This is the one slice that looks like it belongs
@@ -335,7 +334,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
   barren region and a URL that never existed leave a
   viewer in the same position, so both render `FallbackPanel` and only the
   policy row differs. A list the filters emptied is the exception: the filters
-  are the explanation and the way out, so `NoFilterMatches` says so in one line
+  are the explanation and the way out, so `FilterNotice` says so in one line
   with its ways out as links, the same on every list.
   - **`unavailable`** is the row whose next step is a person: a full, ended, or
     closed class still exists, so `contact` leads with a number where one

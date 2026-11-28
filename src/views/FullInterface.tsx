@@ -7,10 +7,10 @@ import { useCameraSettled } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { LocatorProvider } from '@/hooks/use-locator'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
-import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
+import { MapboxControllerProvider } from '@/hooks/use-map-controller-mapbox'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
-import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
+import { FilterMenus } from '@/components/organisms/FilterMenus'
 import { MapFrame } from '@/views/MapFrame'
 import api from '@/config/api'
 import embed from '@/config/embed'
@@ -209,7 +209,7 @@ function FullInterface({
           full-screen. */}
           <MapFrame contained={contained}>
             {/* Around the map too: the filter buttons beside its controls move the camera. */}
-            <RealMapControllerProvider>
+            <MapboxControllerProvider>
               {/* Inline fixed/inset so the map always fills its frame behind the drawers —
               independent of Tailwind viewport-unit utility generation. */}
               <div style={{ position: 'fixed', inset: 0 }}>
@@ -217,12 +217,12 @@ function FullInterface({
                 scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
                 <Mapbox
                   cooperative={contained && embed.config.cooperative}
-                  filterMenus={<FilterMenuBar variant="floating" />}
+                  filterMenus={<FilterMenus variant="floating" />}
                 />
                 <MapCurtain />
               </div>
               <DrawerStack />
-            </RealMapControllerProvider>
+            </MapboxControllerProvider>
           </MapFrame>
         </MapProvider>
       ) : (

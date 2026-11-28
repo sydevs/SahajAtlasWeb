@@ -41,7 +41,7 @@ import { formatDateRange, formatMonth, zoneCity } from '@/lib/time'
 import { BackButton } from '@/views/nav'
 import { DrawerTitle, ExpandSheetButton, FilterButton, useDrawerControl } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'
-import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
+import { FilterMenus } from '@/components/organisms/FilterMenus'
 
 // The date the Month has in view, or today until the visitor moves it.
 const useFocusedDate = () => useCalendarPosition((s) => s.date) ?? todayISO()
@@ -75,7 +75,15 @@ function usePlace(slug: string | null) {
   }, [regions, slug])
 }
 
-function CalendarHeader({ view, week }: { view: CalendarViewName; week: CalendarWindow }) {
+function CalendarHeader({
+  view,
+  week,
+  fullWidth,
+}: {
+  view: CalendarViewName
+  week: CalendarWindow
+  fullWidth: boolean
+}) {
   const { t } = useTranslation()
   const { formatLocale } = useLocale()
   const setView = useSetCalendarView()
@@ -88,7 +96,6 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   const dateInputRef = useRef<HTMLInputElement>(null)
   const today = todayISO()
   const isWeek = view === 'week'
-  const fullWidth = isCalendarFullWidth('calendar', useIsWideWidget(), view)
   const month = DateTime.fromISO(focused).startOf('month')
   const label = !isWeek
     ? formatMonth(month, formatLocale)
@@ -130,7 +137,7 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
         <BackButton />
         {/* Full width, the calendar covers the map, so its header carries the filter buttons. */}
         {fullWidth ? (
-          <FilterMenuBar />
+          <FilterMenus />
         ) : (
           <div className="flex shrink-0 items-center gap-1">
             <FilterButton iconOnly counted={chosen(filters)} />
@@ -223,7 +230,7 @@ export function CalendarView() {
   return (
     <>
       <DrawerHeader className={CALENDAR_HEADER}>
-        <CalendarHeader view={view} week={week} />
+        <CalendarHeader fullWidth={fullWidth} view={view} week={week} />
       </DrawerHeader>
       {/* Full width, the filter buttons in the header name every answer. */}
       {!fullWidth && <ActiveFilterChips filters={chosen(filters)} />}

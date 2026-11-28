@@ -73,6 +73,11 @@ export function useFilterEditor(surface: FilterSurface) {
       ? replace(placeFiltersPath(filtersToParams({ ...filters, region: null }, params()), place))
       : push(placeSearchPath(params(), place))
 
+  // The page the filters narrow: beneath the drawer, or the one the buttons sit on. The calendar
+  // does not rank by place, so it has no Near me, and its Where is only a scope.
+  const page = surface === 'drawer' ? parentOf(location.pathname) : location.pathname
+  const onCalendar = page === '/calendar'
+
   /** Back to everywhere: the place and the region go, and the other answers stay. */
   const clearWhere = () => {
     const rest = { ...filters, region: null }
@@ -80,8 +85,7 @@ export function useFilterEditor(surface: FilterSurface) {
     if (surface === 'drawer') {
       // Over a page that lists no filtered classes, the drawer moves onto the unscoped search,
       // so the list behind it no longer names that place.
-      const origin = parentOf(location.pathname)
-      const under = origin && listsFilteredClasses(origin) ? origin : '/search'
+      const under = page && listsFilteredClasses(page) ? page : '/search'
 
       replace({
         pathname: `${under}/filters`,
@@ -90,8 +94,6 @@ export function useFilterEditor(surface: FilterSurface) {
 
       return
     }
-    const onCalendar = location.pathname === '/calendar'
-
     if (!onCalendar) reset()
     if (!onCalendar && !hasActiveFilters(rest)) push({ pathname: '/', search: '' })
     else write(rest, preserveSearchState(params()))
@@ -100,8 +102,13 @@ export function useFilterEditor(surface: FilterSurface) {
   return {
     filters,
     write,
-    pickPlace,
-    clearWhere,
+    /** The Where menu's place half, the same on both surfaces (`WhereFilter`). */
+    where: {
+      region: filters.region,
+      searchable: !onCalendar,
+      onPlace: pickPlace,
+      onClear: clearWhere,
+    },
     /**
      * Clear resets the answers, not the Where: the visitor is still looking in the same place.
      * Results the buttons opened from a place's page go back to it, as if never touched.

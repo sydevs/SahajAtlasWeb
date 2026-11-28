@@ -1,6 +1,3 @@
-import type { TranslationKey } from '@/types/i18next'
-
-import { useMemo } from 'react'
 import { DateTime } from 'luxon'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -8,10 +5,11 @@ import { useTranslation } from 'react-i18next'
 import { Chip } from '@/components/atoms/Chip'
 import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
-import { useFilterMenusOnMap } from '@/hooks/use-filter-menus'
+import { useFilterLabels } from '@/hooks/use-filter-labels'
+import { useFilterButtonsShown } from '@/hooks/use-filter-buttons'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
-import { formatDate, weekdayNames } from '@/lib/time'
+import { formatDate } from '@/lib/time'
 import { type EventFilters, isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
 /**
@@ -30,13 +28,13 @@ import { type EventFilters, isDateRestricted, isTimeRestricted } from '@/lib/sha
  * Beside the filter buttons, which already name every answer, it shows nothing.
  */
 export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) {
-  const menusShown = useFilterMenusOnMap()
+  const menusShown = useFilterButtonsShown()
   const { t } = useTranslation()
-  const { formatLocale, languageLabel } = useLocale()
+  const { formatLocale } = useLocale()
   const applied = useEventFilters()
   // A view may show fewer than the URL holds: the calendar's place is its title, not a pill.
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } =
-    filters ?? applied
+  const shown = filters ?? applied
+  const { timeOfDay, dateRange, region } = shown
   const {
     setFormat,
     setCadence,
@@ -47,7 +45,7 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
     setRegion,
   } = useSetFilters()
 
-  const weekdaysShort = useMemo(() => weekdayNames(formatLocale, 'short'), [formatLocale])
+  const labels = useFilterLabels(shown)
 
   // The cache-once region tree, to resolve the selected slug to its display name below.
   const { data: regions } = useQuery(regionsQuery())
@@ -62,24 +60,24 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
 
     chips.push({ key: 'region', label: name, onRemove: () => setRegion(null) })
   }
-  if (format !== 'any') {
+  if (labels.format) {
     chips.push({
       key: 'format',
-      label: t(`filters.format.${format}`),
+      label: labels.format,
       onRemove: () => setFormat('any'),
     })
   }
-  if (cadence !== 'any') {
+  if (labels.cadence) {
     chips.push({
       key: 'cadence',
-      label: t(`filters.cadence.${cadence.toLowerCase()}` as TranslationKey),
+      label: labels.cadence,
       onRemove: () => setCadence('any'),
     })
   }
-  if (daysOfWeek.length > 0) {
+  if (labels.days) {
     chips.push({
       key: 'days',
-      label: daysOfWeek.map((day) => weekdaysShort[day - 1]).join(', '),
+      label: labels.days,
       onRemove: () => setDaysOfWeek([]),
     })
   }
@@ -91,10 +89,10 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
       onRemove: () => setTimeOfDay([]),
     })
   }
-  if (languages.length > 0) {
+  if (labels.languages) {
     chips.push({
       key: 'languages',
-      label: languages.map(languageLabel).join(', '),
+      label: labels.languages,
       onRemove: () => setLanguages([]),
     })
   }
