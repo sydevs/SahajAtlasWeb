@@ -1,17 +1,19 @@
-import { type ReactNode, useRef } from 'react'
+import { type ReactNode, useId, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FloatingFocusManager, FloatingPortal } from '@floating-ui/react'
-import { Check, Link, Share } from 'lucide-react'
+import { Check, Ellipsis, Link, Share } from 'lucide-react'
 
 import { CopyFailedCaption } from './CopyFailed'
 import { CopyLinkTarget } from './CopyLinkTarget'
-import { ShareTargets } from './platform-buttons'
+import { PlatformButton, ShareTargets } from './platform-buttons'
+import { TARGET_CLASS } from './target'
 
 import { Button, type ButtonProps } from '@/components/atoms/Button'
 import { useCopy } from '@/hooks/use-copy'
 import { usePopover } from '@/hooks/use-popover'
 import { useWebShare } from '@/hooks/use-web-share'
 import { overlayContainer } from '@/lib/overlay'
+import { type PlatformKey, platformsForCountry } from '@/lib/share/platforms'
 
 // The button itself changes, under the visitor's thumb, so the answer is where they are already
 // looking. The raw URL stays below as a caption, to show what is shared and to select by
@@ -59,6 +61,24 @@ export type ShareButtonProps = ShareContentProps &
  * opens the region's share targets in a popover instead.
  */
 export function ShareButton({ label, url, country, children, ...skin }: ShareButtonProps) {
+  const { open, setReference, referenceProps, popover } = useShareMenu({ label, url, country })
+
+  return (
+    <>
+      <Button ref={setReference} {...skin} {...referenceProps({ onClick: open })}>
+        {children}
+      </Button>
+      {popover}
+    </>
+  )
+}
+
+/**
+ * Share's behaviour, for whatever control triggers it: the device's own share sheet, or, where
+ * there is none (most desktop browsers) or the host page refuses it, the region's share targets
+ * in a popover anchored to the trigger.
+ */
+function useShareMenu({ label, url, country }: ShareContentProps) {
   const { t } = useTranslation()
   const { canShare, share } = useWebShare()
   const { isOpen, setIsOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } =
@@ -69,41 +89,73 @@ export function ShareButton({ label, url, country, children, ...skin }: ShareBut
     if ((await share({ title: label, url })) === 'unavailable') setIsOpen(true)
   }
 
+  const popover = isOpen && (
+    <FloatingPortal root={overlayContainer()}>
+      {/* Non-modal and focus-returning, as the contact popover is: focus goes in to the first
+          network, and Esc or an outside click puts it back on the trigger. */}
+      <FloatingFocusManager context={context} modal={false} returnFocus={true}>
+        <div
+          ref={refs.setFloating}
+          className="z-50 max-w-[calc(100vw-16px)] rounded-lg border border-gray-6 bg-background p-3 shadow-xl"
+          style={floatingStyles}
+          {...getFloatingProps({ 'aria-label': t('share.native') })}
+        >
+          {/* A network hands over to its page or the mail app, so the popover goes with it.
+              Copy link answers in place, so it stays. */}
+          <ShareTargets country={country} title={label} url={url} onPick={() => setIsOpen(false)}>
+            <CopyLinkTarget url={url} />
+          </ShareTargets>
+        </div>
+      </FloatingFocusManager>
+    </FloatingPortal>
+  )
+
+  return {
+    open: () => void onClick(),
+    setReference: refs.setReference,
+    referenceProps: getReferenceProps,
+    popover,
+  }
+}
+
+// The messaging apps a share row leads with, after Copy link: the region's first of these.
+const MESSENGERS = new Set<PlatformKey>(['whatsapp', 'telegram', 'line', 'viber'])
+
+/**
+ * The class page's share row beside the inline map: Copy link, the region's messaging app, Email,
+ * and More, which opens the device's own share sheet or every target the region offers.
+ */
+export function ShareRow({ label, url, country }: ShareContentProps) {
+  const { t } = useTranslation()
+  const headingId = useId()
+  const messenger =
+    platformsForCountry(country).find((platform) => MESSENGERS.has(platform)) ?? 'whatsapp'
+  const { open, setReference, referenceProps, popover } = useShareMenu({ label, url, country })
+
   return (
-    <>
-      <Button
-        ref={refs.setReference}
-        {...skin}
-        {...getReferenceProps({ onClick: () => void onClick() })}
-      >
-        {children}
-      </Button>
-      {isOpen && (
-        <FloatingPortal root={overlayContainer()}>
-          {/* Non-modal and focus-returning, as the contact popover is: focus goes in to the
-              first network, and Esc or an outside click puts it back on Share. */}
-          <FloatingFocusManager context={context} modal={false} returnFocus={true}>
-            <div
-              ref={refs.setFloating}
-              className="z-50 max-w-[calc(100vw-16px)] rounded-lg border border-gray-6 bg-background p-3 shadow-xl"
-              style={floatingStyles}
-              {...getFloatingProps({ 'aria-label': t('share.native') })}
-            >
-              {/* A network hands over to its page or the mail app, so the popover goes with it.
-                  Copy link answers in place, so it stays. */}
-              <ShareTargets
-                country={country}
-                title={label}
-                url={url}
-                onPick={() => setIsOpen(false)}
-              >
-                <CopyLinkTarget url={url} />
-              </ShareTargets>
-            </div>
-          </FloatingFocusManager>
-        </FloatingPortal>
-      )}
-    </>
+    <section aria-labelledby={headingId} className="flex flex-col gap-2">
+      <h2 className="text-base font-semibold" id={headingId}>
+        {t('event.display.share_title')}
+      </h2>
+      <div className="flex flex-wrap gap-x-1 gap-y-3">
+        <CopyLinkTarget url={url} />
+        <PlatformButton platform={messenger} title={label} url={url} />
+        <PlatformButton platform="email" title={label} url={url} />
+        <button
+          ref={setReference}
+          data-vaul-no-drag
+          className={TARGET_CLASS}
+          type="button"
+          {...referenceProps({ onClick: open })}
+        >
+          <span className="flex size-11 items-center justify-center rounded-full bg-gray-4 text-gray-12">
+            <Ellipsis aria-hidden size={20} />
+          </span>
+          <span className="max-w-full truncate">{t('share.more')}</span>
+        </button>
+      </div>
+      {popover}
+    </section>
   )
 }
 

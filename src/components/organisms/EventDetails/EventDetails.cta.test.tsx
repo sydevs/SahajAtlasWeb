@@ -14,6 +14,7 @@ import { mockEvent } from '@/mocks/events'
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
+vi.mock('./EventShareAndReport', () => ({ EventShareAndReport: () => null }))
 vi.mock('./EventRegister', () => ({
   EventRegisterBar: () => <i>register-slot</i>,
 }))

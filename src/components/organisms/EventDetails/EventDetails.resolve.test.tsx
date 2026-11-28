@@ -15,6 +15,7 @@ vi.mock('@/hooks/use-locale', () => ({
   useLocale: () => ({ locale: 'en', languageCode: 'en', languageLabel: (code: string) => code }),
 }))
 // DOMPurify binds a real `window` at module scope; `sanitize.test.ts` owns that allowlist.
+vi.mock('./EventShareAndReport', () => ({ EventShareAndReport: () => null }))
 vi.mock('./sanitize', () => ({ sanitizeDescription: (html: string) => html }))
 
 let resolves: ReturnType<typeof countResolves>

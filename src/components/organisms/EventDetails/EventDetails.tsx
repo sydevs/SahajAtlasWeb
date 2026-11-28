@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
 
 import { EventRegisterBar } from './EventRegister'
+import { EventShareAndReport } from './EventShareAndReport'
 import { sanitizeDescription } from './sanitize'
 
 import { Alert } from '@/components/atoms/Alert'
@@ -80,10 +81,13 @@ export function EventDetails({
   // There, with a page's width to read across, the facts and the description take the larger,
   // detailed treatment.
   const detailed = aside
+  // Beside the map the page has room for the share targets themselves, so Share leaves the
+  // action row for them, and the way to report details that are wrong follows.
   const actions = (
     <>
-      <EventActions event={event} strings={strings} />
+      <EventActions event={event} share={false} strings={strings} />
       <EventRegisterBar basePath={basePath} event={event} strings={strings} />
+      <EventShareAndReport label={event.title} url={shareUrl} />
     </>
   )
 

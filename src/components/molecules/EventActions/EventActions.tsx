@@ -205,6 +205,8 @@ export type EventActionsProps = {
   event: Event
   /** The view's one `useEventDisplay(event)`, shared with the rest of the page (#505). */
   strings: EventDisplayStrings
+  /** Leaves Share out, where the page carries its own share row instead (`ShareRow`). */
+  share?: boolean
 }
 
 /**
@@ -213,7 +215,7 @@ export type EventActionsProps = {
  * device's share sheet, or the region's networks and Copy link in a popover, and is left out
  * when the class has no link to share (#115).
  */
-export function EventActions({ event, strings }: EventActionsProps) {
+export function EventActions({ event, strings, share = true }: EventActionsProps) {
   const { t } = useTranslation()
   const shareUrl = useShareUrl(event.webUrl, event.path)
   const country = useViewerCountry()
@@ -250,7 +252,7 @@ export function EventActions({ event, strings }: EventActionsProps) {
           />
         )
       case 'share':
-        if (!shareUrl) return []
+        if (!share || !shareUrl) return []
 
         return (
           <ShareButton
