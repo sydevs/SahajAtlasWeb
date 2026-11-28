@@ -258,11 +258,6 @@ export async function probeTurnstile(): Promise<boolean> {
  */
 export type TurnstileStatus = 'loading' | 'ready' | 'blocked'
 
-export type UseTurnstileOptions = {
-  /** Skips the frame entirely and reports `blocked`, for the Ladle story's degraded case. */
-  disabled?: boolean
-}
-
 export type UseTurnstile = {
   /** Attach to the element the challenge frame is appended to. */
   challengeRef: RefObject<HTMLDivElement | null>
@@ -283,13 +278,13 @@ export type UseTurnstile = {
   retry: () => void
 }
 
-export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): UseTurnstile {
+export function useTurnstile(): UseTurnstile {
   const challengeRef = useRef<HTMLDivElement>(null)
   // A ref as well as the effect closure, so `reset` reaches the live frame without re-running the
   // effect. The origin rides along so a frame navigated elsewhere receives no command.
   const frameRef = useRef<{ frame: HTMLIFrameElement; origin: string } | null>(null)
   const [token, setToken] = useState<string | null>(null)
-  const [status, setStatus] = useState<TurnstileStatus>(disabled ? 'blocked' : 'loading')
+  const [status, setStatus] = useState<TurnstileStatus>('loading')
   const { theme } = useTheme()
   const { languageCode } = useLocale()
   const [attempt, setAttempt] = useState(0)
@@ -301,8 +296,6 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
 
     if (!slot) return
     collapseSlot(slot, true)
-    if (disabled) return
-
     setToken(null)
     setStatus('loading')
 
@@ -347,7 +340,7 @@ export function useTurnstile({ disabled = false }: UseTurnstileOptions = {}): Us
       dispose()
       frameRef.current = null
     }
-  }, [attempt, disabled, theme, languageCode])
+  }, [attempt, theme, languageCode])
 
   // Stable with no dependencies: the caller hands this to `useMutation`'s `onError`, and a fresh
   // identity each render would re-run the observer's `setOptions` for nothing. The new token

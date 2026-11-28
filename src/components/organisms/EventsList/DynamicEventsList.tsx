@@ -3,20 +3,23 @@ import { useSearchParams } from 'react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { EventsList } from './EventsList'
+import { HiddenByFilters, NoFilterMatches } from './FilterNotes'
 import { LoadMore } from './LoadMore'
 
-import { ActiveFilterPills } from '@/components/molecules/ActiveFilterPills'
+import { ActiveFilterChips } from '@/components/molecules/ActiveFilterChips'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
+import { useFilterScope } from '@/hooks/use-filter-facets'
 import {
   DEFAULT_REVEAL,
   hasActiveFilters,
+  hiddenInPerson,
   revealKey,
   revealRows,
   searchedPlaceName,
   sortEvents,
 } from '@/lib/shape'
 import { useCountrySite } from '@/hooks/use-country-site'
-import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
+import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useReveal } from '@/hooks/use-reveal'
 import { useSearchCountry } from '@/hooks/use-search-country'
@@ -97,6 +100,17 @@ export function DynamicEventsList({
   // count stays at one page.
   const revealed = shown > DEFAULT_REVEAL || showAll
 
+  // The in-person classes around the searched place that the filters hide, by the same nearby
+  // rule as the list. Without a searched place there is no area to speak of.
+  const scope = useFilterScope(filters)
+  const hidden = useMemo(
+    () =>
+      hasSearchCenter && scope && hasActiveFilters({ ...filters, region: null })
+        ? hiddenInPerson(scope, filters)
+        : 0,
+    [hasSearchCenter, scope, filters],
+  )
+
   const listRef = useRef<HTMLDivElement>(null)
   // The index of the first row a press reveals, parked for the effect below. A ref, not
   // state: it's written in an event handler and read once after the resulting commit,
@@ -138,7 +152,7 @@ export function DynamicEventsList({
 
   return (
     <>
-      <ActiveFilterPills />
+      <ActiveFilterChips />
       <div ref={listRef}>
         {rows.length === 0 ? (
           <EmptyResults nearbyKm={more === 'farther' ? nearbyKm : undefined} />
@@ -146,6 +160,7 @@ export function DynamicEventsList({
           <EventsList events={rows} searchedPlace={searchedPlace} showDistance={hasSearchCenter} />
         )}
       </div>
+      {rows.length > 0 && hidden > 0 && <HiddenByFilters count={hidden} />}
       {/* At this point, nothing is left to offer and nothing has announced yet.
           But once a reveal HAS happened, the footer stays mounted. This way,
           the final press's announcement is not unmounted in the same commit
@@ -172,10 +187,10 @@ export function DynamicEventsList({
 }
 
 // This renders when no events match. The three branches below appear in the
-// order that best explains the empty list. Every branch uses the same
-// `FallbackPanel` that a dead link and a broken query also render — one
-// component reading one policy table (issue #89). So this function only
-// decides WHICH row to show:
+// order that best explains the empty list. The first two and the plain empty
+// list use the same `FallbackPanel` that a dead link and a broken query also
+// render — one component reading one policy table (issue #89). So this function
+// only decides WHICH row to show:
 //
 //  1. The searched country lists NO programs at all. This row offers that
 //     country's own national site (issue #82). It comes before the
@@ -185,15 +200,15 @@ export function DynamicEventsList({
 //     branch would fire for almost every such search, burying the one useful
 //     next step. `useCountrySite` answers from the FULL feed. It stands down
 //     while any filter is active, because an empty list under a filter is
-//     explained by the filter — case 3 owns the "clear all" escape hatch
+//     explained by the filter — case 3 owns the "Clear filters" escape hatch
 //     there. So this offer waits, rather than replacing that one.
 //  2. Every match lies beyond the distance boundary. This row says so. The
 //     "show events farther than N km" control below the list is how the user
 //     reaches them. This is the one row that offers nothing else, because
 //     that control is already the way out.
-//  3. Otherwise, this row shows "no results" with a "clear all filters"
-//     action, when filters are the reason. Else it shows the plain "no
-//     events" line, with the onward offer behind it.
+//  3. Otherwise, when filters are the reason, `NoFilterMatches` says so, with the one removal
+//     that brings classes back and "Clear filters". Else this shows the plain "no events" line,
+//     with the onward offer behind it.
 //
 // The country-site offer does NOT suppress the "show events farther" control
 // below the list. The offer keeps the top of the empty state, and a second
@@ -205,8 +220,7 @@ export function DynamicEventsList({
 // IS a geocoder. A second one under the sentence would look odd on the screen.
 function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
   const { regionNames } = useLocale()
-  const active = hasActiveFilters(useEventFilters())
-  const { clearFilters } = useSetFilters()
+  const filters = useEventFilters()
   const countrySite = useCountrySite()
 
   if (countrySite) {
@@ -236,15 +250,7 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
     )
   }
 
-  // Filters are both the explanation and the escape. So that row keeps "Clear
-  // all" and nothing else. An onward link would compete with the one action
-  // that actually restores results.
-  return (
-    <FallbackPanel
-      hasSearchChrome
-      align="start"
-      kind={active ? 'no-results' : 'empty'}
-      onClearFilters={active ? clearFilters : undefined}
-    />
-  )
+  if (hasActiveFilters(filters)) return <NoFilterMatches />
+
+  return <FallbackPanel hasSearchChrome align="start" kind="empty" />
 }

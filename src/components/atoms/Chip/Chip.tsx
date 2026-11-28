@@ -10,15 +10,11 @@ import { IconSvgProps } from '@/types'
 // is that same tint at a lighter content weight. `ghost` is text-only,
 // matching Button's `ghost`. `radius` picks the controls' 8px (`sm`) or pill (`full`)
 // corners. Pass `onClose` to render a trailing remove button, as the
-// active-filter pills do.
+// active-filter chips do.
 const chip = tv({
   slots: {
-    // ⚠ The 44px minimum on a touch screen is what CONTAINS the close button's own invisible
-    // 44px area (#432). On a 24px pill that area reached ~9px past the chip on both sides, and
-    // the wrapped row below took it, so every row but the last measured short.
-    base: 'inline-flex max-w-full items-center gap-1 pointer-coarse:min-h-11',
-    // Body text carries no letter spacing; uppercase needs a little to stay legible.
-    content: 'min-w-0 truncate leading-none tracking-[0.3px] uppercase',
+    base: 'inline-flex max-w-full items-center gap-1',
+    content: 'min-w-0 truncate leading-none',
     // The close button carries the app's standard focus ring, not only the
     // opacity lift it used to have on its own (issue #102). Opacity is also
     // what HOVER does. So on a chip the pointer happens to rest on, a
@@ -49,6 +45,12 @@ const chip = tv({
       sm: { base: 'rounded-lg' },
       full: { base: 'rounded-full' },
     },
+    // A label reads in capitals, with a little letter spacing to stay legible; a chip carrying a
+    // name or a place keeps its own case.
+    casing: {
+      upper: { content: 'tracking-[0.3px] uppercase' },
+      none: {},
+    },
   },
   compoundVariants: [
     // `flat` and `subtle` share the soft tint. They differ only in weight (above).
@@ -78,6 +80,7 @@ const chip = tv({
     variant: 'flat',
     size: 'sm',
     radius: 'sm',
+    casing: 'upper',
   },
 })
 
@@ -104,14 +107,19 @@ export function Chip({
   variant,
   size,
   radius,
+  casing,
   onClose,
   closeLabel,
   className,
 }: ChipProps) {
-  const slots = chip({ color, variant, size, radius })
+  const slots = chip({ color, variant, size, radius, casing })
 
   return (
-    <span className={slots.base({ className })}>
+    // ⚠ A closable chip is 44px tall on a touch screen, which CONTAINS its close button's own
+    // invisible 44px area (#432): on a 24px pill that area reached ~9px past the chip on both
+    // sides, and the wrapped row below took it, so every row but the last measured short. A chip
+    // with nothing to press is a label and keeps its drawn height.
+    <span className={slots.base({ className: [onClose && 'pointer-coarse:min-h-11', className] })}>
       {icon}
       <span className={slots.content()}>{children}</span>
       {onClose && (

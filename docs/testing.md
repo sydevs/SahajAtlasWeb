@@ -450,6 +450,7 @@ one forges further outputs on a fork's pull request.
 | a box too small shows the heading alone                           | `too-narrow.html`      | the full inline atlas rendered in a 220px column                     |
 | host CSS does not reach the widget                                | `hostile-css.html`     | no shadow root (#236); the baseline's `letter-spacing` reset dropped |
 | registration accepted, and failing with a 500                     | `sidebar-mapless.html` | a drifted create envelope; the thank-you shown on failure (#103)     |
+| a place's calendar, its Week by name, and List back to the place  | `full-map.html?atlas=` | the List switch stacking the place again instead of stepping back    |
 
 ### Why hermetic: it answers the missing-backend problem
 
@@ -509,6 +510,15 @@ software renderer, forced with `--use-angle=swiftshader` and opted into with
 Chromium 153: the context reports `ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)…))`,
 the map loads the fixture style, and the app's own pins draw at Cambridge. The full-map scenario
 asserts a live WebGL2 context on the map's canvas and that the map asked for its style.
+
+⚠ **The lane runs with motion reduced (`reducedMotion: 'reduce'`), because a CSS animation
+stalls the map under SwiftShader.** Software compositing puts the skeleton's pulse and the
+spinner's turn in the GPU process the map's GL calls wait on. Once #540 made those animations
+run, mapbox-gl's `supported()` probe blocked the main thread for 4–5s in 14 of 30 deep-link
+loads, against 0 of 30 with motion reduced (2026-11-27, two workers), and the navigation
+scenarios failed their 5s budget about half the time in CI. A GPU composites the same
+animation for nothing, so this is the lane's cost, not a visitor's. A scenario that needs to
+see an animation run has to opt back in with `page.emulateMedia`.
 
 ### A map-less embed must not download mapbox-gl
 
@@ -944,15 +954,16 @@ to select from. The full lane still runs in the lean gate (`.claude/skills/pr-pr
 in CI, so this narrows the inner loop, not the gate.
 
 **What holds the budget is the selection's width, and `scripts/select-unit-specs.test.ts` pins
-that**: the widest edit in the tree, exhaustively through the real composition, at 23 against a
-ceiling of 23 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
+that**: the widest edit in the tree, exhaustively through the real composition, at 24 against a
+ceiling of 24 — no headroom, so the next spec reading a repo file through `repo-source` trips it,
 and the answer is to time the hook and ratchet, never to drop a spec. ⚠ **Two PRs can trip it
 without either one doing so alone**: #322's `mobile-zoom.test.ts` and #324's `attribution.test.ts`
 each took a slot, and the pin went red on the merge rather than on either branch; #328's
 `Drawer.scroll.test.tsx` ratcheted it from 17 to 18, #17's
 `BrandTheme.palette.test.tsx` from 18 to 19, `theme-color.test.ts` from 19 to 20, and
-`assert-classic-bridge.test.ts` from 21 to 22, and `gutter.test.tsx` from 22 to 23. ⚠ Width is
-not time, and which of
+`assert-classic-bridge.test.ts` from 21 to 22, `gutter.test.tsx` from 22 to 23, and
+`typecheck-coverage.test.ts` from 23 to 24 (measured 2.0–2.9s against `i18n.ts`'s 2.6s,
+2026-11-26, 11 cores). ⚠ Width is not time, and which of
 the pair is slower has flipped across machines — `i18n.ts` selects 12, four of them jsdom, and
 measured 6.0s against the widest's 4.4s at twenty-three (2026-11-24, 4 cores), 6.2s against 5.5s
 at nineteen, having been the faster

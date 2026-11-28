@@ -580,17 +580,17 @@ class SahajAtlasElement extends AtlasElementBase {
  * why the pre-composed report this used to take is gone. It carried a URL captured on
  * loader idle, which was neither this moment nor the one that matters.
  *
- * `geo` is the loader's import of `/geo.js`, still in flight: the visitor's approximate
- * location lands in its store whenever that resolves.
+ * `geo` is the default export of `/geo.js`, which the loader waited for (`GEO_WAIT_MS`): the
+ * visitor's approximate location, known before the first render, or `null`.
  */
 export function boot(
   config: LoaderConfig,
   observed: EmbedFingerprint | null = null,
-  geo: Promise<unknown> | null = null,
+  geo: unknown = null,
 ): void {
   embed.config = config
   embed.observed = observed
-  if (geo) bootApproxLocation(geo)
+  bootApproxLocation(geo)
 
   // Guarded: `customElements.define` throws NotSupportedError on a name that is
   // already registered, and two copies of the embed script on one page is a plausible

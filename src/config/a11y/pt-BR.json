@@ -18,14 +18,14 @@
     "copy_address": "Copiar endereço"
   },
   "filters": {
-    "remove": "Remover %{label}"
+    "remove": "Remover %{label}",
+    "search_languages": "Buscar idiomas"
   },
   "search": {
     "results_showing": "Mostrando %{shown} de %{total} aulas",
     "dismiss_nearby_prompt": "Fechar"
   },
   "share": {
-    "copy_link": "Copiar link",
     "share_on": "Compartilhar no %{platform}",
     "qr_code": "Código QR de %{title}"
   }

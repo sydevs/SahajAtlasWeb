@@ -10,9 +10,9 @@ import { isCanonicalPath } from '@/lib/shape'
  * stranding on a parent, a button-driven route change — it snaps back to
  * `previewPath`. This effect is conditional, so re-running on an
  * already-allowed path is a no-op. So it never fights a legitimate register
- * or share drawer, even as react-router recreates `navigate` on each
- * navigation. An unconditional effect with `navigate` in its dependencies
- * would snap register or share straight back.
+ * drawer, even as react-router recreates `navigate` on each navigation. An
+ * unconditional effect with `navigate` in its dependencies would snap
+ * register straight back.
  *
  * It no longer performs an initial hop. The preview URL IS the document's
  * page now, so the widget is already where it belongs at mount.

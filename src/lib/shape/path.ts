@@ -294,8 +294,9 @@ export const resolvePath = (pathname: string): ResolvedPath => {
 
 /**
  * Words that are never a region slug. `search` / `calendar` / `filters` / `register`
- * / `share` / `online` are our own routed views (a CMS region slug can never
- * silently shadow them — this guard prevents that). `preview` is the live-preview
+ * / `online` are our own routed views (a CMS region slug can never silently shadow
+ * them — this guard prevents that). `share` was one, and stays so an old share link
+ * opens its class rather than a region called "share". `preview` is the live-preview
  * boot route, now kept for `user-submissions` alone — every other document previews at
  * its own page (issue #40, and `config/live-preview/protocol.ts`). It carries no drawer.
  * `events` / `areas` / `regions` / `venues` are legacy URL prefixes that carry no
@@ -323,7 +324,6 @@ export type StackEntry =
   | { kind: 'region'; slug: string; path: string }
   | { kind: 'event'; id: number; path: string }
   | { kind: 'register'; eventPath: string; path: string }
-  | { kind: 'share'; eventPath: string; path: string }
   | { kind: 'online'; regionSlug: string; path: string }
 
 /**
@@ -351,7 +351,6 @@ export const resolveStack = (pathname: string): StackEntry[] => {
     else if (word === 'calendar') entries.push({ kind: 'calendar', path })
     else if (word === 'filters') entries.push({ kind: 'filters', path })
     else if (word === 'register') entries.push({ kind: 'register', eventPath: parentPath, path })
-    else if (word === 'share') entries.push({ kind: 'share', eventPath: parentPath, path })
     else if (word === 'online')
       entries.push({ kind: 'online', regionSlug: safeDecode(segments[i - 1] ?? ''), path })
     else if (RESERVED_SLUGS.has(word))
@@ -457,23 +456,6 @@ export const nearestKnownRegion = (pathname: string, known: Set<string>): string
  */
 export const isFilterOverlay = (entries: StackEntry[], hasMap = true): boolean =>
   hasMap && entries.at(-1)?.kind === 'filters' && entries.at(-2)?.kind === 'calendar'
-
-/**
- * The region a filter drawer was opened over, or `null` — `/gb/london/filters` → `london`.
- *
- * A region's list does not itself reflect filters, so applying from there lands on
- * `/search`. Without this as the starting scope, that search would be worldwide: filtering
- * "evenings" from the UK would list evenings everywhere.
- */
-export const filterOriginRegion = (pathname: string): string | null => {
-  const entries = resolveStack(pathname)
-
-  if (entries.at(-1)?.kind !== 'filters') return null
-
-  const origin = entries.at(-2)
-
-  return origin?.kind === 'region' ? origin.slug : null
-}
 
 /**
  * The entry the BASE drawer is showing — the stack's last entry, unless that is a

@@ -87,31 +87,37 @@ export function SkeletonBlock({ className }: { className?: string }) {
 // ── The panel ───────────────────────────────────────────────────────────────────────────────
 
 /**
- * The header a view opens with: the search field (the first screen), the field over Filters and
- * Sort (search results), Back and a title (with the search box under it on a place), or a class's
- * own header.
+ * The header a view opens with: the title over the search and its location line (the first
+ * screen), the field over Filters and Sort (search results), Back and a title (with the search box
+ * under it on a place), or a class's own header.
  */
-export type SkeletonHeaderKind = 'field' | 'search' | 'titled' | 'titled-field' | 'class'
+export type SkeletonHeaderKind =
+  | 'home'
+  | 'search'
+  | 'titled'
+  | 'titled-subtitle'
+  | 'titled-field'
+  | 'closable'
+  | 'class'
+  | 'calendar'
 
-/** What fills the panel: place rows, class cards, or a class page. */
-export type SkeletonBodyKind = 'places' | 'classes' | 'class'
+/**
+ * What fills the panel: place rows, class cards, a class page, the registration form, the filter
+ * questions, or the calendar's month grid.
+ */
+export type SkeletonBodyKind = 'places' | 'classes' | 'class' | 'form' | 'filters' | 'calendar'
 
 export type SkeletonShape = { header: SkeletonHeaderKind; body: SkeletonBodyKind }
 
 /**
- * The shape of the view a route opens, or `null` for a view not worth drawing ahead of — the
- * calendar, the forms and the share sheet, whose data is already on hand when they open, so only
- * their code is on its way and their own header over a spinner says so.
+ * The shape of the view a route opens, so it loads under the outline of what arrives.
  *
  * `level` is the place's, once the region tree has it.
  */
-export function skeletonShape(
-  entry: StackEntry | undefined,
-  level?: RegionLevel,
-): SkeletonShape | null {
+export function skeletonShape(entry: StackEntry | undefined, level?: RegionLevel): SkeletonShape {
   switch (entry?.kind) {
     case undefined:
-      return { header: 'field', body: 'places' }
+      return { header: 'home', body: 'places' }
     case 'search':
       return { header: 'search', body: 'classes' }
     case 'region':
@@ -123,13 +129,22 @@ export function skeletonShape(
       return { header: 'titled', body: 'classes' }
     case 'event':
       return { header: 'class', body: 'class' }
-    default:
-      return null
+    case 'register':
+      return { header: 'titled-subtitle', body: 'form' }
+    case 'filters':
+      return { header: 'closable', body: 'filters' }
+    case 'calendar':
+      return { header: 'calendar', body: 'calendar' }
   }
 }
 
-const FIELD =
-  'flex h-[38px] min-w-0 flex-1 items-center gap-3 rounded-lg border border-divider bg-gray-2 ps-2 pointer-coarse:h-[46px]'
+/** CalendarView's header band: its controls in one row, wrapping where the drawer is narrow. */
+export const CALENDAR_HEADER = 'max-w-none flex-wrap items-center gap-x-3 gap-y-2'
+
+// A field's drawn height, 46px on a touch screen (`field-height` in globals.css).
+const FIELD_HEIGHT = 'h-[38px] pointer-coarse:h-[46px]'
+
+const FIELD = `flex ${FIELD_HEIGHT} min-w-0 flex-1 items-center gap-3 rounded-lg border border-divider bg-gray-2 ps-2`
 
 /** The search field's box, greyed and holding bars, so it reads as on its way, not as a field. */
 export function SkeletonField() {
@@ -141,12 +156,37 @@ export function SkeletonField() {
   )
 }
 
-/** A header's content, for a panel with no real header yet: the field and a control, or Back and a title. */
-export function SkeletonHeader({ header }: { header: 'field' | 'titled' }) {
-  if (header === 'field') {
+/** The location line under the first screen's search, the height of the real one. */
+export function SkeletonLocation() {
+  return (
+    <SkeletonGroup>
+      <SkeletonBlock className="mt-1.5 h-9 w-full" />
+    </SkeletonGroup>
+  )
+}
+
+/**
+ * A header's content, for a panel with no real header yet: the field and a control, a title and a
+ * control (the first screen), or Back and a title.
+ */
+export function SkeletonHeader({
+  header,
+  subtitle = false,
+}: {
+  header: 'field' | 'home' | 'titled'
+  /** A line under the title, as the sign-up form's reassurance. */
+  subtitle?: boolean
+}) {
+  if (header === 'field' || header === 'home') {
     return (
       <>
-        <SkeletonField />
+        {header === 'field' ? (
+          <SkeletonField />
+        ) : (
+          <SkeletonGroup className="min-w-0 flex-1">
+            <SkeletonLine className="text-xl" width="w-3/5" />
+          </SkeletonGroup>
+        )}
         <SkeletonGroup className="flex h-8 w-8 shrink-0 items-center justify-center">
           <SkeletonBlock className="h-5 w-5 rounded-full" />
         </SkeletonGroup>
@@ -160,7 +200,28 @@ export function SkeletonHeader({ header }: { header: 'field' | 'titled' }) {
         <SkeletonLine className="text-sm" width="w-36" />
       </div>
       <SkeletonLine className="text-xl" width="w-1/2" />
+      {subtitle && <SkeletonLine className="text-sm" width="w-3/4" />}
     </SkeletonGroup>
+  )
+}
+
+/** The calendar's own header (CalendarView's): Back and Filters, the place's name, then the view
+ *  switch beside the date between its arrows. */
+export function SkeletonCalendarControls() {
+  return (
+    <>
+      <SkeletonGroup className="flex h-8 w-full items-center justify-between">
+        <SkeletonLine className="text-sm" width="w-36" />
+        <SkeletonBlock className="h-5 w-5 rounded-full" />
+      </SkeletonGroup>
+      <SkeletonGroup className="w-full">
+        <SkeletonLine className="text-xl" width="w-1/2" />
+      </SkeletonGroup>
+      <SkeletonGroup className="flex w-full flex-wrap items-center gap-2">
+        <SkeletonBlock className="h-8 w-36 pointer-coarse:h-11" />
+        <SkeletonBlock className="h-8 w-44 pointer-coarse:h-11" />
+      </SkeletonGroup>
+    </>
   )
 }
 
@@ -221,6 +282,81 @@ function ClassPage({ cta }: { cta: boolean }) {
   )
 }
 
+/** One question of a form: its label line over the control's box. */
+function Question({ children, width }: { children?: ReactNode; width: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <SkeletonLine className="text-sm" width={width} />
+      {children}
+    </div>
+  )
+}
+
+const CONTROL = `${FIELD_HEIGHT} w-full`
+
+/** The registration form below its title: the class's summary card, then a labelled field each. */
+function RegistrationPage() {
+  return (
+    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-gutter py-4">
+      <SkeletonBlock className="h-24 w-full" />
+      <Question width="w-24">
+        <SkeletonBlock className={CONTROL} />
+      </Question>
+      <Question width="w-32">
+        <SkeletonBlock className={CONTROL} />
+      </Question>
+      <Question width="w-20">
+        <SkeletonBlock className="h-24 w-full" />
+      </Question>
+    </div>
+  )
+}
+
+/** The filter questions in their order: where, format, days, then the times of day stacked. */
+function FilterPage() {
+  return (
+    <div className="flex flex-col gap-5 px-gutter py-4">
+      <Question width="w-16">
+        <SkeletonBlock className={CONTROL} />
+      </Question>
+      <Question width="w-24">
+        <div className="grid grid-cols-2 gap-2">
+          <SkeletonBlock className="h-11" />
+          <SkeletonBlock className="h-11" />
+        </div>
+      </Question>
+      <Question width="w-12">
+        <SkeletonBlock className="h-11 w-full" />
+      </Question>
+      <Question width="w-20">
+        <div className="flex flex-col gap-2">
+          <SkeletonBlock className="h-11 w-full" />
+          <SkeletonBlock className="h-11 w-full" />
+          <SkeletonBlock className="h-11 w-full" />
+        </div>
+      </Question>
+    </div>
+  )
+}
+
+/** The month grid below the calendar's header: a weekday row over five rows of days. */
+function CalendarPage() {
+  return (
+    <div className="flex flex-col gap-2 px-gutter py-2">
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 7 }, (_, day) => (
+          <SkeletonLine key={day} className="justify-center text-xs" width="w-6" />
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 35 }, (_, day) => (
+          <SkeletonBlock key={day} className="h-14" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /**
  * What fills a loading panel, marked loading so the phone sheet holds still until the content
  * arrives (`useFitSnap`), and announced once, in words.
@@ -234,20 +370,27 @@ export function SkeletonBody({ body, cta = true }: { body: SkeletonBodyKind; cta
   return (
     <div {...LOADING}>
       <p className="sr-only" role="status">
-        {t(body === 'class' ? 'common.a11y.loading' : 'common.a11y.finding_classes')}
+        {t(
+          body === 'places' || body === 'classes' || body === 'calendar'
+            ? 'common.a11y.finding_classes'
+            : 'common.a11y.loading',
+        )}
       </p>
       <SkeletonGroup>
         {body === 'places' && <PlaceRows />}
         {body === 'classes' && <ClassCards />}
         {body === 'class' && <ClassPage cta={cta} />}
+        {body === 'form' && <RegistrationPage />}
+        {body === 'filters' && <FilterPage />}
+        {body === 'calendar' && <CalendarPage />}
       </SkeletonGroup>
     </div>
   )
 }
 
 export interface SkeletonProps {
-  /** The view's shape (`skeletonShape`). With none, a titled header over an empty body. */
-  shape: SkeletonShape | null
+  /** The view's shape (`skeletonShape`). */
+  shape: SkeletonShape
   /** As on `SkeletonBody`. */
   cta?: boolean
   /** The drawer it stands in for: the side panel, or the phone sheet, whose header sits closer to its handle. */
@@ -260,7 +403,7 @@ export interface SkeletonProps {
  * keeps its real header and draws only `SkeletonBody`.
  */
 export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
-  const header = shape?.header ?? 'titled'
+  const { header } = shape
   const panel = drawer({ direction, mode: 'anchored' })
 
   return (
@@ -274,13 +417,30 @@ export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
         <div
           className={panel.header({
             className:
-              header === 'field' || header === 'search'
+              header === 'search'
                 ? undefined
-                : 'flex-col items-stretch gap-0',
+                : header === 'home' || header === 'closable'
+                  ? 'justify-between'
+                  : header === 'calendar'
+                    ? CALENDAR_HEADER
+                    : 'flex-col items-stretch gap-0',
           })}
           data-band="header"
         >
-          <SkeletonHeader header={header === 'field' || header === 'search' ? 'field' : 'titled'} />
+          {header === 'calendar' ? (
+            <SkeletonCalendarControls />
+          ) : (
+            <SkeletonHeader
+              header={
+                header === 'search'
+                  ? 'field'
+                  : header === 'home' || header === 'closable'
+                    ? 'home'
+                    : 'titled'
+              }
+              subtitle={header === 'titled-subtitle'}
+            />
+          )}
         </div>
       )}
       {header === 'search' && (
@@ -292,16 +452,17 @@ export function Skeleton({ shape, cta, direction = 'left' }: SkeletonProps) {
           </SkeletonGroup>
         </div>
       )}
-      {header === 'titled-field' && (
+      {(header === 'titled-field' || header === 'home') && (
         <div
           className={panel.toolbar({ className: `${RESULTS_BAND} px-gutter pb-2` })}
           data-band="toolbar"
         >
           <SkeletonField />
+          {header === 'home' && <SkeletonLocation />}
         </div>
       )}
       <div className={panel.body({ className: LOADING_BODY_CLIP })} data-band="body">
-        {shape && <SkeletonBody body={shape.body} cta={cta} />}
+        <SkeletonBody body={shape.body} cta={cta} />
       </div>
     </>
   )

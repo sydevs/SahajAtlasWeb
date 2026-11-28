@@ -88,6 +88,11 @@ export const TOUCH_ONLY_QUERY = '(hover: none) and (pointer: coarse)'
 // screen. The open stop shows the Back row, the title, a list row, and a peek of the next.
 export const SHEET_PEEK_PX = 104
 export const SHEET_OPEN_PX = 356
+// The first screen opens taller than the open stop: its title, the search with its location line,
+// online classes and the browse heading come before the first country, which must still show.
+// Measured at 390×844: the first country row ends 346px into the sheet, so 380px shows it and a
+// peek of the next, as the open stop does for other views.
+export const SHEET_HOME_PX = 380
 
 // On a phone on its side, the open and taller stops covered nearly all of a 375px-tall map. There
 // every pixel stop stays this far below the top of the window, the band of map a 300px open stop

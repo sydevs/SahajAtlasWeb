@@ -30,11 +30,21 @@ if (!atlasAuth.apiKey) {
 // the Mapbox canvas. Default is the full map.
 const hasMap = attributeEnabled(searchParams.get('map'))
 
-// The visitor's approximate location, the module the app Worker serves per visitor, as the
-// loader imports it for an embed. A variable, so Vite leaves the import to the browser.
+// The visitor's approximate location, the module the app Worker serves per visitor, waited for
+// as the loader waits for it (`GEO_WAIT_MS` in `src/loader/literals.ts`), so it is there at the
+// first render. A variable, so Vite leaves the import to the browser.
 const GEO_MODULE = '/geo.js'
+const GEO_WAIT_MS = 1500
 
-bootApproxLocation(import(/* @vite-ignore */ GEO_MODULE).then((module) => module.default))
+bootApproxLocation(
+  await Promise.race([
+    import(/* @vite-ignore */ GEO_MODULE).then(
+      (module: { default?: unknown }) => module.default,
+      () => null,
+    ),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), GEO_WAIT_MS)),
+  ]),
+)
 
 // SahajCloud live-preview boot (issue #40). Synchronous, and deliberately only half the
 // job: this stashes the token and takes it out of `location.href` before React mounts

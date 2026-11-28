@@ -7,21 +7,21 @@ import { Alert } from '@/components/atoms/Alert'
 import { Link } from '@/components/atoms/Link'
 import { DrawerBody, DrawerToolbar } from '@/components/atoms/Drawer'
 import {
-  ActiveFilterPills,
+  ActiveFilterChips,
   EventListItem,
   FallbackPanel,
   List,
   ListItem,
 } from '@/components/molecules'
+import { NoFilterMatches } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
-import { useEventFilters, useFilterSearch, useSetFilters } from '@/hooks/use-filters'
+import { useEventFilters, useFilterSearch } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { usePostEventFeedback } from '@/hooks/use-post-event-feedback'
 import { usePrefetchEvents } from '@/hooks/use-prefetch-event'
 import { useWidgetMode } from '@/config/mode'
 import {
-  DEFAULT_FILTERS,
   childRoute,
   climbDestination,
   hasActiveFilters,
@@ -31,13 +31,7 @@ import {
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
-import {
-  CalendarButton,
-  FilterButton,
-  GeolocationSuggestion,
-  SearchField,
-  useFrameOnTop,
-} from '@/views/shared'
+import { CalendarButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
 
 // A region at any level, at route `<region-path>`. It shows child-region cards, then this
 // region's own located events, in ONE mixed list. A city can hold both venue and centre
@@ -63,7 +57,6 @@ export function RegionView({ slug }: { slug: string }) {
   // the list, the counts and the links one level down must too, or the two disagree.
   const filters = useEventFilters()
   const filterSearch = useFilterSearch()
-  const { setFilters } = useSetFilters()
   const { data: region } = useSuspenseQuery(regionQuery(slug, locale, filters))
 
   // A place with one class opens it: a list of one is an extra tap. Only while this view is the
@@ -143,10 +136,12 @@ export function RegionView({ slug }: { slug: string }) {
       {/* A field, not an icon, so a visitor who landed in the wrong place can search again from
           here. */}
       <DrawerToolbar field>
-        <SearchField />
+        {/* A place page's own search, with the location line its region allows. Not while
+            the acknowledgement is up: two prompts are more than the screen can carry. */}
+        <SearchField near={feedback ? undefined : region} />
       </DrawerToolbar>
       <DrawerBody>
-        <ActiveFilterPills />
+        <ActiveFilterChips />
         {/* Above the region's own content, which IS the "other classes near them" the
             acknowledgement hands off to. So the banner carries no onward link of its own.
             This stays neutral and unticked. A tick would read as "yes, it's gone", and one
@@ -183,17 +178,12 @@ export function RegionView({ slug }: { slug: string }) {
             onClose={dismissFeedback}
           />
         )}
-        {/* This is suppressed while the acknowledgement is up. Two stacked prompts above the
-            list are more than the screen can carry, and the reader has just acted once
-            already. It returns as soon as they dismiss the banner. */}
-        {!feedback && <GeolocationSuggestion position="above" regionCenter={region.center} />}
         {isEmpty ? (
-          <FallbackPanel
-            hasSearchChrome
-            align="start"
-            kind={hasActiveFilters(filters) ? 'no-results' : 'empty'}
-            onClearFilters={() => setFilters(DEFAULT_FILTERS)}
-          />
+          hasActiveFilters(filters) ? (
+            <NoFilterMatches />
+          ) : (
+            <FallbackPanel hasSearchChrome align="start" kind="empty" />
+          )
         ) : (
           <List>
             {/* On a region with sub-regions, the online roll-up opens in its own drawer
@@ -230,7 +220,6 @@ export function RegionView({ slug }: { slug: string }) {
               ))}
           </List>
         )}
-        {!feedback && <GeolocationSuggestion position="below" regionCenter={region.center} />}
       </DrawerBody>
     </>
   )

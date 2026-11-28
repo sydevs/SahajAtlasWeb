@@ -1,2 +1,5 @@
 export { SearchFilters } from './SearchFilters'
 export type { SearchFiltersProps } from './SearchFilters'
+export { DayFilter, FormatFilter, LanguageFilter, MoreFilters, TimeFilter } from './filter-blocks'
+export { RecoveryButton } from './RecoveryButton'
+export type { RecoveryButtonProps } from './RecoveryButton'

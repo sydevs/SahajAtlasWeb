@@ -47,7 +47,7 @@ describe('the place the inline heading names', () => {
     expect(place('/gb/south-east/london/brixton')).toBe('London')
   })
 
-  it("names the city of a class, and of that class's register and share views", () => {
+  it("names the city of a class, and of that class's sign-up", () => {
     expect(place('/gb/south-east/london/brixton/507')).toBe('London')
     expect(place('/gb/south-east/london/brixton/507/register')).toBe('London')
   })

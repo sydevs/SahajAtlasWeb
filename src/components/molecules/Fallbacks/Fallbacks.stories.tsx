@@ -24,9 +24,8 @@ export default {
  * reviewer checks the CONTROLS against the table, instead of reading five
  * near-identical sentences.
  *
- * The five flags are covered as follows. Every dead-end row covers
- * `onward`. The two rows that pass a geocoder cover `search`. `no-results`
- * covers `clearFilters`. The failure kinds in the section above cover
+ * The flags are covered as follows. Every dead-end row covers
+ * `onward`. The two rows that pass a geocoder cover `search`. The failure kinds in the section above cover
  * `retry` and `report`. No dead end offers either: retrying a URL that
  * does not exist fails identically, and a wrong link is not ours to fix.
  */
@@ -63,23 +62,6 @@ const BODY_CASES: {
     actions: 'onward (no contact)',
     note: 'The same row with nobody to call. `visibleActions` swaps the number for the recovery ladder, so the viewer is pointed at another class nearby rather than left holding the reason.',
     props: { message: 'This class is full.' },
-  },
-  {
-    kind: 'share-unavailable',
-    actions: 'contact',
-    note: 'The share screen for a class with no link to give out — no canonical page, on a host page the widget routes off-URL on (issue #115). Same shape as `unavailable` but WITHOUT the onward rung: answering "you can\'t share this" with "see events nearby" would walk the viewer away from the class they were trying to pass on. The number leads, because a person can be told about a class where a link can\'t.',
-    props: { contact: { phone: '+44 20 1234 5678', name: 'Anna' } },
-  },
-  {
-    kind: 'share-unavailable',
-    actions: 'report (no contact)',
-    note: "The same row with nobody to call. With no onward rung to fall back to, `visibleActions`' promised-but-not-offered rule surfaces the report CTA — a class with neither a public page nor a contact is a gap worth hearing about, and it beats a sentence with nothing beside it.",
-  },
-  {
-    kind: 'no-results',
-    actions: 'clearFilters',
-    note: 'Filters are both the explanation AND the escape, so this keeps "Clear all" alone: an onward link would compete with the one action that restores results. Rendered on SearchView, whose header already IS a geocoder — hence no field.',
-    props: { onClearFilters: () => {}, hasSearchChrome: true },
   },
   {
     kind: 'no-nearby',

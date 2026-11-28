@@ -1,0 +1,101 @@
+import { useState } from 'react'
+import { Search } from 'lucide-react'
+
+import { Checkbox } from '@/components/atoms/Checkbox'
+import { Input } from '@/components/atoms/Input'
+import { foldAccents } from '@/lib/shape'
+import { tv } from '@/styles/tv'
+
+export type CheckboxGroupOption = {
+  value: string
+  label: string
+  /** A live count, shown quietly at the row's end. */
+  count?: number
+  disabled?: boolean
+}
+
+export type CheckboxGroupProps = {
+  options: CheckboxGroupOption[]
+  /** The checked values. */
+  value: string[]
+  onChange: (next: string[]) => void
+  /** Names the group for a screen reader. */
+  'aria-label': string
+  /** Names the search box, which shows once the list is long enough to need one. */
+  searchLabel: string
+}
+
+/** Past this many options the list gets a search box and keeps what is checked at its top. */
+const SEARCHABLE_ABOVE = 10
+
+const group = tv({
+  slots: {
+    base: 'flex flex-col gap-1',
+    search: 'relative mb-1',
+    searchIcon: 'pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-gray-11',
+    row: 'w-full rounded-lg px-2 py-1.5 hover:bg-gray-3',
+    rowLabel: 'flex w-full items-baseline justify-between gap-3',
+    count: 'text-xs font-normal text-gray-11 tabular-nums',
+  },
+})
+
+/**
+ * A list of checkboxes, each with an optional count at its end. A long list gets a search box at
+ * its top, and keeps what is checked at its top, so the visitor's own choices stay in view as
+ * they pick.
+ */
+export function CheckboxGroup({
+  options,
+  value,
+  onChange,
+  'aria-label': ariaLabel,
+  searchLabel,
+}: CheckboxGroupProps) {
+  const slots = group()
+  const long = options.length > SEARCHABLE_ABOVE
+  const [query, setQuery] = useState('')
+  const ordered = long
+    ? [
+        ...options.filter((option) => value.includes(option.value)),
+        ...options.filter((option) => !value.includes(option.value)),
+      ]
+    : options
+  const shown = query
+    ? ordered.filter((option) => foldAccents(option.label).includes(foldAccents(query)))
+    : ordered
+
+  const toggle = (option: string) =>
+    onChange(value.includes(option) ? value.filter((v) => v !== option) : [...value, option])
+
+  return (
+    <div aria-label={ariaLabel} className={slots.base()} role="group">
+      {long && (
+        <div className={slots.search()}>
+          <Search aria-hidden className={slots.searchIcon()} size={16} />
+          <Input
+            aria-label={searchLabel}
+            className="w-full ps-8"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+      )}
+      {shown.map((option) => (
+        <Checkbox
+          key={option.value}
+          appearance="checkbox"
+          checked={value.includes(option.value)}
+          className={slots.row()}
+          disabled={option.disabled && !value.includes(option.value)}
+          onCheckedChange={() => toggle(option.value)}
+        >
+          <span className={slots.rowLabel()}>
+            {option.label}
+            {option.count !== undefined && <span className={slots.count()}>{option.count}</span>}
+          </span>
+        </Checkbox>
+      ))}
+    </div>
+  )
+}

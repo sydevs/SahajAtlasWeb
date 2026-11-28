@@ -18,14 +18,14 @@
     "copy_address": "Kopiuj adres"
   },
   "filters": {
-    "remove": "Usuń: %{label}"
+    "remove": "Usuń: %{label}",
+    "search_languages": "Szukaj języków"
   },
   "search": {
     "results_showing": "Wyświetlono zajęć: %{shown} z %{total}",
     "dismiss_nearby_prompt": "Odrzuć"
   },
   "share": {
-    "copy_link": "Kopiuj link",
     "share_on": "Udostępnij: %{platform}",
     "qr_code": "Kod QR dla %{title}"
   }

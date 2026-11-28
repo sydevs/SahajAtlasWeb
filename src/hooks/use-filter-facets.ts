@@ -9,6 +9,7 @@ import { useSearchCountry } from '@/hooks/use-search-country'
 import {
   type EventFilters,
   type FilterFacets,
+  type FilterableEvent,
   bestRecovery,
   facetCounts,
   hasActiveFilters,
@@ -25,27 +26,7 @@ import {
  * but Language, without numbers.
  */
 export function useFilterFacets(filters: EventFilters): FilterFacets | undefined {
-  const [searchParams] = useSearchParams()
-  const center = parseCenter(searchParams.get('center'))
-  const centerKey = center?.join(',')
-  const searchCountry = useSearchCountry()
-  const matchesRegion = useRegionMatcher(filters.region)
-  const { data: geojson } = useQuery(geojsonQuery())
-
-  const scope = useMemo(() => {
-    if (!geojson) return undefined
-
-    return geojson.features.flatMap(({ properties, geometry }) => {
-      if (matchesRegion && !matchesRegion(properties)) return []
-      if (!center) return [properties]
-
-      const distance =
-        isOnline(properties) || !geometry ? undefined : distanceKm(center, geometry.coordinates)
-
-      return isNearby({ ...properties, distance }, searchCountry) ? [properties] : []
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `center` is rebuilt every render, so its string form stands in for it.
-  }, [geojson, matchesRegion, centerKey, searchCountry])
+  const scope = useFilterScope(filters)
 
   // Judged with nothing picked, so answering one question never removes another from the form.
   const unfiltered = useMemo(() => (scope ? scopeFacets(scope) : undefined), [scope])
@@ -63,4 +44,32 @@ export function useFilterFacets(filters: EventFilters): FilterFacets | undefined
       recovery: counts.total === 0 ? bestRecovery(scope, filters) : undefined,
     }
   }, [scope, unfiltered, filters])
+}
+
+/**
+ * The classes the counts are taken over, uncounted. Cheap beside `useFilterFacets`, so a surface
+ * that only needs to know what the scope holds (the filter buttons, closed) reads this instead.
+ */
+export function useFilterScope(filters: EventFilters): FilterableEvent[] | undefined {
+  const [searchParams] = useSearchParams()
+  const center = parseCenter(searchParams.get('center'))
+  const centerKey = center?.join(',')
+  const searchCountry = useSearchCountry()
+  const matchesRegion = useRegionMatcher(filters.region)
+  const { data: geojson } = useQuery(geojsonQuery())
+
+  return useMemo(() => {
+    if (!geojson) return undefined
+
+    return geojson.features.flatMap(({ properties, geometry }) => {
+      if (matchesRegion && !matchesRegion(properties)) return []
+      if (!center) return [properties]
+
+      const distance =
+        isOnline(properties) || !geometry ? undefined : distanceKm(center, geometry.coordinates)
+
+      return isNearby({ ...properties, distance }, searchCountry) ? [properties] : []
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `center` is rebuilt every render, so its string form stands in for it.
+  }, [geojson, matchesRegion, centerKey, searchCountry])
 }

@@ -18,14 +18,14 @@
     "copy_address": "Копиране на адреса"
   },
   "filters": {
-    "remove": "Премахване: %{label}"
+    "remove": "Премахване: %{label}",
+    "search_languages": "Търсене на езици"
   },
   "search": {
     "results_showing": "Показани занимания: %{shown} от %{total}",
     "dismiss_nearby_prompt": "Скриване"
   },
   "share": {
-    "copy_link": "Копиране на връзката",
     "share_on": "Споделяне: %{platform}",
     "qr_code": "QR код за %{title}"
   }

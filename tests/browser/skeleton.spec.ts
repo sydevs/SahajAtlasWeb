@@ -48,7 +48,8 @@ const shape = (root: Locator) =>
       ...from(panel.top, el),
     }))
     const bodyTop = body.getBoundingClientRect().top
-    const rows = [...body.querySelectorAll('li')].filter(visible).slice(0, 2)
+    // A Month day's classes are a list inside a grid cell, not a row of the panel's own list.
+    const rows = [...body.querySelectorAll('li:not(table li)')].filter(visible).slice(0, 2)
 
     return { bands, rows: rows.map((row) => from(bodyTop, row)) }
   })
@@ -109,6 +110,9 @@ const ROUTES = [
   { name: 'a country', route: '/gb', exactRows: true },
   { name: 'search results', route: '/search', exactRows: false },
   { name: 'a class', route: SAHAJCLOUD_EVENT.path, exactRows: false },
+  { name: 'the sign-up form', route: `${SAHAJCLOUD_EVENT.path}/register`, exactRows: false },
+  { name: 'the filters', route: '/filters', exactRows: false },
+  { name: 'the calendar', route: '/calendar', exactRows: false },
 ]
 
 // The boot panel stands in for the map-first interface alone, which only the standalone page opened

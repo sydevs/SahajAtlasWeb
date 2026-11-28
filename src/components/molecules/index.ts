@@ -13,15 +13,20 @@
 export { SettingsMenu } from './SettingsMenu'
 export type { SettingsMenuProps } from './SettingsMenu'
 
-// ActiveFilterPills — the applied filters as removable pills at the top
+// ActiveFilterChips — the applied filters as removable chips at the top
 // of the search results, rendered by the events list. It takes no props.
 // It reads the filters from the URL itself.
-export { ActiveFilterPills } from './ActiveFilterPills'
+export { ActiveFilterChips } from './ActiveFilterChips'
 
 // ListToolbar — the controls row above a results list: a Filters
 // button, plus a SortMenu on the search results. It is a thin
 // justify-between layout. The views supply the controls.
 export { ListToolbar } from './ListToolbar'
+
+// CheckboxGroup — a list of checkboxes with counts; a long one is searchable and keeps its checked
+// options at the top.
+export { CheckboxGroup } from './CheckboxGroup'
+export type { CheckboxGroupOption, CheckboxGroupProps } from './CheckboxGroup'
 export type { ListToolbarProps } from './ListToolbar'
 
 // SortMenu — the results-list sort selector (Recommended, Closest,
@@ -81,15 +86,9 @@ export type { EventListItemProps } from './EventListItem'
 // nothing imported it through it. Tree-shaking will not drop it, since its
 // imports carry side effects. Every real consumer already reaches them by
 // leaf path from inside a lazily-loaded chunk: EventActions from
-// EventDetails, ShareContent from RegistrationForm and ShareView.
+// EventDetails, ShareContent from RegistrationForm and EventActions.
 // `index.test.ts` pins it (issue #96). ⚠ Nothing else does: the interface loads behind a lazy
 // seam, outside the graphs `pnpm size` budgets.
 
 export { EventMetadata } from './EventMetadata'
 export type { EventMetadataProps } from './EventMetadata'
-
-// GeolocationPrompt — the dismissible approximate-location "events near you"
-// suggestion shown above the list on the top-level views, wired by
-// GeolocationSuggestion in views/shared.
-export { GeolocationPrompt } from './GeolocationPrompt'
-export type { GeolocationPromptProps } from './GeolocationPrompt'

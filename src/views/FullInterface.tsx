@@ -11,6 +11,7 @@ import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
+import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
 import api from '@/config/api'
 
 /**
@@ -172,7 +173,11 @@ export function MapLayer({
 }) {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
-      <Mapbox cooperative={cooperative} settings={settings} />
+      <Mapbox
+        cooperative={cooperative}
+        filterMenus={<FilterMenuBar variant="floating" />}
+        settings={settings}
+      />
       <MapCurtain />
     </div>
   )

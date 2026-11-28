@@ -18,14 +18,14 @@
     "copy_address": "Αντιγραφή διεύθυνσης"
   },
   "filters": {
-    "remove": "Αφαίρεση: %{label}"
+    "remove": "Αφαίρεση: %{label}",
+    "search_languages": "Αναζήτηση γλωσσών"
   },
   "search": {
     "results_showing": "Εμφανίζονται %{shown} από %{total} μαθήματα",
     "dismiss_nearby_prompt": "Απόρριψη"
   },
   "share": {
-    "copy_link": "Αντιγραφή συνδέσμου",
     "share_on": "Κοινοποίηση: %{platform}",
     "qr_code": "Κωδικός QR για %{title}"
   }

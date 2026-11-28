@@ -76,7 +76,7 @@ writes (paging, clearing a filter) survive instead of being overwritten by a
 re-seed. Memoize on the **case key**, not the query string — two cases
 sharing a query would share one object and one seed, so switching between
 them would not re-seed, and the first case's leftover URL state would carry
-into the second. Used by ActiveFilterPills, CalendarView, and SearchView.
+into the second. Used by ActiveFilterChips, CalendarView, and SearchView.
 
 ### ViewStory + stateControl (view stories)
 

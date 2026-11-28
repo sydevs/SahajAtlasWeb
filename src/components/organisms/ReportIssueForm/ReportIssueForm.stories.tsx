@@ -91,29 +91,6 @@ export const Default: Story = () => {
       </StorySection>
 
       <StorySection
-        description="When the challenge can't load, the form says so and leaves Send disabled — there is no token to send. Rare in practice, since a widget that cannot run the challenge at all fails before a viewer reaches this form."
-        title="Captcha blocked"
-      >
-        <Panel>
-          <ReportIssueForm
-            captchaUnavailable
-            context={context}
-            form={mockReportForm}
-            onClose={noop}
-          />
-        </Panel>
-      </StorySection>
-
-      <StorySection
-        description="A send that failed. The message and address stay put so the retry costs nothing to compose, and the challenge has been reset underneath — a solved challenge is single-use, so a retry needs a fresh one."
-        title="Send failed"
-      >
-        <Panel>
-          <ReportIssueForm initialFailed context={context} form={mockReportForm} onClose={noop} />
-        </Panel>
-      </StorySection>
-
-      <StorySection
         description="After a STORED report — this screen is derived from the mutation's success and nothing else, and it shows the operator's own confirmation copy when they authored one. The modal unmounts its content on close, so reopening always starts on a fresh form with a new challenge."
         title="Thank you"
       >

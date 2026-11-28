@@ -18,14 +18,14 @@
     "copy_address": "Kopírovat adresu"
   },
   "filters": {
-    "remove": "Odebrat: %{label}"
+    "remove": "Odebrat: %{label}",
+    "search_languages": "Hledat jazyky"
   },
   "search": {
     "results_showing": "Zobrazeno lekcí: %{shown} z %{total}",
     "dismiss_nearby_prompt": "Skrýt"
   },
   "share": {
-    "copy_link": "Kopírovat odkaz",
     "share_on": "Sdílet: %{platform}",
     "qr_code": "QR kód pro %{title}"
   }

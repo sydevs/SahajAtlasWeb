@@ -59,7 +59,7 @@ describe('sheetLadder for every other view', () => {
     expect(sheetLadder({ classView, fit: null, fold: null }).points).toBe(SNAP_POINTS)
   })
 
-  it('slots a fit (Share) between the open and near-full stops', () => {
+  it('slots a fit between the open and near-full stops', () => {
     expect(sheetLadder({ classView, fit: 600, fold: null }).points).toEqual([
       PEEK_SNAP,
       OPEN_SNAP,
@@ -162,20 +162,20 @@ describe('sheetOpening', () => {
     expect(sheetOpening('register')).toBe('tall')
   })
 
-  it('fits a class, its share panel and the filters to their content', () => {
-    expect(['event', 'share', 'filters'].map((kind) => sheetOpening(kind as never))).toEqual([
-      'fit',
-      'fit',
-      'fit',
-    ])
+  it('fits a class and the filters to their content', () => {
+    expect(['event', 'filters'].map((kind) => sheetOpening(kind as never))).toEqual(['fit', 'fit'])
   })
 
-  it('keeps the open stop for the lists and the root', () => {
+  it('keeps the open stop for the lists', () => {
     expect(['search', 'region', 'online'].map((kind) => sheetOpening(kind as never))).toEqual([
       'open',
       'open',
       'open',
     ])
-    expect(sheetOpening(undefined)).toBe('open')
+  })
+
+  // The first screen shows its first country below the search, its line and online classes.
+  it('opens the first screen at its own stop', () => {
+    expect(sheetOpening(undefined)).toBe('home')
   })
 })

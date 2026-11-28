@@ -1,7 +1,7 @@
 import type { AttributionControl, IControl, Map as MapboxMap } from 'mapbox-gl'
 import type { LocateState } from './use-locate'
 
-import { memo, type Ref, useEffect } from 'react'
+import { memo, type ReactNode, type Ref, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useControl } from 'react-map-gl/mapbox'
@@ -24,19 +24,27 @@ import { useMapControls } from '@/config/store'
  */
 class ControlColumn implements IControl {
   readonly slot = document.createElement('div')
+  /** The filter buttons beside the column, on a computer. */
+  readonly menuSlot = document.createElement('div')
   private readonly root = document.createElement('div')
+  private readonly column = document.createElement('div')
 
   constructor(private readonly attribution: AttributionControl) {
     // The top inset clears a phone's status bar where `viewport-fit=cover` runs the map beneath
-    // it. ⚠ The 10px gap is the credits' 44px tap area overhanging its 24px button on a touch
-    // screen: any less and find-me, later in the DOM, takes the shared pixels.
+    // it.
     this.root.className =
-      'sy-map-controls pointer-events-auto mt-[calc(16px+env(safe-area-inset-top,0px))] mr-4 flex items-start gap-2.5'
-    this.root.append(this.slot)
+      'sy-map-controls pointer-events-auto mt-[calc(16px+env(safe-area-inset-top,0px))] mr-4 flex items-start gap-2'
+    // ⚠ The 10px gap is the credits' 44px tap area overhanging its 24px button on a touch screen:
+    // any less and the button above it takes the shared pixels.
+    this.column.className = 'flex flex-col items-end gap-2.5'
+    this.column.append(this.slot)
+    this.root.append(this.menuSlot, this.column)
   }
 
+  // The credits sit under the buttons, so nothing beside the column has to clear them, and open
+  // leftward from there.
   onAdd(map: MapboxMap) {
-    this.root.prepend(this.attribution.onAdd(map))
+    this.column.append(this.attribution.onAdd(map))
 
     return this.root
   }
@@ -62,6 +70,8 @@ type MapControlsProps = {
   settings?: boolean
   /** The find-me button, so the location dialog can hand focus back to it. */
   locateRef: Ref<HTMLButtonElement>
+  /** The filter buttons, shown beside the column while `useMapControls().filterMenus` holds. */
+  filterMenus?: ReactNode
 }
 
 // Memoised: the map re-renders on every hover and camera write, and the settings menu under this
@@ -71,9 +81,11 @@ export const MapControls = memo(function MapControls({
   onLocate,
   locateRef,
   settings = true,
+  filterMenus,
 }: MapControlsProps) {
   const { t } = useTranslation()
   const hidden = useMapControls((s) => s.hidden)
+  const menusShown = useMapControls((s) => s.filterMenus)
   // A phone on its side is too short for a column, so the buttons run as a row there, clear of
   // the short window's sheet, which `DrawerStack` caps by the same signal.
   const short = useIsShortViewport()
@@ -89,36 +101,44 @@ export const MapControls = memo(function MapControls({
 
   const locateLabel = t('common.map.find_my_location')
 
-  return createPortal(
-    <div className={short ? 'flex flex-row gap-2' : 'flex flex-col gap-2'}>
-      <HoverLabel text={locateLabel}>
-        <Button
-          ref={locateRef}
-          isIconOnly
-          aria-busy={locate === 'waiting' || undefined}
-          aria-label={locateLabel}
-          radius="full"
-          variant="floating"
-          onClick={onLocate}
-        >
-          {locate === 'waiting' ? (
-            <Spinner decorative color="current" size="sm" />
-          ) : (
-            <LocateFixed
-              className={
-                locate === 'found'
-                  ? 'text-primary-11'
-                  : locate === 'failed'
-                    ? 'text-danger-11'
-                    : undefined
-              }
-              size={20}
-            />
+  return (
+    <>
+      {menusShown && createPortal(filterMenus, column.menuSlot)}
+      {createPortal(
+        <div className={short ? 'flex flex-row gap-2' : 'flex flex-col gap-2'}>
+          {/* The filter buttons' Near me asks the same question, through the same control. */}
+          {!menusShown && (
+            <HoverLabel text={locateLabel}>
+              <Button
+                ref={locateRef}
+                isIconOnly
+                aria-busy={locate === 'waiting' || undefined}
+                aria-label={locateLabel}
+                radius="full"
+                variant="floating"
+                onClick={onLocate}
+              >
+                {locate === 'waiting' ? (
+                  <Spinner decorative color="current" size="sm" />
+                ) : (
+                  <LocateFixed
+                    className={
+                      locate === 'found'
+                        ? 'text-primary-11'
+                        : locate === 'failed'
+                          ? 'text-danger-11'
+                          : undefined
+                    }
+                    size={20}
+                  />
+                )}
+              </Button>
+            </HoverLabel>
           )}
-        </Button>
-      </HoverLabel>
-      {settings && <SettingsMenu labelled align="end" />}
-    </div>,
-    column.slot,
+          {settings && <SettingsMenu labelled align="end" />}
+        </div>,
+        column.slot,
+      )}
+    </>
   )
 })

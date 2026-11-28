@@ -6,7 +6,7 @@ import { ShareTargets } from './platform-buttons'
 
 // This mocks the i18n boundary, so aria-labels render as real copy,
 // including the %{platform} interpolation, without booting i18next (see
-// GeolocationPrompt.test). This is the node lane, with no jsdom
+// AddToCalendar.test). This is the node lane, with no jsdom
 // (docs/testing.md), so the popover itself never opens here: `ShareTargets`
 // is rendered directly for what it holds, and `ShareContent.dom.test.tsx`
 // drives the button.
@@ -90,10 +90,9 @@ describe('ShareTargets', () => {
 
   it('rings X alone in dark mode, the one black disc', () => {
     const html = renderToStaticMarkup(<ShareTargets country="US" title={label} url={url} />)
-    const ringed = [...html.matchAll(/<button[^>]*>/g)]
-      .map(([tag]) => tag)
-      .filter((tag) => tag.includes('dark:ring-1'))
-      .map((tag) => tag.match(/aria-label="([^"]+)"/)?.[1])
+    const ringed = [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)]
+      .filter(([, inner]) => inner.includes('dark:ring-1'))
+      .map(([tag]) => tag.match(/aria-label="([^"]+)"/)?.[1])
 
     expect(ringed).toEqual(['Share on X'])
   })

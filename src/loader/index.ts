@@ -38,7 +38,7 @@ import type { DetectionSignals, EmbedFingerprint } from './detect'
 
 import { parseConfig } from './config'
 import { fingerprint } from './detect'
-import { ELEMENT_NAME, GEO_MODULE } from './literals'
+import { ELEMENT_NAME, GEO_MODULE, GEO_WAIT_MS } from './literals'
 
 /** The console prefix. Duplicated from `reportIntegrationWarning`'s — see `./literals.ts`. */
 const LOG_PREFIX = '[sahaj-atlas]'
@@ -304,17 +304,21 @@ function start(script: HTMLScriptElement | null): void {
   // over the host's page when the tab opened. So a deep link into a hidden element waits for it
   // to be shown, as a lazy one does.
   const mount = () => {
-    // Started beside the widget's own import, so the location usually lands before the first
-    // render; the widget takes it whenever it does. A failed import is no location.
-    const geo = import(/* @vite-ignore */ new URL(GEO_MODULE, import.meta.url).href).then(
-      (module: { default?: unknown }) => module.default,
-      () => null,
-    )
+    // Started beside the widget's own import, and waited for before it boots, so the location
+    // is there at the first render and nothing reorders after it. A failed import, or one slower
+    // than `GEO_WAIT_MS`, is no location for this visit.
+    const geo = Promise.race([
+      import(/* @vite-ignore */ new URL(GEO_MODULE, import.meta.url).href).then(
+        (module: { default?: unknown }) => module.default,
+        () => null,
+      ),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), GEO_WAIT_MS)),
+    ])
 
     // This resolves to `src/Widget.tsx`, its own build entry. It is the seam that keeps the
     // widget out of the loader's graph, and `pnpm size` asserts the two closures stay disjoint.
-    void import('../Widget')
-      .then(({ boot }) => {
+    void Promise.all([import('../Widget'), geo])
+      .then(([{ boot }, location]) => {
         // Detection runs on idle, not here. `paramPersisted` is only meaningful once the host's
         // own router has had a turn. A host SPA that rewrites the URL during boot would
         // otherwise get measured mid-flight.
@@ -325,7 +329,7 @@ function start(script: HTMLScriptElement | null): void {
         // and sent it. The mount is now read by the send site itself (`lib/mount.ts`), so the
         // loader has no business with the host's URL at all. There is one observation now, not
         // two copies.
-        whenIdle(() => boot(config, detect(config), geo))
+        whenIdle(() => boot(config, detect(config), location))
       })
       // A blocked or 404'd chunk is the one failure here a host can act on, and unhandled it is
       // an anonymous rejection beside an empty slot (#239). The browser's own error names the

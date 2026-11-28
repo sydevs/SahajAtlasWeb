@@ -18,14 +18,14 @@
     "copy_address": "Names the button on a class page that copies the venue’s street, town and postcode; the address itself is read right after it, as “Copy address: 120 Heath St, London NW3 1DR”."
   },
   "filters": {
-    "remove": "Names the remove button on an active-filter chip. `%{label}` = the filter’s own label."
+    "remove": "Names the remove button on an active-filter chip. `%{label}` = the filter’s own label.",
+    "search_languages": "Names the search box at the top of a long language list in the filters, which narrows the list as the visitor types. It shows no visible label."
   },
   "search": {
     "results_showing": "Announced after more results load. `%{shown}` = results now listed, `%{total}` = results found.",
     "dismiss_nearby_prompt": "Names the close button on the “use my location” prompt, which hides it for this visit."
   },
   "share": {
-    "copy_link": "Names the button that copies the event link; the link itself is read right after it, as “Copy link: https://…”.",
     "share_on": "Names one share button. `%{platform}` = the platform’s name, e.g. WhatsApp.",
     "qr_code": "Names the QR code image of the class link, which hosts print on posters. `%{title}` = the class title, e.g. “Evening Meditation at The Hut”."
   }

@@ -6,14 +6,7 @@
  */
 import { filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
 import { ancestorIds, indexRegions } from './hierarchy'
-import {
-  type PlacePathOf,
-  type StackEntry,
-  filterOriginRegion,
-  parentOf,
-  placedPathname,
-  resolveStack,
-} from './path'
+import { type PlacePathOf, type StackEntry, parentOf, placedPathname, resolveStack } from './path'
 
 /**
  * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
@@ -32,6 +25,14 @@ const stamp = (location: { state?: unknown }, key: 'from' | 'climbedFrom'): stri
 
   return typeof value === 'string' ? value : undefined
 }
+
+/**
+ * Whether the entry before this one is `route`'s page, whatever its query: then a link between
+ * two sibling views (a place's list and its calendar) steps back to it rather than stacking it
+ * again behind Back.
+ */
+export const cameFrom = (location: { state?: unknown }, route: string): boolean =>
+  atlasDepth(location) > 0 && stamp(location, 'from')?.split('?')[0] === route.split('?')[0]
 
 /**
  * The in-widget history depth carried on a location's `state`. A fresh deep link
@@ -165,7 +166,7 @@ export const backStep = (
     const origin = parentOf(pathname) ?? '/'
     const params = new URLSearchParams(search)
     const filters = filtersFromParams(params)
-    const listsFiltered = origin === '/search' || origin === '/calendar'
+    const listsFiltered = listsFilteredClasses(origin)
     const from = atlasDepth(location) > 0 ? stamp(location, 'from') : undefined
     const answered = listsFiltered || hasActiveFilters(filters)
     const to = answered
@@ -174,7 +175,7 @@ export const backStep = (
           listsFiltered
             ? params
             : filtersToParams(
-                { ...filters, region: filters.region ?? filterOriginRegion(pathname) },
+                { ...filters, region: filters.region ?? pageRegion(pathname) },
                 params,
               ),
         )
@@ -229,4 +230,45 @@ export const loneClassExit = (
   if (from && isLone(from)) return 'back'
 
   return undefined
+}
+
+/** Whether a view's own list is the filtered classes, so answers rewrite its query in place. */
+export const listsFilteredClasses = (pathname: string): boolean =>
+  pathname === '/search' || pathname === '/calendar'
+
+/**
+ * The region a path is about, or `null` off one: `/gb/south-east/london` → `london`.
+ *
+ * A trailing `filters` is stepped over, so a filter drawer is about the page under it —
+ * `/gb/london/filters` → `london`. A region's own list does not reflect filters, so applying from
+ * there lands on `/search`; without this as the starting scope that search would be worldwide,
+ * and filtering "evenings" from the UK would list evenings everywhere.
+ */
+export const pageRegion = (pathname: string): string | null => {
+  const entries = resolveStack(pathname)
+  const entry = entries.at(-1)?.kind === 'filters' ? entries.at(-2) : entries.at(-1)
+
+  return entry?.kind === 'region' ? entry.slug : null
+}
+
+/**
+ * Whether clearing every filter on the results goes back to the place page they were opened from,
+ * rather than leaving that place's unfiltered list. The first answer given on a place page opens
+ * the results (`useFilterEditor`), so with that place still in scope and no place searched since
+ * (`center`), clearing undoes that step.
+ */
+export const clearsBackToPlace = (
+  location: { pathname: string; search?: string; state?: unknown },
+  region: string | null,
+): boolean => {
+  const from = stamp(location, 'from')
+
+  return (
+    location.pathname === '/search' &&
+    atlasDepth(location) > 0 &&
+    from !== undefined &&
+    region !== null &&
+    pageRegion(from.split('?')[0]) === region &&
+    !new URLSearchParams(location.search).has('center')
+  )
 }

@@ -18,14 +18,14 @@
     "copy_address": "Копировать адрес"
   },
   "filters": {
-    "remove": "Удалить: %{label}"
+    "remove": "Удалить: %{label}",
+    "search_languages": "Поиск языков"
   },
   "search": {
     "results_showing": "Показано занятий: %{shown} из %{total}",
     "dismiss_nearby_prompt": "Скрыть"
   },
   "share": {
-    "copy_link": "Копировать ссылку",
     "share_on": "Поделиться: %{platform}",
     "qr_code": "QR-код для %{title}"
   }

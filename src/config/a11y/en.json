@@ -18,14 +18,14 @@
     "copy_address": "Copy address"
   },
   "filters": {
-    "remove": "Remove %{label}"
+    "remove": "Remove %{label}",
+    "search_languages": "Search languages"
   },
   "search": {
     "results_showing": "Showing %{shown} of %{total} classes",
     "dismiss_nearby_prompt": "Dismiss"
   },
   "share": {
-    "copy_link": "Copy link",
     "share_on": "Share on %{platform}",
     "qr_code": "QR code for %{title}"
   }

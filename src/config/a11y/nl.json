@@ -18,14 +18,14 @@
     "copy_address": "Adres kopiëren"
   },
   "filters": {
-    "remove": "%{label} verwijderen"
+    "remove": "%{label} verwijderen",
+    "search_languages": "Talen zoeken"
   },
   "search": {
     "results_showing": "%{shown} van %{total} lessen weergegeven",
     "dismiss_nearby_prompt": "Negeren"
   },
   "share": {
-    "copy_link": "Link kopiëren",
     "share_on": "Delen op %{platform}",
     "qr_code": "QR-code voor %{title}"
   }

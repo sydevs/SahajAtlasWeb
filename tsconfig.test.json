@@ -1,8 +1,7 @@
 {
   // This file type-checks the files the app tsconfig excludes.
-  // The app tsconfig names "src" and ".ladle". ⚠ Its ".ladle" entry matches no file
-  // (`tsc --listFilesOnly` lists none), so `.ladle/components.tsx` and `.ladle/i18n.ts` are in
-  // no project. TODO: check them. `components.tsx` has a type error to fix first.
+  // The app tsconfig takes "src" and the `.ladle/*` files but `.ladle/vite.config.ts`.
+  // `scripts/typecheck-coverage.test.ts` holds that every tracked TypeScript file is in one project.
   // This file covers the smoke and browser-lane specs, the build and CI scripts, and the Vite
   // and vitest configs.
   // Co-located unit specs live under src/. The app project already checks them.
@@ -34,5 +33,7 @@
     ".ladle/vite.config.ts",
     "playwright.config.ts",
     "src/vite-env.d.ts"
-  ]
+  ],
+  // The app tsconfig's `exclude` would otherwise carry over and drop `.ladle/vite.config.ts`.
+  "exclude": []
 }

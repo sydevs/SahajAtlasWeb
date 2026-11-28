@@ -25,7 +25,7 @@ export type CountrySite = { countryCode: string; href: string }
  *     So the offer waits until the filters clear, instead of replacing that escape hatch.
  *     This also keeps a REGION filter from producing a nonsense offer. That filter re-points the query at another place entirely, so `?cc` no longer describes what came back empty.
  *
- * Both cache-once reads warm at bootstrap, through `api.warmCaches`, and they already have ungated observers on this screen, `ActiveFilterPills` and `GeolocationSuggestion`.
+ * Both cache-once reads warm at bootstrap, through `api.warmCaches`, and they already have ungated observers on this screen, `ActiveFilterChips` and `GeolocationSuggestion`.
  * So this adds no request.
  * They must be LOADED before this answers.
  * A cache miss must never read as a confirmed-empty country, which would offer a foreign website to someone whose country does have classes.

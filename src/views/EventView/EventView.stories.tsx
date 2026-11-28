@@ -46,9 +46,10 @@ const EXAMPLES: Record<string, Event> = {
 type ExampleKey = keyof typeof EXAMPLES
 
 /**
- * EventView — the full event panel screen: header, facts, Register, actions, images, About.
+ * EventView — the full event panel screen: header, facts, actions, Register, images, About.
  * Switch resolver states with the Example control. The State control instead runs any of them
- * into the drawer's fallback.
+ * into the drawer's fallback. The phone map sheet's pinned Register is the Expanded form in a
+ * narrow window.
  *
  * "Not found · event" is the failure this view actually reaches. A link to an event the CMS no
  * longer serves gets a 404 from SahajCloud, and `classifyError` reads that status. It is a dead

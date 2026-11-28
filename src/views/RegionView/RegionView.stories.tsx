@@ -21,6 +21,14 @@ export default { title: 'Views' } satisfies StoryDefault
 // get — see the story doc.
 const EXAMPLES: Record<string, Region> = {
   Country: mockCountryRegion,
+  // Not the visitor's own country (the stories place them in Cambridge), so the search carries
+  // the location line under it: "Classes near Cambridge".
+  'Another country': {
+    ...mockCountryRegion,
+    name: 'Ireland',
+    countryCode: 'IE',
+    center: [-8.24, 53.41],
+  },
   City: mockLeafRegion,
   'City with Centers': mockCityWithVenuesRegion,
 }
@@ -42,7 +50,8 @@ const emptied = (region: Region): Region => ({
 
 /**
  * RegionView — the drawer screen for a region at any level. "Country" is a large parent
- * whose events all sit under its child regions. "City" lists only its own events, with
+ * whose events all sit under its child regions; it is the visitor's own country, so its search
+ * carries no location line, which "Another country" shows. "City" lists only its own events, with
  * online ones inline. "City with Centers" is a city whose children are SY Centers (venues),
  * led by an "Online classes" roll-up.
  *
@@ -61,7 +70,8 @@ const emptied = (region: Region): Region => ({
  *    The bare "Browse all countries" floor only appears when even the guess is absent
  *    (Molecules › Fallbacks shows it).
  *
- * `Empty · filtered` is `Empty` with two days filtered, so the panel offers "Clear all" instead.
+ * `Empty · filtered` is `Empty` with two days filtered, so the list says "No classes match your filters"
+ * and offers the one removal that brings classes back, then Clear filters, as links.
  *
  * `Empty` and the not-found cases render the very same `FallbackPanel`, one policy row apart —
  * which is the point. A barren region gets the same way out as a URL that never existed

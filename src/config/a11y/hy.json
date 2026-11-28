@@ -18,14 +18,14 @@
     "copy_address": "Պատճենել հասցեն"
   },
   "filters": {
-    "remove": "Հեռացնել՝ %{label}"
+    "remove": "Հեռացնել՝ %{label}",
+    "search_languages": "Որոնել լեզուներ"
   },
   "search": {
     "results_showing": "Ցուցադրված՝ %{shown}, ընդամենը՝ %{total} դաս",
     "dismiss_nearby_prompt": "Անտեսել"
   },
   "share": {
-    "copy_link": "Պատճենել հղումը",
     "share_on": "Կիսվել՝ %{platform}",
     "qr_code": "QR կոդ՝ %{title}"
   }

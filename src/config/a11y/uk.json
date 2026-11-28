@@ -18,14 +18,14 @@
     "copy_address": "Копіювати адресу"
   },
   "filters": {
-    "remove": "Вилучити: %{label}"
+    "remove": "Вилучити: %{label}",
+    "search_languages": "Пошук мов"
   },
   "search": {
     "results_showing": "Показано занять: %{shown} з %{total}",
     "dismiss_nearby_prompt": "Приховати"
   },
   "share": {
-    "copy_link": "Копіювати посилання",
     "share_on": "Поділитися: %{platform}",
     "qr_code": "QR-код для %{title}"
   }

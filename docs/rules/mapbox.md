@@ -222,7 +222,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   height is the one exception, and it arrives rather than being read:
   `DrawerStack` resolves its active snap and publishes it through
   `useSheetCover`, so the camera reserves the peek while the sheet is collapsed
-  and a class's, a share panel's or the filters' measured height while it is
+  and a class's or the filters' measured height while it is
   open, down to a strip of `MIN_MAP_STRIP_PX` (`config/responsive.ts`). A sheet
   leaving less than that strip hides the map's control column, and the filters
   dim what is left above them.
@@ -367,8 +367,8 @@ A corner that follows the layout therefore costs a measured width in React, a
 custom property, and a CSS rule that moves mapbox's container — which is the shape
 #330 shipped first and its review replaced.
 
-**The top right holds ONE control: find-me and settings in a column, with the credits to
-their left.** Mapbox's corner containers float and `clear: both`, so separate controls there
+**The top right holds ONE control: find-me and settings in a column, with the credits under
+them, and on a computer the filter menus beside them.** Mapbox's corner containers float and `clear: both`, so separate controls there
 stack in mount order with Mapbox's own margins, and lining them up with a control of ours would
 take exactly the stylesheet rules above. So `MapControls` is a single `useControl` whose element
 lays out its own children:
@@ -378,10 +378,16 @@ lays out its own children:
   shape as the credits button opened.
 - **The inline map leaves settings out** (`MapLayer settings={false}`): the page heading's row
   carries the cog, in the page's flow, and the expanded map's column carries its own.
+- **The filter buttons render in the same control, beside the column.** `FullInterface` hands
+  them to the map as a prop, and `MapControls` shows them while `useMapControls().filterMenus`
+  holds, so Mapbox places them with the buttons and no stylesheet rule positions them. They cap their width against the map, which `globals.css` makes the size
+  container, so they wrap rather than run under the side panel. Being in the same control, the
+  column's hover labels draw over them.
 - **The whole column hides on `useMapControls`.** Today only the phone sheet's near-full stop sets
   it, since there the sheet covers all of the column but a sliver of its top; a drawer elsewhere
   leaves it clear or covers it whole. Anything else that covers the map, or takes these controls
-  over itself, sets the same switch.
+  over itself, sets the same switch. Find-me alone steps aside while the filter buttons show
+  (#542): their Where menu's Near me asks the same question through the same control.
 - **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
   `showButton={false}`, and our button calls its `trigger()` through `useLocate`; the blue dot, the permission flow
   and the `onError` dialog are unchanged. While the map is mounted, `useLocate` registers that
@@ -392,9 +398,9 @@ lays out its own children:
   leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
   dialog too.
 - **The credits are Mapbox's own compact `AttributionControl`, in Mapbox's own look**, created
-  inside the column's element, level with its top, rather than added to the map. Opened, it
-  grows leftward, away from the buttons. `globals.css` only resets Mapbox's corner margin and
-  float inside our element, adds the 44px touch tap area, and carries #370's dark-theme fix.
+  inside the column's element, under the buttons, rather than added to the map, so nothing else
+  on the map has to clear it sideways. Opened, it grows leftward from there. `globals.css` only resets Mapbox's corner margin and
+  float inside our element, centres it under the 40px buttons, adds the 44px touch tap area, and carries #370's dark-theme fix.
   `attribution.test.ts` pins the corner literals, the single attribution, and that the
   stylesheet still names the classes it targets.
 
@@ -415,24 +421,18 @@ grows across the top of a narrow box, and the expanded map's "Close map" floats 
 middle. `.mapboxgl-ctrl-top-right` takes the right-hand safe area,
 and moves the whole corner as one; it is not a per-layout rule.
 
-## A geocoder lookup whose answer is STORED asks for `permanent`
+## A geocoder lookup is temporary, and nothing stores its answer
 
 Mapbox's terms allow keeping a feature id only when the lookup that returned it carried
-`permanent=true`, and such lookups bill separately. SahajCloud stores the ids a client sends with
-a class proposal, so its client contract requires them (sydevs/SahajCloud#893).
+`permanent=true`, and such lookups bill separately. No mount of `MapSearch` sets it, because
+nothing the geocoder answers reaches a row SahajCloud stores; `reverseGeocode` (`lib/geocode.ts`)
+is temporary for the same reason. Storing an id means giving `MapSearch` a `permanent` option again,
+on the mount that submits it (sydevs/SahajCloud#893 is the contract that would require it).
 
-So permanence is a **`MapSearch` prop**, absent by default, not a constant inside the control: one
-component serves both plain map browsing and the submit flow, and only the second may store what
-it gets back. Set `permanent` on a mount whose answer is submitted, and on no other.
-`reverseGeocode` (`lib/geocode.ts`) stays temporary — its answer fills the search field and `?cc`,
-never a stored row.
-
-⚠ **An option that may be absent is spread conditionally, and a spec is the only thing holding
-it.** `GeocodingCore` drops a `null` or `undefined` option but serializes a `false`, so `country`
-and `permanent` are both spread rather than passed as themselves — and a spread's keys escape
-TypeScript's excess-property check, which a plainly written key does not. Give every option you
-spread a case in `MapSearch.permanent.test.tsx`, which asserts what each mount hands
-`<Geocoder options>`.
+⚠ **An option that may be absent is spread conditionally.** `GeocodingCore` drops a `null` or
+`undefined` option but serializes a `false`, so `country` is spread rather than passed as itself —
+and a spread's keys escape TypeScript's excess-property check, which a plainly written key does
+not.
 
 ## Geo helpers
 

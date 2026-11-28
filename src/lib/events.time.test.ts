@@ -5,7 +5,7 @@ import { formatTimePeriods } from './events'
 // Intl puts a narrow no-break space before the day period.
 const norm = (value: string) => value.replace(/\s+/g, ' ')
 
-// The filter readout and the active-filter pill write these like the class rows beside them.
+// The filter readout and the active-filter chip write these like the class rows beside them.
 describe('formatTimePeriods', () => {
   it('writes each chosen range in the visitor’s clock, joined into one line', () => {
     expect(formatTimePeriods('en-GB', ['morning', 'afternoon'])).toBe('06:00–17:00')

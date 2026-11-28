@@ -99,7 +99,7 @@ export const isTimeRestricted = (timeOfDay: readonly TimePeriod[]): boolean => t
  * Adjacent or overlapping intervals are fused. A pair spanning midnight
  * (…-24 and 0-…) displays as one wrapping range — for example, evening and
  * night together become `[17, 6]`. This is empty when nothing is selected. The filter form's
- * readout and the active pill both use it.
+ * readout and the active chip both use it.
  */
 export const timePeriodRanges = (periods: readonly TimePeriod[]): [number, number][] => {
   const intervals = sortPeriods(periods)

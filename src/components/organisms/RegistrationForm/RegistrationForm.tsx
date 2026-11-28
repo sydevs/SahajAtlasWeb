@@ -505,12 +505,7 @@ export function RegistrationForm({
               primitives from RegistrationView, never an Event (issue #105). It anchors on
               the session actually submitted, or on the next occurrence when the
               confirmation is previewed rather than earned. */}
-          {/* Its own row, so the trigger keeps its width and the menu opens under its start edge. */}
-          {calendar && (
-            <div className="flex">
-              <AddToCalendar event={{ ...calendar, from: registered?.startingAt }} />
-            </div>
-          )}
+          {calendar && <AddToCalendar event={{ ...calendar, from: registered?.startingAt }} />}
 
           {/* No link, no section. "Invite a friend" over nothing to press is a worse
               confirmation screen than one that simply does not offer it. */}
@@ -581,7 +576,7 @@ export function RegistrationForm({
 /** How long the check may stay unsolved before the line under Register asks for the tick. */
 const CHECK_PATIENCE_MS = 4000
 
-/** The confirmation's way to pass the class on: the same share block as the class's Share panel. */
+/** The confirmation's way to pass the class on: Share, with the same networks as the class's own Share action, then Copy link. */
 function InviteFriend({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const headingId = useId()

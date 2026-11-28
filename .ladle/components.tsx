@@ -1,9 +1,10 @@
-import type { GlobalProvider } from '@ladle/react'
+import type { GlobalProvider, GlobalState } from '@ladle/react'
 
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useLayoutEffect, useState } from 'react'
 import { ActionType, ThemeState, useLadleContext } from '@ladle/react'
 import { MemoryRouter } from 'react-router'
 import clsx from 'clsx'
+import { Context as ResponsiveContext } from 'react-responsive'
 import { I18nextProvider } from 'react-i18next'
 
 import { installBackend } from './backend'
@@ -58,7 +59,9 @@ const PALETTE_NAMES = Object.keys(PALETTES)
 const DEFAULT_PALETTE = PALETTE_NAMES[0]
 
 const PALETTE_CONTROL = {
-  type: 'select',
+  // Ladle exports this union only as strings; its state is typed by an enum it keeps private,
+  // holding the same values.
+  type: 'select' as GlobalState['control'][string]['type'],
   name: 'Brand palette',
   options: PALETTE_NAMES,
   defaultValue: DEFAULT_PALETTE,
@@ -130,7 +133,7 @@ export const Provider: GlobalProvider = ({ children }) => {
     applyTheme(ladleTheme === ThemeState.Dark ? 'dark' : 'light')
   }, [ladleTheme])
 
-  const wrapperRef = useRef<HTMLElement>(null)
+  const [wrapper, setWrapper] = useState<HTMLElement | null>(null)
   const { theme } = useTheme()
 
   // View stories are full-view drawer pages, each owning the whole canvas
@@ -206,12 +209,25 @@ export const Provider: GlobalProvider = ({ children }) => {
   // applies new ones. So switching back to the default restores the
   // built-in palette on its own.
   useEffect(() => {
-    const el = wrapperRef.current
+    if (wrapper) applyPalette(wrapper, palette, theme)
+  }, [wrapper, palette, theme])
 
-    if (!el) return
+  // The story's own page takes the theme's background, so a dark story scrolled past its first
+  // screen, or framed at a fixed width, never shows the light page behind it.
+  useEffect(() => {
+    if (!wrapper) return
 
-    applyPalette(el, palette, theme)
-  }, [palette, theme])
+    const page = wrapper.ownerDocument
+    const background = getComputedStyle(wrapper).backgroundColor
+
+    page.documentElement.style.backgroundColor = background
+    page.body.style.backgroundColor = background
+
+    return () => {
+      page.documentElement.style.backgroundColor = ''
+      page.body.style.backgroundColor = ''
+    }
+  }, [wrapper, palette, theme])
 
   return (
     <I18nextProvider i18n={storyI18n}>
@@ -229,18 +245,51 @@ export const Provider: GlobalProvider = ({ children }) => {
               everything below it — which left every story light while <html>
               said dark. */}
           <main
-            ref={wrapperRef}
+            ref={setWrapper}
             className={clsx(
               WIDGET_SCOPE_CLASS,
               theme,
               'min-h-screen bg-background text-foreground',
-              !fullBleed && 'p-6',
+              !fullBleed && 'p-4 md:p-12',
             )}
           >
-            <BrandPaletteContext.Provider value={palette}>{children}</BrandPaletteContext.Provider>
+            <StoryDevice element={wrapper}>
+              <BrandPaletteContext.Provider value={palette}>
+                {children}
+              </BrandPaletteContext.Provider>
+            </StoryDevice>
           </main>
         </Providers>
       </MemoryRouter>
     </I18nextProvider>
   )
+}
+
+/**
+ * At a fixed story width Ladle renders the story into an iframe from this same script, so
+ * `window` and its media queries are still the outer page's, and a phone-sized story laid out as a
+ * desktop. Every width question in the app goes through react-responsive (`config/responsive.ts`),
+ * which answers from this context's size instead when one is given: the story's own window.
+ */
+function StoryDevice({ element, children }: { element: HTMLElement | null; children: ReactNode }) {
+  const [device, setDevice] = useState<{ width: number; height: number }>()
+
+  useLayoutEffect(() => {
+    const frame = element?.ownerDocument.defaultView
+
+    if (!frame || frame === window) {
+      setDevice(undefined)
+
+      return
+    }
+
+    const measure = () => setDevice({ width: frame.innerWidth, height: frame.innerHeight })
+
+    measure()
+    frame.addEventListener('resize', measure)
+
+    return () => frame.removeEventListener('resize', measure)
+  }, [element])
+
+  return <ResponsiveContext.Provider value={device}>{children}</ResponsiveContext.Provider>
 }

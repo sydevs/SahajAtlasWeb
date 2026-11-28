@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { type HTMLAttributes, type ReactNode } from 'react'
 import { FloatingPortal, FloatingFocusManager, type Placement } from '@floating-ui/react'
 
 import { tv } from '@/styles/tv'
@@ -17,9 +17,18 @@ export type DropdownAlign = 'start' | 'center' | 'end' | 'left' | 'right'
 /** ARIA role applied to the panel (and wired into the trigger). */
 export type DropdownRole = 'menu' | 'dialog' | 'listbox'
 
+/** What a render-function trigger spreads onto its own focusable element. */
+type DropdownTriggerProps = HTMLAttributes<HTMLElement> & {
+  ref: (node: HTMLElement | null) => void
+}
+
 export interface DropdownProps {
-  /** The trigger element that opens/closes the dropdown */
-  trigger: ReactNode
+  /**
+   * The trigger that opens and closes the dropdown. A node is wrapped in a focusable
+   * `role="button"` element. A function renders the trigger itself, as a real `Button`, by
+   * spreading the props it is given onto it, so no control nests inside another.
+   */
+  trigger: ReactNode | ((props: DropdownTriggerProps) => ReactNode)
   /** The content to display in the dropdown */
   children: ReactNode
   /**
@@ -51,6 +60,11 @@ export interface DropdownProps {
   className?: string
   /** Make the panel width match the trigger width */
   fullWidth?: boolean
+  /**
+   * Cap the panel to the room below the trigger, down to the frame's inset, so a long panel
+   * scrolls inside itself and ends where a full-height side panel does.
+   */
+  fitHeight?: boolean
 }
 
 const dropdownTrigger = tv({
@@ -62,6 +76,8 @@ const dropdownTrigger = tv({
 const dropdownPanel = tv({
   base: 'z-50 rounded-lg border border-gray-6 bg-gray-2 shadow-xl',
   variants: {
+    // The capped panel lays its one child out as a column, so the child can scroll in what is left.
+    fitHeight: { true: 'flex flex-col', false: '' },
     // `full` matches the trigger width via the floating-ui size middleware, so it
     // imposes no min-width of its own.
     width: {
@@ -112,26 +128,32 @@ export function Dropdown({
   size: sizeVariant = 'md',
   className = '',
   fullWidth = false,
+  fitHeight = false,
 }: DropdownProps) {
   const { isOpen, refs, floatingStyles, context, getReferenceProps, getFloatingProps } = usePopover(
     {
       placement: toPlacement(side, align),
       role: roleProp,
       matchTriggerWidth: fullWidth,
+      fitHeight,
     },
   )
 
   return (
     <>
-      <div
-        ref={refs.setReference}
-        // The wrapper is the focusable button, so callers may keep their inner
-        // control out of the tab order.
-        {...getReferenceProps({ role: 'button', tabIndex: 0 })}
-        className={dropdownTrigger({ fullWidth, className })}
-      >
-        {trigger}
-      </div>
+      {typeof trigger === 'function' ? (
+        trigger({ ref: refs.setReference, ...(getReferenceProps() as HTMLAttributes<HTMLElement>) })
+      ) : (
+        <div
+          ref={refs.setReference}
+          // The wrapper is the focusable button, so callers may keep their inner
+          // control out of the tab order.
+          {...getReferenceProps({ role: 'button', tabIndex: 0 })}
+          className={dropdownTrigger({ fullWidth, className })}
+        >
+          {trigger}
+        </div>
+      )}
 
       {isOpen && (
         <FloatingPortal root={overlayContainer()}>
@@ -149,7 +171,7 @@ export function Dropdown({
               ref={refs.setFloating}
               style={floatingStyles}
               {...getFloatingProps({ 'aria-label': ariaLabel })}
-              className={dropdownPanel({ width: fullWidth ? 'full' : sizeVariant })}
+              className={dropdownPanel({ width: fullWidth ? 'full' : sizeVariant, fitHeight })}
             >
               {children}
             </div>

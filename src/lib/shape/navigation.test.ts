@@ -3,10 +3,13 @@ import { describe, it, expect } from 'vitest'
 import { placePathsOf } from './path'
 import {
   atlasDepth,
+  cameFrom,
   atlasPushState,
   backStep,
+  clearsBackToPlace,
   climbDestination,
   loneClassExit,
+  pageRegion,
   passablePlaces,
   sameRoute,
 } from './navigation'
@@ -253,5 +256,73 @@ describe('loneClassExit', () => {
     expect(
       loneClassExit({ state: { depth: 1, climbedFrom: '/lu/1185', from: '/lu' } }, '/lu/1185'),
     ).toBe('climbed')
+  })
+})
+
+describe('pageRegion', () => {
+  it('names the place a place page shows, and nothing off one', () => {
+    expect(pageRegion('/gb')).toBe('gb')
+    expect(pageRegion('/gb/south-east/london')).toBe('london')
+    expect(pageRegion('/search')).toBeNull()
+    expect(pageRegion('/')).toBeNull()
+  })
+
+  it('steps over a trailing filters, at any depth', () => {
+    expect(pageRegion('/gb/filters')).toBe('gb')
+    expect(pageRegion('/gb/london/filters')).toBe('london')
+    expect(pageRegion('/gb/s%C3%A3o-paulo/filters')).toBe('são-paulo')
+  })
+
+  it('is null over a filters path whose page is not a place', () => {
+    expect(pageRegion('/filters')).toBeNull()
+    expect(pageRegion('/search/filters')).toBeNull()
+    expect(pageRegion('/calendar/filters')).toBeNull()
+    expect(pageRegion('/gb/london/507/filters')).toBeNull()
+  })
+})
+
+describe('clearsBackToPlace', () => {
+  // The results an answer on /gb opened: one push deep, stamped from the place page.
+  const opened = {
+    pathname: '/search',
+    search: '?days=2&region=gb',
+    state: { depth: 1, from: '/gb' },
+  }
+
+  it('goes back to the place page the results were opened from', () => {
+    expect(clearsBackToPlace(opened, 'gb')).toBe(true)
+  })
+
+  it('only clears on a fresh link, which has no page to go back to', () => {
+    expect(clearsBackToPlace({ ...opened, state: null }, 'gb')).toBe(false)
+  })
+
+  it('only clears once a place was searched since', () => {
+    expect(clearsBackToPlace({ ...opened, search: '?days=2&center=51.5,-0.1' }, 'gb')).toBe(false)
+  })
+
+  it('only clears when the place in scope is no longer the page it came from', () => {
+    expect(clearsBackToPlace(opened, 'fr')).toBe(false)
+    expect(
+      clearsBackToPlace({ ...opened, state: { depth: 1, from: '/search?days=1' } }, 'gb'),
+    ).toBe(false)
+  })
+
+  it('only applies to the results', () => {
+    expect(clearsBackToPlace({ ...opened, pathname: '/calendar' }, 'gb')).toBe(false)
+  })
+})
+
+describe('cameFrom', () => {
+  it('is true only for an in-widget step from that page, whatever its query', () => {
+    const from = (state: unknown) => ({ state })
+
+    expect(
+      cameFrom(from({ depth: 1, from: '/calendar?region=gb&view=week' }), '/calendar?region=gb'),
+    ).toBe(true)
+    expect(cameFrom(from({ depth: 1, from: '/gb' }), '/calendar')).toBe(false)
+    // A fresh deep link has no step to go back to, and a host's own state is not ours.
+    expect(cameFrom(from({ from: '/calendar' }), '/calendar')).toBe(false)
+    expect(cameFrom(from({ depth: 1, from: 42 }), '/calendar')).toBe(false)
   })
 })

@@ -49,6 +49,60 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The calendar is the widget's own, with a Week list, and names each class.** ([#538])
+  - **Switch:** Month | Week | List at every width. List leads back to the place's own page, and a
+    place page's **Calendar** button opens the calendar scoped to that place, named at its top.
+  - **Week:** the next seven days, each under its date ("Friday 13 Nov", with Today or Tomorrow
+    beside it), each class by name with its time in the visitor's own format ("17:45–18:45" in the
+    UK, "5:45 – 6:45 PM" in the US), its town, and an Online chip for an online class. The arrows
+    step a week, and a link to a past week opens on today's. A dates filter narrows the Week as it
+    does the Month, and survives switching between them. On a computer the Week keeps the side panel, so the map stays in view; the hour-by-hour week grid
+    is gone.
+  - **Month:** on a computer, a box per class ("18:30 Bath", or "Online"), the name on hover, and
+    "+ 3 classes" on a busy day, which opens the Week from that day. On a phone, a dot per class
+    (online in the class card's colour, a plus past three) and the chosen day's classes listed
+    below it.
+  - **Your root font size no longer shrinks the calendar.** It was the one part of the widget
+    sized in `rem`; with its third-party grid gone, a theme that sets `html { font-size: 62.5% }`
+    renders it at the same size as the rest.
+  - The view rides inside `atlas` (`/calendar?view=week&week=2026-12-04`), so a host's page writes no new
+    parameter. No origin, CSP or permission change.
+
+- **"Add to calendar" on the registration confirmation spans the panel, in your second brand
+  colour.** ([#549]) It was a narrower button in the first brand colour. Its menu of calendars
+  is unchanged and still opens under the button's start edge.
+- **On a computer the filters are three buttons over the map: Where, When and Language.** ([#542])
+  Wherever the panel sits beside the map (from 768px of widget width) they sit at the top right
+  of the map, wrapping where it is narrow, and the full-width calendar (its Month)
+  carries them in its header, instead of a Filters button. Each opens a small menu with the same
+  questions and live counts as the phone's filters, and a tap applies at once. A button with an
+  answer fills and names it ("Tue · Evening"), and Clear leads the row; on a place page, Clear goes
+  back to that page. The list shows no filter tags beside them. Narrower widgets, a map-less
+  widget's list, and phones keep the Filters button. While the buttons show, the map's own
+  find-my-location button steps aside for Where's Near me. The map's credits button now sits
+  under the map's buttons rather than beside them. Escape in any open menu or popover now closes
+  only that menu, not the panel behind it; pressed anywhere on your page outside the widget it
+  reaches you untouched, as before. Nothing changes in the snippet or the CSP.
+  A list the filters empty says "No classes match your filters." in one line, then offers the one
+  removal that brings classes back ("Remove Mon (3 classes)") and Clear filters as links, the same
+  on every list. A searched place's list ends on "4 more classes in this area. Clear filters"
+  when the filters hide in-person classes around it.
+- **A class's Share, Directions and Contact act in place, and Register follows them.** ([#540]) Share
+  opens the device's own share sheet, or a popover of the region's networks, each named, ending
+  in Copy link; it no longer opens a Share panel, and a class with no link to share has no Share
+  button. Directions opens a menu of map services ordered for the visitor's region (Yandex,
+  Kakao, Amap or Baidu join Google Maps, Apple Maps, Waze and OpenStreetMap), and Contact a menu
+  with the host's number, WhatsApp and Copy number, on every device. A link ending in `/share`
+  opens the class itself. No parameter, origin or permission changes: Copy number uses the same
+  `clipboard-write` as Copy link.
+- **The first screen opens on its title, the search, and one way to classes near the
+  visitor.** ([#531]) "Free meditation classes" heads it, and the search, which reads "Enter your
+  city or postcode" on every page, spans the panel. Under it, "Classes near Prague ›" (the visitor's
+  guessed town, with an × to remove it) or "Classes near me ›" (which asks for their location)
+  opens classes near them, and their country leads the country list. The line also shows on
+  other countries' pages. No parameter, origin or permission changes: "Classes near me" asks for
+  the same `geolocation` the map's own button does. The widget now waits for `/geo.js` before it
+  first draws, for at most 1.5 seconds, so nothing reorders once it is on screen.
 - **The sign-up form opens nearly full height on a phone, with Register always in reach.** ([#529])
   The class summary leads, the next date is already chosen in a dropdown, and one full-width
   Register stays at the bottom of the screen, saying why while the security check runs. A
@@ -806,6 +860,10 @@ no-referrer`.
 
 ### Fixed
 
+- **The loading spinner turns, and loading placeholders pulse.** ([#540]) Both had stood still: the
+  build renamed their animations and left the old names behind. Both stay still for a visitor
+  who asks their device for reduced motion.
+
 - **The place-search box is its normal height on touch screens.** ([#485]) On a phone or tablet
   it drew about three times as tall as intended (132px instead of 44px), pushing the list below
   it down the panel. No parameter, origin or CSP change.
@@ -1455,6 +1513,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   found. ([#111], [#136])
 
 [#509]: https://github.com/sydevs/SahajAtlasWeb/pull/509
+[#538]: https://github.com/sydevs/SahajAtlasWeb/pull/538
 [#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
 [#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
 [#466]: https://github.com/sydevs/SahajAtlasWeb/pull/466
@@ -1575,7 +1634,11 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#510]: https://github.com/sydevs/SahajAtlasWeb/pull/510
 [#514]: https://github.com/sydevs/SahajAtlasWeb/pull/514
 [#518]: https://github.com/sydevs/SahajAtlasWeb/pull/518
+[#531]: https://github.com/sydevs/SahajAtlasWeb/pull/531
+[#540]: https://github.com/sydevs/SahajAtlasWeb/pull/540
+[#549]: https://github.com/sydevs/SahajAtlasWeb/pull/549
 [#525]: https://github.com/sydevs/SahajAtlasWeb/pull/525
 [#530]: https://github.com/sydevs/SahajAtlasWeb/pull/530
 [#528]: https://github.com/sydevs/SahajAtlasWeb/pull/528
 [#529]: https://github.com/sydevs/SahajAtlasWeb/pull/529
+[#542]: https://github.com/sydevs/SahajAtlasWeb/pull/542

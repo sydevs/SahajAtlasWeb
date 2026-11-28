@@ -18,14 +18,14 @@
     "copy_address": "کپی نشانی"
   },
   "filters": {
-    "remove": "حذف %{label}"
+    "remove": "حذف %{label}",
+    "search_languages": "جستجوی زبان‌ها"
   },
   "search": {
     "results_showing": "نمایش %{shown} از %{total} کلاس",
     "dismiss_nearby_prompt": "رد کردن"
   },
   "share": {
-    "copy_link": "کپی پیوند",
     "share_on": "اشتراک‌گذاری در %{platform}",
     "qr_code": "کد QR برای %{title}"
   }

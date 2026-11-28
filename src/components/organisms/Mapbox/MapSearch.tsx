@@ -30,18 +30,10 @@ export interface MapSearchProps {
   /** Called with the geocoded place the user picked from the suggestions. */
   onSelect: (value: GeocodingFeature) => void
   /**
-   * This is the accessible name and placeholder. It defaults to the "search
-   * for events near…" phrasing, which is right in a header, where position
-   * already says what the field is for. But it reads as a promise of nearby
-   * events when the field sits in an error body instead.
+   * This is the accessible name and placeholder. It defaults to "Enter your
+   * city or postcode", which names what to type; an error body passes its own words.
    */
   label?: string
-  /**
-   * Ask Mapbox for a result that may be stored. Its terms allow keeping an id
-   * only when the lookup that produced it carried this, and such lookups bill
-   * separately — so only a mount whose answer is submitted to SahajCloud sets it.
-   */
-  permanent?: boolean
 }
 
 // The geocoder is a custom element from @mapbox/search-js-web. It fails to
@@ -84,7 +76,7 @@ const searchBias = (zoom: number | undefined, center: LngLatLike | undefined) =>
 // Long enough to span a typing pause, short enough to answer a finished query promptly.
 const NOT_FOUND_SETTLE_MS = 300
 
-export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
+export function MapSearch({ onSelect, label }: MapSearchProps) {
   const [searchParams] = useSearchParams()
   const { pathname } = useLocation()
   const [searchQuery, setSearchQuery] = React.useState(searchParams.get('q') || '')
@@ -236,14 +228,12 @@ export function MapSearch({ onSelect, label, permanent }: MapSearchProps) {
           map={mapbox?.getMap()}
           options={{
             // Follows a locale switch: this object is rebuilt every render, and the React wrapper
-            // re-applies `options` to the element whenever it changes. Pinned in
-            // `MapSearch.permanent.test.tsx`.
+            // re-applies `options` to the element whenever it changes.
             language: locale,
-            // `country` and `permanent` are left out rather than undefined: the geocoder
-            // serializes what it's given. ⚠ A spread's keys escape the excess-property check,
-            // so only `MapSearch.permanent.test.tsx` catches a misspelled one here.
+            // `country` is left out rather than undefined: the geocoder serializes what it's
+            // given. ⚠ A spread's keys escape the excess-property check, so a misspelled one
+            // here is not caught by the compiler.
             ...(scope ? { country: scope } : {}),
-            ...(permanent ? { permanent } : {}),
             proximity: searchBias(mapbox?.getZoom(), mapbox?.getCenter()),
             types: PLACE_TYPES,
           }}

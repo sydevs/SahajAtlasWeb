@@ -34,6 +34,13 @@ export const ELEMENT_NAME = 'sahaj-atlas'
 export const GEO_MODULE = './geo.js'
 
 /**
+ * How long the widget waits for `/geo.js` before booting without it. The Worker answers from the
+ * edge in a fraction of this; a page whose widget chunks are cached would otherwise boot first and
+ * reorder its country list when the location landed. The widget's copy is in `src/main.tsx`.
+ */
+export const GEO_WAIT_MS = 1500
+
+/**
  * A site-relative path, or `undefined`.
  *
  * This is a behavioural duplicate of `safePath` (`src/lib/shape/path.ts`), which is where the

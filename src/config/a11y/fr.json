@@ -18,14 +18,14 @@
     "copy_address": "Copier l’adresse"
   },
   "filters": {
-    "remove": "Supprimer %{label}"
+    "remove": "Supprimer %{label}",
+    "search_languages": "Rechercher une langue"
   },
   "search": {
     "results_showing": "Affichage de %{shown} cours sur %{total}",
     "dismiss_nearby_prompt": "Fermer"
   },
   "share": {
-    "copy_link": "Copier le lien",
     "share_on": "Partager sur %{platform}",
     "qr_code": "Code QR pour %{title}"
   }

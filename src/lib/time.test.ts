@@ -185,6 +185,11 @@ describe('the calendar’s dates', () => {
     expect(formatMonth(day, 'en-GB')).toBe('November 2026')
   })
 
+  it('heads a day compactly, with its weekday in full', () => {
+    expect(formatDate(day, 'en-GB', { weekday: 'long' })).toBe('Thursday 12 Nov')
+    expect(formatDate(day, 'en-US', { weekday: 'long' })).toBe('Thursday, Nov 12')
+  })
+
   it('says how far off a date is to lead a phrase', () => {
     const today = DateTime.now().setZone('Europe/London')
 

@@ -43,6 +43,7 @@ const POPPER_PACKAGES =
 /** The Radix dropdown menus, which also share one skin — the second block below. */
 const MENUS: Record<string, string> = {
   'components/molecules/AddToCalendar/AddToCalendar.tsx': 'the add-to-calendar provider menu',
+  'components/molecules/EventActions/EventActions.tsx': "an event's Directions and Contact menus",
   'components/molecules/SettingsMenu/SettingsMenu.tsx': 'the cog, and its language submenu',
   'components/molecules/SortMenu/SortMenu.tsx': 'the results-list sort menu',
 }

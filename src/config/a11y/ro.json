@@ -18,14 +18,14 @@
     "copy_address": "Copiază adresa"
   },
   "filters": {
-    "remove": "Elimină %{label}"
+    "remove": "Elimină %{label}",
+    "search_languages": "Caută limbi"
   },
   "search": {
     "results_showing": "Se afișează %{shown} din %{total} cursuri",
     "dismiss_nearby_prompt": "Respinge"
   },
   "share": {
-    "copy_link": "Copiază linkul",
     "share_on": "Distribuie pe %{platform}",
     "qr_code": "Cod QR pentru %{title}"
   }

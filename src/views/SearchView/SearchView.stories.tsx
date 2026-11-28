@@ -56,6 +56,11 @@ const FILTERED = 'format=offline&days=1,3&langs=en&center=0,0'
 const SEARCHED = 'q=Cambridge&center=0.12,52.21&cc=GB'
 const SEARCHED_SPARSE = 'q=Dover&center=1.31,51.13&cc=GB'
 const SEARCHED_BORDER = 'q=Folkestone&center=1.18,51.08&cc=GB'
+// Cambridge again, each at a centre of its own (see above), with a day the seeded feed's one
+// Cambridge class does not meet. The note under the list counts that feed (`mockGeojson`), not
+// the list seeded here, so it reads the same whatever the list holds.
+const SEARCHED_HIDING = 'q=Cambridge&center=0.13,52.2&cc=GB&days=3'
+const SEARCHED_NO_MATCH = 'q=Cambridge&center=0.14,52.19&cc=GB&days=1'
 
 const EXAMPLES: Record<string, Example> = {
   Results: { search: '', events: mockEventVariants },
@@ -95,6 +100,11 @@ const EXAMPLES: Record<string, Example> = {
   // COUNTRY lists no programs at all, which needs `?cc=IS` and so is a property of the
   // search rather than a state of it (issue #82).
   'Country website': { search: ICELAND, events: [] },
+  // The filters hide a class in the area: one line after the list says how many, and clears them.
+  'Filters hide classes': { search: SEARCHED_HIDING, events: mockEventSeries(4, { step: 3 }) },
+  // The filters emptied the list: the line, then the one removal that brings classes back and
+  // Clear filters, as links.
+  'Nothing matches': { search: SEARCHED_NO_MATCH, events: [] },
   Filtered: {
     search: FILTERED,
     events: mockEventVariants.filter(
@@ -126,7 +136,9 @@ const eventsKey = (search: string, locale: string) => {
  * "Across a border" covers the same boundary, tightened to half the distance for another
  * country. "Empty" is the no-results state. "Country website" is the offer that replaces it
  * when the searched country lists no programs at all. "Filtered" shows the toolbar badge and
- * active-filter pills over a list.
+ * active-filter chips over a list. "Filters hide classes" ends the list on "1 more class in this
+ * area. Clear filters". "Nothing matches" is a list the filters emptied: the line, then the one
+ * removal that brings classes back and Clear filters, as links.
  *
  * Cases that need a URL seed it onto the decorator's OWN router, via `SeedSearchParams` —
  * react-router throws on a nested `<Router>`. That lands one render in, so each case

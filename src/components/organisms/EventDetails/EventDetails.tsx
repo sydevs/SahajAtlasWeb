@@ -26,20 +26,20 @@ import { Event } from '@/types'
  */
 export type EventSurfaceProps = {
   event: Event
-  /** The event's current route. Register and share drawers open at `${basePath}/register|share`. */
+  /** The event's current route. The register drawer opens at `${basePath}/register`. */
   basePath: string
   /** The view's one `useEventDisplay(event)`, shared by every surface on the page (#505). */
   strings: EventDisplayStrings
 }
 
 export type EventDetailsProps = EventSurfaceProps & {
-  /** Render Register inline, above the action row. The mobile map sheet passes
+  /** Render Register inline, below the action row. The mobile map sheet passes
    *  false and pins Register in the sticky drawer footer instead (#320). Inline
    *  beside a map, both go under the map whatever this says. */
   registerInline?: boolean
   /**
    * This slot renders below the facts, inside the panel's own flow, above the
-   * unverified caveat and Register.
+   * unverified caveat, the action row and Register.
    *
    * This uses a slot, not a prop, because each caller decides what goes here.
    * It is a view's job, not this component's job. The alternative was a second
@@ -55,8 +55,8 @@ export type EventDetailsProps = EventSurfaceProps & {
 }
 
 /**
- * This is the event panel body. It follows the order from issue #52: chips,
- * facts (plain text), Register, microcopy, secondary actions, About, images,
+ * This is the event panel body: chips, facts (plain text), secondary actions,
+ * Register and its microcopy, About, images,
  * then the closed QR code row. The title is a separate component (EventHeader). It renders outside
  * the scrolling drawer body, so it stays pinned. The triage chips lead the body.
  */
@@ -78,8 +78,8 @@ export function EventDetails({
   const aside = useInlineAside() !== null
   const actions = (
     <>
+      <EventActions event={event} strings={strings} />
       <EventRegisterBar basePath={basePath} event={event} strings={strings} />
-      <EventActions basePath={basePath} event={event} strings={strings} />
     </>
   )
 
@@ -89,12 +89,12 @@ export function EventDetails({
           pinned header. */}
       <EventChips languages={event.languages} strings={strings} />
 
-      {/* The facts keep extra room above the Register button. */}
+      {/* The facts keep extra room above the actions. */}
       <EventFacts className="mb-2" strings={strings} />
 
       {children}
 
-      {/* Above Register, not at the top of a panel that scrolls. RegistrationView
+      {/* Above the actions and Register, not at the top of a panel that scrolls. RegistrationView
           repeats it, since that route is reachable without passing here. Badging via the
           chips above would mark the list card, the surface this leaves alone. */}
       {isUnverified(event) && (
@@ -110,10 +110,10 @@ export function EventDetails({
         <InlineAside>{actions}</InlineAside>
       ) : (
         <>
+          <EventActions event={event} strings={strings} />
           {registerInline && (
             <EventRegisterBar basePath={basePath} event={event} strings={strings} />
           )}
-          <EventActions basePath={basePath} event={event} strings={strings} />
         </>
       )}
 

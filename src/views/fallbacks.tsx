@@ -1,5 +1,6 @@
 import type { FallbackProps } from 'react-error-boundary'
 import type { FallbackAlign, FallbackKind } from '@/components/molecules'
+import type { SkeletonBodyKind } from '@/components/organisms/Skeleton/Skeleton'
 import type { StackEntry } from '@/lib/shape'
 
 import { useEffect, useMemo } from 'react'
@@ -8,8 +9,7 @@ import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
 import { DrawerBody, DrawerHeader, DrawerToolbar, useDrawerMode } from '@/components/atoms/Drawer'
-import { Spinner } from '@/components/atoms/Spinner'
-import { CENTERED_BODY, FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
+import { FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useWidgetMode } from '@/config/mode'
@@ -19,15 +19,19 @@ import { useMapController } from '@/hooks/use-map-controller'
 import { classifyError, errorMessage } from '@/lib/report'
 import { baseStackEntry, isoCountryCode, nearestKnownRegion, resolveStack } from '@/lib/shape'
 import {
+  CALENDAR_HEADER,
   LOADING_BODY_CLIP,
   SkeletonBody,
+  SkeletonCalendarControls,
   SkeletonField,
+  SkeletonLocation,
   skeletonShape,
 } from '@/components/organisms/Skeleton/Skeleton'
 import { BackButton, NavHeader, NavRow } from '@/views/nav'
 import { useInlineAside } from '@/hooks/use-inline-aside'
 import {
   CalendarButton,
+  DrawerTitle,
   ExpandSheetButton,
   FilterButton,
   SearchField,
@@ -146,8 +150,6 @@ export function DrawerChrome({
         return t('filters.chrome.title', { defaultValue: 'Filters' })
       case 'register':
         return t('registration.form.title', { defaultValue: 'Register for this class' })
-      case 'share':
-        return t('share.title_class', { defaultValue: 'Share this class' })
       default:
         return undefined
     }
@@ -165,13 +167,21 @@ export function DrawerChrome({
     // field. There it is the escape hatch.
     const field = loading ? <SkeletonField /> : <SearchField />
 
-    // CountriesView's header.
+    // CountriesView's header, and its search band with the location line's room.
     if (!entry) {
       return (
-        <DrawerHeader>
-          {field}
-          {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
-        </DrawerHeader>
+        <>
+          <DrawerHeader className="justify-between">
+            <DrawerTitle title={t('countries.title')} />
+            <div className="flex min-h-8 items-center pointer-coarse:min-h-11">
+              {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+            </div>
+          </DrawerHeader>
+          <DrawerToolbar field>
+            {field}
+            {loading && <SkeletonLocation />}
+          </DrawerToolbar>
+        </>
       )
     }
 
@@ -184,9 +194,8 @@ export function DrawerChrome({
           <ExpandSheetButton />
         </DrawerHeader>
         <DrawerToolbar>
-          <ListToolbar>
+          <ListToolbar end={<SortMenu />}>
             <FilterButton />
-            <SortMenu />
           </ListToolbar>
         </DrawerToolbar>
       </>
@@ -197,6 +206,15 @@ export function DrawerChrome({
   // title fits one line in the inline column, wider than a panel, and wraps to two in a panel.
   if (loading && entry.kind === 'event') {
     return <EventHeader nav={<NavRow />} title={title} titleLines={inline ? 1 : 2} />
+  }
+
+  // The calendar's header is its controls, not a title.
+  if (loading && entry.kind === 'calendar') {
+    return (
+      <DrawerHeader className={CALENDAR_HEADER}>
+        <SkeletonCalendarControls />
+      </DrawerHeader>
+    )
   }
 
   // The view's own header, so nothing moves when the view arrives. No title when nothing
@@ -223,6 +241,7 @@ export function DrawerChrome({
       // city instead (`heading-place.ts`).
       isPlace={entry.kind === 'region' && region.node?.level !== 'venue'}
       pendingTitle={loading && entry.kind === 'region' && !title}
+      subtitle={entry.kind === 'register' ? t('registration.form.reassurance') : undefined}
       title={title}
     />
   )
@@ -260,8 +279,7 @@ function useCachedRegion(slug: string | undefined) {
 /**
  * The Suspense fallback for a view whose data is still loading: the view's own header (its way
  * back and its controls work), over the body the boot panel drew (`SkeletonBody`), so nothing
- * changes as one hands over to the other. A view with nothing worth drawing ahead of it waits
- * on the spinner.
+ * changes as one hands over to the other.
  */
 export function DrawerLoading() {
   const { hasMap } = useWidgetMode()
@@ -275,38 +293,26 @@ export function DrawerLoading() {
   return (
     <>
       <DrawerChrome loading />
-      {shape ? (
-        <DrawerBody className={LOADING_BODY_CLIP}>
-          {/* The phone sheet pins Register to its foot once the class arrives, and the inline
-              embed puts it under its map. */}
-          <SkeletonBody body={shape.body} cta={!aside && (!hasMap || isWide)} />
-        </DrawerBody>
-      ) : (
-        <DrawerLoadingBody />
-      )}
+      {/* The phone sheet pins Register to its foot once the class arrives, and the inline embed
+          puts it under its map. */}
+      <DrawerLoadingBody body={shape.body} cta={!aside && (!hasMap || isWide)} />
     </>
   )
 }
 
 /**
- * The spinner alone, for a Suspense fence that sits BELOW a view's own header — the
- * calendar's grid. The chrome-ful `DrawerLoading` there would draw a second header,
- * with a second Back button, under the one CalendarControls already renders.
+ * What fills the body of a Suspense fence that sits BELOW a view's own header — the
+ * calendar's grid — or under the shared chrome: the view's placeholder shapes. The chrome-ful
+ * `DrawerLoading` below a header would draw a second header, with a second Back button, under
+ * the one CalendarControls already renders.
  *
  * This is the loading counterpart of `DrawerErrorBody`/`ErrorPanel` — same split,
  * same reason.
  */
-export function DrawerLoadingBody() {
-  const { t } = useTranslation()
-
+export function DrawerLoadingBody({ body, cta }: { body: SkeletonBodyKind; cta?: boolean }) {
   return (
-    <DrawerBody className={CENTERED_BODY}>
-      {/* Uses `srLabel`, not `label`: the word is announced, not drawn. A visible "Loading…"
-          under the glyph says nothing a spinner does not already say, and it is what pushed
-          the glyph itself off centre — the column centres, so the label's height sits half
-          of it below the middle. Screen readers still get it through the Spinner's own
-          `role="status"`. */}
-      <Spinner color="secondary" srLabel={t('common.a11y.loading')} />
+    <DrawerBody className={LOADING_BODY_CLIP}>
+      <SkeletonBody body={body} cta={cta} />
     </DrawerBody>
   )
 }
@@ -318,7 +324,7 @@ export function DrawerLoadingBody() {
  * search — put content at the top-left of the body, so a fallback standing in for
  * that list belongs there too. Centring it moves the sentence away from where the
  * reader is already looking, and makes the drawer read as a different kind of
- * screen. Everything else (an event, a registration, a share sheet, the calendar) is
+ * screen. Everything else (an event, a registration, the calendar) is
  * a single composed panel with no such anchor, so its fallback centres.
  *
  * This is derived from the URL, rather than passed down, because the view
@@ -347,7 +353,6 @@ const notFoundKind = (kind: StackEntry['kind'] | undefined): FallbackKind => {
   switch (kind) {
     case 'event':
     case 'register':
-    case 'share':
       return 'not-found-event'
     case 'region':
     case 'online':

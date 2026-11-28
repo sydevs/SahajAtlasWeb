@@ -7,7 +7,6 @@ import {
   placePathsOf,
   placedPathname,
   childRoute,
-  filterOriginRegion,
   isCanonicalPath,
   listResetKey,
   nearestKnownRegion,
@@ -58,22 +57,6 @@ describe('safePath', () => {
 
     // Deeper in the path these are just characters, like the backslash above.
     expect(safePath('/be/anna\tmaria')).toBe('/be/anna\tmaria')
-  })
-})
-
-describe('filterOriginRegion', () => {
-  it('names the region a filter drawer was opened over, at any depth', () => {
-    expect(filterOriginRegion('/gb/filters')).toBe('gb')
-    expect(filterOriginRegion('/gb/london/filters')).toBe('london')
-    expect(filterOriginRegion('/gb/s%C3%A3o-paulo/filters')).toBe('são-paulo')
-  })
-
-  it('is null over anything that is not a region, and off the filter drawer', () => {
-    expect(filterOriginRegion('/filters')).toBeNull()
-    expect(filterOriginRegion('/search/filters')).toBeNull()
-    expect(filterOriginRegion('/calendar/filters')).toBeNull()
-    expect(filterOriginRegion('/gb/london/507/filters')).toBeNull()
-    expect(filterOriginRegion('/gb/london')).toBeNull()
   })
 })
 
@@ -166,18 +149,18 @@ describe('resolveStack', () => {
     ])
   })
 
-  it('appends a register/share entry over the parent event', () => {
+  it('appends a register entry over the parent event', () => {
     expect(resolveStack('/india/pune/507/register')).toEqual([
       { kind: 'region', slug: 'india', path: '/india' },
       { kind: 'region', slug: 'pune', path: '/india/pune' },
       { kind: 'event', id: 507, path: '/india/pune/507' },
       { kind: 'register', eventPath: '/india/pune/507', path: '/india/pune/507/register' },
     ])
-    expect(resolveStack('/507/share').at(-1)).toEqual({
-      kind: 'share',
-      eventPath: '/507',
-      path: '/507/share',
-    })
+  })
+
+  // The share drawer is gone, and an old `/share` link opens its class.
+  it('resolves a retired share segment to its event', () => {
+    expect(resolveStack('/507/share')).toEqual([{ kind: 'event', id: 507, path: '/507' }])
   })
 
   it('owns /search', () => {

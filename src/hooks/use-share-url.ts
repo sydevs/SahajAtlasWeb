@@ -12,7 +12,7 @@ import { shareableUrl } from '@/lib/url'
  * One source replaces two, which is what stops them drifting.
  *
  * Consumers take the answer and decide what to render without one, deliberately.
- * "No link" is not a share block with an empty field. It is a different screen.
+ * "No link" is not a share block with an empty field: the event's Share action leaves the row.
  */
 export function useShareUrl(
   canonical: string | null | undefined,

@@ -1,11 +1,14 @@
 import type { ApproxLocation } from '@/lib/approx-location'
-import type { CalendarViewOption } from '@/lib/shape'
 import type { Feature } from 'geojson'
 
 import { create } from 'zustand'
 
 import { deepActiveElement } from '@/lib/active-element'
-import { parseApproxLocation } from '@/lib/approx-location'
+import {
+  markGeolocationDismissed,
+  parseApproxLocation,
+  readGeolocationDismissed,
+} from '@/lib/approx-location'
 
 // ===== VIEW STATE ===== //
 
@@ -178,26 +181,17 @@ export const useCameraSettled = create<CameraSettled>((set) => ({
 
 // ===== CALENDAR POSITION ===== //
 
-// This holds the full-width `CalendarView`'s last view — one of the three the switch offers, never the `month-agenda` a width collapses onto — plus its focused date.
-// The store keeps this so applying a filter, which remounts the filters-keyed grid, does not reset Schedule-X to today's month grid.
-// Opening an event and coming back also does not reset it.
-// This state is session-scoped and clears on reload.
-// The grid SEEDS from this store once at mount, through `getState`.
-// It then writes both fields imperatively as the user navigates.
-// So a write never re-renders the calendar.
-// `DrawerStack` also reads `view` reactively, through a selector, to size the drawer — the wide panel exists only above the width crossing, and the list view never takes it (#331).
-// `date` is only ever read through `getState`, so its frequent writes stay render-free.
+// This holds the day the calendar's Month has in view: its month, and on a phone the day whose
+// classes it lists. The store keeps it so applying a filter or opening a class and coming back
+// does not reset the Month to today. The view itself lives in the URL (`?view=week`), with the
+// Week's dates. This state is session-scoped and clears on reload.
 type CalendarPositionState = {
-  view: CalendarViewOption | null
   date: string | null
-  setView: (view: CalendarViewOption) => void
   setDate: (date: string) => void
 }
 
 export const useCalendarPosition = create<CalendarPositionState>((set) => ({
-  view: null,
   date: null,
-  setView: (view) => set(() => ({ view })),
   setDate: (date) => set(() => ({ date })),
 }))
 
@@ -278,18 +272,29 @@ export const useReportModal = create<ReportModalState>((set) => ({
 // ===== APPROXIMATE LOCATION ===== //
 
 // Where the visitor roughly is: the default export of `/geo.js` (`lib/approx-location.ts`), or
-// `null` without one. A store because it can arrive after the first render — the module is
-// imported beside the widget, and usually lands first — and a story sets one the same way.
-type ApproxLocationState = { location: ApproxLocation | null }
+// `null` without one, set once before the first render. A store so the visitor's own answer can
+// join it (`dismissed`), and so a story can set one.
+//
+// `dismissed` is the visitor's X on the guessed town, kept for the browser session: the town is
+// not offered again, and the country list stops putting their country first.
+type ApproxLocationState = {
+  location: ApproxLocation | null
+  dismissed: boolean
+  dismiss: () => void
+}
 
-export const useApproxLocation = create<ApproxLocationState>(() => ({ location: null }))
+export const useApproxLocation = create<ApproxLocationState>((set) => ({
+  location: null,
+  dismissed: readGeolocationDismissed(),
+  dismiss: () => {
+    markGeolocationDismissed()
+    set({ dismissed: true })
+  },
+}))
 
-/** Takes the location from `/geo.js` once it has loaded; a failed import is no location. */
-export const bootApproxLocation = (geo: Promise<unknown>): void =>
-  void geo.then(
-    (value) => useApproxLocation.setState({ location: parseApproxLocation(value) }),
-    () => {},
-  )
+/** Takes the location from `/geo.js`'s default export, read before the first render. */
+export const bootApproxLocation = (geo: unknown): void =>
+  useApproxLocation.setState({ location: parseApproxLocation(geo) })
 
 // ===== NEAR ME ===== //
 
@@ -376,6 +381,13 @@ type MapControlsState = {
   /** True where something over the map leaves its control column no clean place to show. */
   hidden: boolean
   setHidden: (hidden: boolean) => void
+  /**
+   * True while the filter buttons show beside the column: the panel sits beside the map, and
+   * neither the full-width calendar nor the filters' own drawer is on top. Find-me steps aside
+   * then, since their Where menu's Near me asks the same question.
+   */
+  filterMenus: boolean
+  setFilterMenus: (shown: boolean) => void
 }
 
 /**
@@ -386,6 +398,8 @@ type MapControlsState = {
 export const useMapControls = create<MapControlsState>((set) => ({
   hidden: false,
   setHidden: (hidden) => set(() => ({ hidden })),
+  filterMenus: false,
+  setFilterMenus: (filterMenus) => set(() => ({ filterMenus })),
 }))
 
 type BrowsedCountryState = {

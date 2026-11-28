@@ -245,7 +245,7 @@ function ExpandButton({ className }: { className?: string }) {
  *
  * The view stories render one view in it, which is why it takes its content as children.
  */
-const CLASS_VIEWS = new Set<string>(['event', 'register', 'share'] satisfies StackEntry['kind'][])
+const CLASS_VIEWS = new Set<string>(['event', 'register'] satisfies StackEntry['kind'][])
 
 export function InlineColumns({
   map,
@@ -258,7 +258,7 @@ export function InlineColumns({
 }) {
   const { hasMap } = useWidgetMode()
   const { pathname } = useLocation()
-  // A class's own register and share views keep its split, so opening one moves no column.
+  // A class's own sign-up keeps its split, so opening it moves no column.
   const classPage = CLASS_VIEWS.has(resolveStack(pathname).at(-1)?.kind ?? '')
   const [grid, setGrid] = useState<HTMLDivElement | null>(null)
   const [aside, setAside] = useState<HTMLDivElement | null>(null)

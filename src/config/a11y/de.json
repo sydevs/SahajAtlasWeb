@@ -18,14 +18,14 @@
     "copy_address": "Adresse kopieren"
   },
   "filters": {
-    "remove": "%{label} entfernen"
+    "remove": "%{label} entfernen",
+    "search_languages": "Sprachen suchen"
   },
   "search": {
     "results_showing": "%{shown} von %{total} Kursen werden angezeigt",
     "dismiss_nearby_prompt": "Schließen"
   },
   "share": {
-    "copy_link": "Link kopieren",
     "share_on": "Auf %{platform} teilen",
     "qr_code": "QR-Code für %{title}"
   }

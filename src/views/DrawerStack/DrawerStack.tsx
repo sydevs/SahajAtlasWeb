@@ -38,19 +38,15 @@ import {
   useIsShortViewport,
   useIsWide,
 } from '@/config/responsive'
-import {
-  useBrowsedCountry,
-  useCalendarPosition,
-  useMapControls,
-  useSheetCover,
-} from '@/config/store'
+import { useBrowsedCountry, useMapControls, useSheetCover } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
-  calendarFillsWidth,
+  calendarViewFromParams,
   backStep,
   sameRoute,
   baseStackEntry,
+  isCalendarFullWidth,
   isFilterOverlay,
   isOnline,
   isoCountryCode,
@@ -65,6 +61,7 @@ import {
   capPoints,
   FIT_SNAP,
   heldFoldPx,
+  HOME_SNAP,
   OPEN_SNAP,
   PEEK_SNAP,
   resolveStop,
@@ -76,27 +73,26 @@ import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
-import { FilterView } from '@/views/FilterView/FilterView'
+import { FilterView } from '@/views/Filters/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
 import { EventView } from '@/views/EventView/EventView'
 
-// The three views most visitors never open, split out of the eager graph (issue #96). Each
+// The two views most visitors never open, split out of the eager graph (issue #96). Each
 // one is the only consumer of a large dependency the widget would otherwise pay for at first
-// paint on every host page. The calendar owns the whole Schedule-X stack — its grid, its
-// views, its theme CSS. Registration owns react-hook-form plus the resolver. Share owns
-// react-share's target composers.
+// paint on every host page. The calendar owns its own Month and Week. Registration owns
+// react-hook-form plus the resolver.
 //
-// These are the RIGHT three to split, because none of them can be the first thing on screen
+// These are the RIGHT two to split, because neither can be the first thing on screen
 // by accident. Each is reached by pressing something — the calendar button, an event's
-// Register or Share action — or by a deep link that is already a deliberate act. The views
+// Register action — or by a deep link that is already a deliberate act. The views
 // that CAN be the entry point — the country index, a region, search, an event — stay eager,
 // so the common path still resolves inside the graph the host already fetched.
 //
 // These are minted per attempt, not once at module scope, for the reason spelled out in
 // `EventView.tsx`. React caches a lazy component's REJECTED payload forever. A module-scope
 // `lazy` would leave the drawer boundary's "Try again" re-throwing the stored rejection
-// instantly — the visibly-does-nothing button that issue #89 removed. The three are minted
+// instantly — the visibly-does-nothing button that issue #89 removed. The two are minted
 // together, because one reset serves one boundary. A fresh `lazy` for a view that did not
 // fail costs nothing, since the object stays inert until rendered, and only one of them is
 // ever mounted at a time.
@@ -108,9 +104,6 @@ const loadSecondaryViews = () => ({
     import('@/views/RegistrationView/RegistrationView').then((m) => ({
       default: m.RegistrationView,
     })),
-  ),
-  ShareView: lazy(() =>
-    import('@/views/ShareView/ShareView').then((m) => ({ default: m.ShareView })),
   ),
 })
 
@@ -126,7 +119,7 @@ type Direction = 'left' | 'bottom'
 // Dispatches the active (top) view's inner content. Only the top view renders, so each view
 // frames the map for its own level on mount.
 //
-// The three lazy views arrive as a prop, rather than being read from module scope, so
+// The lazy views arrive as a prop, rather than being read from module scope, so
 // the identity a boundary reset replaces is the one this renders — see `loadSecondaryViews`.
 function TopView({ entry, secondary }: { entry: StackEntry | null; secondary: SecondaryViews }) {
   if (!entry) return <CountriesView />
@@ -146,8 +139,6 @@ function TopView({ entry, secondary }: { entry: StackEntry | null; secondary: Se
       return <EventView basePath={entry.path} id={entry.id} />
     case 'register':
       return <secondary.RegistrationView eventPath={entry.eventPath} />
-    case 'share':
-      return <secondary.ShareView eventPath={entry.eventPath} />
   }
 }
 
@@ -258,13 +249,26 @@ export function DrawerStack({
   // makes the comparison mean anything. Inline, they part only on a filters route, and
   // neither the calendar nor the filters view frames the map.
   const top = baseStackEntry(entries, sheeted) ?? null
-  // The calendar is the one full-width view. It fills the widget, minus the floating margins,
-  // instead of the 384px left panel (see the Drawer `wide` variant) — EXCEPT in its list
-  // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
-  // because the wide panel exists only above the crossing (#331). The view is read reactively, so
-  // switching it resizes the drawer. Date changes do not re-render this component.
-  const calendarView = useCalendarPosition((s) => s.view)
-  const wide = top?.kind === 'calendar' && calendarFillsWidth(isWide, calendarView)
+  // The calendar's Month is the one full-width view: it fills the widget, minus the floating
+  // margins, instead of the 384px left panel (the Drawer `wide` variant). Its Week is one column
+  // and keeps the panel, so the map stays in view. `isWide` is here because the wide panel exists
+  // only above the crossing (#331).
+  const wide = isCalendarFullWidth(
+    top?.kind,
+    isWide,
+    calendarViewFromParams(new URLSearchParams(location.search)),
+  )
+  // The filter buttons show beside the map's controls wherever the panel sits beside it, except
+  // under the full-width calendar, which carries them in its own header, and over the filters'
+  // own drawer, which asks the same questions.
+  const filterMenus = sheeted && isWide && !wide && top?.kind !== 'filters'
+  const setFilterMenus = useMapControls((s) => s.setFilterMenus)
+
+  useEffect(() => {
+    setFilterMenus(filterMenus)
+
+    return () => setFilterMenus(false)
+  }, [filterMenus, setFilterMenus])
   // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
   // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes
@@ -325,9 +329,13 @@ export function DrawerStack({
   const openedClass = classView ? location.pathname : null
   const { fit, fold: measuredFold } = useFitSnap(canCollapse && fitsContent, location.pathname)
   const fold = classView ? (heldFoldPx(snap) ?? measuredFold) : null
-  const ladder = useMemo(() => sheetLadder({ classView, fit, fold }), [classView, fit, fold])
+  const home = opening === 'home'
+  const ladder = useMemo(
+    () => sheetLadder({ classView, fit, fold, home }),
+    [classView, fit, fold, home],
+  )
   const { points: snapPoints, fitSnap } = ladder
-  const openSnap = fitsContent ? FIT_SNAP : OPEN_SNAP
+  const openSnap = fitsContent ? FIT_SNAP : home ? HOME_SNAP : OPEN_SNAP
   const vaulSnap = resolveStop(ladder, snap)
   // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
   // literally would swap the token for whatever it resolved to that render, and the sheet would
@@ -539,8 +547,8 @@ export function DrawerStack({
     const landTall = resultsTall.current
 
     resultsTall.current = false
-    setSnap(opening === 'tall' || landTall ? WIDE_SNAP : fitsContent ? FIT_SNAP : OPEN_SNAP)
-  }, [direction, opening, fitsContent, top?.kind, openedClass])
+    setSnap(opening === 'tall' || landTall ? WIDE_SNAP : openSnap)
+  }, [direction, opening, openSnap, top?.kind, openedClass])
 
   // A new searched place lifts the sheet out of its peek, so results are never
   // fetched into a sheet the visitor cannot see. The effect above does not cover this

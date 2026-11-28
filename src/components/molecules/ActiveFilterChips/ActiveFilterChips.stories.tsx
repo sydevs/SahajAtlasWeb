@@ -1,0 +1,41 @@
+import type { Story, StoryDefault } from '@ladle/react'
+
+import { StoryWrapper, StorySection, SeedSearchParams } from '../../ladle'
+
+import { ActiveFilterChips } from './ActiveFilterChips'
+
+import { filtersToParams } from '@/lib/shape'
+
+export default {
+  title: 'Molecules',
+} satisfies StoryDefault
+
+// A mix of active filters, seeded into the URL query, the filters' source of
+// truth. The chips read it through useEventFilters.
+const seededParams = filtersToParams({
+  format: 'online',
+  cadence: 'WEEKLY',
+  daysOfWeek: [1, 3, 5],
+  timeOfDay: ['morning', 'afternoon'],
+  languages: ['en', 'fr'],
+  dateRange: { start: null, end: null },
+  region: null,
+})
+
+/** ActiveFilterChips — the applied filters as removable chips (one per filter type). */
+export const Default: Story = () => (
+  <SeedSearchParams params={seededParams}>
+    <StoryWrapper>
+      <StorySection
+        description="The applied filters as removable chips — the day-of-week and language selections each collapse into one chip. Only the user's own filters appear: the results list's automatic distance cut is signposted by its own control at the foot of the list, not by a chip."
+        title="Active filter chips"
+      >
+        <ActiveFilterChips />
+      </StorySection>
+
+      <div />
+    </StoryWrapper>
+  </SeedSearchParams>
+)
+
+Default.storyName = 'Active Filter Chips'

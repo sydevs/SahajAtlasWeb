@@ -126,28 +126,11 @@ Ten stores, each the single source of truth for its own slice:
   `useViewState` mirrors the camera only once the map STOPS, so `rememberCamera` would
   otherwise snapshot the place a fly left for the screen it is flying to. Non-reactive,
   like the history it feeds.
-- **`useCalendarPosition`** — the CalendarView's last Schedule-X `view` plus
-  focused `date`, so a filter apply or returning from an event does not reset the
-  grid to the current month. The grid **seeds** from it once at mount (no
-  re-render on write). The header and `DrawerStack` (for sizing) read it
-  **reactively**. The header drives Schedule-X through the public
-  `calendar-controls` plugin — no reach into SX internals. Session-scoped.
-  ⚠ **It holds what the viewer PICKED, never what a width can render** (#331).
-  `month-grid` and `week` declare no small-screen support, so below the crossing
-  both render as `month-agenda` — and every reader resolves the stored name
-  through `resolveCalendarView` (`lib/shape/calendar.ts`) against
-  `useIsWideWidget()` rather than reading it raw. Storing the resolution instead
-  would lose a `week` the moment a viewer passed through a phone width. The
-  header's label and paging step, the switch's value and its offered options, the
-  grid's `defaultView`, and `DrawerStack`'s drawer-width test are all that same
-  resolution. Schedule-X's own `isResponsive` is **off**, so nothing but the
-  resolver decides which view renders: the flag registers the resize listener
-  that is the only path into `setScreenSizeCompatibleView`, which moved off both
-  grids to the FIRST registered compat view and emitted nothing. With it off,
-  neither registration order nor SX's own breakpoint matters. Nothing is lost —
-  the `isCalendarSmall` signal it drops feeds SX's view dropdown and the
-  `sx__is-calendar-small` class, whose rules target the header bar
-  `globals.css` hides, and the year grid this app never registers.
+- **`useCalendarPosition`** — the day the calendar's Month has in view: its month, and on a
+  phone the day whose classes it lists, so a filter apply or returning from a class does not
+  reset the Month to today. Session-scoped. The view itself is not here: it rides in the URL
+  (`?view=week`, and `week` for a Week that does not start today), so a shared link opens the view
+  and the week it was sent from.
 - **`useReportModal`** — whether the report-issue modal is open, plus the thrown
   message when an error CTA opened it. A store, not local state, because its
   three triggers (the settings cog, `ErrorFallback`, `DrawerErrorFallback`) sit
@@ -191,8 +174,9 @@ Ten stores, each the single source of truth for its own slice:
   the drawer must not import the map's hooks. It carries `null` wherever there is no
   bottom sheet, and the camera falls back to the open snap's height.
 - **`useMapControls`** — whether the map's control column (find-me, settings, the credits)
-  is hidden. `DrawerStack` sets it at the phone sheet's near-full stop, which covers all of the
-  column but a sliver of its top. A store for `useSheetCover`'s reason: whatever covers the map
+  is hidden, and whether the filter buttons show beside it. `DrawerStack` sets both: the first
+  at the phone sheet's near-full stop, which covers all of the column but a sliver of its top,
+  the second wherever the panel sits beside the map. A store for `useSheetCover`'s reason: whatever covers the map
   decides, `Mapbox/MapControls` draws the column, and neither renders the other's context.
 - **`useBrowsedCountry`** — the ISO code of the last country page shown, which scopes
   the place search's suggestions. ⚠ **This is the one slice that looks like it belongs
@@ -241,7 +225,9 @@ source of truth, so all three stay linkable and shareable:
   Serialized by `filtersToParams` / `filtersFromParams`. The map, the results
   list, the active-filter pills, and the FilterButton badge all read the same
   URL. The filter drawer keeps no draft: each tap writes the URL with `replace`,
-  so the markers behind it and its count move at once.
+  so the markers behind it and its count move at once. The drawer and the filter
+  buttons on a computer both edit through `useFilterEditor`; the buttons' first
+  answer over a place page pushes that place's results.
 - **List sort order** — read with `useSortOrder`, mutate with `useSetSortOrder`.
   Serialized under `?sort=` (default `recommended`, omitted). Kept **separate**
   from filters because it is presentation, not a predicate: it only re-orders
@@ -322,7 +308,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
   `useSuspenseQuery` at the top, then returns its header plus body — a boundary
   inside a view drops that view's header entirely. Add a body-level boundary
   only where a real seam exists: a child with its own suspense read below the
-  chrome (`CalendarGrid`, `DynamicEventsList`, the lazy `EventDetails` — exactly
+  chrome (`CalendarBody`, `DynamicEventsList`, the lazy `EventDetails` — exactly
   three places). Everywhere else, the drawer boundary catches.
 - **Fallbacks render their own chrome.** `DrawerChrome` rebuilds the header from
   the URL plus already-cached data (the region tree for a name, the titles
@@ -345,17 +331,17 @@ two axes separate — an inner fallback must never re-throw to escalate.
   re-throws the cached error.
 - **One table covers empty states too, not only failures.** `FallbackKind` spans
   the five classified failures and the ways a screen ends up with nothing to act
-  on (`empty`, `no-results`, `no-nearby`, `country-site`, `unavailable`,
-  `share-unavailable`) — a barren region and a URL that never existed leave a
+  on (`empty`, `no-nearby`, `country-site`, `unavailable`) — a
+  barren region and a URL that never existed leave a
   viewer in the same position, so both render `FallbackPanel` and only the
-  policy row differs.
+  policy row differs. A list the filters emptied is the exception: the filters
+  are the explanation and the way out, so `NoFilterMatches` says so in one line
+  with its ways out as links, the same on every list.
   - **`unavailable`** is the row whose next step is a person: a full, ended, or
     closed class still exists, so `contact` leads with a number where one
     exists, and the recovery ladder (nearby classes) takes over otherwise. It is
     the **only** row entitled to a custom `message` — a caller may vary the
-    values a row uses, never the key itself. `share-unavailable` (#115) is
-    `unavailable` minus the onward link, because "see events nearby" would walk
-    the viewer away from the class they were trying to share.
+    values a row uses, never the key itself.
   - **A dead link is not a malfunction.** `color` is the tell: `danger`
     (`role="alert"`) for a real failure, `neutral` (`role="status"`) for a dead
     end or an empty list.

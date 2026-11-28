@@ -13,7 +13,7 @@ import { isoCountryCode } from './country'
 // distant one, and pages through the nearby segment first. Reaching the distant events
 // takes an explicit press ("Show distant events"), which signposts that nearby events
 // have run out. That press is the only distance affordance. There is deliberately no
-// "< N km" pill, so the automatic cut is never mistaken for one of the user's own
+// "< N km" chip, so the automatic cut is never mistaken for one of the user's own
 // filters.
 
 /** Events within this many km of the searched place are the "nearby" segment. */

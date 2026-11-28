@@ -18,14 +18,14 @@
     "copy_address": "Cím másolása"
   },
   "filters": {
-    "remove": "Eltávolítás: %{label}"
+    "remove": "Eltávolítás: %{label}",
+    "search_languages": "Nyelvek keresése"
   },
   "search": {
     "results_showing": "Megjelenítve: %{shown} / %{total} foglalkozás",
     "dismiss_nearby_prompt": "Elvetés"
   },
   "share": {
-    "copy_link": "Hivatkozás másolása",
     "share_on": "Megosztás: %{platform}",
     "qr_code": "QR-kód: %{title}"
   }
