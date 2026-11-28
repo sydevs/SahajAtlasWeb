@@ -191,8 +191,9 @@ Ten stores, each the single source of truth for its own slice:
   the drawer must not import the map's hooks. It carries `null` wherever there is no
   bottom sheet, and the camera falls back to the open snap's height.
 - **`useMapControls`** — whether the map's control column (find-me, settings, the credits)
-  is hidden. `DrawerStack` sets it at the phone sheet's near-full stop, which covers all of the
-  column but a sliver of its top. A store for `useSheetCover`'s reason: whatever covers the map
+  is hidden, and whether the filter buttons show beside it. `DrawerStack` sets both: the first
+  at the phone sheet's near-full stop, which covers all of the column but a sliver of its top,
+  the second wherever the panel sits beside the map. A store for `useSheetCover`'s reason: whatever covers the map
   decides, `Mapbox/MapControls` draws the column, and neither renders the other's context.
 - **`useBrowsedCountry`** — the ISO code of the last country page shown, which scopes
   the place search's suggestions. ⚠ **This is the one slice that looks like it belongs
@@ -241,9 +242,9 @@ source of truth, so all three stay linkable and shareable:
   Serialized by `filtersToParams` / `filtersFromParams`. The map, the results
   list, the active-filter pills, and the FilterButton badge all read the same
   URL. The filter drawer keeps no draft: each tap writes the URL with `replace`,
-  so the markers behind it and its count move at once. The filter buttons on a
-  computer (`FilterMenuBar`, `usePanelFilters`) write it the same way, except
-  that their first answer over a place page pushes that place's results.
+  so the markers behind it and its count move at once. The drawer and the filter
+  buttons on a computer both edit through `useFilterEditor`; the buttons' first
+  answer over a place page pushes that place's results.
 - **List sort order** — read with `useSortOrder`, mutate with `useSetSortOrder`.
   Serialized under `?sort=` (default `recommended`, omitted). Kept **separate**
   from filters because it is presentation, not a predicate: it only re-orders

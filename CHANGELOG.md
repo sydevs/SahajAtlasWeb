@@ -53,8 +53,9 @@ cover everything a host would notice since the widget was first deployed.
   colour.** ([#549]) It was a narrower button in the first brand colour. Its menu of calendars
   is unchanged and still opens under the button's start edge.
 - **On a computer the filters are three buttons over the map: Where, When and Language.** ([#542])
-  From 1024px of widget width they sit at the top right of the map, and the full-width calendar
-  (its month and week views) carries them in its header, instead of a Filters button. Each opens a small menu with the same
+  Wherever the panel sits beside the map (from 768px of widget width) they sit at the top right
+  of the map, wrapping where it is narrow, and the full-width calendar (its month and week views)
+  carries them in its header, instead of a Filters button. Each opens a small menu with the same
   questions and live counts as the phone's filters, and a tap applies at once. A button with an
   answer fills and names it ("Tue · Evening"), and Clear leads the row; on a place page, Clear goes
   back to that page. The list shows no filter tags beside them. Narrower widgets, a map-less
