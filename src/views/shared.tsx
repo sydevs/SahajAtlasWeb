@@ -20,7 +20,7 @@ import { useApproxLocation, useCameraHistory, useSearchFocus } from '@/config/st
 import { useWidgetMode } from '@/config/mode'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
 import { useEventFilters } from '@/hooks/use-filters'
-import { useFilterRow } from '@/hooks/use-filter-row'
+import { useFilterMenusOnMap } from '@/hooks/use-filter-menus'
 import { useLocale } from '@/hooks/use-locale'
 import { useNearMe } from '@/hooks/use-near-me'
 import { useMapController } from '@/hooks/use-map-controller'
@@ -185,14 +185,14 @@ export function FilterButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const location = useLocation()
   const count = activeFilterCount(useEventFilters())
 
-  const row = useFilterRow()
+  const menusShown = useFilterMenusOnMap()
 
   const label = count > 0 ? `${t('filters.chrome.title')} (${count})` : t('filters.chrome.title')
   const to = `${location.pathname === '/' ? '' : location.pathname}/filters`
   const open = () => navigate({ pathname: to, search: location.search })
 
   // The filter buttons ask the same questions, so this one has nothing left to open.
-  if (row) return null
+  if (menusShown) return null
 
   if (iconOnly) {
     return (

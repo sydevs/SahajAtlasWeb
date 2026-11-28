@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { Chip } from '@/components/atoms/Chip'
 import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
-import { useFilterRow } from '@/hooks/use-filter-row'
+import { useFilterMenusOnMap } from '@/hooks/use-filter-menus'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import { formatDate, weekdayNames } from '@/lib/time'
@@ -30,7 +30,7 @@ import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
  * Beside the filter buttons, which already name every answer, it shows nothing.
  */
 export function ActiveFilterChips() {
-  const row = useFilterRow()
+  const menusShown = useFilterMenusOnMap()
   const { t } = useTranslation()
   const { formatLocale, languageLabel } = useLocale()
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
@@ -107,7 +107,7 @@ export function ActiveFilterChips() {
     chips.push({ key: 'dates', label, onRemove: () => setDateRange({ start: null, end: null }) })
   }
 
-  if (row || chips.length === 0) return null
+  if (menusShown || chips.length === 0) return null
 
   return (
     <div className="flex flex-wrap gap-1.5 px-gutter pt-1 pb-2">

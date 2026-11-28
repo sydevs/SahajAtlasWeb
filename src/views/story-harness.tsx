@@ -14,14 +14,12 @@ import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { WidgetModeContext, type WidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
-import { useApproxLocation, useCalendarPosition } from '@/config/store'
-import { useIsWideWidget } from '@/config/responsive'
-import { FilterRowContext } from '@/hooks/use-filter-row'
+import { useApproxLocation } from '@/config/store'
 import { Mapbox } from '@/components/organisms/Mapbox/Map'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
-import { filterRowPlace, isCalendarFullWidth, parentOf, resolveStack } from '@/lib/shape'
+import { parentOf } from '@/lib/shape'
 import { mockApproxLocation, mockGeojson, mockRegionNodes } from '@/mocks/regions'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
@@ -298,17 +296,6 @@ export function ViewHarness({
   // A token-less environment gets the map-less arm: a canvas that cannot load tiles
   // previews nothing and fills the console with Mapbox errors.
   const withMap = Boolean(map && import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
-  // Where DrawerStack would put the filter buttons, so the full-width calendar previews its
-  // header row. A story's drawer is the 352px column, so there is no map row.
-  const isWide = useIsWideWidget()
-  const calendarView = useCalendarPosition((s) => s.view)
-  const top = path ? resolveStack(path).at(-1)?.kind : undefined
-  const filterRow = filterRowPlace({
-    menusWide: false,
-    hasMap: withMap,
-    top,
-    calendarFullWidth: isCalendarFullWidth(top, isWide, calendarView),
-  })
 
   const client = useMemo(() => {
     const c = new QueryClient({
@@ -354,40 +341,38 @@ export function ViewHarness({
               all, and without a provider every story would preview the root's control
               set (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
           <DrawerControlContext.Provider value={storyDrawerControl(path)}>
-            <FilterRowContext.Provider value={filterRow}>
-              <DrawerSlotsProvider direction="bottom" mode="filled">
-                {/* With a map behind it the drawer is a PANEL, as it is in map mode. Without one
+            <DrawerSlotsProvider direction="bottom" mode="filled">
+              {/* With a map behind it the drawer is a PANEL, as it is in map mode. Without one
                   it fills the canvas, as a map-less embed does. Both are positioned: the map
                   wrapper is `absolute`, and a positioned element paints above a static sibling
                   whatever the DOM order — so a static column sat *underneath* the canvas and the
                   view appeared to float transparently over the map. This was measured, not
                   guessed. */}
-                <div
-                  key={seedKey}
-                  className={clsx(
-                    // Clip, never hidden — this hand-copies the panel's own chrome, so a story
-                    // that previewed `overflow-hidden` would preview the defect (#326).
-                    'z-10 flex flex-col overflow-clip bg-background text-foreground',
-                    // ⚠ Exactly ONE position class, and the branches must not both contribute
-                    // one. An earlier version left `relative` in the shared half and added
-                    // `absolute` in the map arm: Tailwind emits `.relative` after
-                    // `.absolute`, so `relative` won, `inset-y-0` did nothing, and the
-                    // column grew to its content — 994px inside an 868px dialog, with no
-                    // height bound for the body to scroll within. It read as "the list will
-                    // not scroll".
-                    withMap
-                      ? 'absolute inset-y-0 start-0 w-[352px] max-w-full shadow-2xl'
-                      : clsx('relative', height === 'container' ? 'h-full' : 'h-screen'),
-                  )}
-                >
-                  <Suspense fallback={<DrawerLoading />}>
-                    <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
-                      {path ? <SeedPath path={path}>{children}</SeedPath> : children}
-                    </ErrorBoundary>
-                  </Suspense>
-                </div>
-              </DrawerSlotsProvider>
-            </FilterRowContext.Provider>
+              <div
+                key={seedKey}
+                className={clsx(
+                  // Clip, never hidden — this hand-copies the panel's own chrome, so a story
+                  // that previewed `overflow-hidden` would preview the defect (#326).
+                  'z-10 flex flex-col overflow-clip bg-background text-foreground',
+                  // ⚠ Exactly ONE position class, and the branches must not both contribute
+                  // one. An earlier version left `relative` in the shared half and added
+                  // `absolute` in the map arm: Tailwind emits `.relative` after
+                  // `.absolute`, so `relative` won, `inset-y-0` did nothing, and the
+                  // column grew to its content — 994px inside an 868px dialog, with no
+                  // height bound for the body to scroll within. It read as "the list will
+                  // not scroll".
+                  withMap
+                    ? 'absolute inset-y-0 start-0 w-[352px] max-w-full shadow-2xl'
+                    : clsx('relative', height === 'container' ? 'h-full' : 'h-screen'),
+                )}
+              >
+                <Suspense fallback={<DrawerLoading />}>
+                  <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
+                    {path ? <SeedPath path={path}>{children}</SeedPath> : children}
+                  </ErrorBoundary>
+                </Suspense>
+              </div>
+            </DrawerSlotsProvider>
           </DrawerControlContext.Provider>
         </MapFrame>
       </WidgetModeContext.Provider>

@@ -1,7 +1,6 @@
 import type { Geojson, RegionNode } from '@/types'
 
 import {
-  type ReactNode,
   Suspense,
   lazy,
   startTransition,
@@ -20,7 +19,6 @@ import { AnimatePresence } from 'framer-motion'
 
 import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useExpansion } from '@/hooks/use-expansion'
-import { FilterRowContext } from '@/hooks/use-filter-row'
 import { useLocale } from '@/hooks/use-locale'
 import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
 import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
@@ -29,7 +27,6 @@ import {
   MIN_MAP_STRIP_PX,
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
-  FILTER_MENUS_MIN_PX,
   WIDE_SNAP,
   WidgetWidthContext,
   capStop,
@@ -46,12 +43,10 @@ import {
 } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
-  type FilterRowPlace,
   type StackEntry,
   backStep,
   sameRoute,
   baseStackEntry,
-  filterRowPlace,
   isCalendarFullWidth,
   isFilterOverlay,
   isOnline,
@@ -79,7 +74,6 @@ import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
-import { FilterMenuBar } from '@/views/FilterView/FilterMenuBar'
 import { FilterView } from '@/views/FilterView/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
@@ -149,23 +143,6 @@ function TopView({ entry, secondary }: { entry: StackEntry | null; secondary: Se
   }
 }
 
-// What DrawerStack measures, shared with the subtree, so nothing below can disagree with it.
-function WidthContexts({
-  isWide,
-  filterRow,
-  children,
-}: {
-  isWide: boolean
-  filterRow: FilterRowPlace
-  children: ReactNode
-}) {
-  return (
-    <WidgetWidthContext.Provider value={isWide}>
-      <FilterRowContext.Provider value={filterRow}>{children}</FilterRowContext.Provider>
-    </WidgetWidthContext.Provider>
-  )
-}
-
 // The whole drawer navigation, derived purely from the pathname. ONE persistent vaul
 // drawer holds the active (top) view. The sheet renders once — DrawerStack owns the
 // DrawerContent, and views are just its inner content. So navigating never remounts or
@@ -204,8 +181,6 @@ export function DrawerStack() {
   // subtree via `WidgetWidthContext` at the foot of this component, so no descendant can
   // disagree with the drawer it sits in.
   const isWide = useIsWide(container ?? frameElement())
-  // The same box, asked whether the filters fit as buttons beside the panel.
-  const menusWide = useIsWide(container ?? frameElement(), FILTER_MENUS_MIN_PX)
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   // Set by "Show N classes": the results it closes onto open at the near-full stop.
@@ -243,15 +218,17 @@ export function DrawerStack() {
   // switching it resizes the drawer. Date changes do not re-render this component.
   const calendarView = useCalendarPosition((s) => s.view)
   const wide = isCalendarFullWidth(top?.kind, isWide, calendarView)
-  const filterRow = filterRowPlace({ menusWide, hasMap, top: top?.kind, calendarFullWidth: wide })
-  const setFindMeHidden = useMapControls((s) => s.setFindMeHidden)
-  const menuSlot = useMapControls((s) => s.menuSlot)
+  // The filter buttons show beside the map's controls wherever the panel sits beside it, except
+  // under the full-width calendar, which carries them in its own header, and over the filters'
+  // own drawer, which asks the same questions.
+  const filterMenus = isWide && hasMap && !wide && top?.kind !== 'filters'
+  const setFilterMenus = useMapControls((s) => s.setFilterMenus)
 
   useEffect(() => {
-    setFindMeHidden(filterRow === 'map')
+    setFilterMenus(filterMenus)
 
-    return () => setFindMeHidden(false)
-  }, [filterRow, setFindMeHidden])
+    return () => setFilterMenus(false)
+  }, [filterMenus, setFilterMenus])
   // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
   // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes
@@ -712,7 +689,7 @@ export function DrawerStack() {
   // (100dvh). Embedded fills the host's slot (100%).
   if (!hasMap) {
     return (
-      <WidthContexts filterRow={filterRow} isWide={isWide}>
+      <WidgetWidthContext.Provider value={isWide}>
         <DrawerControlContext.Provider value={control}>
           {/* ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Nothing was
               measured overflowing here, since the sheet takes no snap ladder map-less — the
@@ -751,7 +728,7 @@ export function DrawerStack() {
             </div>
           </div>
         </DrawerControlContext.Provider>
-      </WidthContexts>
+      </WidgetWidthContext.Provider>
     )
   }
 
@@ -759,7 +736,7 @@ export function DrawerStack() {
   const target = overlayContainer()
 
   return (
-    <WidthContexts filterRow={filterRow} isWide={isWide}>
+    <WidgetWidthContext.Provider value={isWide}>
       <DrawerControlContext.Provider value={control}>
         {target &&
           createPortal(
@@ -798,11 +775,7 @@ export function DrawerStack() {
           {sheet}
         </Drawer>
         {filterDrawer}
-        {/* Beside the map's own buttons, in the control Mapbox places (`MapControls`). */}
-        {filterRow === 'map' &&
-          menuSlot &&
-          createPortal(<FilterMenuBar variant="floating" />, menuSlot)}
       </DrawerControlContext.Provider>
-    </WidthContexts>
+    </WidgetWidthContext.Provider>
   )
 }

@@ -392,15 +392,13 @@ type MapControlsState = {
   /** True where something over the map leaves its control column no clean place to show. */
   hidden: boolean
   setHidden: (hidden: boolean) => void
-  /** True while the filter buttons' Where menu offers Near me, which asks the same question. */
-  findMeHidden: boolean
-  setFindMeHidden: (hidden: boolean) => void
   /**
-   * Where the filter menus render on the map, once it is on screen: a slot beside the control
-   * column's buttons, inside the one Mapbox control (`MapControls`), so Mapbox places both.
+   * True while the filter buttons show beside the column: the panel sits beside the map, and
+   * neither the full-width calendar nor the filters' own drawer is on top. Find-me steps aside
+   * then, since their Where menu's Near me asks the same question.
    */
-  menuSlot: HTMLElement | null
-  setMenuSlot: (slot: HTMLElement | null) => void
+  filterMenus: boolean
+  setFilterMenus: (shown: boolean) => void
 }
 
 /**
@@ -411,10 +409,8 @@ type MapControlsState = {
 export const useMapControls = create<MapControlsState>((set) => ({
   hidden: false,
   setHidden: (hidden) => set(() => ({ hidden })),
-  findMeHidden: false,
-  setFindMeHidden: (findMeHidden) => set(() => ({ findMeHidden })),
-  menuSlot: null,
-  setMenuSlot: (menuSlot) => set(() => ({ menuSlot })),
+  filterMenus: false,
+  setFilterMenus: (filterMenus) => set(() => ({ filterMenus })),
 }))
 
 type BrowsedCountryState = {

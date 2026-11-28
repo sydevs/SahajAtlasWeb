@@ -52,13 +52,6 @@ import { useMediaQuery } from 'react-responsive'
 export const WIDE_MIN_PX = 768
 
 /**
- * From this widget width the filters are buttons over the map (or in the full-width calendar's
- * header) rather than a drawer behind the Filters button: Where, When and Language each need about
- * 140px beside the 352px panel and the map's control column. `filterRowPlace` decides where.
- */
-export const FILTER_MENUS_MIN_PX = 1024
-
-/**
  * This is how long a width has to hold before the app acts on it.
  *
  * The drawer direction remounts the drawer wrapper, since vaul's `direction` is not hot-swappable.
@@ -73,8 +66,8 @@ const SETTLE_MS = 200
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
 /** This checks whether the VIEWPORT is wide. Read this only where the screen is genuinely the question. */
-export function useIsWideViewport(minPx = WIDE_MIN_PX): boolean {
-  return useMediaQuery({ query: `(min-width: ${minPx}px)` })
+export function useIsWideViewport(): boolean {
+  return useMediaQuery({ query: `(min-width: ${WIDE_MIN_PX}px)` })
 }
 
 /**
@@ -171,12 +164,8 @@ export function useHasRealPointer(): boolean {
  * The same argument applies to every change of `element` IDENTITY, not only the first.
  * `DrawerStack`'s node stays stable for the session, so in practice it is the first.
  */
-export function useIsWide(
-  element: HTMLElement | null,
-  minPx = WIDE_MIN_PX,
-  delayMs = SETTLE_MS,
-): boolean {
-  const viewportWide = useIsWideViewport(minPx)
+export function useIsWide(element: HTMLElement | null, delayMs = SETTLE_MS): boolean {
+  const viewportWide = useIsWideViewport()
   // This is the container's answer, or null while there is nothing to measure.
   const [containerWide, setContainerWide] = useState<boolean | null>(null)
   const raw = containerWide ?? viewportWide
@@ -199,7 +188,7 @@ export function useIsWide(
     // The layout box is also the right answer on its own merits.
     // A widget scaled to half size still lays itself out in its own CSS pixels.
     // `offsetWidth` rounds to an integer, which at this crossing is a sub-pixel difference.
-    const seed = element.offsetWidth >= minPx
+    const seed = element.offsetWidth >= WIDE_MIN_PX
 
     setContainerWide(seed)
     // This also seeds past the damper, so the first paint is already correct.
@@ -217,13 +206,13 @@ export function useIsWide(
       // This accepts that fallback because the observed node carries no padding or border, so the two coincide there.
       const width = entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width
 
-      setContainerWide(width >= minPx)
+      setContainerWide(width >= WIDE_MIN_PX)
     })
 
     observer.observe(element)
 
     return () => observer.disconnect()
-  }, [element, minPx])
+  }, [element])
 
   // This is one damper over both sources.
   // So a viewport crossing in map mode damps exactly as it did before this hook existed.

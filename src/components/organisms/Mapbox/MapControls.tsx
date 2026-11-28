@@ -1,7 +1,7 @@
 import type { AttributionControl, IControl, Map as MapboxMap } from 'mapbox-gl'
 import type { LocateState } from './use-locate'
 
-import { memo, type Ref, useEffect } from 'react'
+import { memo, type ReactNode, type Ref, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useControl } from 'react-map-gl/mapbox'
@@ -24,7 +24,7 @@ import { useMapControls } from '@/config/store'
  */
 class ControlColumn implements IControl {
   readonly slot = document.createElement('div')
-  /** The filter menus beside the buttons, on a computer (`DrawerStack` renders them into it). */
+  /** The filter buttons beside the column, on a computer. */
   readonly menuSlot = document.createElement('div')
   private readonly root = document.createElement('div')
   private readonly column = document.createElement('div')
@@ -65,6 +65,8 @@ type MapControlsProps = {
   onLocate: () => void
   /** The find-me button, so the location dialog can hand focus back to it. */
   locateRef: Ref<HTMLButtonElement>
+  /** The filter buttons, shown beside the column while `useMapControls().filterMenus` holds. */
+  filterMenus?: ReactNode
 }
 
 // Memoised: the map re-renders on every hover and camera write, and the settings menu under this
@@ -73,10 +75,11 @@ export const MapControls = memo(function MapControls({
   locate,
   onLocate,
   locateRef,
+  filterMenus,
 }: MapControlsProps) {
   const { t } = useTranslation()
   const hidden = useMapControls((s) => s.hidden)
-  const findMeHidden = useMapControls((s) => s.findMeHidden)
+  const menusShown = useMapControls((s) => s.filterMenus)
   // A phone on its side is too short for a column, so the buttons run as a row there, clear of
   // the short window's sheet, which `DrawerStack` caps by the same signal.
   const short = useIsShortViewport()
@@ -90,49 +93,46 @@ export const MapControls = memo(function MapControls({
 
   useEffect(() => column.hide(hidden), [column, hidden])
 
-  const setMenuSlot = useMapControls((s) => s.setMenuSlot)
-
-  useEffect(() => {
-    setMenuSlot(column.menuSlot)
-
-    return () => setMenuSlot(null)
-  }, [column, setMenuSlot])
-
   const locateLabel = t('common.map.find_my_location')
 
-  return createPortal(
-    <div className={short ? 'flex flex-row gap-2' : 'flex flex-col gap-2'}>
-      {/* The filter buttons' Near me asks the same question, through the same control. */}
-      {!findMeHidden && (
-        <HoverLabel text={locateLabel}>
-          <Button
-            ref={locateRef}
-            isIconOnly
-            aria-busy={locate === 'waiting' || undefined}
-            aria-label={locateLabel}
-            radius="full"
-            variant="floating"
-            onClick={onLocate}
-          >
-            {locate === 'waiting' ? (
-              <Spinner decorative color="current" size="sm" />
-            ) : (
-              <LocateFixed
-                className={
-                  locate === 'found'
-                    ? 'text-primary-11'
-                    : locate === 'failed'
-                      ? 'text-danger-11'
-                      : undefined
-                }
-                size={20}
-              />
-            )}
-          </Button>
-        </HoverLabel>
+  return (
+    <>
+      {menusShown && createPortal(filterMenus, column.menuSlot)}
+      {createPortal(
+        <div className={short ? 'flex flex-row gap-2' : 'flex flex-col gap-2'}>
+          {/* The filter buttons' Near me asks the same question, through the same control. */}
+          {!menusShown && (
+            <HoverLabel text={locateLabel}>
+              <Button
+                ref={locateRef}
+                isIconOnly
+                aria-busy={locate === 'waiting' || undefined}
+                aria-label={locateLabel}
+                radius="full"
+                variant="floating"
+                onClick={onLocate}
+              >
+                {locate === 'waiting' ? (
+                  <Spinner decorative color="current" size="sm" />
+                ) : (
+                  <LocateFixed
+                    className={
+                      locate === 'found'
+                        ? 'text-primary-11'
+                        : locate === 'failed'
+                          ? 'text-danger-11'
+                          : undefined
+                    }
+                    size={20}
+                  />
+                )}
+              </Button>
+            </HoverLabel>
+          )}
+          <SettingsMenu labelled align="end" />
+        </div>,
+        column.slot,
       )}
-      <SettingsMenu labelled align="end" />
-    </div>,
-    column.slot,
+    </>
   )
 })

@@ -3,7 +3,7 @@ import type { GeoJSONSource } from 'mapbox-gl'
 import type { Geojson } from '@/types'
 import type { DisplayableEvent } from '@/hooks/use-event-display'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMapGL, {
   GeolocateControl,
   Layer,
@@ -240,8 +240,13 @@ function EventPinPopover({
 /**
  * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
  *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
+ * @param filterMenus The filter buttons, shown beside the map's own while `useMapControls` says
+ *   so. The view renders them, since they read the URL and the geocoder.
  */
-export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) {
+export function Mapbox({
+  cooperative = false,
+  filterMenus,
+}: { cooperative?: boolean; filterMenus?: ReactNode } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
   // ⚠ Not `zoom`, `latitude` or `longitude`: the map is uncontrolled, so nothing here draws from
@@ -605,7 +610,12 @@ export function Mapbox({ cooperative = false }: { cooperative?: boolean } = {}) 
         {/* Carries the attribution `attributionControl` above declines, in the top right, the
             one corner no drawer covers. Why that corner, and why the wordmark sits apart in the
             bottom right: `docs/rules/mapbox.md`, "The wordmark and the attribution" (#330). */}
-        <MapControls locate={locate.state} locateRef={locate.buttonRef} onLocate={locate.locate} />
+        <MapControls
+          filterMenus={filterMenus}
+          locate={locate.state}
+          locateRef={locate.buttonRef}
+          onLocate={locate.locate}
+        />
       </ReactMapGL>
       <Modal open={locate.failed} onOpenChange={locate.setFailed}>
         <ModalContent

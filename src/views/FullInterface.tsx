@@ -10,6 +10,7 @@ import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
 import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
+import { FilterMenuBar } from '@/views/FilterView/FilterMenuBar'
 import { MapFrame } from '@/views/MapFrame'
 import api from '@/config/api'
 import embed from '@/config/embed'
@@ -207,15 +208,19 @@ function FullInterface({
           mount, and `AppShell` renders `CompactEmbedView`, whose button opens the map
           full-screen. */}
           <MapFrame contained={contained}>
-            {/* Inline fixed/inset so the map always fills its frame behind the drawers —
-            independent of Tailwind viewport-unit utility generation. */}
-            <div style={{ position: 'fixed', inset: 0 }}>
-              {/* The one thing a contained map does differently: `gestures=cooperative` leaves
-              scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
-              <Mapbox cooperative={contained && embed.config.cooperative} />
-              <MapCurtain />
-            </div>
+            {/* Around the map too: the filter buttons beside its controls move the camera. */}
             <RealMapControllerProvider>
+              {/* Inline fixed/inset so the map always fills its frame behind the drawers —
+              independent of Tailwind viewport-unit utility generation. */}
+              <div style={{ position: 'fixed', inset: 0 }}>
+                {/* The one thing a contained map does differently: `gestures=cooperative` leaves
+                scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
+                <Mapbox
+                  cooperative={contained && embed.config.cooperative}
+                  filterMenus={<FilterMenuBar variant="floating" />}
+                />
+                <MapCurtain />
+              </div>
               <DrawerStack />
             </RealMapControllerProvider>
           </MapFrame>
