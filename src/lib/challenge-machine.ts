@@ -1,5 +1,3 @@
-import { type ActorRefFrom, type SnapshotFrom, assign, setup } from 'xstate'
-
 /**
  * What the challenge frame posts (`hooks/use-turnstile.ts` parses it). `ready` is the handshake:
  * Turnstile is live in the frame. `error` includes SahajCloud refusing this page's origin, which no
@@ -27,6 +25,35 @@ export type ChallengeEvent = ChallengeMessage | { type: 'reset' } | { type: 'spe
 export type TurnstileStatus = 'loading' | 'ready' | 'blocked'
 
 /**
+ * One mounted challenge frame, from its first silent moment to a token.
+ *
+ * - `loading`: mounted, nothing heard. Silence for {@link HANDSHAKE_TIMEOUT_MS} is `blocked`; any
+ *   message at all proves the frame alive and leaves this state.
+ * - `unsolved`: Turnstile is running and has not asked for anything.
+ * - `needsClick`: Cloudflare wants a click, so the frame is shown.
+ * - `solvedShown` / `solvedCollapsed` / `solvedSpent`: holding a token. Shown while the frame that
+ *   asked for the click is still on screen, until `settled` collapses it. Spent once a submit has
+ *   taken it: a token is single-use, so a second submit sent in the same tick finds none to take,
+ *   and the owner resets after a failure. A spent token stays in hand so the form keeps its look
+ *   while the POST is out.
+ * - `blocked`: errored or silent. ⚠ It must NOT latch: Turnstile's `retry` defaults to `auto`, so a
+ *   transient failure is often followed by a retry that solves, and a latched `blocked` would leave
+ *   a visitor holding a valid token behind the mailto escape.
+ *
+ * Only a `solved*` state holds a token, and leaving the three of them drops it.
+ */
+export type ChallengeState =
+  | 'loading'
+  | 'unsolved'
+  | 'needsClick'
+  | 'solvedShown'
+  | 'solvedCollapsed'
+  | 'solvedSpent'
+  | 'blocked'
+
+export type ChallengeSnapshot = { state: ChallengeState; token: string | null }
+
+/**
  * Bounds a frame that never answers. A `frame-src` that refuses it is silent to its parent, so
  * this is also how a host's stale CSP is found. Nothing blocks on it, so a generous bound costs a
  * late answer rather than a slow first paint. 10 seconds was not generous enough: a slow load
@@ -34,102 +61,99 @@ export type TurnstileStatus = 'loading' | 'ready' | 'blocked'
  */
 export const HANDSHAKE_TIMEOUT_MS = 20_000
 
+const isSolved = (state: ChallengeState): boolean => state.startsWith('solved')
+
+/** Whether a submit can take the token: one that is held and not already spent. */
+export const canSpend = (state: ChallengeState): boolean =>
+  state === 'solvedShown' || state === 'solvedCollapsed'
+
+type Row = Partial<Record<ChallengeEvent['type'], ChallengeState>>
+
 /**
- * One mounted challenge frame, from its first silent moment to a token.
- *
- * - `loading`: mounted, nothing heard. Silence for {@link HANDSHAKE_TIMEOUT_MS} is `blocked`; any
- *   message at all proves the frame alive and leaves this state.
- * - `unsolved`: Turnstile is running and has not asked for anything.
- * - `needsClick`: Cloudflare wants a click, so the frame is shown.
- * - `solved`: holding a token. `shown` while the frame that asked for the click is still on screen,
- *   until `settled` collapses it. `spent` once a submit has taken it: a token is single-use, so a
- *   second submit sent in the same tick finds none to take, and the owner resets after a failure.
- * - `blocked`: errored or silent. ⚠ It must NOT latch: Turnstile's `retry` defaults to `auto`, so a
- *   transient failure is often followed by a retry that solves, and a latched `blocked` would leave
- *   a visitor holding a valid token behind the mailto escape.
- *
- * Only `solved` holds a token, and leaving it drops the token.
+ * What any state does with a frame that failed or solved. A state's own row wins over this one,
+ * which is how a `token` during the click window lands on `solvedShown` rather than collapsed.
  */
-export const challengeMachine = setup({
-  types: {} as { context: { token: string | null }; events: ChallengeEvent },
-  actions: {
-    takeToken: assign({ token: ({ event }) => (event.type === 'token' ? event.token : null) }),
-    dropToken: assign({ token: null }),
-  },
-  delays: { handshake: HANDSHAKE_TIMEOUT_MS },
-}).createMachine({
-  id: 'challenge',
-  context: { token: null },
-  initial: 'loading',
-  on: {
-    error: { target: '.blocked' },
-    token: { target: '.solved.collapsed', actions: 'takeToken' },
-  },
-  states: {
-    loading: {
-      after: { handshake: 'blocked' },
-      on: { ready: 'unsolved', expired: 'unsolved', interactive: 'needsClick' },
-    },
-    unsolved: {
-      on: { interactive: 'needsClick' },
-    },
-    needsClick: {
-      on: {
-        settled: 'unsolved',
-        token: { target: 'solved.shown', actions: 'takeToken' },
-        reset: 'unsolved',
-      },
-    },
-    solved: {
-      initial: 'collapsed',
-      exit: 'dropToken',
-      on: { expired: 'unsolved', reset: 'unsolved' },
-      states: {
-        shown: { on: { settled: 'collapsed', spend: 'spent' } },
-        collapsed: { on: { spend: 'spent' } },
-        spent: {},
-      },
-    },
-    blocked: {
-      // A challenge that errored can still recover by itself, as above.
-      on: { ready: 'unsolved', interactive: 'needsClick' },
-    },
-  },
-})
+const ANY: Row = { error: 'blocked', token: 'solvedCollapsed' }
 
-export type ChallengeActor = ActorRefFrom<typeof challengeMachine>
-export type ChallengeSnapshot = SnapshotFrom<typeof challengeMachine>
+/** What all three `solved*` states share. */
+const LEAVE_SOLVED: Row = { expired: 'unsolved', reset: 'unsolved' }
 
-type ChallengeView = {
-  status: TurnstileStatus
-  /** The solved token — spent or not — or null while unsolved, expired or reset. */
-  token: string | null
-  /** Cloudflare is waiting on the visitor's click. */
-  needsClick: boolean
-  /** Whether the frame takes room on the page. */
-  frameShown: boolean
+/** The whole transition table: state → event → next state. A missing cell changes nothing. */
+const TABLE: Record<ChallengeState, Row> = {
+  loading: { ready: 'unsolved', expired: 'unsolved', interactive: 'needsClick' },
+  unsolved: { interactive: 'needsClick' },
+  needsClick: { settled: 'unsolved', token: 'solvedShown', reset: 'unsolved' },
+  solvedShown: { ...LEAVE_SOLVED, settled: 'solvedCollapsed', spend: 'solvedSpent' },
+  solvedCollapsed: { ...LEAVE_SOLVED, spend: 'solvedSpent' },
+  solvedSpent: { ...LEAVE_SOLVED },
+  // A challenge that errored can still recover by itself, as above.
+  blocked: { ready: 'unsolved', interactive: 'needsClick' },
 }
 
-/** What the forms and the frame read off a snapshot. */
-export function challengeView(snapshot: ChallengeSnapshot): ChallengeView {
-  const needsClick = snapshot.matches('needsClick')
+/** One step of the table, which is the whole machine. */
+export function challengeStep(
+  { state, token }: ChallengeSnapshot,
+  event: ChallengeEvent,
+): ChallengeSnapshot {
+  const next = TABLE[state][event.type] ?? ANY[event.type]
+
+  if (next === undefined) return { state, token }
 
   return {
-    status: snapshot.matches('loading')
-      ? 'loading'
-      : snapshot.matches('blocked')
-        ? 'blocked'
-        : 'ready',
-    token: snapshot.context.token,
-    needsClick,
-    frameShown: needsClick || snapshot.matches({ solved: 'shown' }),
+    state: next,
+    token: event.type === 'token' ? event.token : isSolved(state) && !isSolved(next) ? null : token,
   }
 }
 
-/** Before a frame mounts, and under SSR. */
-export const UNMOUNTED_CHALLENGE: ChallengeView = {
-  status: 'loading',
-  token: null,
-  needsClick: false,
-  frameShown: false,
+/**
+ * One mounted frame's challenge, as a store `useActorSelector` can read.
+ *
+ * ⚠ **Hand-rolled rather than XState, because `use-turnstile.ts` is in both eager graphs** through
+ * the app-wide report form, so a library here is ~12 KiB gzipped on every host page
+ * (`scripts/check-bundle-size.mjs`). Seven flat states and one timer fit a table; the locate and
+ * sheet machines need invoked actors and parallel regions, and keep XState.
+ *
+ * The handshake clock is armed on construction and cleared the moment the frame leaves `loading`,
+ * so any message at all proves it alive. `stop()` clears a clock still pending on unmount.
+ */
+export function createChallengeStore() {
+  let snapshot: ChallengeSnapshot = { state: 'loading', token: null }
+  const listeners = new Set<() => void>()
+  let handshake: ReturnType<typeof setTimeout> | undefined = setTimeout(() => {
+    handshake = undefined
+    commit({ state: 'blocked', token: null })
+  }, HANDSHAKE_TIMEOUT_MS)
+
+  function commit(next: ChallengeSnapshot) {
+    if (next.state === snapshot.state && next.token === snapshot.token) return
+
+    if (next.state !== 'loading' && handshake !== undefined) {
+      clearTimeout(handshake)
+      handshake = undefined
+    }
+    snapshot = next
+    // A copy, so a listener unsubscribing in its own call cannot skip the next one.
+    for (const listener of [...listeners]) listener()
+  }
+
+  return {
+    getSnapshot: () => snapshot,
+    send: (event: ChallengeEvent) => commit(challengeStep(snapshot, event)),
+    subscribe(listener: () => void) {
+      listeners.add(listener)
+
+      return {
+        unsubscribe: () => {
+          listeners.delete(listener)
+        },
+      }
+    },
+    stop() {
+      clearTimeout(handshake)
+      handshake = undefined
+      listeners.clear()
+    },
+  }
 }
+
+export type ChallengeStore = ReturnType<typeof createChallengeStore>
