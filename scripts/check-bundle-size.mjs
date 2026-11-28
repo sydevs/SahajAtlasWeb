@@ -92,7 +92,7 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
-//   349/350  346.5/347.9  #PRNUM  xstate 5, +11.6/+11.8 KiB: the challenge machine reaches
+//   349/350  346.5/347.9  #556  xstate 5, +11.6/+11.8 KiB: the challenge machine reaches
 //                           both shells through the app-wide report form, and page
 //                           ownership the embed's through `Widget.tsx`; the locate and
 //                           sheet machines reuse it from the lazy interface. Each budget

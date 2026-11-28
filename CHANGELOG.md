@@ -49,6 +49,11 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Near me and the map's find-my-location button share one request.** ([#556]) A position found
+  through the filters' Near me now shows on the map's button too, and a refusal shows only on
+  the control that asked. On a registration form, the line under Register asks for the security
+  check as soon as Cloudflare does, rather than after a fixed wait. Escape and the phone sheet's
+  header now agree on whether the sheet is collapsed.
 - **The calendar is the widget's own, with a Week list, and names each class.** ([#538])
   - **Switch:** Month | Week | List at every width. List leads back to the place's own page, and a
     place page's **Calendar** button opens the calendar scoped to that place, named at its top.
@@ -1482,6 +1487,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#556]: https://github.com/sydevs/SahajAtlasWeb/pull/556
 [#509]: https://github.com/sydevs/SahajAtlasWeb/pull/509
 [#538]: https://github.com/sydevs/SahajAtlasWeb/pull/538
 [#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
