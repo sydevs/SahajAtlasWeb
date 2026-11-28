@@ -5,7 +5,6 @@ import type { MountDecision } from './lib/shape'
 import r2wc from '@r2wc/react-to-web-component'
 import { type ReactNode, Suspense, useEffect, useRef, useState } from 'react'
 import { QueryClientProvider, useSuspenseQuery } from '@tanstack/react-query'
-import { createActor } from 'xstate'
 
 import App, { RootBoundary } from './App'
 import AtlasRouter from './router'
@@ -21,7 +20,7 @@ import { usePublishedNode } from './hooks/use-published-node'
 import { getInitialTheme, setThemeRoot } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
-import { createOwnershipMachine } from './lib/ownership'
+import { createOwnership } from './lib/ownership'
 import { classifyError, reportIntegrationWarning } from './lib/report'
 import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
@@ -498,22 +497,18 @@ const R2WC_CONNECTED = Symbol.for('r2wc.connected')
 // simple, and closed buys nothing a host cannot already defeat from script.
 const AtlasElementBase = r2wc(Widget, { shadow: 'open' }) as unknown as new () => AtlasElement
 
-// Which element owns the page (`lib/ownership.ts`). ⚠ Neither action may throw, or the actor
-// stops for good: `reportIntegrationWarning` swallows a throwing console, and the release is
-// assignments and idempotent DOM writes.
-const ownership = createActor(
-  createOwnershipMachine<AtlasElement>().provide({
-    actions: {
-      release: releaseOwnership,
-      refuse: () =>
-        reportIntegrationWarning(
-          `only one <${ELEMENT_NAME}> runs per page — this one will not render.`,
-        ),
-    },
-  }),
-).start()
+// Which element owns the page (`lib/ownership.ts`). ⚠ Neither effect may throw, or it propagates
+// into a lifecycle callback: `reportIntegrationWarning` swallows a throwing console, and the
+// release is assignments and idempotent DOM writes.
+const ownership = createOwnership<AtlasElement>({
+  release: releaseOwnership,
+  refuse: () =>
+    reportIntegrationWarning(
+      `only one <${ELEMENT_NAME}> runs per page — this one will not render.`,
+    ),
+})
 
-const currentOwner = () => ownership.getSnapshot().context.owner
+const currentOwner = ownership.getOwner
 
 /** Releases the page-global state an element owned. Idempotent. */
 function releaseOwnership() {
