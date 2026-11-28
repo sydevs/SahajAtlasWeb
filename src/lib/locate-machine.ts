@@ -1,9 +1,6 @@
-import { assign, fromCallback, setup } from 'xstate'
+import { type StateValueFrom, assign, fromCallback, setup } from 'xstate'
 
 import { LOCATE_POSITION_OPTIONS } from './geolocation'
-
-/** Where the visitor's position request stands, for every control that asks. */
-export type LocatePhase = 'idle' | 'locating' | 'found' | 'failed'
 
 export type LocateEvent =
   | { type: 'request' }
@@ -74,3 +71,6 @@ export const locateMachine = setup({
     failed: { on: { request: 'locating' } },
   },
 })
+
+/** Where the visitor's position request stands, for every control that asks. */
+export type LocatePhase = StateValueFrom<typeof locateMachine>
