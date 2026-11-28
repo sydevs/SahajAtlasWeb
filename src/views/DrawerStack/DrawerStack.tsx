@@ -1,7 +1,6 @@
 import type { Geojson, RegionNode } from '@/types'
 
 import {
-  type RefObject,
   Suspense,
   lazy,
   startTransition,
@@ -15,7 +14,7 @@ import {
   useSyncExternalStore,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { type NavigateFunction, useLocation, useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
 
@@ -115,14 +114,6 @@ const IDLE_FRAMES = 30
 
 type Direction = 'left' | 'bottom'
 
-/**
- * The sheet's actor, its landing rewrite navigating through the latest `navigate`. Built here
- * rather than in the component, so the long-lived callback holds the ref alone and not the first
- * render's whole scope.
- */
-const sheetStoreFor = (navigate: RefObject<NavigateFunction>) =>
-  createSheetStore((to, state) => navigate.current(to, { replace: true, state }))
-
 // Dispatches the active (top) view's inner content. Only the top view renders, so each view
 // frames the map for its own level on mount.
 //
@@ -199,7 +190,11 @@ export function DrawerStack() {
   useLayoutEffect(() => {
     navigateRef.current = navigate
   })
-  const [sheetStore] = useState(() => sheetStoreFor(navigateRef))
+  // ⚠ The rewrite reads `navigateRef.current`, never `navigate`: this callback outlives every
+  // render, and closing over one would pin that render's whole scope for the sheet's lifetime.
+  const [sheetStore] = useState(() =>
+    createSheetStore((to, state) => navigateRef.current(to, { replace: true, state })),
+  )
   const snap = useActorSelector(sheetStore, (sheet) => sheet.context.snap, OPEN_SNAP)
   // Whether the sheet is sitting at its peek, measured by the sheet-top loop below. Never true
   // where the sheet cannot collapse, since the loop does not run there.
