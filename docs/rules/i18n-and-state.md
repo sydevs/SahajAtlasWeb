@@ -16,6 +16,7 @@ paths:
   - 'src/lib/locate-machine.ts'
   - 'src/lib/challenge-machine.ts'
   - 'src/views/DrawerStack/sheet-machine.ts'
+  - 'src/hooks/use-actor-selector.ts'
 ---
 
 # i18n & State
@@ -316,15 +317,15 @@ the legal states are one type and a transition table can be tested without React
 
 - **The machine module is pure**: no React, no DOM. Side effects are named actions the caller
   supplies with `.provide()`, and each module has a node-lane table spec.
-- **React reads an actor through `useSyncExternalStore`**, over `actor.subscribe` and
-  `getSnapshot`. Do not add `@xstate/react`: it is a second dependency in the eager graph for
-  what one hook already does.
+- **React reads an actor through `useActorSelector`** (`hooks/use-actor-selector.ts`), one
+  primitive or snapshot-held value at a time. Do not add `@xstate/react`: it is a second
+  dependency in the eager graph for what that hook already does.
 - ⚠ **xstate is in both eager graphs** (`Widget.standalone.test.ts`), and it cost 11.6 KiB
   (`scripts/check-bundle-size.mjs`). A fifth machine adds no library weight, but it is still a
   decision: reach for one only when the state is a lifecycle, not a value.
 - ⚠ **A stopped actor ignores every later event, and a throwing action stops it.** Stop an actor
   only when it owns a timer or a child, and from the same effect that created it, so StrictMode's
-  remount gets a fresh one. An action that may throw is wrapped by its caller.
+  remount gets a fresh one. Supply only actions that cannot throw.
 
 ## Error boundaries (issue #89)
 
