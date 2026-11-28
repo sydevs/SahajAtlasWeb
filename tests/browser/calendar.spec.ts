@@ -10,8 +10,8 @@ test('a place opens its calendar, the Week lists its classes by name, and List g
 }) => {
   await page.goto(hostPage('full-map.html', '/gb'))
 
-  const atlas = widget(page)
-  const sheet = atlas.getByRole('dialog')
+  // Inline, so the views are in the page's own flow: no sheet holds them.
+  const sheet = widget(page)
 
   await sheet.getByRole('button', { name: en.calendar.title, exact: true }).click()
   await expect.poll(() => atlasRoute(page)).toMatch(/^\/calendar/)
