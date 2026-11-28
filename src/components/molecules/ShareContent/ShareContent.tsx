@@ -6,7 +6,7 @@ import { Check, Ellipsis, Link, Share } from 'lucide-react'
 import { CopyFailedCaption } from './CopyFailed'
 import { CopyLinkTarget } from './CopyLinkTarget'
 import { PlatformButton, ShareTargets } from './platform-buttons'
-import { TARGET_CLASS } from './target'
+import { ROW_TARGET_CLASS } from './target'
 
 import { Button, type ButtonProps } from '@/components/atoms/Button'
 import { useCopy } from '@/hooks/use-copy'
@@ -137,19 +137,19 @@ export function ShareRow({ label, url, country }: ShareContentProps) {
       <h2 className="text-base font-semibold" id={headingId}>
         {t('event.display.share_title')}
       </h2>
-      <div className="flex flex-wrap gap-x-1 gap-y-3">
-        <CopyLinkTarget url={url} />
-        <PlatformButton platform={messenger} title={label} url={url} />
-        <PlatformButton platform="email" title={label} url={url} />
+      <div className="grid max-w-[360px] grid-cols-4 gap-1">
+        <CopyLinkTarget row url={url} />
+        <PlatformButton row platform={messenger} title={label} url={url} />
+        <PlatformButton row platform="email" title={label} url={url} />
         <button
           ref={setReference}
           data-vaul-no-drag
-          className={TARGET_CLASS}
+          className={ROW_TARGET_CLASS}
           type="button"
           {...referenceProps({ onClick: open })}
         >
-          <span className="flex size-11 items-center justify-center rounded-full bg-gray-4 text-gray-12">
-            <Ellipsis aria-hidden size={20} />
+          <span className="flex size-12 items-center justify-center rounded-full bg-gray-3 text-gray-12">
+            <Ellipsis aria-hidden size={23} />
           </span>
           <span className="max-w-full truncate">{t('share.more')}</span>
         </button>

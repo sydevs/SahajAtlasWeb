@@ -151,7 +151,7 @@ export const Default: Story = () => (
       title="Brand mark"
     >
       <div className="flex w-24 flex-col items-center gap-2 text-center">
-        <MeditateFigure size={28} />
+        <MeditateFigure accent size={28} />
         <span className="text-xs text-gray-11">MeditateFigure</span>
       </div>
     </StorySection>
