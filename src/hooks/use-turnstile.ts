@@ -1,16 +1,17 @@
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
+import { createActor } from 'xstate'
 
 import { useActorSelector } from '@/hooks/use-actor-selector'
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
 import {
+  type ChallengeActor,
   type ChallengeMessage,
-  type ChallengeSnapshot,
-  type ChallengeStore,
   HANDSHAKE_TIMEOUT_MS,
-  canSpend,
-  createChallengeStore,
+  UNMOUNTED_CHALLENGE,
+  challengeMachine,
   type TurnstileStatus,
+  challengeView,
 } from '@/lib/challenge-machine'
 
 // Turnstile rendered explicitly, hand-rolled rather than through `@marsidev/react-turnstile`
@@ -273,27 +274,20 @@ export type UseTurnstile = {
   retry: () => void
 }
 
-type LiveFrame = { frame: HTMLIFrameElement; origin: string; challenge: ChallengeStore }
+type LiveFrame = { frame: HTMLIFrameElement; origin: string; actor: ChallengeActor }
 
 export function useTurnstile(): UseTurnstile {
   const challengeRef = useRef<HTMLDivElement>(null)
   // A ref as well as the effect closure, so `reset` reaches the live frame without re-running the
   // effect. The origin rides along so a frame navigated elsewhere receives no command.
   const live = useRef<LiveFrame | null>(null)
-  // One store per mounted frame: a remount is a new challenge, so it starts from `loading`.
-  const [challenge, setChallenge] = useState<ChallengeStore | null>(null)
+  // One machine per mounted frame: a remount is a new challenge, so it starts from `loading`.
+  const [actor, setActor] = useState<ChallengeActor | null>(null)
   const { theme } = useTheme()
   const { languageCode } = useLocale()
   const [attempt, setAttempt] = useState(0)
-  // One read per value, rather than one of the whole snapshot: a selector returning the snapshot
-  // re-renders every subscriber on any change, including the ones that read neither field.
-  const status = useActorSelector<ChallengeSnapshot, TurnstileStatus>(
-    challenge,
-    ({ state }) => (state === 'loading' ? 'loading' : state === 'blocked' ? 'blocked' : 'ready'),
-    'loading',
-  )
-  const token = useActorSelector(challenge, ({ token: held }) => held, null)
-  const needsClick = useActorSelector(challenge, ({ state }) => state === 'needsClick', false)
+  const snapshot = useActorSelector(actor, (next) => next, null)
+  const view = snapshot ? challengeView(snapshot) : UNMOUNTED_CHALLENGE
 
   // Re-mounting on a theme or language change is deliberate: Turnstile bakes both in at render
   // time, so the frame carries them in its URL and the teardown drops the unsolved token with it.
@@ -302,34 +296,34 @@ export function useTurnstile(): UseTurnstile {
 
     if (!slot) return
 
-    const store = createChallengeStore()
+    const machine = createActor(challengeMachine)
     const { frame, origin, dispose } = createChallengeFrame(
       { theme, language: languageCode },
-      (message) => store.send(message),
+      (message) => machine.send(message),
     )
 
-    // The frame takes room only while the table says the visitor should see it.
+    // The frame takes room only while the machine says the visitor should see it.
     const place = () => {
-      const { state } = store.getSnapshot()
-      const shown = state === 'needsClick' || state === 'solvedShown'
+      const { frameShown } = challengeView(machine.getSnapshot())
 
-      collapseFrame(frame, !shown)
-      collapseSlot(slot, !shown)
+      collapseFrame(frame, !frameShown)
+      collapseSlot(slot, !frameShown)
     }
-    const placement = store.subscribe(place)
+    const placement = machine.subscribe(place)
 
+    machine.start()
     place()
-    live.current = { frame, origin, challenge: store }
+    live.current = { frame, origin, actor: machine }
     slot.appendChild(frame)
-    setChallenge(store)
+    setActor(machine)
 
     return () => {
       placement.unsubscribe()
-      store.stop()
+      machine.stop()
       dispose()
       live.current = null
-      // A stopped store's last snapshot would hand out its token until the next one mounts.
-      setChallenge(null)
+      // A stopped machine's last snapshot would hand out its token until the next one mounts.
+      setActor(null)
     }
   }, [attempt, theme, languageCode])
 
@@ -344,7 +338,7 @@ export function useTurnstile(): UseTurnstile {
     if (!current) return
     if (!current.frame.contentWindow) return retry()
 
-    current.challenge.send({ type: 'reset' })
+    current.actor.send({ type: 'reset' })
     current.frame.contentWindow.postMessage(
       { channel: CHALLENGE_CHANNEL, type: 'reset' },
       current.origin,
@@ -352,15 +346,23 @@ export function useTurnstile(): UseTurnstile {
   }, [retry])
 
   const take = useCallback(() => {
-    const store = live.current?.challenge
-    const current = store?.getSnapshot()
+    const machine = live.current?.actor
+    const current = machine?.getSnapshot()
 
-    if (!store || !current || !canSpend(current.state)) return null
+    if (!machine || !current?.can({ type: 'spend' })) return null
 
-    store.send({ type: 'spend' })
+    machine.send({ type: 'spend' })
 
-    return current.token
+    return current.context.token
   }, [])
 
-  return { challengeRef, token, take, status, needsClick, reset, retry }
+  return {
+    challengeRef,
+    token: view.token,
+    take,
+    status: view.status,
+    needsClick: view.needsClick,
+    reset,
+    retry,
+  }
 }

@@ -344,6 +344,7 @@ const SHELL_PACKAGES = [
   'react-router',
   'tailwind-merge',
   'tailwind-variants',
+  'xstate',
   'zod',
   'zustand',
   // The report form's alone: it is mounted with the app, so its controls ride in the shell.

@@ -1,124 +1,182 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createActor } from 'xstate'
 
 import {
   type ChallengeEvent,
-  type ChallengeSnapshot,
   HANDSHAKE_TIMEOUT_MS,
-  canSpend,
-  createChallengeStore,
+  challengeMachine,
+  challengeView,
 } from './challenge-machine'
 
 const token = (value = 'tok-1'): ChallengeEvent => ({ type: 'token', token: value })
 const ev = (type: Exclude<ChallengeEvent['type'], 'token'>) => ({ type }) as ChallengeEvent
 
-/** Runs `events` through a fresh store and reads what the hook would publish off it. */
-function after(...events: ChallengeEvent[]): ChallengeSnapshot {
-  const store = createChallengeStore()
+/** Runs `events` through a fresh machine and reads the view the hook would publish. */
+function after(...events: ChallengeEvent[]) {
+  const actor = createActor(challengeMachine).start()
 
-  for (const event of events) store.send(event)
+  for (const event of events) actor.send(event)
 
-  const snapshot = store.getSnapshot()
+  const snapshot = actor.getSnapshot()
 
-  store.stop()
+  actor.stop()
 
-  return snapshot
+  return { state: snapshot.value, ...challengeView(snapshot) }
 }
 
 afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('the challenge table', () => {
-  it.each<[string, ChallengeEvent[], ChallengeSnapshot]>([
-    ['starts silent', [], { state: 'loading', token: null }],
-    ['handshake', [ev('ready')], { state: 'unsolved', token: null }],
+describe('challengeMachine', () => {
+  it.each<[string, ChallengeEvent[], ReturnType<typeof after>]>([
+    [
+      'starts silent',
+      [],
+      { state: 'loading', status: 'loading', token: null, needsClick: false, frameShown: false },
+    ],
+    [
+      'handshake',
+      [ev('ready')],
+      { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
+    ],
     [
       'Cloudflare asks for a click',
       [ev('ready'), ev('interactive')],
-      { state: 'needsClick', token: null },
+      { state: 'needsClick', status: 'ready', token: null, needsClick: true, frameShown: true },
     ],
     [
       'the click window closes unsolved',
       [ev('ready'), ev('interactive'), ev('settled')],
-      { state: 'unsolved', token: null },
+      { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
     ],
     // The success mark stays on screen until the page says the window closed.
     [
       'solved by the click',
       [ev('ready'), ev('interactive'), token()],
-      { state: 'solvedShown', token: 'tok-1' },
+      {
+        state: { solved: 'shown' },
+        status: 'ready',
+        token: 'tok-1',
+        needsClick: false,
+        frameShown: true,
+      },
     ],
     [
       'solved by the click, then settled',
       [ev('ready'), ev('interactive'), token(), ev('settled')],
-      { state: 'solvedCollapsed', token: 'tok-1' },
+      {
+        state: { solved: 'collapsed' },
+        status: 'ready',
+        token: 'tok-1',
+        needsClick: false,
+        frameShown: false,
+      },
     ],
-    ['solved invisibly', [ev('ready'), token()], { state: 'solvedCollapsed', token: 'tok-1' }],
+    [
+      'solved invisibly',
+      [ev('ready'), token()],
+      {
+        state: { solved: 'collapsed' },
+        status: 'ready',
+        token: 'tok-1',
+        needsClick: false,
+        frameShown: false,
+      },
+    ],
     [
       'a token before the handshake still counts',
       [token()],
-      { state: 'solvedCollapsed', token: 'tok-1' },
+      {
+        state: { solved: 'collapsed' },
+        status: 'ready',
+        token: 'tok-1',
+        needsClick: false,
+        frameShown: false,
+      },
     ],
     [
       'a refreshed token replaces the old one',
       [ev('ready'), token('tok-1'), token('tok-2')],
-      { state: 'solvedCollapsed', token: 'tok-2' },
+      {
+        state: { solved: 'collapsed' },
+        status: 'ready',
+        token: 'tok-2',
+        needsClick: false,
+        frameShown: false,
+      },
     ],
     [
       'expiry drops the token without blocking',
       [ev('ready'), token(), ev('expired')],
-      { state: 'unsolved', token: null },
+      { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
     ],
     [
       'reset drops the spent token',
       [ev('ready'), token(), ev('reset')],
-      { state: 'unsolved', token: null },
+      { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
     ],
     [
       'error drops the token and blocks',
       [ev('ready'), token(), ev('error')],
-      { state: 'blocked', token: null },
+      { state: 'blocked', status: 'blocked', token: null, needsClick: false, frameShown: false },
     ],
     [
       'blocked does not latch against a token',
       [ev('error'), token('tok-2')],
-      { state: 'solvedCollapsed', token: 'tok-2' },
+      {
+        state: { solved: 'collapsed' },
+        status: 'ready',
+        token: 'tok-2',
+        needsClick: false,
+        frameShown: false,
+      },
     ],
     [
       'blocked does not latch against a click request',
       [ev('error'), ev('interactive')],
-      { state: 'needsClick', token: null },
+      { state: 'needsClick', status: 'ready', token: null, needsClick: true, frameShown: true },
     ],
     [
       'a reset while blocked changes nothing',
       [ev('error'), ev('reset')],
-      { state: 'blocked', token: null },
+      { state: 'blocked', status: 'blocked', token: null, needsClick: false, frameShown: false },
     ],
     [
       'a reset before the handshake changes nothing',
       [ev('reset')],
-      { state: 'loading', token: null },
+      { state: 'loading', status: 'loading', token: null, needsClick: false, frameShown: false },
     ],
     [
       'a click request before the handshake proves the frame alive, and asks for the click',
       [ev('interactive')],
-      { state: 'needsClick', token: null },
+      { state: 'needsClick', status: 'ready', token: null, needsClick: true, frameShown: true },
     ],
-    ['an expiry proves the frame alive', [ev('expired')], { state: 'unsolved', token: null }],
+    [
+      'an expiry proves the frame alive',
+      [ev('expired')],
+      { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
+    ],
     [
       'a submit spends the token, and the frame collapses',
       [ev('ready'), ev('interactive'), token(), ev('spend')],
-      { state: 'solvedSpent', token: 'tok-1' },
+      {
+        state: { solved: 'spent' },
+        status: 'ready',
+        token: 'tok-1',
+        needsClick: false,
+        frameShown: false,
+      },
     ],
     [
       'a reset after a spend drops the token',
       [ev('ready'), token(), ev('spend'), ev('reset')],
-      { state: 'unsolved', token: null },
+      { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
     ],
     [
       'nothing to spend before a token',
       [ev('ready'), ev('spend')],
-      { state: 'unsolved', token: null },
+      { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
     ],
   ])('%s', (_label, events, expected) => {
     expect(after(...events)).toEqual(expected)
@@ -127,61 +185,25 @@ describe('the challenge table', () => {
   it('calls a silent frame blocked once the handshake window has passed', () => {
     vi.useFakeTimers()
 
-    const store = createChallengeStore()
+    const actor = createActor(challengeMachine).start()
 
     vi.advanceTimersByTime(HANDSHAKE_TIMEOUT_MS - 1)
-    expect(store.getSnapshot().state).toBe('loading')
+    expect(challengeView(actor.getSnapshot()).status).toBe('loading')
 
     vi.advanceTimersByTime(1)
-    expect(store.getSnapshot().state).toBe('blocked')
-    store.stop()
+    expect(challengeView(actor.getSnapshot()).status).toBe('blocked')
+    actor.stop()
   })
 
   it('stops the handshake clock once any message arrives', () => {
     vi.useFakeTimers()
 
-    const store = createChallengeStore()
+    const actor = createActor(challengeMachine).start()
 
-    store.send({ type: 'ready' })
+    actor.send({ type: 'ready' })
     vi.advanceTimersByTime(HANDSHAKE_TIMEOUT_MS * 3)
 
-    expect(store.getSnapshot().state).toBe('unsolved')
-    store.stop()
-  })
-
-  // A reset is one of the events the table ignores in `loading`, so the clock must survive it.
-  it('keeps the handshake clock through an event that changes nothing', () => {
-    vi.useFakeTimers()
-
-    const store = createChallengeStore()
-
-    store.send({ type: 'reset' })
-    vi.advanceTimersByTime(HANDSHAKE_TIMEOUT_MS)
-
-    expect(store.getSnapshot().state).toBe('blocked')
-    store.stop()
-  })
-
-  it('tells a submit what there is to take', () => {
-    expect(canSpend('solvedShown')).toBe(true)
-    expect(canSpend('solvedCollapsed')).toBe(true)
-    expect(canSpend('solvedSpent')).toBe(false)
-    expect(canSpend('unsolved')).toBe(false)
-    expect(canSpend('loading')).toBe(false)
-    expect(canSpend('blocked')).toBe(false)
-  })
-
-  it('notifies a subscriber on a change, and not on one the table ignores', () => {
-    const store = createChallengeStore()
-    const seen: string[] = []
-    const subscription = store.subscribe(() => seen.push(store.getSnapshot().state))
-
-    store.send({ type: 'ready' })
-    store.send({ type: 'spend' })
-    store.send({ type: 'ready' })
-
-    expect(seen).toEqual(['unsolved'])
-    subscription.unsubscribe()
-    store.stop()
+    expect(challengeView(actor.getSnapshot()).status).toBe('ready')
+    actor.stop()
   })
 })

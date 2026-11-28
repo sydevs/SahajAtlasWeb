@@ -1,8 +1,9 @@
 // Every state × event cell of the ownership machine, with the element reduced to the one property
 // it reads. `Widget.replace.test.tsx` drives the same transitions through a real custom element.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createActor } from 'xstate'
 
-import { type Ownable, TEARDOWN_GRACE_MS, createOwnership } from './ownership'
+import { type Ownable, TEARDOWN_GRACE_MS, createOwnershipMachine } from './ownership'
 
 type Element = Ownable & { name: string; isConnected: boolean }
 
@@ -22,18 +23,22 @@ afterEach(() => {
 })
 
 function start() {
-  const page = createOwnership<Element>({ release, refuse })
+  const actor = createActor(
+    createOwnershipMachine<Element>().provide({ actions: { release, refuse } }),
+  ).start()
 
   const connect = (el: Element, keyChanged = false) => {
     el.isConnected = true
-    page.send({ type: 'connect', element: el, keyChanged })
+    actor.send({ type: 'connect', element: el, keyChanged })
   }
   const disconnect = (el: Element) => {
     el.isConnected = false
-    page.send({ type: 'disconnect', element: el })
+    actor.send({ type: 'disconnect', element: el })
   }
+  const state = () => actor.getSnapshot().value
+  const owner = () => actor.getSnapshot().context.owner
 
-  return { page, connect, disconnect, state: page.getState, owner: page.getOwner }
+  return { actor, connect, disconnect, state, owner }
 }
 
 describe('vacant', () => {
@@ -71,13 +76,13 @@ describe('owned', () => {
   })
 
   it('yields to an arrival when the owner left without a disconnect reaching us', () => {
-    const { page, connect, owner } = start()
+    const { actor, connect, owner } = start()
     const a = element('a')
     const b = element('b')
 
     connect(a)
     a.isConnected = false
-    page.send({ type: 'connect', element: b, keyChanged: false })
+    actor.send({ type: 'connect', element: b, keyChanged: false })
 
     expect(owner()).toBe(b)
     expect(refuse).not.toHaveBeenCalled()
