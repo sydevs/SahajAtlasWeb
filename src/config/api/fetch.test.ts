@@ -750,6 +750,62 @@ describe('getRegion (region-tree derivation)', () => {
 
     expect(region.events.map((event) => event.id)).toEqual([30, 21, 12, 5])
   })
+
+  describe('findSearchedRegion (a searched place SahajCloud holds as a region)', () => {
+    // Antwerpen holds two located classes, Ghent one online class and nothing located, and
+    // Belgium the lot. Brussels carries no id.
+    const ids: Record<string, string> = {
+      belgium: 'id-be',
+      antwerpen: 'id-antwerp',
+      ghent: 'id-ghent',
+    }
+    const located = tree.map((node) => ({ ...node, mapboxId: ids[node.slug] ?? null }))
+    const warm = async () => {
+      mockBackend(countryFeed, located)
+      await Promise.all([
+        queryClient.fetchQuery(regionsQuery()),
+        queryClient.fetchQuery(geojsonQuery()),
+      ])
+    }
+
+    it('opens the first region holding one of the ids', async () => {
+      await warm()
+
+      expect(api.findSearchedRegion(['id-antwerp'])).toBe('/belgium/antwerpen')
+      expect(api.findSearchedRegion(['id-be'])).toBe('/belgium')
+      // The pick's own id wins over the town around it, and an unknown pick falls to the town.
+      expect(api.findSearchedRegion(['id-be', 'id-antwerp'])).toBe('/belgium')
+      expect(api.findSearchedRegion(['id-unknown', 'id-antwerp'])).toBe('/belgium/antwerpen')
+    })
+
+    it('searches instead where no region holds the place', async () => {
+      await warm()
+
+      expect(api.findSearchedRegion(['id-unknown'])).toBeUndefined()
+      expect(api.findSearchedRegion([])).toBeUndefined()
+    })
+
+    it('searches instead where the region holds no class that passes the filters', async () => {
+      await warm()
+
+      // Ghent's one class is online, and counts: its page would list it.
+      expect(api.findSearchedRegion(['id-ghent'])).toBe('/belgium/ghent')
+      expect(
+        api.findSearchedRegion(['id-ghent'], { ...DEFAULT_FILTERS, format: 'offline' }),
+      ).toBeUndefined()
+      expect(
+        api.findSearchedRegion(['id-antwerp'], { ...DEFAULT_FILTERS, languages: ['xx'] }),
+      ).toBeUndefined()
+    })
+
+    it('never fetches: a cold cache searches instead', () => {
+      mockBackend(countryFeed, located)
+
+      expect(api.findSearchedRegion(['id-antwerp'])).toBeUndefined()
+      expect(sdk.find).not.toHaveBeenCalled()
+      expect(sdk.request).not.toHaveBeenCalled()
+    })
+  })
 })
 
 describe('getEvent', () => {

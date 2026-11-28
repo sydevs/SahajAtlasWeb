@@ -162,6 +162,8 @@ const REGIONS_SELECT = {
   parent: true,
   webPath: true,
   webUrl: true,
+  // A searched place opens its region's page when one is stored under its id (`findSearchedRegion`).
+  mapboxId: true,
 } as const
 
 // ── Region tree + feed reads (stale-while-revalidate) ───────────────────────────
@@ -484,6 +486,45 @@ const toListItem = (
 const byEventCountDesc = (a: RegionListItem, b: RegionListItem) => b.eventCount - a.eventCount
 
 // ── Hierarchy fetchers (region tree + geojson-derived counts/bounds) ────────────
+
+// Memoized on the tree's reference, like `indexedFeed`.
+let mapboxMemo: { regions: RegionNode[]; byMapboxId: Map<string, RegionNode> } | null = null
+
+const regionsByMapboxId = (regions: RegionNode[]) => {
+  if (mapboxMemo?.regions !== regions) {
+    const byMapboxId = new Map<string, RegionNode>()
+
+    for (const node of regions) if (node.mapboxId) byMapboxId.set(node.mapboxId, node)
+    mapboxMemo = { regions, byMapboxId }
+  }
+
+  return mapboxMemo.byMapboxId
+}
+
+/**
+ * The route of the region a searched place is stored as, or `undefined` to search around it
+ * instead. `ids` are the place's Mapbox ids, most specific first (`geocodeRegionIds`), and the
+ * first one SahajCloud holds decides. A region with no class under it that passes `filters`
+ * answers `undefined` too: its page would say it is empty, where the search lists the nearest.
+ *
+ * It reads the cached tree and feed and never fetches them: `warmCaches` fills both at boot, and
+ * a pick should not wait on a cold read when the search answers at once.
+ */
+const findSearchedRegion = (ids: readonly string[], filters?: EventFilters): string | undefined => {
+  const regions = queryClient.getQueryData<RegionNode[]>(regionsQuery().queryKey)
+  const geojson = queryClient.getQueryData<Geojson>(geojsonQuery().queryKey)
+
+  if (!regions || !geojson || ids.length === 0) return undefined
+
+  const byMapboxId = regionsByMapboxId(regions)
+  const node = ids.map((id) => byMapboxId.get(id)).find(Boolean)
+
+  if (!node) return undefined
+
+  const visible = visibleFeatures(indexedFeed(regions, geojson).events, regions, filters)
+
+  return countUnder(visible, node.id) > 0 ? regionRoute(node) : undefined
+}
 
 // This builds the home and search country list.
 // It lists level=country regions with counts and ISO codes.
@@ -1051,6 +1092,7 @@ export default {
   getEvents,
   getCalendarEvents,
   getRegion,
+  findSearchedRegion,
   getEvent,
   getEventDoc,
   getClient,

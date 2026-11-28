@@ -15,7 +15,7 @@ import { Alert } from '@/components/atoms/Alert'
 import { Spinner } from '@/components/atoms/Spinner'
 import { FallbackPanel } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
+import api, { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
 import { useApproxLocation, useCameraHistory, useSearchFocus } from '@/config/store'
 import { useWidgetMode } from '@/config/mode'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -26,7 +26,7 @@ import { useNearMe } from '@/hooks/use-near-me'
 import { useMapController } from '@/hooks/use-map-controller'
 import { deepActiveElement } from '@/lib/active-element'
 import { hasMapPoint } from '@/lib/camera'
-import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
+import { geocodeBounds, geocodeCountryCode, geocodeRegionIds } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
 import {
   guessedPlace,
@@ -41,7 +41,9 @@ import {
   atlasDepth,
   calendarPath,
   cameFrom,
+  filtersFromParams,
   placeSearchPath,
+  preserveSearchState,
   resolvePath,
   topViewKey,
 } from '@/lib/shape'
@@ -294,10 +296,25 @@ export function SearchField({
     }
   }, [])
   const navigate = useAtlasNavigate()
+  const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
+      // A place SahajCloud holds as a region opens that region's page, with the filters and sort
+      // the search would have carried. Picked from that page's own field, it stays put rather than
+      // stacking the page on itself.
+      const kept = preserveSearchState(searchParams)
+      const region = api.findSearchedRegion(geocodeRegionIds(value), filtersFromParams(kept))
+
+      if (region) {
+        const query = kept.toString()
+
+        if (region !== pathname) navigate(query ? `${region}?${query}` : region)
+
+        return
+      }
+
       navigate(
         // `placeSearchPath` carries the active filters and sort across and
         // resets the searched location — one builder shared with the IP
@@ -315,7 +332,7 @@ export function SearchField({
         }),
       )
     },
-    [navigate, searchParams],
+    [navigate, pathname, searchParams],
   )
 
   // After a refused location the line is gone, and the cursor goes to the field, unless the
