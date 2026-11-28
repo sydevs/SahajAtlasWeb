@@ -75,7 +75,16 @@ function usePlace(slug: string | null) {
   }, [regions, slug])
 }
 
-function CalendarHeader({ view, week }: { view: CalendarViewName; week: CalendarWindow }) {
+function CalendarHeader({
+  view,
+  week,
+  fullWidth,
+}: {
+  view: CalendarViewName
+  week: CalendarWindow
+  /** The Month fills the widget and covers the map, so the header carries the filter buttons. */
+  fullWidth: boolean
+}) {
   const { t } = useTranslation()
   const { formatLocale } = useLocale()
   const setView = useSetCalendarView()
@@ -88,7 +97,6 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   const dateInputRef = useRef<HTMLInputElement>(null)
   const today = todayISO()
   const isWeek = view === 'week'
-  const fullWidth = isCalendarFullWidth('calendar', useIsWideWidget(), view)
   const month = DateTime.fromISO(focused).startOf('month')
   const label = !isWeek
     ? formatMonth(month, formatLocale)
@@ -223,7 +231,7 @@ export function CalendarView() {
   return (
     <>
       <DrawerHeader className={CALENDAR_HEADER}>
-        <CalendarHeader view={view} week={week} />
+        <CalendarHeader fullWidth={fullWidth} view={view} week={week} />
       </DrawerHeader>
       {/* Full width, the filter buttons in the header name every answer. */}
       {!fullWidth && <ActiveFilterChips filters={chosen(filters)} />}

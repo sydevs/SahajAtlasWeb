@@ -377,8 +377,8 @@ lays out its own children:
   each draws its name out of its end in a `HoverLabel` on hover and keyboard focus, the same pill
   shape as the credits button opened.
 - **The filter buttons render in the same control, beside the column.** `FullInterface` hands
-  them to the map as a prop, and `MapControls` shows them while `useMapControls().filterMenus`
-  holds, so Mapbox places them with the buttons and no stylesheet rule positions them. They cap their width against the map, which `globals.css` makes the size
+  them to the map as a prop, and `MapControls` shows them while `useFilterMenusOnMap` holds (the
+  rule the Filters button and the list's filter tags read too), so Mapbox places them with the buttons and no stylesheet rule positions them. They cap their width against the map, which `globals.css` makes the size
   container, so they wrap rather than run under the side panel. Being in the same control, the
   column's hover labels draw over them.
 - **The whole column hides on `useMapControls`.** Today only the phone sheet's near-full stop sets

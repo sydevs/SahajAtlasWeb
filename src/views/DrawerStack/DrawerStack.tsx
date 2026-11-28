@@ -216,17 +216,6 @@ export function DrawerStack() {
     isWide,
     calendarViewFromParams(new URLSearchParams(location.search)),
   )
-  // The filter buttons show beside the map's controls wherever the panel sits beside it, except
-  // under the full-width calendar, which carries them in its own header, and over the filters'
-  // own drawer, which asks the same questions.
-  const filterMenus = isWide && hasMap && !wide && top?.kind !== 'filters'
-  const setFilterMenus = useMapControls((s) => s.setFilterMenus)
-
-  useEffect(() => {
-    setFilterMenus(filterMenus)
-
-    return () => setFilterMenus(false)
-  }, [filterMenus, setFilterMenus])
   // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
   // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes

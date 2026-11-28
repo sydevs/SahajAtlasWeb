@@ -13,6 +13,7 @@ import { HoverLabel } from '@/components/atoms/HoverLabel'
 import { SettingsMenu } from '@/components/molecules/SettingsMenu'
 import { useIsShortViewport } from '@/config/responsive'
 import { useMapControls } from '@/config/store'
+import { useFilterMenusOnMap } from '@/hooks/use-filter-menus'
 
 /**
  * The map's controls as ONE Mapbox control, so Mapbox's `position` prop places them all and no
@@ -65,7 +66,7 @@ type MapControlsProps = {
   onLocate: () => void
   /** The find-me button, so the location dialog can hand focus back to it. */
   locateRef: Ref<HTMLButtonElement>
-  /** The filter buttons, shown beside the column while `useMapControls().filterMenus` holds. */
+  /** The filter buttons, shown beside the column while `useFilterMenusOnMap` holds. */
   filterMenus?: ReactNode
 }
 
@@ -79,7 +80,7 @@ export const MapControls = memo(function MapControls({
 }: MapControlsProps) {
   const { t } = useTranslation()
   const hidden = useMapControls((s) => s.hidden)
-  const menusShown = useMapControls((s) => s.filterMenus)
+  const menusShown = useFilterMenusOnMap()
   // A phone on its side is too short for a column, so the buttons run as a row there, clear of
   // the short window's sheet, which `DrawerStack` caps by the same signal.
   const short = useIsShortViewport()

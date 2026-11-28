@@ -8,7 +8,7 @@ import { MapControllerContext } from './use-map-controller'
 
 import { useMapbox, usePaddingState } from '@/hooks/use-mapbox'
 import { useSheetCover, useViewState } from '@/config/store'
-import { MIN_MAP_STRIP_PX, SHEET_OPEN_PX, useIsWide } from '@/config/responsive'
+import { MIN_MAP_STRIP_PX, SHEET_OPEN_PX, WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { eventFrameZoom, hasMapPoint, worldViewCamera } from '@/lib/camera'
 import { hasApproximatePlace, isOnline } from '@/lib/shape'
 import { frameElement } from '@/lib/overlay'
@@ -232,7 +232,11 @@ export function RealMapControllerProvider({ children }: { children: ReactNode })
     ],
   )
 
+  // The map's own controls read the width through this too: they sit outside `DrawerStack`, whose
+  // provider gives the same answer to the drawers.
   return (
-    <MapControllerContext.Provider value={controller}>{children}</MapControllerContext.Provider>
+    <WidgetWidthContext.Provider value={isWide}>
+      <MapControllerContext.Provider value={controller}>{children}</MapControllerContext.Provider>
+    </WidgetWidthContext.Provider>
   )
 }
