@@ -159,49 +159,6 @@ describe('mountDecision', () => {
     expect(mountDecision({ routing: 'query', search: '' }).mode).toBe('query')
   })
 
-  describe('fromPage — whose route it is', () => {
-    // `path` alone cannot tell a visitor who deep-linked from a host who
-    // configured a default view. Only the first may open the compact card's
-    // surface on mount. Otherwise every host with a default region gets a
-    // full-screen overlay over their content on every load.
-    it('is true when the page URL carries the route', () => {
-      expect(mountDecision({ routing: 'query', search: '?atlas=/gb/london' })).toMatchObject({
-        path: '/gb/london',
-        fromPage: true,
-      })
-    })
-
-    it('is false when the route is the embed default', () => {
-      expect(mountDecision({ routing: 'query', search: '', route: '/nl' })).toMatchObject({
-        path: '/nl',
-        fromPage: false,
-      })
-    })
-
-    it('is false when there is no route at all', () => {
-      expect(mountDecision({ routing: 'query', search: '' })).toMatchObject({
-        path: '/',
-        fromPage: false,
-      })
-    })
-
-    it('is false for a page route the path guard rejected', () => {
-      // `safePath` refuses `//evil.example`, and a route we refuse to honour must not also
-      // mount eagerly and open itself.
-      expect(mountDecision({ routing: 'query', search: '?atlas=//evil.example' })).toMatchObject({
-        path: '/',
-        fromPage: false,
-      })
-    })
-
-    it('survives the memory degradation', () => {
-      // A sandboxed frame still deep-links. It just cannot write the URL afterwards.
-      expect(
-        mountDecision({ routing: 'query', search: '?atlas=/gb', urlWritable: false }),
-      ).toMatchObject({ mode: 'memory', fromPage: true })
-    })
-  })
-
   describe('routing=path', () => {
     const PATH = {
       routing: 'path',

@@ -31,7 +31,8 @@ import {
   LAYER_IDS,
   type SymbolLayerProps,
 } from './layers'
-import { MapControls } from './MapControls'
+import { useFindMe } from './find-me'
+import { MapAction, MapCorner } from './MapCorner'
 import { mapWorldview, syncMapLanguage } from './map-language'
 import { loadMapLib } from './map-lib'
 import { markerColors, registerMarkerImages } from './markers'
@@ -239,14 +240,16 @@ function EventPinPopover({
 
 /**
  * @param cooperative Leave one-finger and wheel scrolling to the host page, moving the map only on
- *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, contained maps only).
- * @param filterMenus The filter buttons, shown beside the map's own while `useFilterButtonsShown`
- *   holds. The view renders them, since they read the URL and the geocoder.
+ *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, the inline map only).
+ * @param controls What sits in the map's top-right corner above the credits (`MapControls`). The
+ *   inline map has none: its controls sit in the toolbar above it.
+ * @param action The map's one action, bottom left: the inline map's "Expand map".
  */
 export function Mapbox({
   cooperative = false,
-  filterMenus,
-}: { cooperative?: boolean; filterMenus?: ReactNode } = {}) {
+  controls,
+  action,
+}: { cooperative?: boolean; controls?: ReactNode; action?: ReactNode } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
   // ⚠ Not `zoom`, `latitude` or `longitude`: the map is uncontrolled, so nothing here draws from
@@ -288,6 +291,12 @@ export function Mapbox({
   // nearest classes in it.
   const geolocateToSearch = useGeolocateToSearch(data)
   const locate = useLocate(geolocateToSearch)
+
+  // Published, so the find-me button can render outside the map, in the inline toolbar.
+  useEffect(() => {
+    useFindMe.setState({ locate: locate.locate, state: locate.state })
+  }, [locate.locate, locate.state])
+  useEffect(() => () => useFindMe.setState({ locate: null, state: 'idle' }), [])
 
   // The tenant's resolved palette, as `BrandTheme` painted the UI from it.
   //
@@ -348,10 +357,10 @@ export function Mapbox({
   }, [reveal])
   const revealTimer = useRef<number>(undefined)
 
-  // The flag describes THIS map instance, so it dies with the instance. A
-  // compact embed unmounts the whole interface when its dialog closes. A
-  // stale `true` would then meet the next map at the world view, with
-  // neither the curtain nor the arrival jump. See `forgetSettled`.
+  // The flag describes THIS map instance, so it dies with the instance. The
+  // inline embed swaps its own map for the expanded one and back. A stale
+  // `true` would then meet the next map at the world view, with neither the
+  // curtain nor the arrival jump. See `forgetSettled`.
   useEffect(
     () => () => {
       window.clearTimeout(revealTimer.current)
@@ -610,12 +619,8 @@ export function Mapbox({
         {/* Carries the attribution `attributionControl` above declines, in the top right, the
             one corner no drawer covers. Why that corner, and why the wordmark sits apart in the
             bottom right: `docs/rules/mapbox.md`, "The wordmark and the attribution" (#330). */}
-        <MapControls
-          filterMenus={filterMenus}
-          locate={locate.state}
-          locateRef={locate.buttonRef}
-          onLocate={locate.locate}
-        />
+        <MapCorner>{controls}</MapCorner>
+        {action && <MapAction>{action}</MapAction>}
       </ReactMapGL>
       <Modal open={locate.failed} onOpenChange={locate.setFailed}>
         <ModalContent
@@ -625,7 +630,7 @@ export function Mapbox({
           onCloseAutoFocus={(event) => {
             // Radix returns focus to a `Dialog.Trigger`, and the locate control is not one.
             event.preventDefault()
-            locate.buttonRef.current?.focus()
+            useFindMe.getState().button?.focus()
           }}
         >
           <ModalFooter>

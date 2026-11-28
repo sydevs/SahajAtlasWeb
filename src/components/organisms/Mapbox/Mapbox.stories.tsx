@@ -7,6 +7,7 @@ import { StoryWrapper, StorySection } from '../../ladle'
 import { Mapbox } from './Map'
 import { MapSearch } from './MapSearch'
 
+import { MapControls } from '@/components/organisms/MapControls'
 import { Alert } from '@/components/atoms/Alert'
 
 export default { title: 'Organisms' } satisfies StoryDefault
@@ -61,7 +62,7 @@ export const Default: Story = () => (
       {hasToken ? (
         <div className="h-[70vh] w-full">
           <MapProvider>
-            <Mapbox />
+            <Mapbox controls={<MapControls />} />
           </MapProvider>
         </div>
       ) : (

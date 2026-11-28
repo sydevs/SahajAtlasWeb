@@ -48,7 +48,7 @@ const VIEWPORT_CALLERS: Record<string, string> = {
  * A map only existed in map mode, and map mode spanned the viewport, so the two boxes were the same box.
  * Reading either one kept the padding on the same crossing as the panel it pads around.
  * Containment breaks that equality.
- * A 600px contained map gets the bottom sheet, while a viewport read would still reserve 352px of camera for a panel that is not there.
+ * A 600px contained map gets the bottom sheet, while a viewport read would still reserve 384px of camera for a panel that is not there.
  * So the map controller now measures `frameElement()` (`null`, and therefore the viewport, wherever no frame exists) and provides it to the map and to `DrawerStack` alike.
  */
 const CONTAINER_CALLERS = [
@@ -129,7 +129,7 @@ describe('the container-vs-viewport decision table', () => {
  *
  * The hook-based list above scans for `useIsWideViewport` and `react-responsive`.
  * So a module that reads `window.innerWidth` or `screen.avail*` directly is invisible to it, and #161 added exactly such a module.
- * That reading is sanctioned. The slot decision genuinely needs the viewport and the screen, and it runs before any hook could.
+ * Each reading below is sanctioned, because the window itself is what it asks about.
  * But it must stay a CLOSED list, for the same reason the hooks do.
  * The next component that wants "is the widget wide" will copy the nearest precedent, and a raw read in `src/lib/` is now that precedent.
  */
@@ -140,8 +140,8 @@ const RAW_VIEWPORT_READERS: Record<string, string> = {
   // The height of the window a frameless phone sheet sits in, shared by the sheet and the boot panel.
   'config/responsive.ts': "caps a short window's sheet stops (`shortSheetCap`)",
   'hooks/use-map-controller-mapbox.tsx': 'caps camera padding for a short viewport',
-  'lib/slot-decision.ts':
-    'the slot decision: compares the host slot to the viewport, and a frame to the screen, before React renders',
+  'views/InlineEmbedView/host-page.ts':
+    "finds the host's header across the top of the window, where the expanded map starts",
   // The height of the box the sheet slides in, when no frame owns it: to tell the peek, and to
   // keep a short window's stops clear of the top.
   'views/DrawerStack/DrawerStack.tsx': 'marks the sheet at its peek',
@@ -157,6 +157,6 @@ describe('raw viewport reads are a closed list too', () => {
   })
 
   it('is a real scan — it still finds the module it is meant to police', () => {
-    expect(RAW.test(read('lib/slot-decision.ts'))).toBe(true)
+    expect(RAW.test(read('views/InlineEmbedView/host-page.ts'))).toBe(true)
   })
 })

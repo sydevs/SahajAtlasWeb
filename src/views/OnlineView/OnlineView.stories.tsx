@@ -63,7 +63,6 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
 }
 
 Default.storyName = 'Online'
-Default.meta = { width: 'xsmall' }
 Default.args = { example: 'Region roll-up', state: NO_ERROR }
 Default.argTypes = {
   example: {

@@ -24,6 +24,7 @@ import {
   FilterButton,
   SearchField,
   useDrawerControl,
+  useRootHeader,
   useFrameOnTop,
 } from '@/views/shared'
 
@@ -38,6 +39,7 @@ export function CountriesView() {
   const { regionNames } = useLocale()
   const { standalone } = useWidgetMode()
   const { collapsed } = useDrawerControl()
+  const rootHeader = useRootHeader()
   const { reset } = useMapController()
   // A shared link can carry filters (`/?days=2`). The map already applies them to its pins, so
   // the counts and the onward links must too, or the two disagree.
@@ -97,14 +99,17 @@ export function CountriesView() {
       {/* The country list is a browse index, not a filterable results list. So its filter
           access lives as an icon control in the header, not a list toolbar. Sorting a country
           index is meaningless, so there is no sort menu here. */}
-      <DrawerHeader className="justify-between">
-        <DrawerTitle title={t('countries.title')} />
-        {/* A control's height even where the Filters button steps aside for the filter buttons,
-            so the header, and its loading chrome, keep one height. */}
-        <div className="flex min-h-8 items-center pointer-coarse:min-h-11">
-          {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
-        </div>
-      </DrawerHeader>
+      {rootHeader && (
+        <DrawerHeader className="justify-between">
+          {/* A place's title, so inline it gives way to the page heading, which reads the same. */}
+          <DrawerTitle isPlace title={t('countries.title')} />
+          {/* A control's height even where the Filters button steps aside for the filter
+              buttons, so the header, and its loading chrome, keep one height. */}
+          <div className="flex min-h-8 items-center pointer-coarse:min-h-11">
+            {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+          </div>
+        </DrawerHeader>
+      )}
       <DrawerToolbar field>
         <SearchField near="home" />
       </DrawerToolbar>
@@ -119,15 +124,17 @@ export function CountriesView() {
               count={onlineCount}
               description={t('online.subtitle')}
               href={onlineSearch}
-              icon={<MeditateFigure size={24} />}
+              icon={<MeditateFigure className="text-contrast-10" size={24} />}
               label={t('online.title')}
             />
           </List>
         )}
+        {/* An `h2`, because inline the view's own title gives way: the inline embed's page
+            heading sits directly above it, and a skipped level fails the accessibility gate. */}
         {showBrowseHeading && (
-          <h3 className="px-gutter pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
+          <h2 className="px-gutter pt-4 pb-1 text-xs font-medium tracking-[0.08em] text-gray-11 uppercase">
             {t('countries.browse_heading')}
-          </h3>
+          </h2>
         )}
         {noMatches ? (
           <FilterNotice kind="no-match" />

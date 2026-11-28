@@ -5,11 +5,10 @@ import { useCallback, useState } from 'react'
  * tells the caller when it may render its children.
  *
  * Two singletons need exactly this. The widget's FRAME (`setFrame`), the box the fixed layer
- * resolves against, taken by `CompactEmbedView`'s expanded dialog (#161) and `MapFrame` (#169).
+ * resolves against, taken by `InlineEmbedView`'s expanded dialog (#161, #169).
  * And the THEME ROOT (`setThemeRoot`), the wrapper in `Widget.tsx` that every portal lands in when
  * no frame is live.
- * Never hand-copy it: copies have drifted twice. `MapFrame.test.tsx` and
- * `Widget.theme-root.test.tsx` pin both uses.
+ * Never hand-copy it: copies have drifted twice. `Widget.theme-root.test.tsx` pins the theme root.
  *
  * ⚠ **The node is STATE, not a ref, it is published from the callback ref, and the children wait
  * for it.** That is the whole contract.

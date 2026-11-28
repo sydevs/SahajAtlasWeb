@@ -26,17 +26,13 @@ your platform lets you add a `<script>` tag to a page's body.
 ```
 
 That is the whole snippet. Put it in the body where the widget should appear — it renders
-full-screen over your page, which is what the atlas wants when it has a page to itself.
+inline, as part of your page: a heading, the classes, and a map beside them, as tall as what it
+shows. "Expand map" opens the full map over your page, below your header. Nothing to size: see
+[Sizing the element](#sizing-the-element).
 
-**For an embed that stays inside your layout**, add `map=false` and give it a height:
+**For the classes alone, with no map**, add `map=false`:
 
 ```html
-<style>
-  sahaj-atlas {
-    display: block;
-    height: 640px;
-  }
-</style>
 <script type="module" src="https://sahajatlas.com/auto.js?key=YOUR_KEY&map=false"></script>
 ```
 
@@ -63,7 +59,7 @@ Administrator, and some page builders. It is a complete embed: everything below 
 | ------------------------------------------------------------------------ | ----------------- | --------------- |
 | Works where `<script>` is stripped                                       | no                | **yes**         |
 | The route appears in **your** page's URL, and is shareable and indexable | **yes**           | no              |
-| Grows out of a small slot when it needs room                             | **yes**, in place | opens a new tab |
+| Grows to fit, and opens the full map over your page                      | **yes**, in place | opens a new tab |
 | Costs before a visitor scrolls to it                                     | ~3 KiB            | the whole page  |
 
 **Prefer the script.** The iframe cannot put the widget's route on your URL, which is the whole
@@ -114,8 +110,9 @@ written. Add a **Custom Element** and give it two values:
 | **Tag name**   | `sahaj-atlas`                                 |
 
 It is **Add Elements (+) → Embed Code → Custom element** in the Wix Editor, and **Add Elements
-(+) → Embed & Social → Custom Element** in Wix Studio. Give it the page's full width and about
-the height of the screen; [Sizing the element](#sizing-the-element) has the rules. The map appears
+(+) → Embed & Social → Custom Element** in Wix Studio. Give it the page's full width. The widget
+grows to fit where Wix lets it, and scrolls inside the element where it does not —
+[Sizing the element](#sizing-the-element) has the rules. The map appears
 on your published site, not in the editor.
 
 ⚠ **Not Embed HTML, and not an HTML iframe element.** Wix serves both from a sandboxed frame on an
@@ -164,7 +161,7 @@ Nothing below is needed to get a working embed. Reach for it when you want more:
 | You want                                                              | Read                                                                    |
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | A different language, no map, or a specific opening view              | [Parameters](#parameters)                                               |
-| The embed to fit a column rather than the page                        | [Sizing the element](#sizing-the-element)                               |
+| The expanded map to start below your header                           | [Sizing the element](#sizing-the-element)                               |
 | Your page to send a Content-Security-Policy                           | [Content-Security-Policy](#content-security-policy)                     |
 | The locate, copy-link or share buttons to work behind a policy header | [Permissions Policy](#permissions-policy)                               |
 | Clean paths instead of `?atlas=`                                      | [The URL](#the-url)                                                     |
@@ -197,12 +194,12 @@ characters as usual (`atlas=%2Fgb%2Flondon` and `atlas=/gb/london` are equivalen
 
 | Parameter  | Default                       | What it does                                                                                                                                                                                                                                                                                                                                                                                     |
 | ---------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `key`      | —                             | **Required.** Your published SahajCloud client key. An invalid key shows the widget's configuration-error message — in the full map form, inside its panel, with the map drawn behind it — and the loader logs an error naming the problem.                                                                                                                                                      |
+| `key`      | —                             | **Required.** Your published SahajCloud client key. An invalid key shows the widget's configuration-error message in place of the classes, under its heading and beside the map — and the loader logs an error naming the problem.                                                                                                                                                               |
 | `locale`   | **your page's `<html lang>`** | Force a UI language, e.g. `fr`. A language we do not offer falls back to English — the set is managed in SahajCloud, not by this parameter. Precedence: **`?locale=` on the page URL** → this parameter → **your page's `<html lang>`** → the browser's language → English. ⚠ A `?locale=` the atlas ships **outranks** this parameter, because the widget writes that parameter itself (below). |
-| `map`      | `true`                        | `map=false` renders the atlas as lists and event pages with **no map canvas at all**. No Mapbox, no map token, and none of the Mapbox origins or storage below. Changes how you size it (see [Sizing](#sizing-the-element)).                                                                                                                                                                     |
+| `map`      | `true`                        | `map=false` renders the atlas as lists and event pages with **no map canvas at all**. No Mapbox, no map token, and none of the Mapbox origins or storage below. One column, with no map to expand (see [Sizing](#sizing-the-element)).                                                                                                                                                           |
 | `routing`  | `query`                       | Where the widget's route lives. `path` also needs your server to serve one page for everything under the atlas prefix — a prefix set on your client record, not here.                                                                                                                                                                                                                            |
 | `atlas`    | —                             | The route to open when the page's own URL does not already name one, e.g. `/gb/london`. Must be site-relative.                                                                                                                                                                                                                                                                                   |
-| `gestures` | —                             | `gestures=cooperative` lets a visitor **scroll your page past a contained map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. Only for a [contained map](#sizing-the-element); a window-filling map and the compact card's overlay ignore it.                                                                      |
+| `gestures` | —                             | `gestures=cooperative` lets a visitor **scroll your page past the inline map**: one finger and the mouse wheel scroll the page, and the map moves on two fingers or Ctrl/⌘ + wheel, with a hint saying so. The [expanded map](#the-expanded-map) ignores it, since there is no page to scroll there.                                                                                             |
 
 **`map` follows one spelling rule: only the exact values `false` and `0` switch it off.**
 Anything else — absent, empty, `true`, `no`, `FALSE` — leaves it **on**, so a typo can never
@@ -426,176 +423,125 @@ to the console while the widget carries on working:
 Once the widget has genuinely mounted, it sets one attribute on your page's `<html>` element:
 
 ```html
-<html data-sahaj-atlas-ready='{"v":2,"routing":"query","topLevel":true,"urlWritable":true}'></html>
+<html
+  data-sahaj-atlas-ready='{"v":3,"routing":"query","topLevel":true,"urlWritable":true,"tooSmall":null}'
+></html>
 ```
 
 It is written **after** the widget renders, never on script load, and removed again if the widget
 unmounts. It exists so our CMS can confirm the embed works, from your own page, before treating
 it as your region's canonical page — a claim the widget makes about itself is not evidence.
-Nothing on your page needs to read it.
+`tooSmall` is the element's box, `{"width":220,"height":640}`, while it is too small to browse in
+([Sizing the element](#sizing-the-element)), and `null` while it fits. It appears a moment after
+the rest, once the widget has measured its box. Nothing on your page needs
+to read it.
 
 ## Sizing the element
 
-**One rule covers both modes: give the element a height and the widget lives inside it.** What
-differs is only what happens when you _don't_.
+**You do not size it. Every embed opens inline, as part of your page, as tall as what it shows.**
 
-**With `map=false`, a height is required.** The widget fills its container (`height: 100%`), and
-an unsized custom element is an inline box of zero height — it collapses and appears not to
-render.
+| The widget is…                                             | What a visitor sees                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 720px wide or more                                         | A heading, then two columns: the classes on the left, and a square map on the right that stays in view below your header while the visitor scrolls the list. A list takes 40% of the width and a class 60%, the map the rest; neither column goes under 352px. A class's Register and actions sit under the map. Above the map, Where, When and Language buttons filter the classes, beside the settings menu. |
+| Narrower                                                   | A heading, the filter buttons and settings, a short map strip, then the classes. On a class, Register sticks to the bottom of the screen while the class is in view.                                                                                                                                                                                                                                           |
+| Loaded with `map=false`                                    | A heading and the classes, in one column. No map, and no way to open one.                                                                                                                                                                                                                                                                                                                                      |
+| Under 280px wide, or under 360px tall where it cannot grow | The heading and "Expand map" alone, which opens the map over your page — in a new tab from a frame, or with `map=false`. See below.                                                                                                                                                                                                                                                                            |
 
-**With the map (default), a height is optional and changes the shape you get.**
+The width is **the widget's own**, not the browser window's (issue #107): a 320px column on a large
+desktop screen gets the narrow layout.
 
-| What you give the element                                      | What you get                                                                                                                                |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| A height (`height: 640px`, a grid track, an aspect-ratio box). | The map lives **inside that box**, in your page's flow — your header above it, your content below.                                          |
-| No height at all.                                              | The map fills the **browser window**. The canvas is `position: fixed; inset: 0`, and the drawers sit over it, whatever size the element is. |
+**The heading is your page's `<h1>` only when your page has none of its own.** If it does, the
+widget's heading is an `<h2>`, and looks the same. It reads "Free Meditation Classes" at the top of
+the atlas, and "Free Meditation classes in London" once a visitor is in a place — the city, for a
+venue or a class, whose own name follows as a smaller heading.
 
-The second is the older behaviour, and still right for a dedicated atlas page — a **full-page
-slot** with no surrounding content to cover, since a map halfway down an article covers the
-article rather than scaling into it. (An article-column map with no height gets the compact card
-instead — see below.)
+**The widget overrides your element's height.** It writes `height: auto`, `max-height: none` and
+`overflow: visible` onto `<sahaj-atlas>` as inline `!important` styles — `display: block` too, if
+your element is `inline` — so a height rule written for the old full-screen and contained maps
+gives way, and nothing scrolls inside the widget. Your values come back if the widget is removed.
 
-**A contained map is one element in your layout, and stacks like one.** The widget puts the map,
-its panels, and its controls inside a single stacking context, so its internal `z-index` values
-never compete with your CSS — a sticky header with a `z-index` floats over the map like any other
-content.
+⚠ **Where your page cannot let it grow, the widget scrolls inside its box instead.** A stretched
+flex or grid item takes its track's size whatever its own height says, a site builder may fix its
+box from outside, and an app shell with `overflow: hidden` around a full-height `<main>` clips
+whatever grows past it. The widget then keeps your element's own height — `height: 100%` of its
+parent — and scrolls within it, so nothing is cut off and nothing spills over the content below.
 
-Either way, sizing looks the same. The loader inserts the element for you, so size it with a rule
-rather than an inline style:
+⚠ **Too small to browse in, the widget shows only its heading and "Expand map".** That is under
+280px wide anywhere, or under 360px tall where it cannot grow: a box your page clips, or an
+`<iframe>`, whose height is yours alone. It writes one console warning naming the size it
+measured, and records that size on [the readiness marker](#the-readiness-marker), so the Atlas
+admin can tell you too. Give the element more room and the classes come back, with no reload.
+
+⚠ **An ancestor with `overflow` set takes the map's stickiness away**, even where the page itself
+scrolls: a sticky element sticks within its nearest scrolling ancestor. The map then scrolls away
+with the list.
+
+### The expanded map
+
+**"Expand map" sits in the map's bottom-left corner and opens the full map, with the panel over it,
+covering the screen below your header.** A "Close map" button floats at the bottom middle of the map,
+and returns the visitor to your page, showing whatever they were last looking at. Escape and a
+click outside the map — your header included — close it too.
+
+**Say how tall your sticky header is with `--sahaj-atlas-header`.** Set it on `<sahaj-atlas>` or
+any ancestor, in pixels, and the expanded map starts there, and the inline map sticks below it:
 
 ```html
 <style>
   sahaj-atlas {
-    display: block;
-    height: 640px;
+    --sahaj-atlas-header: 72px;
   }
 </style>
-<script type="module" src="https://sahajatlas.com/auto.js?key=…&map=false"></script>
 ```
 
-(Drop `&map=false` for a contained map instead.) Any way of giving it a height works — a CSS
-class, a grid or flex track, an aspect-ratio box. **`display:block` (or `flex`/`grid`) matters as
-much as the height**: a custom element defaults to `display: inline`, which cannot take one, so a
-height rule with no display rule leaves it unsized and the map takes the window instead.
+**Without it, the widget looks for your header itself**: a fixed, sticky or
+`<header>`/`role="banner"` bar across the top of the window. If it finds none, the expanded map
+covers the whole screen. (The WordPress plugin's `--sahaj-atlas-top` is a different value — where
+the atlas starts on the page — and the widget does not read it.)
 
-⚠ **`min-height` on its own is not a height.** The widget fills your element with `height: 100%`,
-which needs a definite height to resolve against. `min-height: 640px` sizes the element on screen
-but leaves the widget nothing to fill, so it refuses the box, says so in your console, and fills
-the browser window instead. Use `height`, a grid or flex track, or `aspect-ratio` (same for width
-and `display: inline-block`).
+While the map is open it is a **modal dialog**: your page's scroll is locked, and the rest of your
+page is marked `aria-hidden`, both undone on close. Its layer uses `z-index: 2147483000`, starting
+below your header rather than over it. To keep something of yours above it, give it a higher
+`z-index` — see the ⚠ below for the ancestors that cap it.
 
-⚠ **Size it to what a visitor can see at once.** Nothing caps a contained map from above: give the
-element `height: 100vh` below your own sticky header, and its bottom edge — the mobile bottom
-sheet and its drag handle — sits below the fold, leaving a first-time visitor with no visible
-controls until they scroll. Subtract your header, or use a fixed height.
+**A framed embed cannot grow where it is**, so there "Expand map" opens a page that fits, in a new
+tab (see [Embedding in an iframe](#embedding-in-an-iframe)).
 
-⚠ **An embed that starts hidden is measured when it is shown.** The widget reads your element's
-size once, when it first renders, and keeps the layout that size implies. Inside a closed tab, an
-accordion, or anything else with `display: none` when the page loads, the element has no size
-yet, so the widget waits for it to appear before it loads, deep link or not. Opening the tab
-then gets the layout your box gives. (Before this, a page opened from a shared Atlas link loaded
-the widget at once, while hidden, and it took the browser window instead of your box.)
+⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those make
+that element the containing block for fixed-position content, confining the expanded map to it
+instead of the page. Not a trap if it happens (clicking outside and Escape both still close it),
+but it will look wrong. (`container-type` is fine — it does not have this effect, however often it
+is said to.) Those properties, and any ancestor that forms a stacking context — a positioned
+element with a `z-index`, `opacity` below 1, or `isolation: isolate` — also cap the dialog's
+`z-index` at that ancestor's level, so a header outside it can still cover it.
 
-⚠ **A flex or grid item is sized even without a height rule.** A stretched item takes its track's
-cross size, so `<sahaj-atlas>` in a full-height flex column is a _contained_ map — almost always
-what you want, but the one way an embed ends up contained without one.
+⚠ **An embed that starts hidden loads when it is shown.** Inside a closed tab, an accordion, or
+anything else with `display: none` when the page loads, the element has no size yet, so the widget
+waits for it to appear before it loads, deep link or not.
 
-**The widget adapts to your element, not the browser window** (issue #107), in `map=false` and a
-contained map alike. A 320px column on a large desktop screen gets the narrow layout — a bottom
-sheet with a drag handle and swipe-to-dismiss — because the widget measures its own box, not the
-viewport.
-
-Touch affordances are the deliberate exception, and follow the **device**, not the box: a phone
-number is a `tel:` link on a touchscreen and a copyable number everywhere else, however narrow
-the column, since whether a dial link reaches a dialer is hardware.
-
-An **unsized** map embed is the one thing that does not adapt, since there is no box to adapt to
-— it fills the window. **A map embed with neither a height nor the page to itself renders the
-compact card instead**, whose button opens the map full-screen (below).
-
-⚠ **A full-window map on a phone wants `viewport-fit=cover` in your viewport meta tag.** The
-widget keeps its panel and the map's own controls clear of a notch or a camera
-cut-out, reading `env(safe-area-inset-*)` to do it. Those values are **zero** unless your page
-opts in:
+⚠ **A full-screen map on a phone wants `viewport-fit=cover` in your viewport meta tag.** The
+expanded map keeps its panel and the map's own controls clear of a notch or a camera cut-out,
+reading `env(safe-area-inset-*)` to do it. Those values are **zero** unless your page opts in:
 
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 ```
 
 Without it, a phone held sideways letterboxes the page away from the cut-out, which is safe but
-narrower, and the widget's own insets do nothing. With it, your page runs under the cut-out and
-the widget stays clear of it — but so must the rest of your page, so this is your call, not
-ours. Nothing about the widget breaks either way, and a contained embed is unaffected.
+narrower. With it, your page runs under the cut-out and the widget stays clear of it — but so must
+the rest of your page, so this is your call, not ours.
+
+Touch affordances follow the **device**, not the box: a phone number is a `tel:` link on a
+touchscreen and a copyable number everywhere else, however narrow the column, since whether a dial
+link reaches a dialer is hardware.
 
 ### When the slot is too small
 
-Below a certain size no layout works, so the widget shows a **compact card** instead: a heading
-and one button that opens the whole interface somewhere it fits. Your visitor still gets
-everything — it just does not try to live in a 300-pixel box.
-
-**The card is the button.** It takes only the room it needs, centred across whatever box you gave
-and sitting at the top of it. Given **no height at all**, it sizes to its own content rather than
-collapsing, so a bare `<sahaj-atlas>` in a narrow column renders as a card rather than nothing. It
-renders **no events and makes no location lookup** — a control whose whole job is to lead
-elsewhere has nothing to show, and does not warm the event feed or region tree, which wait for
-the interface to open. It records no analytics pageview either. It is not silent, though: the
-widget still reads your client record and sends the one-per-load
-[embed report](#what-the-loader-reports-back) while collapsed.
-
-**Where the button goes depends on whether the widget can grow where it is.**
-
-| Your embed                  | The button                                                                                   |
-| --------------------------- | -------------------------------------------------------------------------------------------- |
-| A script embed on your page | Opens the interface in a full-screen overlay, in place                                       |
-| Inside an iframe            | Opens a page that fits, in a new tab (see [Embedding in an iframe](#embedding-in-an-iframe)) |
-
-The floors are **360px wide and 420px tall**, with a second condition that matters as much: **the
-widget only degrades when there is somewhere bigger to go.** A slot that is essentially the whole
-screen is never called too small, since a card there would take the interface away and hand back
-nothing — a full-width phone embed, or a small iframe on a small screen, keeps the normal
-interface.
-
-**Map mode is measured differently.** A map embed with **no height of its own** fills the
-viewport, so the only question is whether it has the page to itself: one that does not — a map in
-an article column — renders the compact card, whose button opens the map full-screen. A map
-embed you **gave a height** is not asked that question: it lives in your box, measured exactly
-like `map=false`, against the floors above and nothing else.
-
-- **It is decided once, when the widget mounts.** Resizing your page afterwards does not switch
-  between the two — that would remount the widget and lose the visitor's navigation. There is
-  deliberately no override parameter: a knob for a measurement we can get right is a setting you
-  would maintain forever. A wrongly measured slot is a bug worth reporting, not working around.
-- **Entering the compact card logs a console warning** naming what was measured and what to
-  change, so an unintentionally small slot is findable rather than mysterious.
-- **The overlay locks your page's scroll while open**, restored on close. As a modal dialog it
-  also marks the rest of your page `aria-hidden` while open, so a screen reader reads the widget
-  rather than the page underneath, undone on close too. **It keeps a margin**, so your page stays
-  visible behind it and reads as a layer over your site. Three ways out — **clicking outside**,
-  **Escape** (steps outward, dismissing whatever is open before closing), and the **×** in the
-  corner — all return focus to the button that opened it.
-- **The overlay sits above your page's own chrome.** Its scrim and frame use `z-index:
-2147483000`, so a fixed or sticky header of yours sits under the scrim, and clicking it closes
-  the overlay like any click outside. To keep something of yours on top, give it a higher
-  `z-index` — see the ⚠ below for the ancestors that cap it.
-- **A deep link opens the route, and loads eagerly to do it.** `?atlas=/gb/london` on your page's
-  URL means a visitor followed a link, so the widget mounts immediately rather than waiting to be
-  scrolled to, and the overlay opens straight onto that route. **The `atlas` parameter on the
-  script URL does not do this** — that is your default view, not a visitor's request, so it stays
-  lazy. Closing the overlay does not reopen it. An element that is hidden when the page loads (a
-  closed tab or accordion) waits to be shown first, deep link or not — see
-  [Sizing the element](#sizing-the-element).
-
-⚠ **Do not put the embed inside an element with `transform`, `filter` or `contain`.** Those make
-that element the containing block for fixed-position content, confining the overlay to it instead
-of the page — and the same applies to an unsized map, which is fixed too. Not a real trap if it
-happens (clicking outside and Escape both still close it, wherever confined), but it will look
-wrong. (`container-type` is fine — it does not have this effect, however often it is said to.) A
-**contained** map is unaffected, since it already establishes that containing block itself. If
-you are reaching for one of those properties to stop a map painting over your page, **give the
-element a height instead** — the supported way to say the same thing. Those properties, and any
-ancestor that forms a stacking context — a positioned element with a `z-index`, `opacity` below 1,
-or `isolation: isolate` — also cap the overlay's `z-index` at that ancestor's level, so a header
-outside it can still cover the overlay.
+**A short slot grows, so only a very narrow one, or one that cannot grow, is too small** — under
+280px wide, or under 360px tall in a clipped box or an `<iframe>`. There the widget shows its
+heading and "Expand map" alone, warns once in the console, and records the box on the readiness
+marker ([Sizing the element](#sizing-the-element)). A deep link no longer opens a full-screen
+overlay on load: it opens inline, on its route, and the map opens only when the visitor asks.
 
 ## Embedding in an iframe
 
@@ -621,8 +567,8 @@ Five things about that snippet are load-bearing:
   unlabelled frame. Write it for your visitors, in your language.
 - **`allow="geolocation; clipboard-write; web-share"`** — see [Permissions Policy](#permissions-policy).
   Without these the relevant features fail **silently**, the worst way to find out.
-- **Do not sandbox the frame.** If you must, include **`allow-popups`** — without it the compact
-  card's button cannot open anything, and neither can the Google Calendar, Outlook.com, Office 365
+- **Do not sandbox the frame.** If you must, include **`allow-popups`** — without it "Expand
+  map" cannot open anything, and neither can the Google Calendar, Outlook.com, Office 365
   or Yahoo row of "Add to calendar", and the browser blocks each one silently with nothing in your
   console to say why. ⚠ **No flag covers the Apple Calendar row.** It opens an address the
   operating system handles rather than a page, in the frame rather than a new tab, so
@@ -635,15 +581,11 @@ Five things about that snippet are load-bearing:
   _not_ stop the widget writing its own URL, contrary to what this guide used to say — measured
   in Chrome 151.)
 - **`map=false` is usually what you want in a frame**, unless the frame is large.
-- **Give it a real height.** As with the element, a frame with no height collapses.
+- **Give it a real height.** A frame cannot grow to fit what the widget shows, so the widget opens
+  inline inside it and scrolls within the frame.
 
-**A frame is its own viewport, so `map=true` works inside one** — the map fills the frame rather
-than your page. That is the opposite of the advice under [Sizing](#sizing-the-element), which is
-about a script embed sharing a page with your content. A frame has no such neighbours.
-
-**If the frame is too small for the interface**, the widget shows the compact card, and its
-button opens the atlas in a **new tab** rather than an overlay — an overlay inside a frame would
-only cover the frame, the problem it was trying to solve. ⚠ **That new tab currently goes to
+**A frame's "Expand map" opens the atlas in a new tab** rather than over your page — an overlay
+inside a frame would only cover the frame. ⚠ **That new tab currently goes to
 `wemeditate.com/map`**, a different organisation's site — per-region canonical ownership will
 replace it with the owner's own domain. ⚠ Today that link lands on the map's home page rather
 than the exact route the visitor was on. It will carry the route once the canonical work lands.
@@ -953,7 +895,7 @@ chunks, Mapbox's RTL plugin and analytics, and `style-src`, `font-src`, `img-src
 
 | Directive                  | Source                                        | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Blocked ⇒                                                                                                                                                                                                     |
 | -------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `script-src`               | the widget's origin                           | The `<script>` tag fetches a small entry that pulls the rest of the bundle from the same origin. It also pulls the calendar, the registration form and the share networks, but only once a viewer opens them, and a non-English page's screen-reader labels.                                                                                                                                                                                                                                                                                                                        | nothing renders — or worse, it renders and then dies on one of those three presses                                                                                                                            |
+| `script-src`               | the widget's origin                           | The `<script>` tag fetches a small entry that pulls the rest of the bundle from the same origin. It also pulls the calendar, the registration form and the share networks, but only once a viewer opens them, and a non-English page's screen-reader labels.                                                                                                                                                                                                                                                                                                         | nothing renders — or worse, it renders and then dies on one of those three presses                                                                                                                            |
 |                            | `api.mapbox.com`                              | Mapbox GL's right-to-left text plugin, loaded on demand from inside the map's worker on first RTL text. Workers inherit the document's policy, so this lands on `script-src` rather than `worker-src`.                                                                                                                                                                                                                                                                                                                                                               | Arabic, Hebrew and Persian labels on the map render in the wrong order                                                                                                                                        |
 |                            | `cdn.usefathom.com`                           | analytics, only on a build with an analytics ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | analytics only                                                                                                                                                                                                |
 | `worker-src` / `child-src` | `blob:`                                       | Mapbox GL compiles its worker bundle into a `Blob` and starts a module Worker from the resulting `blob:` URL. `child-src` is the fallback for engines predating `worker-src`.                                                                                                                                                                                                                                                                                                                                                                                        | **the map fails**, the rest of the widget is unaffected                                                                                                                                                       |
@@ -1069,11 +1011,11 @@ Alongside the origins in the CSP table above, the widget needs three browser **c
 Each is denied to a cross-origin iframe by default, and each can also be denied to a script embed
 by a `Permissions-Policy` header on your own page.
 
-| Feature           | What uses it                                                                                                                                                            | What breaks without it                                                                                      |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `geolocation`     | The map's "find my location" control, the filters' Near me and the first screen's "Classes near me" (map-less embeds too), each opening the classes nearest the visitor | Each says it could not get a location                                                                       |
-| `clipboard-write` | Copy link in the Share popover and on the registration confirmation, Copy number in a class's Contact menu, and tapping a class's address                             | Copy link says it could not copy and selects the link to copy by hand; a number or a tapped address is selected instead |
-| `web-share`       | The Share button, which opens the device's own share sheet                                                                                                              | Share opens a popover of the region's share networks instead                                                |
+| Feature           | What uses it                                                                                                                                                            | What breaks without it                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `geolocation`     | The map's "find my location" control, the filters' Near me and the first screen's "Classes near me" (map-less embeds too), each opening the classes nearest the visitor | Each says it could not get a location                                                                                   |
+| `clipboard-write` | Copy link in the Share popover and on the registration confirmation, Copy number in a class's Contact menu, and tapping a class's address                               | Copy link says it could not copy and selects the link to copy by hand; a number or a tapped address is selected instead |
+| `web-share`       | The Share button, which opens the device's own share sheet                                                                                                              | Share opens a popover of the region's share networks instead                                                            |
 
 **None of the three errors**, so nothing in your console will tell you. If
 you send a `Permissions-Policy` header, allow these three for your own origin. If you embed in
@@ -1235,7 +1177,8 @@ fallback **beside** the element, not inside it.
   widget does not restate, it will reach the text. That is a short list and a deliberate one.
 - **A rule aimed at `sahaj-atlas` itself** still sets that element's own box — `display`,
   `width`, `height`, `margin`, `border`. That element is your slot, and sizing it is how you
-  control where the widget sits. See [sizing](#sizing-and-layout).
+  control where the widget sits. The widget overrides its height so it can grow — see
+  [sizing](#sizing-the-element).
 
 **This replaced a reset that could not hold** (see the [changelog](../CHANGELOG.md)): the widget used to roll
 its own subtree back to browser defaults before applying its styles, at zero specificity so it
@@ -1288,7 +1231,7 @@ Inside that landmark, every control the widget draws:
 - is never a Tab stop while it is invisible;
 - carries a name in the page's language, icon-only controls included;
 - answers to a tap of at least 44 × 44 CSS pixels on a touch-only screen (`(hover: none) and
-  (pointer: coarse)`). A touchscreen laptop gets the larger drawn controls but none of the
+(pointer: coarse)`). A touchscreen laptop gets the larger drawn controls but none of the
   invisible tap areas, which its mouse would hit without seeing them.
 
 **Each of those is checked on every change we make**, in a real browser at phone size, over every
@@ -1444,7 +1387,7 @@ Three things to check when you migrate:
 | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Nothing renders, a 404 for the script**                                    | The filename is `auto.js`. `embed.js` exists but is the widget the loader fetches, not the file you install.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | **"Not set up correctly" / configuration error**                             | The parameter is `key`, not `api-key` (renamed when configuration moved onto the script URL). The loader logs an error naming it. Otherwise the key is wrong, revoked, or not yet issued.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **Nothing renders, no console error, script loaded fine**                    | `map=false` with no height on the element — it collapsed to zero. Give it `display:block;height:…`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Nothing renders, no console error, script loaded fine**                    | The element is inside something hidden when the page loads — a closed tab, an accordion, `display: none` — and the widget waits for it to be shown before it loads.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | **Console: "the embed script is on this page more than once"**               | Exactly that. Only one widget runs per page, so the second copy renders nothing and its settings are ignored. Remove the extra script tag.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | **Text is in your own font, and the search field offers no places**          | `style-src 'unsafe-inline'` is missing from your CSP. The console says `Refused to apply inline style`, and the violation reports name **`style-src-elem`**. The field keeps its box — it falls back to a plain text input — and the rest of the interface keeps its styling, since the widget's own sheet is not governed by `style-src`.                                                                                                                                                                                                                                                                                                      |
 | **Labels are English on a non-English page**                                 | Either `connect-src https://cloud.sydevelopers.com` is missing, or that language is not switched on in the CMS. The widget carries English compiled in, so this is what a blocked or unavailable language looks like — ask us to enable the language you need.                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -1454,13 +1397,13 @@ Three things to check when you migrate:
 | **Country flags are missing, everything else fine**                          | `img-src https://sahajatlas.com`, the origin you already load the widget from. Cosmetic. A policy written before #418 may still list `react-circle-flags.pages.dev`; that entry does nothing now.                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Registration says it couldn't load the security check**                    | Browsing still works; only registration and reports pause. Read the browser console, which names both fixes. If the browser also logged a refused frame, your CSP is missing `frame-src https://cloud.sydevelopers.com`; otherwise your page's domain is not on your client record — ask us to add it. The form's Try again mounts a fresh check, so a slow network recovers without a reload.                                                                                                                                                                                                                                                  |
 | **The widget's route never appears in the address bar**                      | The document refuses `history.replaceState` — most often `file://`. The widget detects that and routes in memory.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **A button or a calendar row does nothing, in an iframe**                    | The frame is sandboxed without `allow-popups`, so a `target="_blank"` link cannot open. Two places need one: the compact card's button, and the "Add to calendar" rows that open a page — Google Calendar, Outlook.com, Office 365 and Yahoo. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                                                                                                                            |
+| **A button or a calendar row does nothing, in an iframe**                    | The frame is sandboxed without `allow-popups`, so a `target="_blank"` link cannot open. Two places need one: "Expand map", and the "Add to calendar" rows that open a page — Google Calendar, Outlook.com, Office 365 and Yahoo. It fails silently, with nothing in the console. Add `allow-popups`, or drop `sandbox`.                                                                                                                                                                                                                                                                                                                         |
 | **Apple Calendar does nothing, with `allow-popups` set**                     | That row opens a `webcal:` address the operating system handles, not a page, and a sandbox may refuse a protocol handler whatever flags it carries. There is nothing to add: drop `sandbox`, or tell your visitors to use the last row and open the file themselves. Google Calendar, Outlook.com, Office 365 and Yahoo are ordinary links and need only `allow-popups`.                                                                                                                                                                                                                                                                        |
 | **Add to calendar → Download .ics file does nothing, in an iframe**          | The frame is sandboxed without `allow-downloads`. That row — the **last** one — builds the `.ics` file in the browser and hands it over as a download, which a sandbox refuses, silently like the popup above. The five rows above it are unaffected. Add `allow-downloads`, or drop `sandbox`.                                                                                                                                                                                                                                                                                                                                                 |
 | **`atlas=` on the script URL seems to be ignored**                           | The page's own URL already carries an `?atlas=` route, which always wins. That is intended — see [`atlas`, and how the route is chosen](#atlas-and-how-the-route-is-chosen).                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | **Sharing offers no link**                                                   | The same memory-routing mode, on a page with no canonical atlas URL to offer instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **The widget covers the rest of the page**                                   | A map embed with no height of its own renders `position: fixed; inset: 0`. Give the element a `display: block` and a height to keep the map inside it, or use `map=false` for an embed with no map.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **The widget looks wrong on your site only**                                 | Not a selector of yours — the shadow root stops those. Look instead at an inherited property the widget does not restate on its own root, or the `sahaj-atlas-fonts` `<style>` missing from your `<head>` — or sitting there inert, which is what a `style-src` without `'unsafe-inline'` leaves behind. See [what the widget does to your page](#what-the-widget-does-to-your-page).                                                                                                                                                                                                                |
+| **The expanded map covers your header**                                      | The widget did not find it. State where it ends with `--sahaj-atlas-header` on `<sahaj-atlas>` or an ancestor — see [the expanded map](#the-expanded-map).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **The widget looks wrong on your site only**                                 | Not a selector of yours — the shadow root stops those. Look instead at an inherited property the widget does not restate on its own root, or the `sahaj-atlas-fonts` `<style>` missing from your `<head>` — or sitting there inert, which is what a `style-src` without `'unsafe-inline'` leaves behind. See [what the widget does to your page](#what-the-widget-does-to-your-page).                                                                                                                                                                                                                                                           |
 | **It broke after working yesterday**                                         | The embed updates in place. Check [`CHANGELOG.md`](../CHANGELOG.md). Then look for a cached `auto.js`, `loader.js` or `embed.js` at your edge requesting chunk names that no longer exist.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | **Console: "could not find a place to render"**                              | The snippet is in `<head>`: add an empty `<sahaj-atlas></sahaj-atlas>` where the widget should appear, or move the snippet into the body. `async` and `defer` are fine on a snippet in the body — the loader waits for your page either way. **Or the snippet is no longer on the page** when the loader looks, which is after your page finishes parsing — a tag something removed, or replaced wholesale. Every setting rides on that tag's URL, so this comes with **"no `key` parameter on the embed script URL"** beside it, and adding the element alone then gets you the configuration-error screen instead. Leave the tag where it is. |
 | **Nothing renders; console: "Cannot use import statement outside a module"** | Something loaded `loader.js` or `embed.js` as a plain script. Install only `auto.js`, which loads the rest itself. If your tag already names `auto.js`, a cache at your edge is serving an old copy of it — let it revalidate (see [Updates and caching](#updates-and-caching)). None of the widget runs in this state, so this browser error is the only report you get.                                                                                                                                                                                                                                                                       |

@@ -114,8 +114,6 @@ cover everything a host would notice since the widget was first deployed.
   Register stays at the bottom of the screen, saying why while the security check runs. A
   mistyped email is flagged on its box as soon as the visitor leaves it. The confirmation names
   the date and the email address, keeps Add to calendar, and offers "Invite a friend along" open.
-- **The compact card's button reads "Expand map".** ([#529]) Its old label left the translations
-  with the card's retirement; the inline embed replaces the card.
 - **A class's photos show as a grid instead of a slideshow.** ([#530]) They sit in two columns
   below the description, each at its own shape with rounded corners, and nothing moves on its own.
   Tapping one still opens it full screen, where arrows, the arrow keys and a swipe step through
@@ -226,16 +224,15 @@ cover everything a host would notice since the widget was first deployed.
   denies it, the address is selected to copy by hand instead. **No parameter, origin or CSP
   change.**
 
-- **On a slow or failing connection the map and its panel appear at once.** ([#490]) In the full
-  map form the widget no longer shows a white page with "Loading…" while it reads your client
-  record: the map draws straight away, and the panel stands where it will open, holding
+- **On a slow or failing connection the map and its panel appear at once.** ([#490]) The widget
+  no longer shows a white page with "Loading…" while it reads your client record: the map draws straight away, and the panel stands where it will open, holding
   placeholders shaped like what is coming — the first screen's search box and country rows, a
   place's rows or class cards, or a class page. A screen reader hears "Finding classes…" once. The
   panel arrives once: it no longer slides in from the left on a computer, and on a phone it moves
   at most once, when the content arrives. If the data can't be read, the message and Try again sit
   inside the panel and the map stays; the spinner in the middle of the map is gone. A wrong `key`
   now costs one Mapbox map load before its error shows, and your client record's colours and home
-  region arrive a moment after the map. The compact card and the map-less forms wait as before.
+  region arrive a moment after the map. A `map=false` embed draws its placeholders the same way.
   **No parameter, origin, CSP, storage or Permissions-Policy change.**
 
 - **A failed security check pauses only signing up.** ([#490]) When the Turnstile check can't load
@@ -285,6 +282,46 @@ cover everything a host would notice since the widget was first deployed.
   place. A host that matches or rewrites these paths must decode each segment before matching,
   and must not assume `[a-z0-9-]`. **No parameter, origin, CSP, storage or Permissions-Policy change.**
 
+- ⚠ **Every embed now opens inline, as part of your page, and the map opens over it on request.**
+  ([#466]) The widget shows a heading — "Free meditation classes in London" — above two
+  columns: the classes on the left, and a square map on the right that stays in view below
+  your header. A list takes 40% of the width and the map 60%; a class takes 60% and its map
+  40%; neither column goes under 352px. What the column shows fills its width, the registration form
+  included. A class's Register and actions sit under the map; on a narrow widget, Register sticks to the
+  bottom of the screen while the class is in view, and its actions follow its details. Above
+  the map, Where, When and Language buttons filter the classes, beside the settings menu, so the
+  map itself carries only its credits. On every page the way back sits above the heading.
+  A class's page is headed by the class's own name in its town, with larger, labelled facts beside the map; under its Register, a row of
+  share targets and a link to report incorrect class details. A narrow widget stacks a short map strip above the classes; `map=false` shows
+  the classes alone. "Expand map" opens the full map, with its panel, in a modal covering the
+  screen below your header, and "Close map" brings the visitor back. See
+  [Sizing the element](docs/embedding.md#sizing-the-element). What you can observe:
+  - **The widget overrides your element's height.** It writes `height: auto`, `max-height: none`
+    and `overflow: visible` onto `<sahaj-atlas>` as inline `!important` styles, so a height you
+    set for the old full-screen or contained map gives way and the page grows to fit. Where your
+    element cannot grow, the widget scrolls inside it.
+  - **The full-screen map, the contained map and the compact card are gone.** A deep link opens
+    inline on its route instead of opening an overlay.
+  - **A box too small to browse in shows the heading and "Expand map" alone**: under 280px wide,
+    or under 360px tall where the widget cannot grow (a clipped box, an `<iframe>`). It logs one
+    console warning naming the size.
+  - **The panel beside the expanded map is 384px wide**, up from 352px, so its larger text wraps
+    less.
+  - **The readiness marker is version 3**, with a `tooSmall` field: the element's box while it is
+    too small, else `null`.
+  - **The standalone page opened directly with `map=false` is inline too**, as it already was in
+    a frame.
+  - **A new, optional CSS custom property, `--sahaj-atlas-header`**, says how tall your sticky
+    header is. The widget looks for your header itself when it is absent.
+  - **Where your page cannot let the widget grow** — an app shell that never scrolls, a site
+    builder's fixed frame — the widget fills the box it has and scrolls inside it.
+  - **The widget adds a heading to your page**: an `<h1>`, or an `<h2>` when your page has an
+    `<h1>` of its own.
+  - **In an iframe**, the widget opens inline and scrolls inside the frame; "Expand map" opens a
+    new tab. Opened directly, `sahajatlas.com` keeps its map-first page.
+
+  **No parameter, origin, CSP, storage or Permissions-Policy change.**
+
 - **The map's buttons sit together in its top right corner.** ([#482]) Find my location, then
   settings, are two round buttons there — 40px, and 44px on a touch screen — with Mapbox's
   credits button beside them; in a window 480px tall or less they run as a row. Settings moved
@@ -307,11 +344,8 @@ cover everything a host would notice since the widget was first deployed.
 - **The settings cog is bigger on a phone, and the controls floating over the widget are drawn
   by one recipe.** ([#470]) The cog over the map is drawn at 44px on a touch screen, where it was
   32px with an invisible 44px tap area, and its gear glyph is 20px rather than 16px on every
-  device. Where the widget has no map, the cog sits in its own strip and is now drawn at 32px on
-  a desktop, with the same hover tint the panel's other icon controls have. The close control on
-  the collapsed card's full-screen layer takes the same surface: a 1px border in place of 1.5px,
-  and that hover tint. Nothing moves, nothing is harder to reach, and there is **no parameter,
-  origin, CSP, storage or Permissions-Policy change**.
+  device. Nothing moves, nothing is harder to reach, and there is **no parameter, origin, CSP,
+  storage or Permissions-Policy change**.
 
 - **The calendar's today highlight takes the buttons' dark green in light mode.** ([#478]) It
   was the bright primary solid under black text; it is now the same dark shade under white that
@@ -1493,6 +1527,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
 [#538]: https://github.com/sydevs/SahajAtlasWeb/pull/538
 [#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
 [#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
+[#466]: https://github.com/sydevs/SahajAtlasWeb/pull/466
 [#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483
 [#478]: https://github.com/sydevs/SahajAtlasWeb/pull/478
 [#469]: https://github.com/sydevs/SahajAtlasWeb/pull/469

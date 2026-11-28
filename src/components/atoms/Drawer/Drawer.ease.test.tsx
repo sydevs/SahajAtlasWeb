@@ -74,7 +74,7 @@ let root: Root
 const mount = (props: Partial<DrawerProps> = {}) =>
   act(() =>
     root.render(
-      <Drawer open direction="left" mode="anchored" {...props}>
+      <Drawer open direction="left" {...props}>
         <DrawerContent aria-label="Test panel">content</DrawerContent>
       </Drawer>,
     ),
@@ -140,12 +140,11 @@ describe('DrawerContent — the floating panel’s height ease', () => {
     expect(animate).not.toHaveBeenCalled()
   })
 
-  // The bottom sheet, the map-less `filled` drawer and the wide calendar each own their own
-  // height. Only the floating panel takes it from its view.
+  // The bottom sheet and the wide calendar each own their own height. Only the floating panel
+  // takes it from its view.
   const UNEASED: Partial<DrawerProps>[] = [
     { direction: 'bottom' },
     { direction: 'right' },
-    { mode: 'filled' },
     { wide: true },
   ]
 

@@ -86,7 +86,7 @@ describe('the theme root', () => {
 })
 
 /**
- * The JOIN, pinned in source, as `MapFrame.test.tsx` pins its own: everything above proves the
+ * The JOIN, pinned in source: everything above proves the
  * shape works, and none of it proves `Widget.tsx` still has that shape. Rendering the real
  * element here would boot the router, i18n and the loader's config for one line of wiring.
  */

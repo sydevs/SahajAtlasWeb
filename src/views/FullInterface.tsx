@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import * as Fathom from 'fathom-client'
 import { useLocation, useNavigate } from 'react-router'
 import { MapProvider } from 'react-map-gl/mapbox'
 
 import { useCameraSettled } from '@/config/store'
+import { useWidgetMode } from '@/config/mode'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { LocatorProvider } from '@/hooks/use-locator'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
@@ -11,50 +12,37 @@ import { MapboxControllerProvider } from '@/hooks/use-map-controller-mapbox'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
 import { FilterMenus } from '@/components/organisms/FilterMenus'
-import { MapFrame } from '@/views/MapFrame'
+import { MapControls } from '@/components/organisms/MapControls'
 import api from '@/config/api'
-import embed from '@/config/embed'
 
 /**
- * ⚠ **This module is lazy-loaded, and that is what makes the compact card's promise true.**
- *
- * A compact embed — a heading and one button in a 300px sidebar — must not download the map.
- * mapbox-gl is fetched only when the map renders (`mapLib` in `Map.tsx`), and everything
- * importing react-map-gl is reached from here, so none of it is in the eager graph.
+ * ⚠ **This module is lazy-loaded, and everything importing react-map-gl is reached from it**
+ * (directly, or through `InlineEmbedView`), so none of it is in the eager graph.
+ * mapbox-gl is fetched only when the map renders (`mapLib` in `Map.tsx`).
  *
  * Not rendering an element is not always the same as not importing its module. react-map-gl 7
- * fired that `import('mapbox-gl')` at MODULE scope, so while this lived in `App.tsx` the compact
- * embed downloaded the entire map library on every page view, and three docblocks claimed the
- * opposite. `pnpm size` could not see it: it budgets the static graph, and a top-level
- * `import()` inside it is a fetch the budget never counts.
+ * fired that `import('mapbox-gl')` at MODULE scope, so while this lived in `App.tsx` every
+ * embed downloaded the entire map library on every page view. `pnpm size` could not see it: it
+ * budgets the static graph, and a top-level `import()` inside it is a fetch the budget never
+ * counts.
  *
  * Keep every `react-map-gl` edge behind this boundary: the map, `MapProvider`, and the REAL
  * camera provider. `NoopMapControllerProvider` is deliberately imported from the seam module,
  * which carries no such edge.
  */
-// ⚠ **Module scope, not a ref — this is a bug fix, not a style choice.** This component
-// unmounts every time a compact embed's dialog closes, so a ref would reset on the next open,
-// while `'fathom' in window` is by then TRUE, because this project's own script put it there.
-// The load effect would then return early, never re-set the flag, and the pageview effect below
-// would short-circuit for the rest of the document's life. Analytics would go silently dead
-// after the first collapse — in exactly the compact form this was moved here to serve. Same
-// reasoning as `autoOpened` in `use-expansion`.
+// ⚠ **Module scope, not a ref.** An interface can unmount and remount within one document — a
+// host SPA re-rendering the element — while `'fathom' in window` stays TRUE, because this
+// project's own script put it there. A ref would reset, the load effect would return early and
+// never re-set the flag, and the pageview effect below would short-circuit for the rest of the
+// document's life.
 //
 // `lastTracked` is module scope for the matching reason. The contract is one pageview per real
-// NAVIGATION, and closing and reopening the dialog on the same route is not one.
+// NAVIGATION, and remounting on the same route is not one.
 let ownsTracker = false
 let lastTracked = ''
 
 /**
  * One Fathom pageview per real navigation, under the client's primary domain.
- *
- * **It lives with the interface, and that placement is the point.** These effects used to run
- * from `AppShell`, which renders for every embed, including one whose whole appearance is a
- * collapsed card. That recorded a pageview of `/` on every host page view of a sidebar nobody
- * pressed, for an interface nobody opened, and injected this project's tracker into the host's
- * page to do it. Here it cannot run before the interface does — immediately in the full form,
- * and only on opening in the compact one. The home-region redirect and the cache warm live here
- * for the same reason. A collapsed card should do nothing a visitor did not ask for.
  */
 function useAnalytics(primaryDomain: string, pathname: string) {
   const enabled =
@@ -126,51 +114,34 @@ function MapCurtain() {
   )
 }
 
-/** The map (or not) and the drawer stack over it — everything below the form decision. */
-function FullInterface({
-  clientLoaded,
-  contained,
-  hasMap,
-  homePath,
-  primaryDomain = '',
-}: {
-  /** Whether `homePath` is known yet: the map form mounts before the client record arrives. */
+/** What every interface form is booted with, from the client record. */
+export type InterfaceProps = {
+  /** Whether `homePath` is known yet: the interface mounts before the client record arrives. */
   clientLoaded: boolean
-  /**
-   * Map mode lives inside the host's element rather than filling the window (issue #169).
-   *
-   * Required, like `hasMap` beside it: `AppShell` is the only caller and always passes it, and
-   * a default of `false` would be the one wrong answer nobody could see — it is the common case.
-   */
-  contained: boolean
-  hasMap: boolean
   homePath?: string
   primaryDomain?: string
-}) {
+}
+
+/**
+ * What an interface does once it is on screen: the pageview, the captcha guard, the home
+ * redirect, and the cache warm. Called once per interface module, and never by the expanded map
+ * an inline embed opens, which is the same interface over the page rather than a second one.
+ */
+export function useInterfaceBoot({ clientLoaded, homePath, primaryDomain = '' }: InterfaceProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const didInit = useRef(false)
 
   useAnalytics(primaryDomain, location.pathname)
 
-  // Turnstile is loaded here for the same reason the analytics, the redirect and the cache
-  // warm are: it injects a third-party script into the host's page, so it must not fire for
-  // a collapsed compact card. Nothing waits on it — it fails the widget only if it comes
-  // back blocked (issue #182).
+  // Turnstile injects a third-party script into the host's page. Nothing waits on it — it fails
+  // the widget only if it comes back blocked (issue #182).
   useTurnstileGuard()
 
   // The home route — a path-mode host's `atlas` default, else the configured home region
   // (`homePathFor`) — opens as a RegionView over CountriesView on first load. It replaces the
   // root entry, so opening adds no host history entry (#112). This runs once — re-visiting `/`
   // shows the list, not a redirect loop.
-  //
-  // ⚠ **It lives here, rather than in `AppShell`, and that placement is the point.** This
-  // component renders only when the interface is actually on screen — always in the full form,
-  // and only once the dialog opens in the compact one. In `AppShell` it fired while a collapsed
-  // card was the only thing rendered, and `navigate` writes `?atlas=/nl` onto the HOST's URL. A
-  // visitor who then reloaded, bookmarked, or shared that address got a full-screen dialog over
-  // the host's page on load, having never asked for one — auto-open triggered by this project's
-  // own bookkeeping, rather than by a link anybody followed.
   useEffect(() => {
     if (didInit.current || !clientLoaded) return
     didInit.current = true
@@ -178,60 +149,88 @@ function FullInterface({
       navigate(homePath, { replace: true })
   }, [clientLoaded, homePath, location.pathname, navigate])
 
-  // The feed and region tree, warmed when the interface actually mounts. `App` skips this for a
-  // compact embed precisely so a collapsed card costs nothing, which leaves the expanded case to
-  // this component. This call is idempotent — React Query deduplicates — so the full form,
-  // where `App` has already fired it in parallel with the client bootstrap, pays nothing for the
-  // second call.
+  // The feed and region tree. Idempotent — React Query deduplicates — so this costs nothing
+  // where `App` has already fired it in parallel with the client bootstrap.
   useEffect(() => {
     api.warmCaches()
   }, [])
+}
 
-  // One locator for the map's find-me and the filters' Near me, gone with this interface.
+/**
+ * The canvas and its curtain, filling whichever box takes the fixed layer: the viewport, the
+ * expanded dialog, or the inline embed's map box. Inline fixed/inset, so the map always fills
+ * its box behind the drawers, independent of Tailwind viewport-unit utility generation.
+ *
+ * `cooperative` leaves one-finger and wheel scrolling to the page (`gestures=cooperative`). Never
+ * in a map that fills its own window, where nothing scrolls. `controls={false}` leaves the map's
+ * corner to its credits, for the inline map, whose controls sit in the toolbar above it.
+ */
+export function MapLayer({
+  cooperative = false,
+  controls = true,
+  action,
+}: {
+  cooperative?: boolean
+  controls?: boolean
+  /** The map's one action, bottom left, placed by Mapbox (`MapAction`). */
+  action?: ReactNode
+}) {
+  return (
+    <div style={{ position: 'fixed', inset: 0 }}>
+      <Mapbox
+        action={action}
+        controls={
+          controls && (
+            <MapControls filterMenus={<FilterMenus variant="floating" />} variant="floating" />
+          )
+        }
+        cooperative={cooperative}
+      />
+      <MapCurtain />
+    </div>
+  )
+}
+
+/**
+ * The react-map-gl and camera providers a map needs, or the no-op seam where `map=false` leaves
+ * nothing to control. It lives here because this module already owns the react-map-gl boundary.
+ */
+export function MapProviders({
+  children,
+  inline = false,
+}: {
+  children: ReactNode
+  inline?: boolean
+}) {
+  // One locator for the map's find-me and the filters' Near me, gone with this map.
   return (
     <LocatorProvider>
-      {hasMap ? (
+      {useWidgetMode().hasMap ? (
         <MapProvider>
-          {/* ⚠ **`MapFrame` is the ONLY thing that differs between a viewport map and a contained
-          one.** Everything below is byte-identical in both. The canvas stays `position: fixed;
-          inset: 0`, the drawers stay fixed, and no view branches on which one
-          it is. `contain: layout` on the frame re-parents the whole fixed layer onto the
-          host's box, which is what makes that possible. The alternative, a `fixed` →
-          `absolute` swap, is what made containment look intractable, until #161 solved both of
-          its obstacles for the expanded dialog (see `MapFrame` for the pair, and #169 for the
-          argument that the comment which used to sit here had gone stale).
-
-          Unframed, map mode still fills the browser window, whatever slot the host gave the
-          element — a documented requirement (#107), and now the answer only for a host that
-          gave it no height. One that does not have the page to itself, and did not size it,
-          gets the compact card rather than a takeover. `lib/slot-decision.ts` measures at
-          mount, and `AppShell` renders `CompactEmbedView`, whose button opens the map
-          full-screen. */}
-          <MapFrame contained={contained}>
-            {/* Around the map too: the filter buttons beside its controls move the camera. */}
-            <MapboxControllerProvider>
-              {/* Inline fixed/inset so the map always fills its frame behind the drawers —
-              independent of Tailwind viewport-unit utility generation. */}
-              <div style={{ position: 'fixed', inset: 0 }}>
-                {/* The one thing a contained map does differently: `gestures=cooperative` leaves
-                scrolling to the page. Never in a window-filling map, where nothing scrolls. */}
-                <Mapbox
-                  cooperative={contained && embed.config.cooperative}
-                  filterMenus={<FilterMenus variant="floating" />}
-                />
-                <MapCurtain />
-              </div>
-              <DrawerStack />
-            </MapboxControllerProvider>
-          </MapFrame>
+          <MapboxControllerProvider inline={inline}>{children}</MapboxControllerProvider>
         </MapProvider>
       ) : (
-        <NoopMapControllerProvider>
-          <DrawerStack />
-        </NoopMapControllerProvider>
+        <NoopMapControllerProvider>{children}</NoopMapControllerProvider>
       )}
     </LocatorProvider>
   )
+}
+
+/** The map and the drawer stack over it. A map-less atlas is always inline (`App`). */
+export function MapInterface() {
+  return (
+    <MapProviders>
+      <MapLayer />
+      <DrawerStack />
+    </MapProviders>
+  )
+}
+
+/** The map-first interface: the standalone page opened directly. */
+function FullInterface(props: InterfaceProps) {
+  useInterfaceBoot(props)
+
+  return <MapInterface />
 }
 
 export default FullInterface

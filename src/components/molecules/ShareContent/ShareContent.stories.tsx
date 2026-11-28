@@ -2,7 +2,7 @@ import type { Story, StoryDefault } from '@ladle/react'
 
 import { StoryWrapper, StorySection } from '../../ladle'
 
-import { ShareContent } from './ShareContent'
+import { ShareContent, ShareRow } from './ShareContent'
 import { ShareTargets } from './platform-buttons'
 
 export default { title: 'Molecules' } satisfies StoryDefault
@@ -33,6 +33,16 @@ export const Default: Story = () => (
     >
       <div className="max-w-sm">
         <ShareContent country="GB" label={label} url={url} />
+      </div>
+    </StorySection>
+
+    <StorySection
+      description="Beside the inline map on a class page: Copy link, the region's messaging app, Email, and More, which opens the share sheet or the full popover. Telegram leads in Ukraine."
+      title="Share row"
+    >
+      <div className="flex max-w-sm flex-col gap-6">
+        <ShareRow country="GB" label={label} url={url} />
+        <ShareRow country="UA" label={label} url={url} />
       </div>
     </StorySection>
 

@@ -5,6 +5,7 @@ import type { EventDisplayStrings, EventSurface } from '@/hooks/use-event-displa
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, Check, Copy, MapPin, Monitor } from 'lucide-react'
 
+import { MeditateFigure } from '@/components/atoms/Icons'
 import { tv } from '@/styles/tv'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -25,12 +26,23 @@ const facts = tv({
     icon: 'shrink-0',
     text: 'min-w-0 text-base leading-snug',
     subtext: 'text-gray-11',
+    label: 'mb-0.5 text-sm font-normal text-gray-11',
   },
   variants: {
     surface: {
       page: { base: 'gap-2.5', item: 'gap-3', icon: 'text-primary' },
       // Every fact takes at least 22px, so one-line facts never sit line on line.
       card: { base: 'gap-1.5', item: 'min-h-5.5 gap-2', icon: 'text-gray-11', text: 'text-sm' },
+    },
+    // The class page with a page's width to read across (the inline embed beside its map): larger
+    // icons drawn finer, and larger values, each fact roomier.
+    detailed: {
+      true: {
+        base: 'gap-5',
+        item: 'gap-3.5',
+        text: 'text-lg font-medium',
+        subtext: 'text-sm font-normal',
+      },
     },
     // A two-line fact hangs its icon beside the FIRST line. A lone line centres it.
     stacked: {
@@ -49,7 +61,9 @@ const facts = tv({
 const ICON_SIZE = { page: 20, card: 16 } as const
 
 type Fact = {
-  icon: LucideIcon
+  icon: LucideIcon | typeof MeditateFigure
+  /** Detailed only: a small grey label above the value. */
+  label?: string
   text: ReactNode
   subtext?: ReactNode
   /** The text itself spans two lines, so the icon hangs from the first even with no subtext. */
@@ -66,6 +80,8 @@ export type EventFactsProps = {
   distance?: ReactNode
   /** Drops every faded second line. */
   hideSubtext?: boolean
+  /** The class page's larger treatment, for a page-wide column. `page` surface only. */
+  detailed?: boolean
   className?: string
 }
 
@@ -83,15 +99,28 @@ export function EventFacts({
   surface = 'page',
   distance,
   hideSubtext = false,
+  detailed = false,
   className,
 }: EventFactsProps) {
+  const { t } = useTranslation()
   const { display, surfaces, whereLine, whereLineWithPostCode, roomLine, whereSubtext } = strings
   const { primary, time, detail } = surfaces[surface].when
 
   const items: Fact[] = [
     {
       icon: CalendarDays,
-      text: [primary, time].filter(Boolean).join(' · '),
+      label: t('event.display.fact_time'),
+      // The class page gives the pattern and the time a line each; a card keeps them on one.
+      text:
+        surface === 'page' && primary && time ? (
+          <>
+            <div>{primary}</div>
+            <div>{time}</div>
+          </>
+        ) : (
+          [primary, time].filter(Boolean).join(' · ')
+        ),
+      stacked: surface === 'page' && Boolean(primary && time),
       subtext: detail ?? undefined,
     },
   ]
@@ -106,6 +135,7 @@ export function EventFacts({
 
     items.push({
       icon: display.online ? Monitor : MapPin,
+      label: t('event.display.fact_place'),
       text: room ? (
         <>
           <div>{room}</div>
@@ -119,24 +149,39 @@ export function EventFacts({
     })
   }
 
-  const size = ICON_SIZE[surface]
-  const slots = facts({ surface })
+  // Every class is free, which a visitor deciding whether to come wants to read beside the rest.
+  if (detailed) {
+    items.push({
+      icon: MeditateFigure,
+      label: t('event.display.fact_cost'),
+      text: t('event.display.fact_cost_free'),
+    })
+  }
+
+  const size = detailed ? 32 : ICON_SIZE[surface]
+  const slots = facts({ surface, detailed })
 
   return (
     // `data-sheet-fold`: the panel's facts end a class's key-facts stop (`foldHeight`).
     <div className={slots.base({ className })} data-sheet-fold={surface === 'page' || undefined}>
-      {items.map(({ icon: Icon, text, subtext: line, stacked }, index) => {
+      {items.map(({ icon: Icon, label, text, subtext: line, stacked }, index) => {
         const subtext = hideSubtext ? undefined : line
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
-        const styles = facts({ surface, stacked: Boolean(subtext) || Boolean(stacked) })
+        // Detailed, the label makes every fact a block, which its icon centres on.
+        const styles = facts({
+          surface,
+          detailed,
+          stacked: !detailed && (Boolean(subtext) || Boolean(stacked)),
+        })
 
         return (
           <div key={index} className={styles.item()}>
             <span className={styles.icon()}>
-              <Icon size={size} />
+              <Icon size={size} strokeWidth={detailed ? 1.5 : 2} />
             </span>
             <div className={styles.text()}>
+              {detailed && label && <div className={styles.label()}>{label}</div>}
               <div>{text}</div>
               {subtext && <div className={styles.subtext()}>{subtext}</div>}
             </div>

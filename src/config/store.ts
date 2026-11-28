@@ -169,8 +169,7 @@ export const useCameraSettled = create<CameraSettled>((set) => ({
    *
    * ⚠ **This is not housekeeping. Without it, both fixed defects come back on the second view.**
    * This store is module-global, but the map is not.
-   * A compact embed unmounts the whole interface when its dialog closes.
-   * `CompactEmbedView` passes the interface as `children` and deliberately does not `forceMount` it.
+   * The inline embed swaps its own map for the expanded one, and back, without a reload.
    * A stale `true` value would then meet a freshly mounted map sitting at `[0, 0]`, zoom 0.
    * So the curtain would not draw, the world frame would paint, and the first framing would fly across the planet again.
    *

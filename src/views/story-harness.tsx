@@ -2,25 +2,29 @@ import type { ReactNode } from 'react'
 import type { Client } from '@/types'
 
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import clsx from 'clsx'
 import { useLocation, useNavigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useLadleContext } from '@ladle/react'
 import { ErrorBoundary } from 'react-error-boundary'
-import { MapProvider } from 'react-map-gl/mapbox'
 
 import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
+import { SettingsMenu } from '@/components/molecules/SettingsMenu'
 import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
-import { WidgetModeContext, type WidgetMode } from '@/config/mode'
+import { WidgetModeContext, type WidgetMode, useWidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
+import { WidgetWidthContext, useIsWide } from '@/config/responsive'
 import { useApproxLocation } from '@/config/store'
-import { Mapbox } from '@/components/organisms/Mapbox/Map'
-import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
-import { MapboxControllerProvider } from '@/hooks/use-map-controller-mapbox'
+import { setFrame } from '@/lib/overlay'
+import { usePublishedNode } from '@/hooks/use-published-node'
 import { mockErrors, mockNotFound } from '@/mocks/errors'
 import { parentOf } from '@/lib/shape'
 import { mockApproxLocation, mockGeojson, mockRegionNodes } from '@/mocks/regions'
+import { MapLayer, MapProviders } from '@/views/FullInterface'
+import { ExpandButton, InlineColumns, PlaceHeading } from '@/views/InlineEmbedView/InlineEmbedView'
+import { VIEW_CONTROLS } from '@/views/story-controls'
+import { DrawerStack } from '@/views/DrawerStack/DrawerStack'
 
 // The comprehensive event-variant list, re-exported here so the event-list view
 // stories (Region / Online / Search) build their lists from ONE shared source.
@@ -36,13 +40,13 @@ export { mockEventSeries, mockEventVariants } from '@/mocks/events'
 //     retry), so the query resolves synchronously from cache and never touches the
 //     absent backend. Bypassing the fetchers' zod parse is fine — TypeScript
 //     guards the mock shapes.
-//  2. The map-less contexts. Views read `useMapController` (the no-op provider,
-//     since there is no Mapbox in a story) and `useWidgetMode`.
-//  3. A full-height drawer panel. Views render `DrawerHeader` and `DrawerBody`
-//     directly (falling back to the default DrawerContext), so the harness stands
-//     in for the sheet with a flex column that fills the story canvas — a single,
-//     full-view page, not a boxed card. Paired with the stories' `width: 'xsmall'`
-//     default, this reads as the real drawer panel at phone width.
+//  2. The map, and the contexts around it. The global Map control puts a real canvas
+//     and `MapController` behind the view, or the no-op seam a `map=false` embed has,
+//     and `useWidgetMode` agrees with whichever it is.
+//  3. The surface the view renders in, in the form the global Form control picks: the
+//     inline embed's page, or the expanded map's frame. Views render `DrawerHeader` and
+//     `DrawerBody` directly, so the harness stands in for the drawer with the slots
+//     that form uses.
 //  4. The drawer's OWN fences. Suspense plus ErrorBoundary in DrawerStack's
 //     nesting, with the drawer-shaped fallbacks — the harness used to wrap stories
 //     in the app-level ones, previewing a screen the drawer stack never renders
@@ -68,12 +72,16 @@ export type ViewHarnessProps = {
    *  that renders no view (an error case, which throws before any query is read). */
   seed?: (client: QueryClient) => void
   /**
-   * Widget mode. Defaults to the map-less embed (`standalone`, no map, linkable).
+   * Widget mode. Defaults to what the Form control shows: an embed inline (not `standalone`),
+   * the standalone page expanded, linkable either way.
    * **Partial**, so a story overrides only the axis it is about — spelling the whole shape
    * to vary one field silently pins the others, which is how a story once flipped
    * `standalone` by accident and changed what the screen it previewed actually rendered.
+   *
+   * ⚠ `hasMap` is the Map control's alone. On its own it would tell the tree a map exists
+   * without drawing one or giving it a real `MapController`, a state the app never has.
    */
-  mode?: Partial<WidgetMode>
+  mode?: Partial<Omit<WidgetMode, 'hasMap'>>
   /**
    * The pathname to render at. Needed by anything that reads the URL rather than props —
    * above all the not-found recovery ladder, which walks the ancestry to find somewhere
@@ -81,37 +89,6 @@ export type ViewHarnessProps = {
    * ("Browse all countries"), and none would show what the app actually offers.
    */
   path?: string
-  /**
-   * Renders the real Mapbox canvas behind the drawer, as map mode does.
-   *
-   * Off by default, which is right for a view story about the view — the map costs a
-   * token, a WebGL context, and live tiles, and a story previewing a list does not need
-   * one. Turn it on where the map IS part of what is being reviewed.
-   *
-   * ⚠ It is not just a flag on `WidgetMode`. `hasMap: true` alone tells the tree a map
-   * exists without rendering one and without a real `MapController`, a state the app
-   * never has — views would call `frameRegion` into a no-op, and the canvas would be
-   * missing. All three move together here for that reason.
-   *
-   * Needs `VITE_MAPBOX_ACCESSTOKEN`. Without one it defaults to the map-less arm,
-   * rather than rendering a broken canvas.
-   */
-  map?: boolean
-  /**
-   * What the harness sizes itself against: the viewport (default) or its container.
-   *
-   * ⚠ **`screen` is wrong inside anything that is not the viewport**, and the compact
-   * embed's dialog is exactly that: it keeps a margin, so `h-screen` renders 32px taller
-   * than the box clipping it, and the bottom of the scroll area — scrollbar included —
-   * is cut off. It still scrolls. It just reads as though it does not, which is worse.
-   *
-   * This is the container-vs-viewport tension the dialog's margin introduces, in the one
-   * place this repo owns the arithmetic. Note that vaul has the same exposure, and this
-   * repo does NOT own that one. It computes a snap-point sheet's travel from
-   * `window.innerHeight`, so a real bottom sheet inside the dialog is off by the same
-   * margin.
-   */
-  height?: 'screen' | 'container'
   children: ReactNode
 }
 
@@ -284,18 +261,23 @@ export function ViewStory({ example, state = NO_ERROR, children, ...harness }: V
   )
 }
 
-export function ViewHarness({
-  seedKey,
-  seed,
-  mode,
-  path,
-  map,
-  height = 'screen',
-  children,
-}: ViewHarnessProps) {
+/** Each control's value, or its default until the decorator has added it. */
+function useViewControls() {
+  const { control } = useLadleContext().globalState
+
+  return {
+    inline: (control.form?.value ?? VIEW_CONTROLS.form.defaultValue) === 'Inline',
+    map: (control.map?.value ?? VIEW_CONTROLS.map.defaultValue) === true,
+  }
+}
+
+export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarnessProps) {
+  const controls = useViewControls()
   // A token-less environment gets the map-less arm: a canvas that cannot load tiles
   // previews nothing and fills the console with Mapbox errors.
-  const withMap = Boolean(map && import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
+  const withMap = controls.map && Boolean(import.meta.env.VITE_MAPBOX_ACCESSTOKEN)
+  // A map-less atlas is always inline, as `App` renders it: there is no map to expand.
+  const inline = controls.inline || !withMap
 
   const client = useMemo(() => {
     const c = new QueryClient({
@@ -318,86 +300,92 @@ export function ViewHarness({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seeds only when the case changes: `seed` is a fresh closure each render
   }, [seedKey])
 
+  // Keyed on the case, so switching it remounts the view, which re-frames the map, while the
+  // map itself stays. DrawerStack's nesting: the slots sit outside the boundary, since
+  // DrawerErrorFallback and DrawerLoading render a DrawerBody and need the drawer context.
+  const view = (
+    <Suspense key={seedKey} fallback={<DrawerLoading />}>
+      <ErrorBoundary FallbackComponent={DrawerErrorFallback}>{children}</ErrorBoundary>
+    </Suspense>
+  )
+
   return (
     <QueryClientProvider client={client}>
       <WidgetModeContext.Provider
-        value={{ standalone: true, hasMap: withMap, linkable: true, ...mode }}
+        // Inline is an embed, so not standalone: "Expand map" is a button, not a new tab.
+        value={{ standalone: !inline, hasMap: withMap, linkable: true, ...mode }}
       >
-        <MapFrame enabled={withMap}>
-          {/* A full-view drawer panel: fills the story canvas (the width-xsmall frame,
-              which the global decorator renders un-padded for views) as a flex column so
-              the view's DrawerHeader (shrink-0) and DrawerBody (flex-1, scrolls) lay out
-              exactly as in the real sheet. The filled drawer context gives the
-              header/body the SAME padding the map-less app renders (the `filled` mode's
-              `pt-4`), so the story's top spacing matches the real drawer rather than the
-              anchored default's `pt-2`.
-
-              The slots wrap the boundary, not the other way round: DrawerErrorFallback
-              and DrawerLoading render a DrawerBody, so they need the drawer context —
-              and this is the nesting DrawerStack itself uses (DrawerContent > Suspense >
-              ErrorBoundary > the view). */}
-          {/* A live drawer control, so the chrome the fallbacks render is exercisable,
-              rather than inert: `backTo` decides whether they show Back at
-              all, and without a provider every story would preview the root's control
-              set (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
-          <DrawerControlContext.Provider value={storyDrawerControl(path)}>
-            <DrawerSlotsProvider direction="bottom" mode="filled">
-              {/* With a map behind it the drawer is a PANEL, as it is in map mode. Without one
-                  it fills the canvas, as a map-less embed does. Both are positioned: the map
-                  wrapper is `absolute`, and a positioned element paints above a static sibling
-                  whatever the DOM order — so a static column sat *underneath* the canvas and the
-                  view appeared to float transparently over the map. This was measured, not
-                  guessed. */}
-              <div
-                key={seedKey}
-                className={clsx(
-                  // Clip, never hidden — this hand-copies the panel's own chrome, so a story
-                  // that previewed `overflow-hidden` would preview the defect (#326).
-                  'z-10 flex flex-col overflow-clip bg-background text-foreground',
-                  // ⚠ Exactly ONE position class, and the branches must not both contribute
-                  // one. An earlier version left `relative` in the shared half and added
-                  // `absolute` in the map arm: Tailwind emits `.relative` after
-                  // `.absolute`, so `relative` won, `inset-y-0` did nothing, and the
-                  // column grew to its content — 994px inside an 868px dialog, with no
-                  // height bound for the body to scroll within. It read as "the list will
-                  // not scroll".
-                  withMap
-                    ? 'absolute inset-y-0 start-0 w-[352px] max-w-full shadow-2xl'
-                    : clsx('relative', height === 'container' ? 'h-full' : 'h-screen'),
-                )}
-              >
-                <Suspense fallback={<DrawerLoading />}>
-                  <ErrorBoundary FallbackComponent={DrawerErrorFallback}>
-                    {path ? <SeedPath path={path}>{children}</SeedPath> : children}
-                  </ErrorBoundary>
-                </Suspense>
-              </div>
-            </DrawerSlotsProvider>
-          </DrawerControlContext.Provider>
-        </MapFrame>
+        {/* A live drawer control, so the chrome the fallbacks render is exercisable,
+            rather than inert: `backTo` decides whether they show Back at
+            all, and without a provider every story would preview the root's control
+            set (issue #89). `dismiss` is a no-op — a story has nowhere to dismiss to. */}
+        <DrawerControlContext.Provider value={storyDrawerControl(path)}>
+          <MapProviders inline={inline}>
+            <SeedPath path={path ?? '/'}>
+              {inline ? (
+                <InlineForm>{view}</InlineForm>
+              ) : (
+                <ExpandedForm path={path ?? '/'}>{view}</ExpandedForm>
+              )}
+            </SeedPath>
+          </MapProviders>
+        </DrawerControlContext.Provider>
       </WidgetModeContext.Provider>
     </QueryClientProvider>
   )
 }
 
 /**
- * The map layer, or nothing — the same shape `AppShell`'s `FullInterface` uses.
- *
- * This mirrors the app rather than approximating it: the canvas is `fixed; inset: 0`
- * behind the drawer, `MapProvider` is what `useMapbox` reads, and
- * `MapboxControllerProvider` must render inside it. Off, it is the same
- * `NoopMapControllerProvider` every view story had before, so nothing that does not ask
- * for a map changes.
+ * The inline embed's page around one view: its heading, and the real `InlineColumns` with the
+ * map box beside the view, or the one column a map-less embed has. The view renders in the
+ * `inline` drawer slots, measured as `DrawerStack`'s inline arm measures its column, so its
+ * title gives way to the heading where it names a place. "Expand map" is inert here: the Form
+ * control is the way to the expanded form.
  */
-function MapFrame({ enabled, children }: { enabled: boolean; children: ReactNode }) {
-  if (!enabled) return <NoopMapControllerProvider>{children}</NoopMapControllerProvider>
+function InlineForm({ children }: { children: ReactNode }) {
+  const [column, setColumn] = useState<HTMLDivElement | null>(null)
+  const isWide = useIsWide(column)
+  const { hasMap } = useWidgetMode()
 
   return (
-    <MapProvider>
-      <div style={{ position: 'absolute', inset: 0 }}>
-        <Mapbox />
-      </div>
-      <MapboxControllerProvider>{children}</MapboxControllerProvider>
-    </MapProvider>
+    <div className="@container min-h-screen w-full bg-background py-4 text-foreground">
+      <InlineColumns
+        heading={
+          <div className="flex items-center gap-3 px-gutter">
+            <PlaceHeading />
+            {!hasMap && (
+              <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
+            )}
+          </div>
+        }
+        map={<MapLayer action={<ExpandButton />} controls={false} />}
+      >
+        <WidgetWidthContext.Provider value={isWide}>
+          <div ref={setColumn} className="flex flex-col">
+            <DrawerSlotsProvider mode="inline">{children}</DrawerSlotsProvider>
+          </div>
+        </WidgetWidthContext.Provider>
+      </InlineColumns>
+    </div>
+  )
+}
+
+/**
+ * The expanded map's frame around one view: the canvas filling it, and the real `DrawerStack`
+ * over it, showing the story's view at its path, so the sheet drags, snaps and pins as the app's
+ * does. Back and the view's links navigate for real, into the routed views. The frame takes the
+ * containing block with `contain: layout`, as the expanded dialog does, so the fixed canvas and
+ * sheet fill it rather than the window.
+ */
+function ExpandedForm({ path, children }: { path: string; children: ReactNode }) {
+  // Published as the widget's frame, as the dialog is, so the stack measures this frame's width
+  // and portals its sheet into it.
+  const { node: frame, adopt } = usePublishedNode<HTMLDivElement>(setFrame)
+
+  return (
+    <div ref={adopt} className="relative h-screen overflow-clip [contain:layout]" data-sy-frame="">
+      {frame && <MapLayer />}
+      {frame && <DrawerStack view={{ path, node: children }} />}
+    </div>
   )
 }

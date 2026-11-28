@@ -442,11 +442,12 @@ one forges further outputs on a fork's pull request.
 | scenario (`tests/browser/`)                                       | host page              | watched failing against                                              |
 | ----------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
 | the map embed boots, lists, draws its map                         | `full-map.html`        | no Mapbox token passed to the map                                    |
-| browse in, then Back retraces it                                  | `full-map.html`        | Back climbing to the parent instead of going back                    |
-| a deep link's Back climbs past the places holding only its class  | `full-map.html?atlas=` | Back going `navigate(-1)` at depth 0 (#89)                           |
+| expanded: browse in, then Back retraces it                        | `full-map.html`        | Back climbing to the parent instead of going back                    |
+| a deep link opens inline; Back climbs past places holding only it | `full-map.html?atlas=` | Back going `navigate(-1)` at depth 0 (#89)                           |
 | a place holding one class opens it, and Back does not re-enter it | `full-map.html?atlas=` | a climb landing back in the class it left                            |
 | `map=false` lists and draws no map                                | `sidebar-mapless.html` | the map rendered whatever `hasMap` said                              |
-| a slot too small renders the compact card                         | `sidebar-map.html`     | the slot decision never choosing the card                            |
+| a sized slot opens inline, grows, and expands                     | `sidebar-map.html`     | the compact card the inline embed replaced                           |
+| a box too small shows the heading alone                           | `too-narrow.html`      | the full inline atlas rendered in a 220px column                     |
 | host CSS does not reach the widget                                | `hostile-css.html`     | no shadow root (#236); the baseline's `letter-spacing` reset dropped |
 | registration accepted, and failing with a 500                     | `sidebar-mapless.html` | a drifted create envelope; the thank-you shown on failure (#103)     |
 | a place's calendar, its Week by name, and List back to the place  | `full-map.html?atlas=` | the List switch stacking the place again instead of stepping back    |
@@ -698,13 +699,10 @@ more, opted in the same way (`grep -rl '@vitest-environment jsdom' src/`); this 
   sibling spec reaches that screen through a story prop instead, which short-circuits the check —
   **a spec that can only reach a state through the door the story uses is not covering the
   state, it is covering the door.**
-- `src/lib/slot-decision.test.ts` — the composed slot decision reads `window.innerWidth`,
-  `outerWidth`, `screen.avail*`, and an element's box, so it is DOM by definition. The pure halves
-  stay table-driven with no DOM, in `embed-slot.test.ts`.
-- `src/views/MapFrame.test.tsx` — the frame a contained map lives in (#169). It tests a **timing**
-  property: the frame publishes itself in a callback ref and holds children back until it has,
-  because `overlayContainer()` reads in render bodies, and `renderToStaticMarkup` runs no refs or
-  effects.
+- `src/views/InlineEmbedView/host-page.test.tsx` — what the inline embed reads and writes on the
+  HOST's document: the element's inline height override and its restore, the page's own `h1`, the
+  `--sahaj-atlas-header` property. There is no pure half left; jsdom gives no layout, so the header
+  search across the top of the window is left to the browser lane.
 - `src/lib/overlay.test.ts` — the portal target, and its one piece of module state (#161). It
   tests whether the expanded surface stays connected to the theme root — a detached target
   silently swallows every portal in the app.
@@ -757,7 +755,7 @@ Escape pass.
 
 ### A CLOSED portal renders nothing under SSR — an "absence" assertion proves nothing
 
-This app is portal-dense — every vaul drawer, every Radix overlay, `CompactEmbedView`'s expanded
+This app is portal-dense — every vaul drawer, every Radix overlay, the inline embed's expanded
 dialog — and the node lane relates to them in two opposite ways, depending on one bit:
 
 | under `renderToStaticMarkup`       | what happens                                                                                          |
@@ -769,8 +767,8 @@ So the trap is narrow: an **absence** assertion about a closed portal's contents
 reason that has nothing to do with the property under test. Issue #161 wrote exactly that spec —
 "a collapsed card does not render the interface" — watched it pass, and it kept passing with the
 regression reintroduced, because the dialog was closed either way and there was never any markup
-for `not.toContain` to find. `CompactEmbedView.mount.test.tsx` is the jsdom version that actually
-holds.
+for `not.toContain` to find. The jsdom version of that spec held (it went with the compact card);
+a closed-portal absence needs a DOM, or the browser lane.
 
 ⚠ **Do not over-generalize this into "the node lane can never assert a portal."** It does so
 loudly: a portal that renders when it should not makes SSR **throw** rather than pass quietly.
@@ -898,9 +896,9 @@ sits at about half the bound, and has in every re-measurement since, on 4 cores 
 widest selection grew. Time the hook (below) rather than quoting a figure: the ceiling is the
 narrower constraint of the two — a slot is spent long before a second is.
 ⚠ **The 0.12s class is smaller than #289 found it**: `src/views/FullInterface.tsx` selected
-nothing until `MapFrame.test.tsx` named it as a quoted repo-relative path, and now costs **2.2s**
-per edit for the wiring pin it previously had no per-edit coverage from at all. A quoted literal
-buys selection, and selection is what the budget is spent on.
+nothing until a spec named it as a quoted path (`MapFrame.test.tsx` then, since deleted;
+`App.standalone-title.test.tsx` now), and cost **2.2s** per edit as measured then. A quoted
+literal buys selection, and selection is what the budget is spent on.
 Re-measure by timing the hook itself, since the command it builds is the thing under budget:
 
 ```bash

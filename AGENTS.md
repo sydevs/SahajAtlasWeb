@@ -127,9 +127,9 @@ and `pnpm test:a11y` (`scripts/AGENTS.md`, #432), Dependency Review and `pnpm ch
   link — never popping the host page's history. Every page below the root says "Back to …"
   where it lands; only the filters close with an X. The mechanism is in
   `docs/rules/i18n-and-state.md`.
-- **Map containment, layout, responsive**: the widget adapts to its own box, not the window,
-  and a slot too small for any layout gets a compact card. Detail and reasoning:
-  `src/components/AGENTS.md` (#107, #161, #169). Never put `contain: layout` on the widget's
+- **Inline embed, layout, responsive**: every embed opens inline in the host's page, the map
+  opens over it on request, and the widget adapts to its own box, not the window. Detail and
+  reasoning: `src/components/AGENTS.md` (#107, #161, #169). Never put `contain: layout` on the widget's
   scope root.
 - **Map**: layer definitions live in `src/components/organisms/Mapbox/layers.ts`. Never
   inline layer paint or layout in JSX. Camera control goes through the `MapController`

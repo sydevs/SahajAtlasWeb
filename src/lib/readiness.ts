@@ -39,7 +39,7 @@ export const READY_ATTR = 'data-sahaj-atlas-ready'
  * changes meaning, so a verifier meeting an older embed can tell which fields it may trust rather
  * than inferring it from what happens to be present.
  */
-export const READY_CONTRACT_VERSION = 2
+export const READY_CONTRACT_VERSION = 3
 
 /**
  * What the marker attests. Every field is read by the verifier, so none of them is decorative.
@@ -49,16 +49,51 @@ export const READY_CONTRACT_VERSION = 2
  * why a mount that degraded to memory routing still reports its configured shape and says so
  * through `urlWritable` instead — a canonical URL is built from the shape, and whether this mount
  * can carry one at all is the other two fields' job.
+ *
+ * `tooSmall` is the element's box, in whole pixels, while it is too small for the inline atlas
+ * and shows only its heading and "Expand map" (`views/InlineEmbedView/fit.ts`); `null` while it
+ * fits. A working widget in a box nobody can browse in is still worth telling the client about.
+ * ⚠ **Absent until the inline view has measured its box**, which is a lazy chunk and a frame after
+ * the mount is attested: a verifier that needs the answer waits for the key, not the attribute.
+ * SahajCloud's verifier reads it to warn the client (sydevs/SahajCloud#1264).
  */
 export type ReadinessMarker = {
   v: number
   routing: RoutingMode
   topLevel: boolean
   urlWritable: boolean
+  tooSmall?: Fit
 }
 
-export function readinessMarker(marker: Omit<ReadinessMarker, 'v'>): ReadinessMarker {
-  return { v: READY_CONTRACT_VERSION, ...marker }
+/** The box while the widget is too small for it, `null` while it fits. */
+export type Fit = { width: number; height: number } | null
+
+/** What the mount attests, which the entry measures once. */
+export type MountAttestation = Omit<ReadinessMarker, 'v' | 'tooSmall'>
+
+export function readinessMarker(marker: MountAttestation, tooSmall?: Fit): ReadinessMarker {
+  return tooSmall === undefined
+    ? { v: READY_CONTRACT_VERSION, ...marker }
+    : { v: READY_CONTRACT_VERSION, ...marker, tooSmall }
+}
+
+// The mount is attested once, by the entry; the fit is measured later and changes with the box,
+// by the inline view. Each writes its own half, so the marker carries both once both are known.
+let attested: MountAttestation | null = null
+let fit: Fit | undefined
+
+function write(): void {
+  if (!attested) return
+
+  try {
+    document.documentElement.setAttribute(
+      READY_ATTR,
+      JSON.stringify(readinessMarker(attested, fit)),
+    )
+  } catch {
+    // A marker we could not write is a verification that comes back inconclusive, which is the
+    // honest outcome — and never a reason to take the widget down with it.
+  }
 }
 
 /**
@@ -72,13 +107,19 @@ export function readinessMarker(marker: Omit<ReadinessMarker, 'v'>): ReadinessMa
  * Guarded like every other read of a document we do not own: a host may have frozen the element or
  * be serving something exotic, and a diagnostic must never break the thing it is diagnosing.
  */
-export function publishReadiness(marker: Omit<ReadinessMarker, 'v'>): void {
-  try {
-    document.documentElement.setAttribute(READY_ATTR, JSON.stringify(readinessMarker(marker)))
-  } catch {
-    // A marker we could not write is a verification that comes back inconclusive, which is the
-    // honest outcome — and never a reason to take the widget down with it.
-  }
+export function publishReadiness(marker: MountAttestation): void {
+  attested = marker
+  write()
+}
+
+/**
+ * Record whether the widget fits its box, on the marker if one is up and on the next one if not.
+ * The inline view calls it once measured and as its box crosses the floor, never per resize, and
+ * with `undefined` when it unmounts, since nothing measures the box then.
+ */
+export function publishFit(tooSmall: Fit | undefined): void {
+  fit = tooSmall
+  write()
 }
 
 /**
@@ -94,6 +135,8 @@ export function publishReadiness(marker: Omit<ReadinessMarker, 'v'>): void {
  * (`App.tsx`), and the marker means "mounted, and not currently broken".
  */
 export function clearReadiness(): void {
+  attested = null
+
   try {
     document.documentElement.removeAttribute(READY_ATTR)
   } catch {

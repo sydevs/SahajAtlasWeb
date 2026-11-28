@@ -4,7 +4,7 @@ import { readSource as read, sourceFiles } from '@/test-support/source-tree'
 
 // The drawer's width lives in two places that cannot reference each other.
 // One is `DRAWER_W_PX` in `use-map-controller-mapbox.tsx`, which becomes the map's LEFT CAMERA PADDING, so the map knows how much of itself the panel covers.
-// The other is the `352px` fallback baked into the `w-[var(--sy-drawer-w,352px)]` Tailwind classes.
+// The other is the `384px` fallback baked into the `w-[var(--sy-drawer-w,384px)]` Tailwind classes.
 // A class string cannot read a TS constant, since the JIT scanner needs a literal.
 // So nothing but agreement keeps them equal, and divergence fails silently.
 // No error appears. The map just frames around a width the panel no longer has.
@@ -39,7 +39,7 @@ describe('drawer width — the TS constant and its CSS twin', () => {
   it('declares DRAWER_W_PX, and pads the camera with it', () => {
     expect(declaredPx).toBeDefined()
     // This pins the use too.
-    // A hardcoded `352` in the padding would otherwise stay green, while re-opening the very coupling this guards.
+    // A hardcoded `384` in the padding would otherwise stay green, while re-opening the very coupling this guards.
     expect(controller).toMatch(/isWide \? DRAWER_W_PX\b/)
   })
 

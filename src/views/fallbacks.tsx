@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
-import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader, DrawerToolbar, useDrawerMode } from '@/components/atoms/Drawer'
 import { FallbackPanel, ListToolbar, SortMenu } from '@/components/molecules'
 import { EventHeader } from '@/components/organisms/EventDetails/EventHeader'
 import { eventTitlesQuery, regionQuery, regionsQuery } from '@/config/api'
@@ -28,9 +28,12 @@ import {
   skeletonShape,
 } from '@/components/organisms/Skeleton/Skeleton'
 import { BackButton, NavHeader, NavRow } from '@/views/nav'
+import { useFilterButtonsShown } from '@/hooks/use-filter-buttons'
+import { useInlineAbove, useInlineAside } from '@/hooks/use-inline-aside'
 import {
   CalendarButton,
   DrawerTitle,
+  useRootHeader,
   ExpandSheetButton,
   FilterButton,
   SearchField,
@@ -119,6 +122,10 @@ export function DrawerChrome({
   const { locale, regionNames: countryNames } = useLocale()
   const { hasMap } = useWidgetMode()
   const { collapsed } = useDrawerControl()
+  const inline = useDrawerMode() === 'inline'
+  const rootHeader = useRootHeader()
+  const above = useInlineAbove() !== null
+  const menusShown = useFilterButtonsShown()
   const location = useLocation()
   const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
 
@@ -169,12 +176,14 @@ export function DrawerChrome({
     if (!entry) {
       return (
         <>
-          <DrawerHeader className="justify-between">
-            <DrawerTitle title={t('countries.title')} />
-            <div className="flex min-h-8 items-center pointer-coarse:min-h-11">
-              {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
-            </div>
-          </DrawerHeader>
+          {rootHeader && (
+            <DrawerHeader className="justify-between">
+              <DrawerTitle isPlace title={t('countries.title')} />
+              <div className="flex min-h-8 items-center pointer-coarse:min-h-11">
+                {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+              </div>
+            </DrawerHeader>
+          )}
           <DrawerToolbar field>
             {field}
             {loading && <SkeletonLocation />}
@@ -200,16 +209,23 @@ export function DrawerChrome({
     )
   }
 
-  // A class loading takes EventView's own header, so the title lands where the real one will.
+  // A class loading takes EventView's own header, so the title lands where the real one will. A
+  // title fits one line in the inline column, wider than a panel, and wraps to two in a panel.
   if (loading && entry.kind === 'event') {
-    return <EventHeader nav={<NavRow />} title={title} />
+    // Inline, as EventView: the way back above the page heading, and no header here.
+    return above ? (
+      <NavRow />
+    ) : (
+      <EventHeader nav={<NavRow />} title={title} titleLines={inline ? 1 : 2} />
+    )
   }
 
   // The calendar's header is its controls, not a title.
   if (loading && entry.kind === 'calendar') {
     return (
       <DrawerHeader className={CALENDAR_HEADER}>
-        <SkeletonCalendarControls />
+        {above && <BackButton />}
+        <SkeletonCalendarControls backRow={!(above && menusShown)} />
       </DrawerHeader>
     )
   }
@@ -219,21 +235,23 @@ export function DrawerChrome({
   // place still loading draws its title's line instead, outside any heading.
   const header = (
     <NavHeader
+      // Both still work — they navigate rather than read — and are scoped to the region whose
+      // page failed, which is exactly where a viewer wanted to be. Not for a place that doesn't
+      // exist: there is nothing to scope them to. None at all leaves the inline row out.
       actions={
-        <>
-          {/* Both still work — they navigate rather than read — and are scoped to the region
-              whose page failed, which is exactly where a viewer wanted to be. Not for a place
-              that doesn't exist: there is nothing to scope them to. */}
-          {entry.kind === 'region' && !notFound && (
-            <>
-              <CalendarButton regionSlug={entry.slug} />
-              <FilterButton iconOnly />
-            </>
-          )}
-          {entry.kind === 'calendar' && <FilterButton iconOnly />}
-        </>
+        entry.kind === 'region' && !notFound ? (
+          <>
+            <CalendarButton regionSlug={entry.slug} />
+            <FilterButton iconOnly />
+          </>
+        ) : entry.kind === 'calendar' ? (
+          <FilterButton iconOnly />
+        ) : undefined
       }
       close={entry.kind === 'filters'}
+      // A region is a place unless the tree says it is a venue, whose page heading names its
+      // city instead (`heading-place.ts`).
+      isPlace={entry.kind === 'region' && region.node?.level !== 'venue'}
       pendingTitle={loading && entry.kind === 'region' && !title}
       subtitle={entry.kind === 'register' ? t('registration.form.reassurance') : undefined}
       title={title}
@@ -278,6 +296,7 @@ function useCachedRegion(slug: string | undefined) {
 export function DrawerLoading() {
   const { hasMap } = useWidgetMode()
   const isWide = useIsWideWidget()
+  const aside = useInlineAside() !== null
   const location = useLocation()
   const entry = baseStackEntry(resolveStack(location.pathname), hasMap)
   const region = useCachedRegion(entry?.kind === 'region' ? entry.slug : undefined)
@@ -286,8 +305,9 @@ export function DrawerLoading() {
   return (
     <>
       <DrawerChrome loading />
-      {/* The phone sheet pins Register to its foot once the class arrives. */}
-      <DrawerLoadingBody body={shape.body} cta={!hasMap || isWide} />
+      {/* The phone sheet pins Register to its foot once the class arrives, and the inline embed
+          puts it under its map. */}
+      <DrawerLoadingBody body={shape.body} cta={!aside && (!hasMap || isWide)} />
     </>
   )
 }

@@ -18,16 +18,38 @@ const PATH = [
 
 const COUNTRY = PATH[0]
 
-// Back is the sheet's own button, looked up inside the sheet.
-const backTo = (atlas: ReturnType<typeof widget>, title: string) =>
-  atlas
-    .getByRole('dialog')
-    .getByRole('button', { name: copy(en.common.chrome.back_to, { title }), exact: true })
+type Scope = ReturnType<typeof widget>
 
-test('browsing in moves the URL and the drawers, and Back retraces it', async ({ page }) => {
+// Back, looked up inside what holds the view: the expanded map's sheet, or the inline column.
+const backTo = (scope: Scope, title: string) =>
+  scope.getByRole('button', { name: copy(en.common.chrome.back_to, { title }), exact: true })
+
+// Inline, the page heading names the place, and the drawer's own title for it is hidden.
+const placeHeading = (scope: Scope, place: string) =>
+  scope.getByRole('heading', { name: copy(en.countries.place_title, { place }), exact: true })
+
+// On a class, the page heading names the class in its town, whichever town the fixture is in.
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const classHeading = (scope: Scope, title: string) => {
+  const [before, after] = copy(en.event.display.title_in_place, { title, place: '\u0000' }).split(
+    '\u0000',
+  )
+
+  return scope.getByRole('heading', { name: new RegExp(`^${escape(before)}.+${escape(after)}$`) })
+}
+
+test('browsing the expanded map moves the URL and the drawers, and Back retraces it', async ({
+  page,
+}) => {
   await page.goto(hostPage('full-map.html'))
 
-  const atlas = widget(page)
+  // The drawer stack lives in the expanded map; inline, the same views sit in the page.
+  await widget(page).getByRole('button', { name: en.common.map.expand, exact: true }).click()
+
+  const atlas = widget(page).getByRole('dialog', {
+    name: en.common.chrome.widget_label,
+    exact: true,
+  })
   const heading = (title: string) => atlas.getByRole('heading', { name: title, exact: true })
 
   for (const step of PATH) {
@@ -39,7 +61,7 @@ test('browsing in moves the URL and the drawers, and Back retraces it', async ({
   // Back goes BACK rather than up a level, and says where: the country the class was opened
   // from, not the city above it. The forward entry it leaves is the proof, since climbing would
   // have pushed a new entry and left nothing to go forward to.
-  await backTo(atlas, COUNTRY.title).click()
+  await backTo(atlas.getByRole('dialog'), COUNTRY.title).click()
   await expect.poll(() => atlasRoute(page)).toBe(COUNTRY.route)
   await expect(heading(SAHAJCLOUD_EVENT.title)).toHaveCount(0)
 
@@ -57,21 +79,23 @@ test('browsing in moves the URL and the drawers, and Back retraces it', async ({
   await expect(atlas.getByRole('link', { name: PATH[0].link })).toBeVisible()
 })
 
-test('a deep link to a class goes back past the places that hold only it', async ({ page }) => {
+test('a deep link opens inline onto its class, and Back goes past the places that hold only it', async ({
+  page,
+}) => {
   await page.goto(hostPage('full-map.html', SAHAJCLOUD_EVENT.path))
 
   const atlas = widget(page)
 
-  await expect(
-    atlas.getByRole('heading', { name: SAHAJCLOUD_EVENT.title, exact: true }),
-  ).toBeVisible()
+  // Inline, the page heading names the class in its town.
+  await expect(classHeading(atlas, SAHAJCLOUD_EVENT.title)).toBeVisible()
+  await expect(atlas.getByRole('dialog')).toHaveCount(0)
 
   // A deep link has no in-widget history, so `navigate(-1)` here would take the HOST page back
   // to wherever the visitor came from (#89). It climbs instead, past the city and the region,
   // which would only open this class again, to the country.
   await backTo(atlas, COUNTRY.title).click()
   await expect.poll(() => atlasRoute(page)).toBe(COUNTRY.route)
-  await expect(atlas.getByRole('heading', { name: COUNTRY.title, exact: true })).toBeVisible()
+  await expect(placeHeading(atlas, COUNTRY.title)).toBeVisible()
   expect(new URL(page.url()).pathname).toBe('/__review/full-map.html')
 })
 
@@ -83,11 +107,9 @@ test('a link to a place with one class opens it, and Back does not bounce into i
   const atlas = widget(page)
 
   await expect.poll(() => atlasRoute(page)).toBe(SAHAJCLOUD_EVENT.path)
-  await expect(
-    atlas.getByRole('heading', { name: SAHAJCLOUD_EVENT.title, exact: true }),
-  ).toBeVisible()
+  await expect(classHeading(atlas, SAHAJCLOUD_EVENT.title)).toBeVisible()
 
   await backTo(atlas, COUNTRY.title).click()
   await expect.poll(() => atlasRoute(page)).toBe(COUNTRY.route)
-  await expect(atlas.getByRole('heading', { name: COUNTRY.title, exact: true })).toBeVisible()
+  await expect(placeHeading(atlas, COUNTRY.title)).toBeVisible()
 })

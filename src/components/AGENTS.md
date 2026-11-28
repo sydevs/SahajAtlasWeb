@@ -90,8 +90,8 @@ pipeline or its check.
 - **An overlay that portals to `document.body` renders unstyled.** Everything must
   portal to `overlayContainer()` (`src/lib/overlay.ts`), which targets the theme root
   — inside the scope, unlike `document.body`.
-  **While a compact embed is expanded, that call returns the expanded surface
-  instead** (issue #161). This is not tidiness: the surface is a MODAL Radix Dialog,
+  **While the inline embed's map is expanded, that call returns the expanded
+  dialog instead** (issue #161). This is not tidiness: the surface is a MODAL Radix Dialog,
   so it traps focus in its own content and hides its siblings from assistive
   technology, and a drawer portaled beside it would be unreachable by keyboard. The
   surface is the one caller that must NOT see the override — a portal cannot render
@@ -207,19 +207,20 @@ shipping a narrow embed that quietly behaves like a desktop.
 
 | Behavior | Signal | Why |
 | --- | --- | --- |
-| Drawer direction — left panel vs. bottom sheet (`DrawerStack`) | container (the map-less root, or the frame) | A fit question: does a 352px side panel leave usable space beside it? Since #169 map mode has a frame where one exists — a contained embed's box, or the compact card's expanded dialog. |
-| Drag handle, swipe-dismiss, `handleOnly`, the snap ladder | container (follows direction) | The handle exists only for a bottom sheet. `DrawerStack` passes it explicitly rather than trust the atom's own default, which would leave a narrow map-less sheet draggable with nothing on screen saying so. |
+| Drawer direction — left panel vs. bottom sheet (`DrawerStack`) | container (the inline column, or the frame) | A fit question: does a 384px side panel leave usable space beside it? The expanded map's frame is its dialog. |
+| Drag handle, swipe-dismiss, `handleOnly`, the snap ladder | container (follows direction) | The handle exists only for a bottom sheet, which is the Drawer atom's own default. Every drawer sits over a map and is dismissible, so the handle never advertises a drag that is not there. |
 | Filter-overlay direction (right vs. bottom) | container | Same panel-vs-sheet question, same answer. |
-| Filter buttons vs. the Filters button (`useFilterButtonsShown`) | container (follows direction) | The buttons show over the map wherever the panel sits beside it, wrapping where the map is narrow. The full-width calendar carries them in its header instead (`isCalendarFullWidth`). |
+| Filter buttons vs. the Filters button (`useFilterButtonsShown`) | container (follows direction), or the inline mode | The buttons show over the map wherever the panel sits beside it, wrapping where the map is narrow, and always in the inline embed's toolbar above its map. The full-width calendar carries them in its header instead (`isCalendarFullWidth`), except inline. |
 | Sticky Register bar (`EventView`) | container | A snap sheet can scroll the CTA out of sight. This is a property of the sheet. |
 | Map camera padding (`use-map-controller`) | container (the frame) | Camera padding must agree with whatever picked the panel it pads around. Reads `frameElement()` — `null`, and so the viewport, wherever no frame exists. |
 | Map controls: column vs row (`MapControls`) | viewport (via `useIsShortViewport`) | A phone on its side is too short for a column. The same answer caps the frameless phone sheet's stops (`DrawerStack`), so the row stays above that sheet's top. |
-| Anchored-panel geometry — `lg:top-4`, the content-height cap, `lg:rounded-2xl` (Drawer atom) | viewport (accepted residue) | #169 broke "viewport equals container". A contained map can reach a `lg:` crossing its frame never sees. What survives is cosmetic float, rounding, and a panel as tall as its view. |
+| Anchored-panel geometry — `lg:top-4`, the content-height cap, `lg:rounded-2xl` (Drawer atom) | viewport (accepted residue) | #169 broke "viewport equals container". The expanded dialog is shorter than the window by the host's header. What survives is cosmetic float, rounding, and a panel as tall as its view. |
 | Month's layout — day boxes or the dot grid (`MonthView`), and the drawer's width (`DrawerStack`: the Month takes the wide panel, the Week keeps the side panel) | container (via `useIsWideWidget`) | A fit question like the drawer's: a 7-column grid of named boxes needs the wide panel, and a 320px column gets the dot grid. A viewport read would draw boxes in a narrow embed. |
 | Modal box sizing | container (the frame) | Portals through `overlayContainer()`, so a frame contains and clips it on both axes. |
 | `EventHeader`'s `md:pt-4` | viewport (accepted residue) | The only variant that fires wrongly in a narrow map-less embed. It is cosmetic — fix it if you are already there. |
-| Form-field font size — the 16px floor (the `field-size` utility, on `fieldChrome` and both search fields) | **input, then viewport** — one `@utility` in `globals.css`, not one of the three hooks | iOS Safari scales the whole page in when a focused field computes under 16px, and embedded that zoom lands on the host's page. The trigger is the engine, not the box: an iPhone is 932px wide in landscape, so a `md:`-only floor handed it the 14px size back and zoomed exactly as before (measured). So 14px needs a wide screen **and** a fine pointer — the hardware question `useCoarsePointer()` asks (as the copy-failure hint does), in CSS. A 400px iframe on a desktop therefore does render 16px fields, which is cosmetic and accepted. One utility rather than a class pair also lets `[&_input]:field-size` reach the geocoder's own input in a single arm. `src/styles/mobile-zoom.test.ts` holds the floor, refuses a bare `md:`, and refuses a caller `text-*`, which a custom utility cannot outrank (#322). |
-| Compact card vs. full interface (`AppShell`) | the slot, measured ONCE at mount | Not one of the three signals, and deliberately not reactive — see below. |
+| Form-field font size — the 16px floor (the `field-size` utility, on `fieldChrome` and both search fields) | **input, then viewport** — one `@utility` in `globals.css`, not one of the three hooks | iOS Safari scales the whole page in when a focused field computes under 16px, and embedded that zoom lands on the host's page. The trigger is the engine, not the box: an iPhone is 932px wide in landscape, so a `md:`-only floor handed it the 14px size back and zoomed exactly as before (measured). So 14px needs a wide screen **and** a fine pointer — the same hardware question the `tel:` row asks, in CSS rather than `useCoarsePointer()`. A 400px iframe on a desktop therefore does render 16px fields, which is cosmetic and accepted. One utility rather than a class pair also lets `[&_input]:field-size` reach the geocoder's own input in a single arm. `src/styles/mobile-zoom.test.ts` holds the floor, refuses a bare `md:`, and refuses a caller `text-*`, which a custom utility cannot outrank (#322). |
+| Inline columns vs. a map strip above the list (`InlineEmbedView`) | container, in CSS (`@container`, `@min-sy-cols:`) | The same fit question, asked of the widget's own width, with no JS. `--container-sy-cols` in `globals.css` is the crossing, and it is not `WIDE_MIN_PX`. |
+| Inline vs. map-first (`App`) | the entry, once | Not a size question: every embed and every frame is inline, and only the standalone page opened directly is map-first. |
 | Reduced motion, color scheme | preference | Not a size question at all — see the accessibility motion seams below. |
 
 Two properties of the mechanism are load-bearing:
@@ -228,139 +229,117 @@ Two properties of the mechanism are load-bearing:
   mode there is nothing to measure — the theme root is `display: contents`, the
   canvas is `position: fixed; inset: 0`, every drawer is `fixed` — so `useIsWide`
   falls through to the viewport and returns exactly what the old `useIsDesktop` did.
-  ⚠ Since #169 a map embed can have its own frame too, and then it is measured like
-  any other box.
+  ⚠ The expanded map is the exception: its dialog takes the containing block (#169), so
+  inside it the fit question is measured like any other box.
 - **The first measurement is not damped. Every later one is.** The seed runs in a
   layout effect, so the right model is on screen from the first frame. Damping it too
   would paint a frame of the viewport's answer and then remount the drawer — the
   exact thrash the delay exists to prevent.
 
-### Map mode is contained by a FRAME, or it takes the viewport (issue #169)
+### Every embed opens inline; the map opens over the page on request
 
-**⚠ This section used to say containment was intractable. It is implemented — do not
-restore that claim.** Each premise of the old argument — vaul's window-height math,
-a viewport-relative `--sy-sheet-top`, and `100dvh` overshooting a frame — is answered
-below the patch register.
+**There is one embedded form, `InlineEmbedView`** (`src/views/`), and the entry picks it
+once: every `<sahaj-atlas>`, and the standalone build when framed. Only the standalone page
+opened directly — and a SahajCloud live-preview session — renders the map-first
+`FullInterface`, and only with a map: `App` makes every map-less atlas inline, so no drawer
+ever renders without a map behind it. Both are lazy chunks, so `react-map-gl` stays out of the eager graph, and both
+run `useInterfaceBoot` (the pageview, the captcha guard, the home redirect, the cache warm)
+once. The expanded map is `MapInterface`, the same interface without that boot.
+
+- **The content column is the same `DrawerStack`, `inline`.** It renders the top view inside
+  `DrawerSlotsProvider mode="inline"` with no vaul root: the body does not scroll, a sticky
+  footer is static, there is no snap ladder, peek strip or cog, and no cross-fade — two layers
+  in flow would stack rather than overlap. `DrawerTitle`'s `isPlace` gives a region's title
+  way to the page heading inline (`heading-place.ts` names the place, skipping venues).
+- **The map column is its own map**, in a box that takes the containing block with `contain:
+  layout` plus `transform-gpu` (below), and is deliberately NOT published with `setFrame`: a
+  dialog opened from the content must not be confined to the map. The two maps never coexist:
+  the inline one unmounts while the dialog's is open, because both write the one camera-settled
+  flag, and remounts on collapse, re-framing as its controller arrives. They share the padding
+  store: `MapboxControllerProvider inline` writes nothing, since the store's margin-only default
+  is its padding, and the expanded map's provider gives that default back when it unmounts.
+- **The inline map's controls sit in a toolbar above it**, not on it: `InlineColumns` renders
+  the `MapControls` organism `inline`, with the filter buttons in their inline look and the
+  settings menu, so the map's own corner (`MapCorner`) holds the credits alone. Side by side the
+  toolbar sits across from the page heading, the two bottoms level, and sticks with the map. Over
+  the filters' own view, a class and its sign-up the buttons give way to find-me, which reads the
+  map's request off `useFindMe`. A map-less embed has no toolbar, so its settings sit beside the
+  page heading. With the buttons there, the root view's header would hold nothing, so it draws
+  none (`useRootHeader`).
+- **Whatever a view leads with starts level with the map.** The grid's row gap is the toolbar's
+  gap above the map, and the inline Drawer bands drop their top padding when first
+  (`drawer-style.ts`), so the first band's top is the map's top however the heading or the
+  toolbar wraps. No gap between the columns: the content's own gutter spaces it from the map.
+- **Back sits above the page heading on every inline view**, labelled in full: `BackButton`
+  renders into `InlineAbove` (`hooks/use-inline-aside.tsx`) wherever a view puts it, and
+  `NavRow` keeps only the view's own controls. A class's page is headed by the class in its
+  town (`PlaceHeading`, `event.display.title_in_place`), and `EventView` draws no header of its
+  own. Beside the map, its facts and description take `EventFacts`' `detailed` treatment: each
+  fact under a small label, and a Cost row (every class is free). Under Register there,
+  `EventShareAndReport` shows the share targets themselves (`ShareRow`, so Share leaves the
+  action row) and "Report incorrect class details", which opens the report form; the page path
+  names the class. The inline map's toolbar offers neither filters nor find-me on a class.
+- **Beside the inline map, a class's Register and actions sit under it**, in `InlineColumns`'
+  aside: `EventDetails` portals them there through `InlineAside` (`hooks/use-inline-aside.tsx`),
+  and the map's square shrinks by the aside's height, so both stay in view while they stick.
+  Stacked, there is no aside: the page reads as the phone sheet, Register in a `sticky` footer
+  that sticks to the screen's bottom in the page's flow, the actions after the details.
+- **Layout is measured on the widget, in CSS** — `@container` with `@min-sy-cols:`, never a
+  viewport variant (#107).
+- **The host's page is `host-page.ts`'s business, and every read there is guarded** — hosts patch
+  `getBoundingClientRect` and friends, and a throw would take the embed down with it.
+  `useGrowHost` overrides the element's height rule and gives it back; `boxed` is its answer where
+  an ancestor clips what grows, and WeMeditate's `/map` shell is the case that exists for.
+  `headerOffset` says where the host's header ends, and `pageHasHeading` makes the page heading an
+  `h2` under a host `h1`. `useTooSmall` answers whether the box is too small to browse in (`fit.ts`
+  holds the floor): then the view shows its heading and "Expand map" alone, and the box goes on
+  the readiness marker for SahajCloud's verifier. A frame counts as a box that cannot grow.
+- **The expanded dialog is module-private in `InlineEmbedView`.** It publishes itself as the
+  app's portal target, needs `contain: layout`, and has one caller, so it is not an atom;
+  `Modal` stays the generic dialog. It starts below the host's header rather than over it, and
+  its visible exit is `DrawerStack`'s "Close map", floating above the sheet's live top. Behind
+  it, the inline column sits in a hidden `<Activity>`: its effects would otherwise frame a map
+  that is not there and write the stores the expanded map reads, and Radix's `hideOthers` skips
+  any subtree holding a live region. The content keeps its height while hidden, so the page
+  does not move under the modal.
+
+### The expanded map is contained by its FRAME (issue #169)
 
 **The frame is `contain: layout`, and that one property does all of it.** It makes
 the element the containing block for every fixed descendant, so the canvas and the
-drawers are identical in both modes — containment is NOT a
+drawers are identical to the map-first page — containment is NOT a
 `fixed`-to-`absolute` swap. It also makes the frame a **stacking context**, which
 answers "what is our z-index relative to the host's": the widget's `z-30`…`z-50` stop
 competing with the host's CSS. `lib/overlay.ts` holds the one reference
 (`setFrame` / `frameElement`) — there is only ever one.
 
 ⚠ **For layout, that one property does all of it. WebKit's compositor needs a second one,
-`transform: translateZ(0)` — the `transform-gpu` utility — on the same frame** (#424). WebKit
-computes the clip of a composited layer under a `position: fixed` ancestor in viewport
-coordinates when its compositing root is the page, and never refreshes it on scroll. Mapbox's
-WebGL canvas is such a layer.
-On sahajayoga.bg's 640px embed, iOS Safari showed the map lagging its box, then vanishing, while
-the page scrolled. Layout was correct the whole time, so neither `getBoundingClientRect` nor a
-Playwright WebKit screenshot shows the bug. Only a real touch scroll on a device does. Making
-the frame a compositing layer gives those clips frame coordinates.
-
-⚠ **The compact card's expanded dialog needs none of this**, though `lib/overlay.clip.test.ts`
-names it beside the frame as the other box that takes the containing block and renders the
-canvas. It is itself `fixed inset-2`, so the viewport-relative clip under it is right at every
-scroll offset and cannot go stale. The frame is what scrolls.
+`transform: translateZ(0)` — the `transform-gpu` utility — on a box that scrolls with the page**
+(#424). WebKit computes the clip of a composited layer under a `position: fixed` ancestor in
+viewport coordinates when its compositing root is the page, and never refreshes it on scroll.
+Mapbox's WebGL canvas is such a layer. On sahajayoga.bg's 640px embed, iOS Safari showed the map
+lagging its box, then vanishing, while the page scrolled. Layout was correct the whole time, so
+neither `getBoundingClientRect` nor a Playwright WebKit screenshot shows the bug. Only a real
+touch scroll on a device does. So the inline map's box carries it; the dialog is itself `fixed`,
+so the clip under it cannot go stale.
 
 ⚠ **`contain: layout` must never go on the scope root, and this rule does not
 change.** Same mechanism, opposite direction: on the root it would re-parent the
 fixed layer onto the HOST's element, a box a map-less embed shares with the host's
-page. On `MapFrame`, re-parenting is the entire point, and the element is ours.
+page. On the dialog and the inline map's box, re-parenting is the entire point.
 
 ⚠ **Every box the fixed layer resolves against clips with `overflow-clip`, never
 `overflow-hidden`** (#326). `hidden` is still a scroll container, so the browser scrolls
 such a box to reach a focused field — and a clipped box offers no scrollbar and no wheel
 to scroll back. Measured at 390×844: focusing a registration field carried the widget
-528px out of the compact card's dialog.
+528px out of the then compact card's dialog.
 
 Two mechanisms produce the overflow, and both are ours to clip. A **snap-translated
-sheet** contributes its own translate to whatever holds it — the frame, the compact
-dialog, or `DrawerStack`'s map-less container, which takes the containing block through
-`position: relative` rather than `contain: layout` and so is invisible to a scan for the
-latter. And the **panel itself** carries vaul's `::after` background filler
-(`styles/vaul.css`, `top: 100%; height: 200%`), ~1688px on a phone sheet, which no view
-creates and none can decline — so the Drawer atom's `content` slot clips too.
-`lib/overlay.clip.test.ts` names the boxes and `Drawer.scroll.test.tsx` holds the panel,
-because this is a rule that gets applied in one place and missed in the other.
-
-**What decides containment is whether the host sized the element, and nothing
-else** (`mapMode`, `lib/embed-slot.ts`). Map mode renders everything fixed, so `<sahaj-atlas>`
-measures zero height on its own — a height cannot appear by accident. An
-**unsized** map embed fills the viewport, and one without the page to itself gets a
-**compact card** instead of a takeover — `lib/slot-decision.ts` measures at mount
-and the card's button opens the map full-screen.
-
-### A slot too small for any layout: the compact card (issue #161)
-
-#107 made the widget adapt to its box. Below a floor there is no layout left to adapt
-to, so the widget renders **`CompactEmbedView`** (`src/views/`) instead — one heading
-and one task-named button that opens the interface somewhere it fits.
-
-- **One question, not three.** The question underneath the earlier three-predicate
-  version: **is the space we have meaningfully smaller than the space the button
-  would take the visitor to?** `resolveDestination` answers where the button goes,
-  `embedLayout` answers what to render — both pure, in `lib/embed-slot.ts`, with the
-  floors and `SLOT_GAIN` — and `decideSlot` (`lib/slot-decision.ts`) measures the DOM and
-  joins them, because the join is where the original bug lived.
-- **The destination discriminator is NOT "am I framed," though it looks like it
-  should be.** It is whether the local viewport is bigger than the slot. Framing
-  only picks the fallback when it is not. A frame IS a viewport (`position: fixed`
-  resolves against it), so a framed map embed at 400×600 must stay full.
-- **`SLOT_GAIN` is one ratio where there were three**, ratcheted in both directions
-  against real false positives and false negatives.
-- **`AppShell` owns the decision, above `MapProvider`**, so the whole map subtree can
-  stay unmounted, keeping mapbox-gl unfetched. That saving is invisible to `pnpm size`
-  by design, since mapbox-gl is a dynamic import never in the eager graph.
-- **The measurement happens once, at first render, never on resize.** Resizing
-  remounts the widget and discards the in-widget history, so a host page animating a
-  sidebar would throw a visitor's session away mid-read. There is deliberately **no
-  override parameter** for this.
-- **The card makes no data requests.** `CompactEmbedView.test.tsx` asserts that
-  absence, because a per-row size estimate once cost a feed read, a titles read, and
-  an IP lookup on every sidebar page view nobody scrolled to.
-- **Expansion goes through a seam** (`src/hooks/use-expansion.tsx`), the same shape
-  as `MapController`. A framed embed gets an anchor (`lib/fallback-url.ts`) instead,
-  through the `Button` atom's href form — not a new JSX anchor, since `href.test.ts`
-  pins that inventory.
-- **What it expands into is a module-private dialog inside `CompactEmbedView`, and it
-  keeps a margin.** It is not an atom: it publishes itself as the app's
-  portal target, needs `contain: layout` since this app's interface is fixed
-  throughout, and has exactly one caller. `Modal` stays the generic dialog atom. A
-  full-bleed layer would read as a navigation — the host's page simply gone — so the
-  dialog insets, the host's page shows through the margin, and clicking it closes
-  the dialog. ⚠ **`contain: layout` on the dialog content makes the margin
-  possible**: without it, every fixed descendant resolves against the viewport and
-  escapes to the screen edge. This is the same property forbidden on the SCOPE
-  ROOT, pointed the other way — never move it up the tree.
-- **A deep link loads eagerly and opens. A configured default does not.** The
-  distinction is whether the **page** URL itself carried `?atlas=`
-  (`routeFromPage` / `MountDecision.fromPage`) — the loader lazy-mounts behind an
-  `IntersectionObserver`, so without this a deep-linked widget would mount
-  mid-scroll and slam a modal over the page.
-
-⚠ **An effect in `AppShell` runs for a collapsed card too, and that caused four
-separate bugs.** Anything that writes the host's URL, reads data, injects a script, or
-reports must mount with the **interface** (`FullInterface`), never with the shell:
-
-| Fired from a collapsed card | Cost |
-| --- | --- |
-| The home-region redirect | `navigate` wrote `?atlas=/nl` onto the HOST's URL. Reloading that URL opened a dialog nobody asked for. |
-| `api.warmCaches()` | The whole events feed and region tree, on every page view of a sidebar nobody pressed. |
-| `Fathom.load` | Our tracker script injected into the host's page. |
-| `Fathom.trackPageview` | A pageview of `/` recorded for an interface nobody opened. |
-
-**One property underwrites all four**: React never renders the card's `children`
-until the dialog opens — which also keeps mapbox-gl unfetched.
-`CompactEmbedView.mount.test.tsx` pins this. It must run under **jsdom**: the
-dialog's content is a portal, so `renderToStaticMarkup` renders none of it, and an
-SSR version of the assertion would be vacuous (see `docs/testing.md`).
-
-Two effects deliberately still fire from a collapsed card: the readiness marker and
-the embed report, since both attest that the widget booted, whether or not anyone
-opened it. `clients/me` also stays, since the card is themed and localized from it.
+sheet** contributes its own translate to whatever holds it, the dialog. And the **panel
+itself** carries vaul's `::after` background filler (`styles/vaul.css`, `top: 100%; height: 200%`), ~1688px on a
+phone sheet, which no view creates and none can decline — so the Drawer atom's `content` slot
+clips too. `lib/overlay.clip.test.ts` names the boxes and `Drawer.scroll.test.tsx` holds the
+panel, because this is a rule that gets applied in one place and missed in the other.
 
 **Two things about the dialog were found in a browser, and could not have been
 found any other way.**
@@ -464,11 +443,11 @@ advisories, and no patch release can lift an exact pin. `pnpm audit` reports the
 the override goes. Nothing here ships `undici` to a browser. Remove it once `pnpm audit` stays
 clean with the override gone.
 
-⚠ **The margin means nothing inside the dialog may size itself off the viewport.**
+⚠ **Nothing inside the dialog may size itself off the viewport.**
 Every drawer and sheet is `position: fixed`, so `100dvh` is only right
-while nothing has taken the containing block — and the dialog takes it, 16–32px
-short. The fix is one token, `--sy-frame-h`: `100dvh` on `.sy-atlas`, `100%` on
-`[data-sy-frame]` (which the dialog and `MapFrame` both carry), so one value is right
+while nothing has taken the containing block — and the dialog takes it, short of the
+window by the host's header. The fix is one token, `--sy-frame-h`: `100dvh` on `.sy-atlas`,
+`100%` on `[data-sy-frame]` (which the dialog carries), so one value is right
 in both places. `--sy-sheet-top` needed the matching correction, since the dialog's
 own top must be subtracted from its viewport-coordinate source.
 
@@ -496,9 +475,8 @@ neither exists any more — grep before relying on either.
 
 It was evaluated and rejected for one reason: **there is no CSS-side case for it to
 serve.** Every layout-critical Tailwind variant in the app is either in the map-mode
-anchored path, where viewport equals container, or has no effect at all in `filled`
-map-less mode — measured at a 1440px viewport, where a `filled` drawer computes to
-`position: absolute`, `max-width: none`, filling its box to the pixel.
+anchored path, where viewport equals container, or in the inline embed, which already
+measures itself with Tailwind 4's own `@container` (`@min-sy-cols:`) and needs no plugin.
 
 **A caution against a plausible-sounding claim that is FALSE.** It is widely
 repeated that `container-type: inline-size` makes an element a containing block for
@@ -603,7 +581,7 @@ put on it.
 
 ⚠ **Radix restores focus to a `Dialog.Trigger`, and neither of this app's dialogs has one**, so
 closing dropped the viewer on `<body>` (#432). `useOpenerRestore` (`src/hooks/`) is the one
-implementation for both — the `Modal` atom and `CompactEmbedView`'s surface — and its docblock
+implementation for both — the `Modal` atom and `InlineEmbedView`'s expanded map — and its docblock
 owns the three measured properties that make it work. Read it before changing either dialog.
 `ReportIssueModal` adds a click-time capture in front of it; that is a chain, not a duplicate,
 and the comment there says why neither end is spare.

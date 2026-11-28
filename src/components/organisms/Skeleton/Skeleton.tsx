@@ -207,13 +207,17 @@ export function SkeletonHeader({
 
 /** The calendar's own header (CalendarView's): Back and Filters, the place's name, then the view
  *  switch beside the date between its arrows. */
-export function SkeletonCalendarControls() {
+export function SkeletonCalendarControls({ backRow = true }: { backRow?: boolean }) {
   return (
     <>
-      <SkeletonGroup className="flex h-8 w-full items-center justify-between">
-        <SkeletonLine className="text-sm" width="w-36" />
-        <SkeletonBlock className="h-5 w-5 rounded-full" />
-      </SkeletonGroup>
+      {/* Back and Filters' row. Inline beside a map, Back sits above the page heading and the
+          filter buttons above the map, so the row has nothing left in it. */}
+      {backRow && (
+        <SkeletonGroup className="flex h-8 w-full items-center justify-between">
+          <SkeletonLine className="text-sm" width="w-36" />
+          <SkeletonBlock className="h-5 w-5 rounded-full" />
+        </SkeletonGroup>
+      )}
       <SkeletonGroup className="w-full">
         <SkeletonLine className="text-xl" width="w-1/2" />
       </SkeletonGroup>

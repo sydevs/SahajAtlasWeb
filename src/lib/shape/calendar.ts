@@ -155,7 +155,7 @@ export const calendarViewFromParams = (params: URLSearchParams): CalendarViewNam
   params.get(VIEW_PARAM) === 'week' ? 'week' : 'month'
 
 /**
- * Whether the calendar on top fills the widget rather than the 352px panel: its Month, above the
+ * Whether the calendar on top fills the widget rather than the 384px panel: its Month, above the
  * wide crossing (#331). Its Week is one column and keeps the panel. The drawer's size and the
  * calendar's own header row both read this.
  */

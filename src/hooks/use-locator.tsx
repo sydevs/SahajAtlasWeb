@@ -77,7 +77,7 @@ const LocatorContext = createContext<Locator>(createLocator())
 
 /**
  * One locator per interface, so the map and the filters beside it share it, and it goes when
- * the interface does — a compact embed closing its dialog takes its pending request with it.
+ * the interface does — the expanded map closing takes its pending request with it.
  */
 export function LocatorProvider({ children }: { children: ReactNode }) {
   const [locator] = useState(createLocator)

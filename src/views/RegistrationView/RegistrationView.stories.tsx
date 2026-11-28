@@ -84,7 +84,6 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
 }
 
 Default.storyName = 'Registration'
-Default.meta = { width: 'xsmall' }
 Default.args = { example: 'Native form', state: NO_ERROR }
 Default.argTypes = {
   example: {

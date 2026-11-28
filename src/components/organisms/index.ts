@@ -25,6 +25,11 @@ export type { SearchFiltersProps } from './SearchFilters'
 export { FilterMenus } from './FilterMenus'
 export type { FilterMenusProps } from './FilterMenus'
 
+// MapControls — the map's controls: the filter buttons, or find-me, and settings. Floating in the
+// full map's corner, or a row in the toolbar above the inline embed's map.
+export { MapControls } from './MapControls'
+export type { MapControlsProps } from './MapControls'
+
 // WhereFilter — the Where question, shared by the phone's filters and the Where menu.
 export { WhereFilter } from './WhereFilter'
 export type { WhereFilterProps } from './WhereFilter'

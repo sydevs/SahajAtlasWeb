@@ -55,7 +55,7 @@ export type SettingsMenuProps = {
    * by `className` elsewhere would be positioned inside the label's wrapper instead.
    */
   labelled?: boolean
-  /** `floating` over the map; `ghost` in a row of controls, such as a header. */
+  /** `floating` over the map; `ghost` in a row of controls, such as the inline heading. */
   variant?: 'floating' | 'ghost'
 }
 

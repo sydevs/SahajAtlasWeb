@@ -141,6 +141,7 @@ export function RegionView({ slug }: { slug: string }) {
             <FilterButton iconOnly />
           </>
         }
+        isPlace={region.level !== 'venue'}
         subtitle={subheader}
         title={header}
       />

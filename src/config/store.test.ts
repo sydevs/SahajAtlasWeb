@@ -185,7 +185,7 @@ describe('useCameraSettled', () => {
   })
 
   // The flag describes one map instance, and this store outlives it.
-  // A compact embed unmounts the whole interface when its dialog closes.
+  // The inline embed swaps its own map for the expanded one, and back.
   // Without this reset, the SECOND view meets a stale `true`.
   // No curtain draws, and the first framing flies across the planet from `[0,0]` zoom 0.
   // That brings back both of the defects this store exists to fix.

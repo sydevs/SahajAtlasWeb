@@ -54,12 +54,10 @@
  * *interface* needs a backend, and a key that backend accepts. As of
  * 2026-08-20, the seeded local backend answers `403` — "Not
  * authenticated as an Atlas client" — for both keys in `.env.local`. So
- * the interface falls through to its error panel. The COMPACT CARD is
- * unaffected in principle, since it renders before any of that, but
- * confirm rather than assume. What needs no backend at all: which chunks
- * are fetched (mapbox-gl in particular), the slot decision's console
- * message, CSS scoping, and icon rendering. The browser lane needs none
- * either: it answers SahajCloud from `src/mocks/sahajcloud.ts`.
+ * the interface falls through to its error panel. What needs no backend
+ * at all: which chunks are fetched (mapbox-gl in particular), CSS
+ * scoping, and icon rendering. The browser lane needs none either: it
+ * answers SahajCloud from `src/mocks/sahajcloud.ts`.
  */
 
 import { createReadStream, existsSync, statSync } from 'node:fs'
@@ -101,22 +99,13 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 // ---------------------------------------------------------------------------
 
 /**
- * ⚠ `full` is not cosmetic. The normal shell centers content in a
- * `max-width: 1100px` column, which makes `<sahaj-atlas>`'s parent
- * 1164px wide. An empty custom element measures 0×0, so that parent IS
- * the slot `decideSlot` reads. Above a roughly 1455px viewport, 1164 is
- * meaningfully smaller than the window. So a MAP page rendered in the
- * normal shell correctly resolves to the compact card, and shows no map
- * at all. The one page whose whole purpose is "map mode owns the
- * viewport" has to be full-bleed, or it demonstrates the opposite of its
- * own note on any large monitor.
+ * `full` is a full-bleed page, with no centred column: the shape of a site's own atlas page.
  */
 const page = (title, body, note, full = false, head = '') => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>${title}</title>
 <style>
   body { font: 16px/1.6 system-ui, sans-serif; margin: 0; color: #111; }
   .wrap { max-width: ${full ? 'none' : '1100px'}; margin: 0 auto; padding: ${full ? '0' : '32px'}; }
-  .note { position: ${full ? 'absolute' : 'static'}; z-index: 1; }
   .note { background: #fffbe6; border-left: 4px solid #e6b800; padding: 12px 16px; margin-bottom: 24px; font-size: 14px; }
   aside { border: 2px solid #333; }
 </style>${head}</head>
@@ -161,56 +150,70 @@ function pages(src) {
       classicLoader('key=KEY&map=false'),
     ),
 
-    // The default product. Map mode owns the viewport. At phone width,
-    // the drawer is a bottom sheet with snap points — the shape whose
-    // offsets #161 inverted, by handing vaul a `display: contents`
+    // A site's own atlas page: nothing else on it. Inline, then "Expand map" opens the map with
+    // its drawers over the page. At phone width the expanded drawer is a bottom sheet with snap
+    // points — the shape whose offsets #161 inverted, by handing vaul a `display: contents`
     // element to measure. Resize to about 390px wide to see it.
     'full-map.html': page(
-      'Full-page map embed',
+      'Full-page embed',
       `<sahaj-atlas></sahaj-atlas>${loader('key=KEY&map=true')}`,
-      'map mode, full page. Narrow the window to ~390px: the bottom sheet must sit at the BOTTOM.',
+      'inline, full page. Expand the map at ~390px: the bottom sheet must sit at the BOTTOM.',
       true,
     ),
 
-    // This is the shape issue #169 exists for: a site's own sticky
-    // header, then the atlas below it. The element carries a height,
-    // which is the whole opt-in. `MapFrame` takes the containing block
-    // with `contain: layout`, so the map, its drawers, and its cog all
-    // resolve against this box instead of the window. Check
-    // two things: the header must stay visible and on top while
-    // scrolling, and NOTHING the widget renders may paint outside the
-    // bordered box.
+    // A site's own sticky header and heading, then the atlas, which the host sized at 640px the
+    // way #169 told every host to. Check four things: the widget grows past that height to its
+    // content, its heading steps down to an h2 under the page's own h1, the map sticks below the
+    // header while the list scrolls, and "Expand map" opens below the header, never over it.
     'contained-map.html': page(
-      'Contained map, under a sticky header',
+      'Inline embed, under a sticky header',
       `<header style="position:sticky;top:0;z-index:100;background:#1E6C71;color:#fff;padding:16px 24px;font-weight:600">
       A host site's own sticky header (z-index: 100)</header>
     <div style="padding:24px">
       <h1>Find a class near you</h1>
-      <p>The map below is inside the page, not over it. Scroll: the header floats above the map
-      — correctly — instead of above the widget's drawers.</p>
+      <p>The atlas below is part of the page. Scroll: the map stays in view below the header.</p>
       <sahaj-atlas style="display:block;height:640px;border:2px solid #333"></sahaj-atlas>
       <p style="height:80vh">Content below the atlas, to scroll against.</p>
     </div>${loader('key=KEY&map=true')}`,
-      'the map must stay INSIDE the bordered box. Drawers and the cog too.',
+      'the bordered box must grow to fit, and the expanded map must start below the green header.',
       true,
     ),
 
-    // A slot too small for the interface: the compact card. Note the
-    // height. Since #169, a height makes this a CONTAINED map. So the
-    // card here is earned by the 300px width sitting under the interface
-    // floor, and the console says so. A map embed with no height of its
-    // own is the one that still gets the viewport-ownership sentence.
-    // Watch that no mapbox chunk is fetched, and that only `clients/me`
-    // is requested while the card is closed.
+    // WeMeditate's own atlas page: a shell that never scrolls — a fixed height and `overflow:
+    // hidden` around a full-height `<main>`. Growing there only clips, so the widget keeps
+    // `<main>`'s height and scrolls inside it.
+    'app-shell.html': page(
+      'App shell that never scrolls',
+      `<div style="display:flex;flex-direction:column;height:480px;overflow:hidden;border:2px solid #333">
+      <header style="flex:none;background:#1E6C71;color:#fff;padding:16px 24px;font-weight:600">A page that never scrolls</header>
+      <main style="flex:1;min-height:0"><sahaj-atlas style="display:block;height:100%"></sahaj-atlas></main>
+    </div>${loader('key=KEY&map=true')}`,
+      'the atlas must fill the box under the header and scroll inside it, down to its last row.',
+    ),
+
+    // A narrow column: the inline embed's phone layout, a short map strip above the list, on a
+    // desktop, because the widget measures its own box. The host's 520px height gives way.
     'sidebar-map.html': page(
       'Narrow sidebar, map mode',
-      `<div style="display:flex;gap:32px">
+      `<div style="display:flex;gap:32px;align-items:flex-start">
       <div style="flex:1"><h1>An article on somebody else's site</h1>
-      <p>The widget is in the 300px sidebar with map mode on — a slot that cannot hold the
-      interface, so the compact card renders instead.</p></div>
+      <p>The widget is in the 300px sidebar with map mode on, so it takes its narrow layout: a map
+      strip above the list.</p></div>
       <aside style="width:300px;flex:none"><sahaj-atlas style="display:block;height:520px"></sahaj-atlas></aside>
     </div>${loader('key=KEY&map=true')}`,
-      'expect a CARD (300px is under the 360px floor), zero mapbox requests, and only clients/me.',
+      'expect the narrow layout, and the box grown past its 520px to fit the list.',
+    ),
+
+    // A column too narrow to browse in: the atlas shows its heading and "Expand map" alone, says
+    // so in the console, and records the box on its readiness marker for SahajCloud.
+    'too-narrow.html': page(
+      'Too narrow to browse in',
+      `<div style="display:flex;gap:32px;align-items:flex-start">
+      <div style="flex:1"><h1>An article on somebody else's site</h1>
+      <p>The widget is in a 220px sidebar, under the width the atlas needs.</p></div>
+      <aside style="width:220px;flex:none"><sahaj-atlas></sahaj-atlas></aside>
+    </div>${loader('key=KEY&map=true')}`,
+      'expect only the heading and "Expand map", which opens the map over the page.',
     ),
 
     // Map-less, which is container-relative and is what most hosts should embed.
@@ -256,14 +259,12 @@ function pages(src) {
       'nothing here may reach inside the widget. Compare the host h2 above with the widget’s own text.',
     ),
 
-    // A frame IS a viewport, so map mode is NOT broken inside one — it
-    // fills the frame. Below the interface floors, the card appears, and
-    // its button opens the fallback in a NEW TAB.
+    // A frame is an embed, so it opens inline, scrolling inside the frame's own box. Its "Expand
+    // map" opens the fallback in a NEW TAB, since an overlay could only cover the frame.
     'iframe.html': page(
       'Iframe embeds',
       `<h1>Two framed embeds</h1>
-    <p>Left: roomy enough for the interface. Right: below the floors, so a card whose button
-    opens the fallback in a new tab.</p>
+    <p>Both open inline and scroll inside their frame. Neither can grow, so the frame is the box.</p>
     <div style="display:flex;gap:24px;align-items:flex-start">
       <iframe allow="geolocation; clipboard-write; web-share" height="600" src="/?key=KEY&map=false" style="border:2px solid #333" title="Sahaj Atlas" width="420"></iframe>
       <iframe allow="geolocation; clipboard-write; web-share" height="360" src="/?key=KEY&map=false" style="border:2px solid #333" title="Sahaj Atlas (small)" width="300"></iframe>
@@ -288,14 +289,13 @@ function pages(src) {
       'served for the whole /__review/pathmode subtree. Expect a console warning naming the missing canonical embed, unless you stub clients/me.',
     ),
 
-    // A deep link on the PAGE url: eager mount, plus auto-open. The
-    // script-URL `atlas` parameter is a configured default, and it must
-    // do neither.
+    // A deep link on the PAGE url mounts eagerly, inline, on its route. The script-URL `atlas`
+    // parameter is a configured default, and stays lazy.
     'deep-link.html': page(
       'Deep link on the page URL',
       `<h1>Scroll down</h1><p style="height:120vh">The embed is below the fold. Because the PAGE
     url carries <code>?atlas=</code>, it must mount immediately rather than waiting to be
-    scrolled to — and in the compact form, open straight onto that route.</p>
+    scrolled to, inline on that route.</p>
     <aside style="width:300px"><sahaj-atlas style="display:block;height:520px"></sahaj-atlas></aside>
     ${loader('key=KEY&map=true')}`,
       'open this WITH ?atlas=/gb, then again without it, and compare.',

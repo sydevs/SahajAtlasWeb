@@ -9,6 +9,7 @@ import { DrawerHeader } from '@/components/atoms/Drawer'
 import { SkeletonGroup, SkeletonLine } from '@/components/organisms/Skeleton/Skeleton'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
+import { InlineAbove, useInlineAbove } from '@/hooks/use-inline-aside'
 import { backLabel } from '@/views/nav-names'
 import {
   DrawerTitle,
@@ -31,6 +32,8 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const { t, regionNames: countryNames } = useLocale()
   const { backTo, dismiss } = useDrawerControl()
   const queryClient = useQueryClient()
+  // Inline, every view's way back sits in one place, above the page heading, labelled in full.
+  const above = useInlineAbove() !== null
 
   if (!backTo) return null
 
@@ -43,7 +46,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
         ?.find((node) => node.slug === slug)?.name ?? undefined,
   })
 
-  if (iconOnly) {
+  if (iconOnly && !above) {
     return (
       <Button {...HEADER_CONTROL} aria-label={label} className="-ms-2.5" onClick={dismiss}>
         <ChevronLeft className="rtl:-scale-x-100" size={20} />
@@ -51,7 +54,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
     )
   }
 
-  return (
+  const button = (
     // The atom's own `sm` padding, pulled out by it so the chevron lines up with the title. The
     // glyph sits 7.5px inside its 20px box, so the icon is pulled in by about that much, which
     // leaves the same 12px of hover either side of what is drawn.
@@ -66,6 +69,14 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
       <span className="min-w-0 truncate">{label}</span>
     </Button>
   )
+
+  return above ? (
+    <InlineAbove>
+      <div className="mb-2 flex min-h-8 items-center">{button}</div>
+    </InlineAbove>
+  ) : (
+    button
+  )
 }
 
 /**
@@ -75,10 +86,24 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
  */
 export function NavRow({ children }: { children?: ReactNode }) {
   const { collapsed } = useDrawerControl()
+  const above = useInlineAbove() !== null
+
+  // Inline, Back goes above the page heading (`BackButton`), and the row keeps only the view's
+  // own controls, or nothing at all.
+  if (above) {
+    return (
+      <>
+        <BackButton />
+        {children && (
+          <div className="mb-2 flex min-h-8 items-center justify-end gap-1">{children}</div>
+        )}
+      </>
+    )
+  }
 
   return (
     // The bottom margin keeps Back from reading as part of the title below it. Back has no end
-    // padding: the controls' own padding spaces them, and in the 352px panel any more cut
+    // padding: the controls' own padding spaces them, and in the 384px panel any more cut
     // "Back to the world map" short beside four controls.
     <div className="mb-2 flex min-h-8 items-center justify-between gap-1">
       <BackButton />
@@ -96,6 +121,8 @@ export type NavHeaderProps = {
   actions?: ReactNode
   /** A panel over a page (the filters): a title and an X that closes back onto the page. */
   close?: boolean
+  /** The title names a place, which the inline embed's page heading already names (`DrawerTitle`). */
+  isPlace?: boolean
   /** The title is on its way: its line is drawn as a placeholder, outside any heading. */
   pendingTitle?: boolean
 }
@@ -110,6 +137,7 @@ export function NavHeader({
   subtitle,
   actions,
   close = false,
+  isPlace = false,
   pendingTitle = false,
 }: NavHeaderProps) {
   const { t } = useLocale()
@@ -139,12 +167,15 @@ export function NavHeader({
     <DrawerHeader className="flex-col items-stretch gap-0">
       <NavRow>{actions}</NavRow>
       {pendingTitle ? (
-        // No heading: a heading with nothing in it is worse than none.
-        <SkeletonGroup>
-          <SkeletonLine className="text-xl" width="w-1/2" />
-        </SkeletonGroup>
+        // No heading: a heading with nothing in it is worse than none. Inline, it gives way to the
+        // page heading as the place title it stands for will.
+        <div className="contents" data-sy-place={isPlace || undefined}>
+          <SkeletonGroup>
+            <SkeletonLine className="text-xl" width="w-1/2" />
+          </SkeletonGroup>
+        </div>
       ) : (
-        title && <DrawerTitle subtitle={subtitle} title={title} />
+        title && <DrawerTitle isPlace={isPlace} subtitle={subtitle} title={title} />
       )}
     </DrawerHeader>
   )

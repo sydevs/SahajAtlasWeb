@@ -57,7 +57,6 @@ export const Default: Story<{
 )
 
 Default.storyName = 'Countries'
-Default.meta = { width: 'xsmall' }
 Default.args = { example: 'All countries', location: 'Guessed town', state: NO_ERROR }
 Default.argTypes = {
   example: {

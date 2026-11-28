@@ -11,11 +11,11 @@ import { useMediaQuery } from 'react-responsive'
  * This file is the mechanism, and `responsive.test.ts` stops a call site drifting off it.
  *
  *  - **container** (`useIsWide` / `useIsWideWidget`): this is a fit question.
- *    Does a 352px side panel leave usable space beside it? Does a short sheet scroll the CTA away?
+ *    Does a 384px side panel leave usable space beside it? Does a short sheet scroll the CTA away?
  *    A 320px column on a 1600px desktop must answer these the way a phone does.
  *  - **viewport** (`useIsWideViewport`): this is for the case where the screen genuinely is the question.
  *    It has no app call sites left. The map camera padding was the last one, and #169 moved it to the container signal,
- *    because a contained map's frame and the viewport stopped being the same box.
+ *    because a frame and the viewport stopped being the same box.
  *    It survives as `useIsWide`'s own fallback, which is how a widget with nothing to measure still gets the right answer,
  *    and in a Ladle story, where the viewport really is the container.
  *  - **input** (`useCoarsePointer`, `useHasRealPointer`): this is for affordances that depend on the DEVICE, not the space, such as whether `tel:` reaches a dialer.
@@ -23,17 +23,13 @@ import { useMediaQuery } from 'react-responsive'
  *
  * ## Why the container signal is a strict generalization, not a behavior change
  *
- * In an UNBOXED map embed, the widget has no container to measure, by construction.
- * The theme root is `display: contents`, the map canvas is `position: fixed; inset: 0`, and every drawer is `fixed` too.
- * So `<sahaj-atlas>` has no box at all, and the widget occupies the viewport, whatever slot the host put it in.
+ * In the map-first page, the widget has no container to measure, by construction.
+ * The map canvas is `position: fixed; inset: 0`, and every drawer is `fixed` too, so the widget occupies the viewport.
  * With nothing to observe, `useIsWide` falls through to the viewport, and returns exactly the answer `useIsDesktop` used to.
- * In MAP-LESS mode, the host sizes the element and the widget fills its slot.
- * So there is a real box, and that box is what the app now reads.
+ * Inline, the content column is a real box in the host's page, and that box is what the app reads.
  *
- * **Map mode can have a box too, since #169.**
- * That box is a `MapFrame` where the host sized the element, or the compact card's expanded dialog.
- * Both take the containing block with `contain: layout`.
- * So the panel a fit question is asking about is genuinely inside them.
+ * **The expanded map has a box too: its dialog**, which takes the containing block with `contain: layout`.
+ * So the panel a fit question is asking about is genuinely inside it.
  * `frameElement()`, in `lib/overlay.ts`, is what that box is passed as, and `null` there still means the viewport.
  */
 
@@ -153,7 +149,7 @@ export function useHasRealPointer(): boolean {
 /**
  * This checks whether the widget itself is wide, measured, not inferred.
  *
- * Pass the widget's own layout root: the map-less container, or map mode's frame.
+ * Pass the widget's own layout root: the inline column, or map mode's frame.
  * Pass `null` when there is none, such as an unboxed map embed. The viewport then stands in.
  * That is the same answer, because such an embed spans the viewport.
  *

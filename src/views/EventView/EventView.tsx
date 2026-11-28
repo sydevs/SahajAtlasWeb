@@ -25,6 +25,7 @@ import { NavRow } from '@/views/nav'
 import { useDrawerControl, useFrameEventOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 import { SkeletonBody } from '@/components/organisms/Skeleton/Skeleton'
+import { useInlineAbove, useInlineAside } from '@/hooks/use-inline-aside'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
 // chunk, as pages/event.tsx used to, by lazy-loading it here.
@@ -85,7 +86,11 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
   // viewport's answer. The hook is here so a future map-less sticky bar starts out reading the
   // right thing, not because a narrow embed gains one today.
   const strings = useEventDisplay(event)
-  const stickyRegister = hasMap && !isWide && hasRegisterSlot(event, strings.display)
+  // Inline beside a map, Register and the actions sit under the map instead (EventDetails). A
+  // narrow inline page pins Register like the phone sheet, to the screen's bottom (`DrawerFooter`).
+  const aside = useInlineAside() !== null
+  const above = useInlineAbove() !== null
+  const stickyRegister = !aside && hasMap && !isWide && hasRegisterSlot(event, strings.display)
   const onwardHref = parentOf(event.path)
 
   return (
@@ -93,7 +98,9 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {/* SEO — title, canonical, JSON-LD — is only meaningful for the crawlable standalone
           build. The embedded widget's host owns the document head. */}
       {standalone && <EventMetadata event={event} />}
-      <EventHeader nav={<NavRow />} title={event.title} />
+      {/* Inline, the page heading names the class, so its way back sits above that heading and
+          the panel draws no header of its own. */}
+      {above ? <NavRow /> : <EventHeader nav={<NavRow />} title={event.title} />}
       {/* The body slot's own spacer clears the pinned bar's CONTENT, at the footer's
           published height. Clearing the SCROLL is this body's, and only this body's: focus
           would otherwise park a field behind the bar. It carries the sheet's live top on
@@ -113,7 +120,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
         >
           {/* The page's shape while its code arrives, marked loading so the phone sheet holds
               still until it has (`useFitSnap`). */}
-          <Suspense fallback={<SkeletonBody body="class" cta={!stickyRegister} />}>
+          <Suspense fallback={<SkeletonBody body="class" cta={!stickyRegister && !aside} />}>
             <EventDetails
               basePath={basePath}
               event={event}

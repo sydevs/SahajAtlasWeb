@@ -15,6 +15,7 @@ import { applyTheme, useTheme } from '@/hooks/use-theme'
 import { BrandPaletteContext, NO_BRAND_PALETTE } from '@/config/theme/brand-palette'
 import { applyPalette, type PaletteRoles } from '@/config/theme/palette'
 import { WIDGET_SCOPE_CLASS } from '@/lib/scope'
+import { VIEW_CONTROLS } from '@/views/story-controls'
 
 import '@/styles/globals.css'
 // Stories mount components without App. So this file also registers the
@@ -56,6 +57,31 @@ const PALETTES: Record<string, PaletteRoles> = {
 
 const PALETTE_NAMES = Object.keys(PALETTES)
 const DEFAULT_PALETTE = PALETTE_NAMES[0]
+
+const PALETTE_CONTROL = {
+  // Ladle exports this union only as strings; its state is typed by an enum it keeps private,
+  // holding the same values.
+  type: 'select' as GlobalState['control'][string]['type'],
+  name: 'Brand palette',
+  options: PALETTE_NAMES,
+  defaultValue: DEFAULT_PALETTE,
+  value: DEFAULT_PALETTE,
+  description: 'Tenant brand palette applied via the production applyPalette',
+}
+
+// The view stories' own controls' values (`src/views/story-controls.ts`), kept from story to
+// story, so a reviewer browsing the views in one setup stays in it.
+const viewControlValues: Record<string, unknown> = {}
+
+// A view control's value from the address, so a link such as `?arg-form=Expanded` opens in it:
+// Ladle seeds only a story's own args from the URL, and these are the decorator's.
+const addressValue = (key: string, type: string): unknown => {
+  const raw = new URLSearchParams(window.location.search).get(`arg-${key}`)
+
+  if (raw === null) return undefined
+
+  return type === 'boolean' ? raw === 'true' : decodeURI(raw)
+}
 
 // Global decorator for every story.
 //
@@ -110,12 +136,16 @@ export const Provider: GlobalProvider = ({ children }) => {
   const [wrapper, setWrapper] = useState<HTMLElement | null>(null)
   const { theme } = useTheme()
 
-  // Ladle's own gutter is padding on its `main`, outside this wrapper, so in the dark theme it
-  // drew a light frame round every story. The gutter moves inside, onto the wrapper that paints
-  // the theme's background. The whole widget's story is a host page, so it fills the area.
-  const isWidget = globalState.story?.startsWith('interactive--')
+  // View stories are full-view drawer pages, each owning the whole canvas
+  // through the ViewHarness, and the whole widget's story is a host page. So
+  // both fill Ladle's main area edge to edge: no component-preview padding of
+  // ours, and none of Ladle's own around it. Every other tier keeps both.
+  const isView = globalState.story?.startsWith('views--')
+  const fullBleed = isView || globalState.story?.startsWith('interactive--')
 
   useEffect(() => {
+    if (!fullBleed) return
+
     const root = document.documentElement.style
 
     root.setProperty('--ladle-main-padding', '0')
@@ -125,7 +155,15 @@ export const Provider: GlobalProvider = ({ children }) => {
       root.removeProperty('--ladle-main-padding')
       root.removeProperty('--ladle-main-padding-mobile')
     }
-  }, [])
+  }, [fullBleed])
+
+  const { control, controlInitialized } = globalState
+
+  useEffect(() => {
+    for (const key of Object.keys(VIEW_CONTROLS)) {
+      if (control[key]) viewControlValues[key] = control[key].value
+    }
+  }, [control])
 
   // The brand palette is a first-class Ladle control, in the Controls
   // panel, not a custom <select>. Ladle wipes control state on each
@@ -135,29 +173,36 @@ export const Provider: GlobalProvider = ({ children }) => {
   // merges onto the story's own controls. It never overwrites them. The
   // args provider's effect runs once per story (deps []), so it never
   // wipes the palette control back out afterward.
+  //
+  // Every view, and only views, gets the view controls too.
   useEffect(() => {
-    if (!globalState.controlInitialized || globalState.control.palette) return
+    if (!controlInitialized) return
+
+    const missing = isView
+      ? Object.entries(VIEW_CONTROLS)
+          .filter(([key]) => !control[key])
+          .map(([key, def]) => [
+            key,
+            {
+              ...def,
+              value: viewControlValues[key] ?? addressValue(key, def.type) ?? def.defaultValue,
+            },
+          ])
+      : []
+
+    if (control.palette && missing.length === 0) return
 
     dispatch({
       type: ActionType.UpdateControl,
       value: {
-        ...globalState.control,
-        palette: {
-          // Ladle exports this union only as strings; its state is typed by an enum it keeps
-          // private, holding the same values.
-          type: 'select' as GlobalState['control'][string]['type'],
-          name: 'Brand palette',
-          options: PALETTE_NAMES,
-          defaultValue: DEFAULT_PALETTE,
-          value: DEFAULT_PALETTE,
-          description: 'Tenant brand palette applied via the production applyPalette',
-        },
+        ...control,
+        palette: control.palette ?? PALETTE_CONTROL,
+        ...Object.fromEntries(missing),
       },
     })
-  }, [globalState.control, globalState.controlInitialized, dispatch])
+  }, [control, controlInitialized, isView, dispatch])
 
-  const palette =
-    PALETTES[globalState.control.palette?.value ?? DEFAULT_PALETTE] ?? NO_BRAND_PALETTE
+  const palette = PALETTES[control.palette?.value ?? DEFAULT_PALETTE] ?? NO_BRAND_PALETTE
 
   // This repaints the wrapper when the chosen palette or the resolved
   // theme changes. applyPalette resets the managed variables before it
@@ -205,7 +250,7 @@ export const Provider: GlobalProvider = ({ children }) => {
               WIDGET_SCOPE_CLASS,
               theme,
               'min-h-screen bg-background text-foreground',
-              !isWidget && 'p-4 md:p-12',
+              !fullBleed && 'p-4 md:p-12',
             )}
           >
             <StoryDevice element={wrapper}>

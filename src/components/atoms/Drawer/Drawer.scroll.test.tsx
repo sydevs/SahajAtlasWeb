@@ -67,15 +67,12 @@ const classesOf = (selector: string) => {
 }
 
 describe('Drawer — the panel cannot scroll', () => {
-  // ⚠ Every variant, not the base slot alone. `filled` and the wide left panel are nothing
-  // but `!important` overrides of `content`, and tailwind-merge does not strip a base
-  // `overflow-clip` across importance — so a compound adding `!overflow-hidden` leaves the
-  // panel carrying both, and a base-only assertion stays green. Watched that way.
+  // ⚠ Every variant, not the base slot alone. The wide left panel is nothing but `!important`
+  // overrides of `content`, and tailwind-merge does not strip a base `overflow-clip` across
+  // importance — so a compound adding `!overflow-hidden` leaves the panel carrying both, and a
+  // base-only assertion stays green. Watched that way.
   const VARIANTS: Partial<DrawerProps>[] = (['bottom', 'top', 'left', 'right'] as const).flatMap(
-    (direction) =>
-      (['anchored', 'filled'] as const).flatMap((mode) =>
-        [false, true].map((wide) => ({ direction, mode, wide })),
-      ),
+    (direction) => [false, true].map((wide) => ({ direction, wide })),
   )
 
   // Any importance, any variant prefix, any axis. `overflow-clip` is the one allowed answer.

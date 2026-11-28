@@ -1,6 +1,7 @@
 import type { Geojson, RegionNode } from '@/types'
 
 import {
+  type ReactNode,
   Suspense,
   lazy,
   startTransition,
@@ -17,12 +18,15 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
+import clsx from 'clsx'
+import { X } from 'lucide-react'
 
 import { geojsonQuery, regionsQuery } from '@/config/api'
 import { useExpansion } from '@/hooks/use-expansion'
 import { useLocale } from '@/hooks/use-locale'
-import { Drawer, DrawerContent } from '@/components/atoms/Drawer'
-import { ResetErrorBoundary, SettingsMenu } from '@/components/molecules'
+import { Button } from '@/components/atoms/Button'
+import { Drawer, DrawerContent, DrawerSlotsProvider } from '@/components/atoms/Drawer'
+import { ResetErrorBoundary } from '@/components/molecules'
 import { ClientGate } from '@/config/client-gate'
 import {
   MIN_MAP_STRIP_PX,
@@ -35,7 +39,6 @@ import {
   useIsShortViewport,
   useIsWide,
 } from '@/config/responsive'
-import { useWidgetMode } from '@/config/mode'
 import { useBrowsedCountry, useMapControls, useSheetCover } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
@@ -140,21 +143,58 @@ function TopView({ entry, secondary }: { entry: StackEntry | null; secondary: Se
   }
 }
 
+/**
+ * The expanded map's way back to the page: floating at the bottom middle of the map, which on a
+ * bottom sheet means just above the sheet's live top edge (`--sy-sheet-top`, mirrored onto the
+ * wrapper it renders in).
+ */
+function CloseMapButton({ beside }: { beside: boolean }) {
+  const { t } = useLocale()
+  const { collapse } = useExpansion()
+
+  return (
+    <Button
+      className={clsx(
+        'fixed z-[45] -translate-x-1/2 rtl:translate-x-1/2',
+        // Beside a left panel, the middle of the MAP is the middle of what the panel leaves.
+        beside
+          ? 'start-[calc(50%+var(--sy-drawer-w,384px)/2)] bottom-6'
+          : 'start-1/2 top-[max(12px,calc(var(--sy-sheet-top,var(--sy-frame-h))-56px))]',
+      )}
+      radius="full"
+      size="sm"
+      variant="floating"
+      onClick={collapse}
+    >
+      <X size={16} />
+      {t('common.map.close')}
+    </Button>
+  )
+}
+
 // The whole drawer navigation, derived purely from the pathname. ONE persistent vaul
 // drawer holds the active (top) view. The sheet renders once — DrawerStack owns the
 // DrawerContent, and views are just its inner content. So navigating never remounts or
 // re-slides the drawer. The inner content cross-fades instead. Every view is handled the same
 // way: Back goes where it says (`backStep`), and the one view with no parent
 // (CountriesView) collapses to its peek instead. Nothing draws the history behind the view:
-// Back names it. Direction is left at ≥md, bottom on mobile. Map-less, the single drawer fills
-// the widget container.
-export function DrawerStack() {
+// Back names it. Direction is left at ≥md, bottom on mobile.
+//
+// `inline` is the inline embed's content column: the same stack and the same views, in the
+// page's own flow, with no drawer and no sheet. Its map, where it has one, sits beside it rather
+// than under it.
+//
+// `view` stands in for the routed view while the route is its `path`: a story previewing one view
+// with its own props, in the real sheet. Anywhere else the stack routes as usual.
+export function DrawerStack({
+  inline = false,
+  view,
+}: { inline?: boolean; view?: { path: string; node: ReactNode } } = {}) {
   const location = useLocation()
   // Reads off the location rather than through `useSearchParams`, which would add a
   // second subscription for a value this component already re-renders on.
   const searchCenter = new URLSearchParams(location.search).get('center')
   const navigate = useNavigate()
-  const { hasMap, standalone } = useWidgetMode()
   // `t` comes off `useLocale`, not a second `useTranslation` call: the hook already
   // holds one for the default (`common`) namespace, and hands it back for exactly this
   // reason. A second call would double this component's i18next subscription, and
@@ -163,21 +203,20 @@ export function DrawerStack() {
   // Read unconditionally, like every other seam consumer: with no surface above this
   // component, it is the no-op provider, and the Escape ladder below simply ends where
   // it always did.
-  const { collapse } = useExpansion()
+  const { expanded, collapse } = useExpansion()
+  // A sheet over a map: every snap, peek and camera-cover behaviour below needs one. Only the
+  // inline column has none — a map-less atlas is always inline (`App`).
+  const sheeted = !inline
   const queryClient = useQueryClient()
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
-  // How wide the WIDGET is, not the screen (issue #107). `container` is the map-less layout
-  // root below — the box the host sized. In map mode there is no such element. Until #169,
-  // there was nothing to measure at all. The widget spanned the viewport, so `useIsWide`
-  // fell back to it. Now map mode can have a FRAME — a contained embed's own box, or the
-  // compact card's expanded dialog. Where one exists, it is the honest answer to "does a
-  // 352px side panel leave usable space beside it?", because the panel sits inside it. With
-  // no frame, this call is `useIsWide(null)`, exactly what it always computed. So a 320px
-  // column embed on a desktop gets the bottom sheet, its drag handle, and its
-  // swipe-dismiss — and a 600px contained map now does too. On a map the map controller measures
-  // that frame and provides the answer to the map and to this stack alike
-  // (`MapboxControllerProvider`), so the map's controls cannot disagree with the panel; map-less,
-  // this stack measures its own box and provides it at its foot. Either way no descendant can
+  // How wide the WIDGET is, not the screen (issue #107). `container` is the inline content
+  // column. In map mode there is no such element, but there can be a FRAME — the expanded
+  // dialog. Where one exists, it is the honest answer to "does a 384px side panel leave usable
+  // space beside it?", because the panel sits inside it. With no frame, this call is
+  // `useIsWide(null)`, the viewport. On a map the map controller measures that frame and provides
+  // the answer to the map and to this stack alike (`MapboxControllerProvider`), so the map's
+  // controls cannot disagree with the panel; inline, this stack measures its own column and
+  // provides it at its foot. Either way no descendant can
   // disagree with the drawer it sits in.
   const provided = useContext(WidgetWidthContext)
   const measured = useIsWide(provided === null ? (container ?? frameElement()) : null)
@@ -194,6 +233,8 @@ export function DrawerStack() {
   // Whether the sheet leaves less than `MIN_MAP_STRIP_PX` of map above it, from the same loop.
   const [sheetTall, setSheetTall] = useState(false)
   const sheetOriginRef = useRef<HTMLDivElement>(null)
+  // The wrapper "Close map" renders in, which reads the sheet's live top off this mirror.
+  const floatRef = useRef<HTMLDivElement>(null)
   // The lazy components ARE the retry state — the boundary's reset swaps in fresh ones.
   // Same shape, and the same reasoning, as EventView's `EventDetails`.
   const [secondary, setSecondary] = useState(loadSecondaryViews)
@@ -202,18 +243,19 @@ export function DrawerStack() {
   // Filters over the full-width calendar (map mode) render as a separate modal drawer
   // OVER the still-mounted calendar — from the right at ≥md, a bottom sheet on mobile —
   // rather than replacing it. So the calendar stays the base view, and the trailing
-  // `filters` entry peels off into the overlay below. (Map-less keeps the plain
-  // replace-stack behaviour.)
-  const filterOverlay = isFilterOverlay(entries, hasMap)
+  // `filters` entry peels off into the overlay below. (Inline keeps the plain replace-stack
+  // behaviour: an overlay belongs to a sheet over a map.)
+  const filterOverlay = isFilterOverlay(entries, sheeted)
 
   // Reads through `baseStackEntry` rather than the last non-overlay entry — the same value
   // either way, but stated in the shared vocabulary, so `top.path` is provably
   // `topViewKey(location.pathname, hasMap)`. `useFrameOnTop` compares itself against
   // that key to tell whether it is still the view on top, and the two agreeing is what
-  // makes the comparison mean anything.
-  const top = baseStackEntry(entries, hasMap) ?? null
+  // makes the comparison mean anything. Inline, they part only on a filters route, and
+  // neither the calendar nor the filters view frames the map.
+  const top = baseStackEntry(entries, sheeted) ?? null
   // The calendar's Month is the one full-width view: it fills the widget, minus the floating
-  // margins, instead of the 352px left panel (the Drawer `wide` variant). Its Week is one column
+  // margins, instead of the 384px left panel (the Drawer `wide` variant). Its Week is one column
   // and keeps the panel, so the map stays in view. `isWide` is here because the wide panel exists
   // only above the crossing (#331).
   const wide = isCalendarFullWidth(
@@ -271,7 +313,7 @@ export function DrawerStack() {
     if (!first || code) setBrowsedCountry(code)
   }, [location.pathname, setBrowsedCountry])
 
-  const canCollapse = hasMap && direction === 'bottom'
+  const canCollapse = sheeted && direction === 'bottom'
 
   // How tall the top view opens on a phone (`sheetOpening` says why each one does).
   const opening = sheetOpening(top?.kind)
@@ -330,7 +372,7 @@ export function DrawerStack() {
 
   // The sheet's near-full stop covers the map's control column all but its top edge, which would
   // show as a row of slivers above the sheet. Everywhere else a drawer either leaves the column
-  // clear or covers it whole.
+  // clear or covers it whole. The inline column is no sheet, so it never hides the inline map's.
   // Any sheet that tall cuts through the column, so it goes; the filters, a form over the page, also
   // dim what is left of the map above them.
   const dimmed = canCollapse && sheetTall && top?.kind === 'filters'
@@ -392,19 +434,15 @@ export function DrawerStack() {
         // This measures against the box the fixed layer resolves against, not the
         // viewport. `getBoundingClientRect().top` is a VIEWPORT coordinate. It is
         // consumed as `bottom:` on the sticky Register bar, which a frame contains
-        // (`contain: layout`). Left raw, it sat 16-32px out inside the expanded dialog, by
-        // exactly its margin.
-        // Contained on a host's page (#169), the error becomes however far down their
-        // page the element sits, which is unbounded. With no frame, the offset is zero,
-        // so this stays the same number it always was.
+        // (`contain: layout`). Left raw, it sat out inside the expanded dialog by exactly the
+        // dialog's offset from the window's top. With no frame, the offset is zero.
         // This reads from the node the overlay module already tracks, NOT
         // `document.querySelector('[data-sy-frame]')`. That would search the host's
         // whole document, so an element of theirs carrying the attribute would win on
         // document order and offset the bar by its box. Its RECT is still read per
-        // frame — the dialog's inset changes at the `sm:` crossing, and a contained
-        // frame moves with the host's own scrolling — but the lookup itself is a module
-        // read, not a query.
-        // ⚠ This is guarded, like `decideSlot`'s read, and for the same reason. Hosts
+        // frame — the dialog's top follows the host's header — but the lookup itself is a
+        // module read, not a query.
+        // ⚠ This is guarded, like every host-DOM read in this app. Hosts
         // patch `getBoundingClientRect` — consent wrappers, anti-fingerprinting
         // extensions. A THROW here would kill the loop permanently, because the `raf =`
         // reassignment below would never run, and then it would re-throw into the
@@ -442,6 +480,7 @@ export function DrawerStack() {
           still = 0
           last = top
           sheet.style.setProperty('--sy-sheet-top', `${top}px`)
+          floatRef.current?.style.setProperty('--sy-sheet-top', `${top}px`)
           // One answer for the peek, from the live top rather than from the settled snap, so a
           // sheet dragged up fills in as it rises instead of when it lands. ViewLayer hides what
           // the peek cannot show off the attribute; the header's controls read `collapsed`, which
@@ -579,31 +618,38 @@ export function DrawerStack() {
     [dismiss],
   )
 
-  // Whether the sheet advertises its drag affordance (issue #107). The atom's default is
-  // `direction === 'bottom' && mode !== 'filled'`, which was right while `filled` (map-less)
-  // could only ever be the wide left panel — "nothing to drag". Once the sheet is
-  // container-aware, a narrow map-less embed becomes a `filled` BOTTOM sheet that IS
-  // drag-dismissible. That default would then leave it dismissible with nothing on screen
-  // saying so — an invisible affordance.
-  //
-  // This is keyed on dismissibility, rather than on the mode, so it can never claim one
-  // that is not there. The map-less ROOT view sets `dismissible={false}`, since there is no
-  // parent to climb to, and correctly keeps no handle. Map mode is always dismissible, so
-  // this resolves to the atom's old answer there.
-  const sheetDismissible = hasMap || step !== undefined
+  // Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a suspend that shows
+  // `DrawerLoading` — the shared chrome (header plus Back, rebuilt from the URL) over placeholders
+  // shaped like the view — and only a FAILED load throws inward to the boundary. That is what keeps
+  // a first open of the calendar, register, or share drawer from flashing blank or unstyled: the
+  // drawer's identity is on screen from the first frame, and only its body arrives late (#96).
+  const topView = (
+    <Suspense fallback={<DrawerLoading />}>
+      <ResetErrorBoundary
+        FallbackComponent={DrawerErrorFallback}
+        onReset={() => setSecondary(loadSecondaryViews())}
+      >
+        <ClientGate />
+        {view && location.pathname === view.path ? (
+          view.node
+        ) : (
+          <TopView entry={top} secondary={secondary} />
+        )}
+      </ResetErrorBoundary>
+    </Suspense>
+  )
   const sheet = (
     <DrawerContent
       aria-label={t('countries.title')}
-      handle={direction === 'bottom' && sheetDismissible}
       /**
        * The last rung of the Escape ladder, and the only place it can be built.
        *
        * A drawer is always the TOPMOST dismissable layer — vaul is a Radix dialog
        * underneath — and Radix delivers Escape to the topmost layer alone. So nothing
-       * containing the widget can ever see the key. Inside a compact embed, the thing
-       * containing it is the expanded surface, whose collapse control is otherwise the
-       * only way out. If the host has hidden, confined, or scrolled that control away, a
-       * visitor with no Escape is locked out of the page until they reload (issue #161).
+       * containing the widget can ever see the key. Inside the inline embed's expanded
+       * map, the thing containing it is the dialog, whose "Close map" control is otherwise
+       * the only way out. If the host has hidden or confined that control, a visitor with no
+       * Escape is locked out of the page until they reload (issue #161).
        *
        * The ladder runs innermost-first. The stack dismisses while it has somewhere to
        * go. The sheet collapses to its peek while it can. Only then does the key belong
@@ -623,24 +669,7 @@ export function DrawerStack() {
         {/* `initial={false}`: the first view takes over from the loading shapes already on
             screen, so it arrives without fading in from nothing. Later views still cross-fade. */}
         <AnimatePresence initial={false}>
-          <ViewLayer key={viewLayerKey(top)}>
-            {/* Suspense sits OUTSIDE the boundary, so a lazy view's chunk load is a
-                suspend that shows `DrawerLoading` — the shared chrome (header plus Back,
-                rebuilt from the URL) over placeholders shaped like the view — and only a FAILED load
-                throws inward to the boundary. That is what keeps a first open of the
-                calendar or register drawer from flashing blank or unstyled: the
-                drawer's identity is on screen from the first frame, and only its body
-                arrives late (issue #96). */}
-            <Suspense fallback={<DrawerLoading />}>
-              <ResetErrorBoundary
-                FallbackComponent={DrawerErrorFallback}
-                onReset={() => setSecondary(loadSecondaryViews())}
-              >
-                <ClientGate />
-                <TopView entry={top} secondary={secondary} />
-              </ResetErrorBoundary>
-            </Suspense>
-          </ViewLayer>
+          <ViewLayer key={viewLayerKey(top)}>{topView}</ViewLayer>
         </AnimatePresence>
       </div>
     </DrawerContent>
@@ -676,48 +705,18 @@ export function DrawerStack() {
     </DrawerControlContext.Provider>
   ) : null
 
-  // Map-less: one contained drawer fills the widget container (there is no map to
-  // reveal, so no snap ladder). Standalone owns the viewport
-  // (100dvh). Embedded fills the host's slot (100%).
-  if (!hasMap) {
+  // Inline: the top view in the page's own flow. No cross-fade — two layers would have to
+  // overlap, and in flow they would stack instead.
+  if (inline) {
     return (
       <WidgetWidthContext.Provider value={isWide}>
         <DrawerControlContext.Provider value={control}>
-          {/* ⚠ Clip, never hidden — `components/AGENTS.md` carries why (#326). Nothing was
-              measured overflowing here, since the sheet takes no snap ladder map-less — the
-              invariant stated, not a defect repaired. */}
-          <div
-            className="flex w-full flex-col overflow-clip bg-background"
-            style={{ height: standalone ? '100dvh' : '100%' }}
-          >
-            <div ref={setContainer} className="relative min-h-0 w-full flex-1 overflow-clip">
-              <Drawer
-                key={direction}
-                enterInPlace
-                open
-                container={container}
-                direction={direction}
-                dismissible={step !== undefined}
-                // Same as the map drawer: the left panel (≥md) has no handle, so
-                // handle-only drag would make it undraggable — dismiss stays Back only.
-                handleOnly={direction === 'left'}
-                mode="filled"
-                onOpenChange={(o) => !o && control.dismiss()}
-              >
-                {sheet}
-              </Drawer>
-            </div>
-            {/* Map-less, the drawer fills its box and its header owns the top, so the cog
-                gets its own strip below the views. Floating over them, it sat on list rows and
-                form fields, and the narrower the box the more it covered. side="top" opens
-                the menu upward from there. */}
-            <div className="flex h-12 shrink-0 items-center border-t border-divider px-gutter">
-              {/* ⚠ The negative start margin pulls the control back so its 20px GLYPH, not its
-                  box, sits on the strip's gutter — lining the cog up with the drawer content
-                  above it. The box is 32px on a fine pointer and 44px on a coarse one, so the
-                  pull is half of each difference. */}
-              <SettingsMenu className="-ms-1.5 pointer-coarse:-ms-3" side="top" variant="ghost" />
-            </div>
+          <div ref={setContainer} className="flex flex-col">
+            <DrawerSlotsProvider mode="inline">
+              <div key={top?.path ?? '/'} className="flex flex-col">
+                {topView}
+              </div>
+            </DrawerSlotsProvider>
           </div>
         </DrawerControlContext.Provider>
       </WidgetWidthContext.Provider>
@@ -738,6 +737,11 @@ export function DrawerStack() {
               className="pointer-events-none fixed top-0 h-0 w-0"
             />
             {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
+            {expanded && (
+              <div ref={floatRef} className="contents">
+                <CloseMapButton beside={isWide && !wide} />
+              </div>
+            )}
           </>,
           target,
         )}

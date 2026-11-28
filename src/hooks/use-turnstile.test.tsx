@@ -409,7 +409,7 @@ describe('probeTurnstile', () => {
 
     await second
 
-    // A compact embed's dialog unmounts its children, so open/close/open would otherwise pay
+    // A remounted interface would otherwise pay
     // for a whole browsing context, three of our chunks and a Cloudflare script eval each time.
     expect(probe.settled(1)).toBe(true)
     expect(probeFrame()).toBeUndefined()

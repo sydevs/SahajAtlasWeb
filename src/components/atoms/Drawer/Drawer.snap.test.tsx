@@ -96,9 +96,8 @@ describe('Drawer — the box vaul measures', () => {
     )
 
     // The case that needs a container: a frame is shorter than the window. The
-    // margin does this for the compact card's dialog. The host's chosen height
-    // does this for a contained map (#169). So a fractional snap measured
-    // against the window overruns its clip.
+    // host's header does this for the expanded dialog, which starts below it. So
+    // a fractional snap measured against the window overruns its clip.
     expect(sheet()?.getAttribute('data-vaul-custom-container')).toBe('true')
   })
 })

@@ -13,6 +13,8 @@ export type EventHeaderProps = {
   title?: string
   /** The row above the title: the way back, which works before the class arrives. */
   nav?: ReactNode
+  /** How many lines the bars draw for a title still on its way: the most titles take there. */
+  titleLines?: 1 | 2
 }
 
 /**
@@ -22,16 +24,18 @@ export type EventHeaderProps = {
  * chips (EventChips) open the body instead of sitting here. The
  * date and location facts follow the chips.
  */
-export function EventHeader({ title, nav }: EventHeaderProps) {
+export function EventHeader({ title, nav, titleLines = 2 }: EventHeaderProps) {
   return (
     <div className={EVENT_HEADER} data-band="header">
       {nav}
       {title ? (
-        <h1 className={EVENT_TITLE}>{title}</h1>
+        // An h2, as every view's title is: inline, the page heading above it is the h1 (or the
+        // h2 under a host's own), and a second h1 would split the host page's outline.
+        <h2 className={EVENT_TITLE}>{title}</h2>
       ) : (
         <SkeletonGroup>
           <SkeletonLine className="text-xl" width="w-4/5" />
-          <SkeletonLine className="text-xl" width="w-2/5" />
+          {titleLines === 2 && <SkeletonLine className="text-xl" width="w-2/5" />}
         </SkeletonGroup>
       )}
     </div>

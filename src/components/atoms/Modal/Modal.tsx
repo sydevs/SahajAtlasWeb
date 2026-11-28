@@ -25,9 +25,8 @@ import { overlayContainer } from '@/lib/overlay'
 //
 // **Both axes are measured against the box this modal is CLIPPED to, not
 // the viewport.** It portals through `overlayContainer()`. So inside a
-// frame, such as `CompactEmbedView`'s dialog or a contained map's
-// `MapFrame` (#169), `contain: layout` makes that frame the containing
-// block. A viewport unit would then describe something else entirely.
+// frame, such as the inline embed's expanded dialog (#161, #169), `contain: layout` makes
+// that frame the containing block. A viewport unit would then describe something else entirely.
 //
 // Height reads `--sy-frame-h`, which is `100dvh` outside a frame and `100%`
 // inside one. Width is `100%`, which needs no token. A percentage on a
@@ -37,8 +36,8 @@ import { overlayContainer } from '@/lib/overlay'
 //
 // ⚠ It used to be `100vw`, defended on the reasoning that "`max-w-md` caps
 // it well below `100vw-2rem` on any viewport where the difference could
-// show". That was true while the only frame was a near-viewport dialog. A
-// `MapFrame` can be 360px at the interface floor, and `max-w-md` is 448.
+// show". That was true only while every frame was near the viewport's size, and a
+// frame's size is not ours to promise.
 const overlay = 'fixed inset-0 z-50 bg-black/50'
 const content =
   'fixed left-1/2 top-1/2 z-50 flex max-h-[calc(var(--sy-frame-h,100dvh)-32px)] w-[calc(100%-32px)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-divider bg-background text-foreground shadow-2xl outline-none'

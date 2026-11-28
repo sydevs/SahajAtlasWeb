@@ -139,7 +139,7 @@ describe('ModalContent focus return', () => {
   })
 
   // The opener is whatever had FOCUS, not whatever the dialog renders first (#432).
-  // `CompactEmbedView` opens its own surface through the `useExpansion` seam, from a control
+  // `InlineEmbedView` opens its expanded map through the `useExpansion` seam, from a control
   // that may be anywhere, so "the control that opened it" cannot be read off the dialog.
   it('asks for the control that had focus, not the dialog s own first control', async () => {
     const { host, opener, elsewhere } = await mount()

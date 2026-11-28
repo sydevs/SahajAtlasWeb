@@ -26,9 +26,8 @@ export const DEFAULT_FALLBACK_URL = 'https://wemeditate.com/map'
  *
  * **Validated here rather than at the sink, because the sink fails silently and badly.** The
  * `Button` atom's href arm runs `isSafeHref` and, on refusal, renders a props-less `<span>`
- * (`atoms/Button/Button.tsx`) — on a card whose only content is that one control, that is a
- * dead, unlabelled box where the way out should be. A typo'd env var would ship a compact embed
- * with no exit, and nothing would say so.
+ * (`atoms/Button/Button.tsx`) — a dead, unlabelled box where a framed embed's "Expand map"
+ * should be. A typo'd env var would ship it, and nothing would say so.
  */
 export function fallbackUrl(
   configured: string | undefined = import.meta.env.VITE_WEMEDITATE_MAP_URL,

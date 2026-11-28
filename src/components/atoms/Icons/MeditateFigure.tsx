@@ -11,6 +11,7 @@ export type MeditateFigureProps = Omit<SVGProps<SVGSVGElement>, 'children'> & {
   size?: number
 }
 
+/** Coloured like a lucide glyph: the text colour where it sits, or a `text-*` class on it. */
 export function MeditateFigure({ size = 24, ...props }: MeditateFigureProps) {
   return (
     <svg
@@ -26,9 +27,7 @@ export function MeditateFigure({ size = 24, ...props }: MeditateFigureProps) {
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      {/* The mark's one coral lives here, not at the call site: `currentColor` resolves against
-          this element's own colour, and no caller's spread can reach it. */}
-      <path className="text-contrast-10 dark:text-contrast" d={PATH} />
+      <path d={PATH} />
     </svg>
   )
 }

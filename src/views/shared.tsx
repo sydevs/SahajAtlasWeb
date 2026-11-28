@@ -11,6 +11,7 @@ import { CalendarDays, ChevronRight, Funnel, MapPin } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
+import { useDrawerMode } from '@/components/atoms/Drawer'
 import { Alert } from '@/components/atoms/Alert'
 import { Spinner } from '@/components/atoms/Spinner'
 import { FallbackPanel } from '@/components/molecules'
@@ -103,6 +104,11 @@ export type DrawerTitleProps = {
    * whole list.
    */
   note?: ReactNode
+  /**
+   * Marks a title that names the place the inline embed's page heading already names. The
+   * drawer's `inline` header slot is what hides it there.
+   */
+  isPlace?: boolean
 }
 
 /**
@@ -113,13 +119,15 @@ export type DrawerTitleProps = {
  * `<h2>`: the dialog itself is named by the sr-only Vaul.Title, so this is the
  * content heading below it, not a competing label.
  */
-export function DrawerTitle({ title, subtitle, note }: DrawerTitleProps) {
+export function DrawerTitle({ title, subtitle, note, isPlace = false }: DrawerTitleProps) {
   return (
     <div className="min-w-0">
       {/* Wraps rather than truncates: beside a header's icons a 20px name such as "North of
           England" runs out of room on a phone, and a cut place name is the one thing a
           visitor came to read. `break-words` reaches the one a wrap cannot fit either way. */}
-      <h2 className="line-clamp-2 text-xl break-words">{title}</h2>
+      <h2 className="line-clamp-2 text-xl break-words" data-sy-place={isPlace || undefined}>
+        {title}
+      </h2>
       {subtitle && <div className="truncate text-sm text-gray-11">{subtitle}</div>}
       {note && <div className="truncate text-xs text-gray-11">{note}</div>}
     </div>
@@ -187,6 +195,17 @@ export function ExpandSheetButton() {
       {t('common.chrome.show_more')}
     </Button>
   )
+}
+
+/**
+ * Whether the root view draws its header. Inline beside a map it would hold nothing: its title
+ * gives way to the page heading, and the Filters button to the buttons above the map.
+ */
+export const useRootHeader = (): boolean => {
+  const inline = useDrawerMode() === 'inline'
+  const menusShown = useFilterButtonsShown()
+
+  return !(inline && menusShown)
 }
 
 // The event-filters trigger that opens the filter drawer by navigating to

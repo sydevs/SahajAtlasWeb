@@ -51,13 +51,12 @@
      normally, a frame when one has taken the containing block.
 
      Every drawer and sheet is `position: fixed`, so `100dvh` is correct
-     only while nothing has taken that block. Two elements deliberately do, both with
-     `contain: layout`: `CompactEmbedView`'s dialog, which keeps a margin — so inside it
-     `100dvh` overshoots by 16-32px and the sheet and the sticky
-     Register bar all overrun the clip edge — and `MapFrame` (#169), which is however
-     tall the host made their element. `100%` on a fixed child resolves against its
+     only while nothing has taken that block. The expanded map's dialog (#169) deliberately does,
+     with `contain: layout`, and starts below the host's header — so inside it `100dvh`
+     overshoots by the header's height and the sheet and the sticky
+     Register bar all overrun the clip edge. `100%` on a fixed child resolves against its
      containing block, which is the frame there and the viewport everywhere else, so one
-     token is right in all three places. */
+     token is right in both places. */
   --sy-frame-h: 100dvh;
   color: var(--color-foreground);
   font-family: var(--sy-font-sans, 'Atlas Rethink Sans', ui-sans-serif, system-ui, sans-serif);

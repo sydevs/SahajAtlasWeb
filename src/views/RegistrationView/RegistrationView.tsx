@@ -123,7 +123,7 @@ export function RegistrationView({
         <EventSummary
           boxed
           hideSubtext
-          className="mx-auto mb-4 w-full max-w-md"
+          className="form-column mb-4"
           event={event}
           strings={strings}
         />
@@ -148,7 +148,7 @@ export function RegistrationView({
           // (inactive / ended / closed) external event has a `blockedMessage` and no
           // register slot, so it falls through to the state message below rather than
           // rendering an empty EventRegisterBar (issue #52).
-          <div className="mx-auto w-full max-w-md py-4">
+          <div className="form-column py-4">
             <EventRegisterBar basePath={eventPath} event={event} strings={strings} />
           </div>
         ) : (
@@ -182,7 +182,7 @@ export function RegistrationView({
             depend on whether registration is open. */}
         {isUnverified(event) && (
           <Alert
-            className="mx-auto mt-4 w-full max-w-md"
+            className="form-column mt-4"
             color="contrast"
             description={t('event.display.unverified_note')}
             size="sm"
@@ -192,7 +192,7 @@ export function RegistrationView({
       </DrawerBody>
       {formShowing && (
         <DrawerFooter className="px-gutter pt-3" sticky={pinned}>
-          <div ref={setRegisterSlot} className="mx-auto w-full max-w-md" />
+          <div ref={setRegisterSlot} className="form-column" />
         </DrawerFooter>
       )}
     </>

@@ -463,7 +463,7 @@ export function RegistrationForm({
   return (
     <form
       noValidate
-      className="mx-auto flex w-full max-w-md flex-col gap-4"
+      className="form-column flex flex-col gap-4"
       id={formId}
       onSubmit={handleSubmit((data) => {
         // `token` is also what gates the submit button, so this check is an

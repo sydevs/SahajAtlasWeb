@@ -9,15 +9,14 @@ import { readSourceWithoutComments as read, sourceFiles } from '@/test-support/s
  * `overflow: hidden` paints like a clip and behaves like a scroller, so the browser counts such
  * a box as somewhere it may scroll to reach a focused field, and a clipped box offers no
  * scrollbar and no wheel to scroll back. Measured in Chrome on `/__review/contained-map.html`
- * at 390×844: focusing a registration field below the fold put the compact card's dialog at
- * `scrollTop: 528`, carrying the entire widget out of its own surface.
+ * at 390×844: focusing a registration field below the fold put the then compact card's dialog
+ * at `scrollTop: 528`, carrying the entire widget out of its own surface.
  *
- * ⚠ **There is no one property to scan for, which is why this list is named rather than
- * derived.** `contain: layout` re-parents the fixed layer onto `MapFrame` and onto the compact
- * dialog; `DrawerStack`'s map-less container does the same job through `position: relative`,
- * because the filled panel is `!absolute !inset-0` against it. A scan for `[contain:layout]`
- * alone would silently miss that third box. So the names carry the list, and the `[contain:layout]`
- * scan runs beside it only to catch a FOURTH box added that way.
+ * ⚠ **The list is named rather than derived.** `contain: layout` re-parents the fixed layer onto
+ * the expanded dialog and onto the inline map's box, but a box can take the containing block
+ * another way — `DrawerStack`'s map-less container once did, through `position: relative` — and a
+ * scan for `[contain:layout]` alone would silently miss it. So the names carry the list, and the
+ * `[contain:layout]` scan runs beside it only to catch another module added that way.
  *
  * Asserted rather than written down for the reason `overlay.popper.test.ts` gives: this repo's
  * recurring failure is applying a frame rule in one place and not the other, and that is exactly
@@ -37,24 +36,20 @@ const CONTAINING_BLOCK = '[contain:layout]'
  * removal is a decision rather than an accident.
  */
 const BOXES: Record<string, { marker: string; why: string }> = {
-  'views/MapFrame.tsx': {
+  'views/InlineEmbedView/InlineEmbedView.tsx': {
     marker: CONTAINING_BLOCK,
-    why: 'a contained map embed, sized by its host (#169)',
+    why: "the expanded map's dialog, and the inline map's own box",
   },
-  'views/CompactEmbedView/CompactEmbedView.tsx': {
+  'views/story-harness.tsx': {
     marker: CONTAINING_BLOCK,
-    why: "the compact card's expanded dialog (#161)",
-  },
-  'views/DrawerStack/DrawerStack.tsx': {
-    marker: 'relative min-h-0 w-full',
-    why: 'the map-less container the filled panel is absolute against',
+    why: "the view stories' stand-in for the expanded map's dialog",
   },
 }
 
 /**
  * The class TOKENS of each quoted string carrying `marker`, template holes and all.
  *
- * ⚠ Tokens, never a substring of the whole list. `CompactEmbedView.test.tsx` carries the defect
+ * ⚠ Tokens, never a substring of the whole list. The compact card's spec carried the defect
  * that settled this: prettier-plugin-tailwindcss ate the leading space of a template literal and
  * shipped `text-foregroundh-full`, a class in the DOM matching no rule, with every gate green —
  * and a substring assertion passes on that. One of the strings scanned here is a template literal
@@ -70,7 +65,7 @@ describe('the fixed layer is clipped, never hidden', () => {
   it('is a real scan — it still finds the modules it polices', () => {
     // Guards the scan itself: a rename that emptied this list would make every assertion below
     // pass by vacuum, which is what a source scan fails at.
-    expect(SOURCE_FILES).toContain('views/MapFrame.tsx')
+    expect(SOURCE_FILES).toContain('views/InlineEmbedView/InlineEmbedView.tsx')
     expect(SOURCE_FILES.length).toBeGreaterThan(50)
   })
 

@@ -19,8 +19,8 @@ import { frameElement } from '@/lib/overlay'
 // `DrawerStack` resolves from its active snap and hands over (`useSheetCover`).
 //
 // **`DRAWER_W_PX` is one half of a pair. See the other half before you change it.**
-// The drawer's actual width comes from a `352px` fallback baked into its Tailwind classes.
-// That fallback is `w-[var(--sy-drawer-w,352px)]`, in `components/atoms/Drawer/Drawer.tsx`.
+// The drawer's actual width comes from a `384px` fallback baked into its Tailwind classes.
+// That fallback is `w-[var(--sy-drawer-w,384px)]`, in `components/atoms/Drawer/Drawer.tsx`.
 // A class string cannot read a value from this file, because the Tailwind JIT scanner needs a literal.
 // So you must keep the two values in step by hand.
 // Moving only one value throws no error.
@@ -35,7 +35,7 @@ import { frameElement } from '@/lib/overlay'
 // Reading the resolved variable at runtime would cover that case.
 // This code rejects that approach, because it would put a DOM read in the map's hot path, to serve an override that is not a supported feature yet.
 // If a host is ever invited to set that variable, this is the constant that must start resolving it.
-const DRAWER_W_PX = 352
+const DRAWER_W_PX = 384
 // The phone sheet's open height is only a fallback (`SHEET_OPEN_PX`): the stack publishes what
 // the sheet actually covers. Padding for the peek alone centred a framed place on map the open
 // sheet hides, and on /fr/paris the classes listed first sat under it.
@@ -83,10 +83,20 @@ const eventPoint = (event: Pick<EventSlim, 'address' | 'eventType' | 'inactive' 
  * This is the Mapbox-backed camera provider.
  * It is split out of `use-map-controller.tsx`, so that module can stay free of `react-map-gl`.
  * See the warning at the top of that module.
- * The app reaches this provider only through the lazy `FullInterface`.
- * So a compact embed never loads this provider or mapbox-gl.
+ * The app reaches this provider only through the lazy interface modules, so the eager graph
+ * never loads this provider or mapbox-gl.
+ *
+ * `inline` is the inline embed's own map, which no drawer covers, so it writes no drawer padding:
+ * the store's margin-only default is its padding. A drawer's provider gives that default back
+ * when it unmounts or turns inline, so the expanded map's drawer padding cannot outlive it.
  */
-export function MapboxControllerProvider({ children }: { children: ReactNode }) {
+export function MapboxControllerProvider({
+  children,
+  inline = false,
+}: {
+  children: ReactNode
+  inline?: boolean
+}) {
   const { mapbox, padding, moveMap, fitBounds, isPointVisible, flyTo } = useMapbox()
   const setPadding = usePaddingState((s) => s.setPadding)
   const setSelection = useViewState((s) => s.setSelection)
@@ -94,21 +104,21 @@ export function MapboxControllerProvider({ children }: { children: ReactNode }) 
   const setBoundary = useViewState((s) => s.setBoundary)
   const sheetCover = useSheetCover((s) => s.bottom)
   // This is the box the map actually occupies.
-  // It is the frame when a contained embed, or the compact card's expanded dialog, has taken the containing block. See issue #169.
+  // It is the frame when the expanded dialog has taken the containing block. See issue #169.
   // Otherwise it is the viewport, which is what this value computed before frames existed.
   //
   // **This must be the same box `DrawerStack` measures.** This value pads the camera around the panel that box decides.
-  // Before #169, the viewport was that box by construction, because map mode spanned it.
-  // So reading `useIsWideViewport` agreed with it only by luck of a shared crossing.
-  // A contained 600px map breaks that agreement.
-  // The drawer becomes a bottom sheet, while a viewport read would still reserve 352px of camera on the left for a panel that is not there.
+  // A viewport read agrees with it only by luck of a shared crossing, and a frame breaks that agreement.
   //
   // So this provider is the one that measures it on a map, and provides the answer as `WidgetWidthContext` to the map and to `DrawerStack`, which reads it rather than measuring again.
-  // `MapFrame` publishes the frame in the layout phase, so the first render already measures it.
+  // The expanded dialog publishes the frame in the layout phase, so the first render already measures it.
+  // Inline it provides nothing: the inline column is the box there, and `DrawerStack` measures it.
   const isWide = useIsWide(frameElement())
 
   // Keep the drawer's known footprint out of the usable camera area.
   useEffect(() => {
+    if (inline) return
+
     const boxHeight = frameElement()?.clientHeight ?? window.innerHeight
     const sheet = Math.max(0, Math.min(sheetCover ?? SHEET_OPEN_PX, boxHeight - MIN_MAP_STRIP_PX))
 
@@ -118,7 +128,16 @@ export function MapboxControllerProvider({ children }: { children: ReactNode }) 
       top: MAP_MARGIN,
       bottom: MAP_MARGIN + (isWide ? 0 : sheet),
     })
-  }, [isWide, sheetCover, setPadding])
+  }, [inline, isWide, sheetCover, setPadding])
+
+  // Its own effect, so the default comes back when the drawer padding stops and at no other time.
+  // Sharing the effect above restored it on every `isWide` and `sheetCover` change — twice per
+  // sheet drag.
+  useEffect(() => {
+    if (inline) return
+
+    return () => setPadding(usePaddingState.getInitialState().padding)
+  }, [inline, setPadding])
 
   const controller = useMemo<MapController>(
     () => ({
@@ -230,9 +249,13 @@ export function MapboxControllerProvider({ children }: { children: ReactNode }) 
     ],
   )
 
-  return (
-    <WidgetWidthContext.Provider value={isWide}>
-      <MapControllerContext.Provider value={controller}>{children}</MapControllerContext.Provider>
-    </WidgetWidthContext.Provider>
+  const provided = (
+    <MapControllerContext.Provider value={controller}>{children}</MapControllerContext.Provider>
+  )
+
+  return inline ? (
+    provided
+  ) : (
+    <WidgetWidthContext.Provider value={isWide}>{provided}</WidgetWidthContext.Provider>
   )
 }

@@ -217,8 +217,6 @@ describe('every key a call site asks for', () => {
  * Delete an entry in the PR that wires it: the pin below fails until you do.
  */
 const PENDING_KEYS: Record<string, string> = {
-  'common.map.close': 'sydevs/SahajAtlasWeb#466',
-  'countries.place_title': 'sydevs/SahajAtlasWeb#466',
   'registration.form.subscribe': 'sydevs/SahajAtlasWeb#147',
 }
 

@@ -9,6 +9,7 @@ import type { Json } from './sahajcloud'
 import { DateTime } from 'luxon'
 
 import { WEEKDAY_CODES, mockEventImages } from './events'
+import { mockReportForm } from './report-form'
 import {
   SAHAJCLOUD_EVENT,
   onePage,
@@ -512,6 +513,10 @@ const withStoryImages = (doc: Json) =>
 /** The SahajCloud fixtures, with the bigger atlas in place of its tree, its feed and its classes. */
 export const demo: typeof sahajCloud = {
   ...sahajCloud,
+  // A report form, so the stories show every way into it: the settings menu's "Report an issue"
+  // and a class page's "Report incorrect class details".
+  atlasConfig: toJson({ id: 1, availableLocales: ['en'], reportIssueForm: mockReportForm.id }),
+  forms: { [mockReportForm.id]: toJson(mockReportForm) },
   regions: paginated(nodes),
   feed: toJson({
     type: 'FeatureCollection',

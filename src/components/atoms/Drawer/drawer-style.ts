@@ -22,10 +22,9 @@ export const drawer = tv({
     content:
       'pointer-events-auto fixed z-40 flex flex-col overflow-clip bg-background text-foreground shadow-2xl outline-none',
     // Every content band is capped at `--sy-content-max` (default 512px) and
-    // centred. So on a wide surface, such as a map-less embed or a large-mobile
-    // bottom sheet, the views read as a centred column, instead of stretching
-    // edge to edge. This has no effect on the 352px anchored panel,
-    // which is already narrower.
+    // centred. So on a wide surface, such as a large-mobile bottom sheet, the
+    // views read as a centred column, instead of stretching edge to edge. This
+    // has no effect on the 384px anchored panel, which is already narrower.
     // ⚠ The wider gap and bottom padding on a touch screen are the 44px tap floor, not
     // spacing taste (#432): the header's controls are drawn at 32px and each grows an
     // invisible 44px area, 6px past its own box on every side. At the 8px gap two of those
@@ -70,7 +69,7 @@ export const drawer = tv({
   variants: {
     direction: {
       // Flush to the edge on tablet (md–lg). At ≥lg it floats with a margin, so
-      // the map shows around it, rounded. (`full` cancels the float map-less.)
+      // the map shows around it, rounded.
       //
       // TODO(rtl, #52 WS8): the remaining RTL gap is vaul's own `direction`
       // prop. That prop is physically left or right, and it drives both the
@@ -86,7 +85,7 @@ export const drawer = tv({
       // runs the page under it). The panel widens by the inset and pads it, so its content keeps
       // the full width clear of the cut-out. Zero everywhere else.
       //
-      // **The `352px` in both variants below is paired with `DRAWER_W_PX` in
+      // **The `384px` in both variants below is paired with `DRAWER_W_PX` in
       // `hooks/use-map-controller-mapbox.tsx`.** That constant becomes the map's
       // left camera padding, so the map knows how much of itself this panel
       // covers. Tailwind needs a literal here, and it cannot read the
@@ -99,17 +98,17 @@ export const drawer = tv({
       // Mapbox opens and closes the list on every response, and the panel would follow each one.
       left: {
         content:
-          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,352px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl lg:has-[[role=search]:focus-within_input:not(:placeholder-shown)]:h-[calc(var(--sy-frame-h)-32px)]',
+          'inset-y-0 left-0 w-[calc(var(--sy-drawer-w,384px)+env(safe-area-inset-left,0px))] max-w-[calc(100%-32px)] rounded-none border border-divider ps-[env(safe-area-inset-left,0px)] lg:top-4 lg:bottom-auto lg:left-4 lg:max-h-[calc(var(--sy-frame-h)-32px)] lg:rounded-2xl lg:has-[[role=search]:focus-within_input:not(:placeholder-shown)]:h-[calc(var(--sy-frame-h)-32px)]',
       },
       right: {
         content:
-          'inset-y-0 right-0 w-[var(--sy-drawer-w,352px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
+          'inset-y-0 right-0 w-[var(--sy-drawer-w,384px)] max-w-[calc(100%-32px)] rounded-none border border-divider lg:inset-y-4 lg:right-4 lg:rounded-2xl',
       },
       // Snap-point sheets must use the full viewport height. Vaul computes
       // its snap translate from the window height, so a content-sized sheet
       // would get pushed off-screen. The 3dvh bottom padding keeps the
       // footer above the fold at the 0.97 top snap, since the last 3% stays
-      // hidden. `full` cancels this map-less.
+      // hidden.
       bottom: {
         content:
           'inset-x-0 bottom-0 h-[var(--sy-frame-h)] rounded-t-2xl border-t border-divider pb-[calc(var(--sy-frame-h)*0.03)]',
@@ -118,33 +117,39 @@ export const drawer = tv({
         content: 'inset-x-0 top-0 h-[var(--sy-frame-h)] rounded-b-2xl border-b border-divider',
       },
     },
-    // How the panel relates to its container.
+    // How the panel relates to the page: a drawer over the map, or no drawer at all.
     mode: {
       /** Fixed to the viewport, anchored to the `direction` edge. This is the map layout. */
       anchored: {},
       /**
-       * Absolute within the widget container, filling it. This is the
-       * map-less single panel. It is still a real vaul root, so the header
-       * close button keeps working.
+       * In the host page's flow, with no drawer at all: the inline embed's content column.
+       * Nothing scrolls inside it, so the page grows to fit. The column lifts the bands' width
+       * cap itself, through `--sy-content-max`.
        */
-      filled: {
-        content: '!absolute !inset-0 !h-full !max-h-none !w-full !max-w-none !rounded-none !pb-0',
+      // The first band drops its top padding, so whatever a view leads with starts level with
+      // the map beside it: the column and the map's toolbar share the grid's rows
+      // (`InlineColumns`).
+      inline: {
+        body: 'flex-none overflow-visible after:hidden first:pt-0',
+        // A title naming the place the inline embed's page heading already names gives way to
+        // that heading. `display: none` takes it out of the accessibility tree too, so this is
+        // the same tree as not rendering it (`DrawerTitle`, `views/shared.tsx`).
+        header: 'first:pt-0 [&_[data-sy-place]]:hidden',
+        toolbar: 'first:pt-0',
       },
     },
-    // A full-width surface, such as CalendarView, instead of the 352px left panel, so a month
+    // A full-width surface, such as CalendarView, instead of the 384px left panel, so a month
     // grid stays legible.
     wide: { true: {}, false: {} },
   },
   compoundVariants: [
     // The bottom sheet shows a drag handle that already spaces the header
     // from the sheet's top edge. So this relaxes the header's top padding,
-    // for a balanced handle-to-header gap. This does not apply when `filled`
-    // hides the handle, map-less, where the header owns the top instead.
+    // for a balanced handle-to-header gap.
     { direction: 'bottom', mode: 'anchored', class: { header: 'pt-2' } },
     // Wide, plus the anchored left panel: this fills the container, flush at
     // md and floating at lg, instead of the narrow left panel. `!important`
-    // overrides the left variant's fixed width and edge insets. This mirrors
-    // how `filled` overrides them map-less.
+    // overrides the left variant's fixed width and edge insets.
     {
       direction: 'left',
       mode: 'anchored',

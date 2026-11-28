@@ -88,7 +88,6 @@ export const Default: Story<{ example: Example }> = ({ example }) => {
 }
 
 Default.storyName = 'Filter'
-Default.meta = { width: 'xsmall' }
 Default.argTypes = {
   example: {
     name: 'Example',

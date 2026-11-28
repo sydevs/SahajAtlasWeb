@@ -15,6 +15,7 @@ vi.mock('@/components/molecules/QrPoster', () => ({
   QrPoster: ({ url }: { url: string }) => <i>qr-slot:{url}</i>,
 }))
 vi.mock('@/components/molecules/ImageGallery', () => ({ ImageGallery: () => <i>images-slot</i> }))
+vi.mock('./EventShareAndReport', () => ({ EventShareAndReport: () => null }))
 vi.mock('./EventRegister', () => ({ EventRegisterBar: () => <i>register-slot</i> }))
 vi.mock('@/components/molecules/EventActions', () => ({ EventActions: () => <i>actions-slot</i> }))
 vi.mock('@/components/molecules/EventChips', () => ({ EventChips: () => <i>chips-slot</i> }))

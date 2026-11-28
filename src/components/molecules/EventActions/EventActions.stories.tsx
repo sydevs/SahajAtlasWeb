@@ -44,13 +44,13 @@ const noWebsite: Event = { ...mockEvent, id: 202, website: null }
 const noContact: Event = { ...mockEvent, id: 203, contactPhone: null, contactName: null }
 const inactive: Event = { ...mockEvent, id: 204, inactive: true }
 
-// The drawer panel is about 352px wide, with a 24px gutter, so its content box is about 304px:
+// The drawer panel is about 384px wide, with a 24px gutter, so its content box is about 336px:
 // the default width here. 272px is a 320px phone's sheet less its gutters. The row must fit its
 // set on one line at both, never wrapping.
-function Panel({ event, width = 304 }: { event: Event; width?: 272 | 304 }) {
+function Panel({ event, width = 336 }: { event: Event; width?: 272 | 336 }) {
   return (
     <div
-      className={`${width === 272 ? 'w-[272px]' : 'w-[304px]'} rounded-lg border border-divider py-3`}
+      className={`${width === 272 ? 'w-[272px]' : 'w-[336px]'} rounded-lg border border-divider py-3`}
     >
       <EventActions event={event} strings={useEventDisplay(event)} />
     </div>

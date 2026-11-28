@@ -9,7 +9,7 @@ import { MonthView } from './MonthView'
 import { WeekList } from './WeekList'
 
 import { Button } from '@/components/atoms/Button'
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader, useDrawerMode } from '@/components/atoms/Drawer'
 import { CALENDAR_HEADER } from '@/components/organisms/Skeleton/Skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterChips, ResetErrorBoundary } from '@/components/molecules'
@@ -133,7 +133,9 @@ function CalendarHeader({
 
   return (
     <>
-      <div className="flex w-full items-center justify-between gap-2">
+      {/* Inline beside a map this row empties: Back goes above the page heading and the filter
+          buttons above the map, so it takes no room then. */}
+      <div className="flex w-full items-center justify-between gap-2 [&:not(:has(button,a))]:hidden">
         <BackButton />
         {/* Full width, the calendar covers the map, so its header carries the filter buttons. */}
         {fullWidth ? (
@@ -225,7 +227,10 @@ export function CalendarView() {
   const [params] = useSearchParams()
   const view = calendarViewFromParams(params)
   const week = calendarWindow(params, todayISO())
-  const fullWidth = isCalendarFullWidth('calendar', useIsWideWidget(), view)
+  // Inline, the toolbar above the map carries the filter buttons, so the header never does.
+  const inline = useDrawerMode() === 'inline'
+  const isWide = useIsWideWidget()
+  const fullWidth = !inline && isCalendarFullWidth('calendar', isWide, view)
 
   return (
     <>

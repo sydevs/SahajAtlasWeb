@@ -27,7 +27,7 @@ import {
   XShareButton,
 } from 'react-share'
 
-import { TARGET_CLASS } from './target'
+import { ROW_TARGET_CLASS, TARGET_CLASS } from './target'
 
 import { type PlatformKey, platformsForCountry } from '@/lib/share/platforms'
 
@@ -135,6 +135,8 @@ export type PlatformButtonProps = {
   title: string
   /** Called as the network's page or the mail app takes over. */
   onPick?: () => void
+  /** The share row's larger look (`ShareRow`), rather than a menu's. */
+  row?: boolean
 }
 
 /**
@@ -142,7 +144,7 @@ export type PlatformButtonProps = {
  * name below it. Brand names stay as written in every language; Email is the one generic name,
  * so it takes translated copy, in the accessible name too (WCAG 2.5.3).
  */
-export function PlatformButton({ platform, url, title, onPick }: PlatformButtonProps) {
+export function PlatformButton({ platform, url, title, onPick, row = false }: PlatformButtonProps) {
   const { t } = useTranslation()
   const { name: brand, Icon, iconClass, render } = PLATFORMS[platform]
   const name = platform === 'email' ? t('share.email') : brand
@@ -152,12 +154,12 @@ export function PlatformButton({ platform, url, title, onPick }: PlatformButtonP
     title,
     button: {
       'aria-label': t('share.a11y.share_on', { platform: name }),
-      className: TARGET_CLASS,
+      className: row ? ROW_TARGET_CLASS : TARGET_CLASS,
       resetButtonStyle: false,
       beforeOnClick: onPick,
       children: (
         <>
-          <Icon {...ICON_PROPS} className={iconClass} />
+          <Icon {...ICON_PROPS} className={iconClass} size={row ? 48 : ICON_PROPS.size} />
           <span className="max-w-full truncate">{name}</span>
         </>
       ),

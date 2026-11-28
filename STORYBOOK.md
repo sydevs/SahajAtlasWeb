@@ -19,14 +19,14 @@ pnpm ladle:build  # static build (also the CI gate — broken stories fail it)
 
 ## How it's wired
 
-| Piece                   | What it does                                                                        |
-| ----------------------- | -------------------------------------------------------------------------------------- |
-| `.ladle/config.mjs`     | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`, and the story order: Atoms, Molecules, Organisms, Views, Interactive, then any other group, each alphabetical inside. |
-| `.ladle/vite.config.ts` | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root). Points the app's SahajCloud origin at Ladle's own, serves the Turnstile challenge there, and swaps in `react-map-gl.tsx`. |
-| `.ladle/backend.ts`     | Answers every SahajCloud read from the browser lane's fixtures (`src/mocks/sahajcloud.ts`), and seeds the visitor's approximate location as Cambridge. Ladle talks to no API. |
+| Piece                     | What it does                                                                                                                                                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.ladle/config.mjs`       | Story glob (`src/**/*.stories.{ts,tsx}`), title, port, `viteConfig`, and the story order: Atoms, Molecules, Organisms, Views, Interactive, then any other group, each alphabetical inside.                              |
+| `.ladle/vite.config.ts`   | Resolves the `@/` alias to `src/` (Ladle relocates Vite's root). Points the app's SahajCloud origin at Ladle's own, serves the Turnstile challenge there, and swaps in `react-map-gl.tsx`.                              |
+| `.ladle/backend.ts`       | Answers every SahajCloud read from the browser lane's fixtures (`src/mocks/sahajcloud.ts`), and seeds the visitor's approximate location as Cambridge. Ladle talks to no API.                                           |
 | `.ladle/react-map-gl.tsx` | react-map-gl as a story needs it: `reuseMaps` off (a map carried between Ladle's iframe and its page drew nothing), a canvas that follows its own box, and the realm bridge mapbox-gl needs inside the viewport iframe. |
-| `.ladle/i18n.ts`        | Self-contained i18next over the committed English snapshot and the screen-reader strings, English only. |
-| `.ladle/components.tsx` | The **global decorator**: React Query + Helmet + a `MemoryRouter` (fresh per story) + `<I18nextProvider>`. |
+| `.ladle/i18n.ts`          | Self-contained i18next over the committed English snapshot and the screen-reader strings, English only.                                                                                                                 |
+| `.ladle/components.tsx`   | The **global decorator**: React Query + Helmet + a `MemoryRouter` (fresh per story) + `<I18nextProvider>`.                                                                                                              |
 
 **Theme and canvas.** Ladle's theme toggle drives the **whole canvas** — the
 decorator calls `applyTheme()` with the toggle's state and stamps the `dark`
@@ -109,14 +109,47 @@ controls panel alphabetically by arg key, ignoring declaration order —
 first on every story. Only Ladle's global "Brand palette" control sorts
 higher.
 
+**Every view also has two global controls**, `Form` and `Map`. The decorator
+adds them to every `views--` story (`.ladle/components.tsx`) and `ViewHarness`
+reads them, so a view story writes nothing for them, a new one gets them for
+free, and their values hold as you move between views.
+
+- **Form**: `Inline`, the view in the inline embed's page (its heading, and
+  `InlineColumns` with the map beside it), or `Expanded`, the expanded map's
+  frame with the real `DrawerStack` over the map, showing the story's view at
+  its `path` — a side panel where the frame is wide, a bottom sheet where it is
+  not, which drags and snaps as the app's does. Back and the view's links
+  navigate for real, into the routed views, so a view story passes the `path`
+  it lives at.
+- **Map**, on by default: the live map, with a real `MapController`, so a view
+  frames it as it does in the app. Off is a `map=false` embed, which is always
+  inline whatever **Form** says, since there is no map to expand. It needs
+  `VITE_MAPBOX_ACCESSTOKEN`, and without one every view renders map-less.
+
+Both read from the address too, so a link opens in its form:
+`?story=views--event&arg-form=Expanded`.
+
+A view sets no viewport of its own, so it fills Ladle's main area, with
+Ladle's padding taken away (`.ladle/components.tsx`); narrow the window or
+pick a viewport to see the narrow forms. The map draws at any viewport width:
+`.ladle/react-map-gl.tsx` bridges its container check across Ladle's viewport
+iframe, and resizes the canvas with its box.
+
+⚠ **With a token, the accessibility gate fails every view story on the map's
+own controls** — the locate button and the Mapbox wordmark measure under the
+44px floor, as `organisms--mapbox` already did. CI's library build carries no
+token, so its gate renders the views map-less and does not see them.
+
 ### The whole widget (`Interactive / Full Widget`)
 
-`src/App.stories.tsx` renders the real `App` on a stand-in host page: browse,
-open a class and register, search, filter. Its data is the SahajCloud
-fixtures, through the app's real fetchers, with a bigger atlas of real places
-on top (`src/mocks/sahajcloud-demo.ts`) so every list scrolls. A fixture the
-widget newly needs goes in `src/mocks/sahajcloud.ts`, where the browser lane
-reads it too. **Map** off is a `map=false` embed.
+`src/App.stories.tsx` renders the real `App`, inline, on a stand-in host page:
+browse, open a class and register, search, filter, expand the map and close it.
+Its data is the SahajCloud fixtures, through the app's real fetchers, with a bigger
+atlas of real places on top (`src/mocks/sahajcloud-demo.ts`) so every list scrolls.
+A fixture the widget newly needs goes in `src/mocks/sahajcloud.ts`, where the browser
+lane reads it too. **Map** off is a `map=false` embed; **White background**
+paints the host page in the widget's own background, so the inline form
+blends in.
 
 ### StoryGrid (matrices)
 
@@ -142,7 +175,9 @@ export default { title: 'Atoms' } satisfies StoryDefault
 export const Default: Story = () => (
   <StoryWrapper>
     <StorySection title="Variants">{/* ... */}</StorySection>
-    <StorySection title="Examples" inContext={true}>{/* ... */}</StorySection>
+    <StorySection title="Examples" inContext={true}>
+      {/* ... */}
+    </StorySection>
     <div />
   </StoryWrapper>
 )

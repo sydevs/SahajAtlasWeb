@@ -30,6 +30,7 @@ vi.mock('@/components/atoms/Drawer', () => ({
       {field ? 'field-toolbar' : 'toolbar'}:{children}
     </aside>
   ),
+  useDrawerMode: () => 'anchored',
 }))
 vi.mock('@/components/molecules', () => ({
   CENTERED_BODY: '',
@@ -51,6 +52,7 @@ vi.mock('@/views/shared', () => ({
   FilterButton: () => <i>filter-button</i>,
   SearchField: () => <i>search-field</i>,
   useDrawerControl: () => ({ collapsed: false }),
+  useRootHeader: () => true,
 }))
 
 const at = (path: string, view: ReactNode) =>

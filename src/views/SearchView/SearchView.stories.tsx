@@ -174,6 +174,7 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
   return (
     <ViewStory
       example={example}
+      path="/search"
       seed={(client: QueryClient) => {
         // Seed this case's list under EVERY case's key. `SeedSearchParams` lands one
         // render in, so switching the Example control re-creates the client while the
@@ -193,7 +194,6 @@ export const Default: Story<{ example: ExampleKey; state: StoryFallbackArg }> = 
 }
 
 Default.storyName = 'Search'
-Default.meta = { width: 'xsmall' }
 Default.args = { example: 'Results', state: NO_ERROR }
 Default.argTypes = {
   example: {

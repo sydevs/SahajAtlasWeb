@@ -34,10 +34,9 @@ const captchaAdvice = (serverOrigin: string, hostname: string) =>
  * another origin with a handshake that a slow load can miss (#182). So the failure shows where a
  * token is needed, in the forms, and the advice below reaches the developer on the console.
  *
- * ⚠ **Call this from the INTERFACE, never from the shell.**
- * `.claude/rules/components.md` is explicit that anything that fetches or injects a script must mount with `FullInterface`.
- * Mounting a challenge frame for a card nobody has pressed would break that.
- * `CompactEmbedView.mount.test.tsx` asserts that this does not happen.
+ * ⚠ **Call this from the INTERFACE, never from the shell** — from `useInterfaceBoot`, beside the analytics and the
+ * cache warm, which every interface form runs once. The shell renders before any interface does, and through the error
+ * screens too.
  */
 export function useTurnstileGuard(): void {
   useEffect(() => {

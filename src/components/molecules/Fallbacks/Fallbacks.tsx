@@ -659,10 +659,10 @@ export function FallbackRegion({
  *
  *  - `max-h` reads `--sy-sheet-top`, the sheet's live top edge. DrawerStack mirrors
  *    this value every frame, so the box cannot extend far past the fold. The `0px`
- *    fallback resolves to the full height, which is right in the map-less container,
- *    where the body already IS the visible area. It still over-measures by the header's
- *    height — the box starts below the header, not at the sheet's edge — which is why
- *    the second part matters.
+ *    fallback resolves to the full height, which is right in the inline column, where the
+ *    body already IS the visible area. It still over-measures by the header's height — the
+ *    box starts below the header, not at the sheet's edge — which is why the second part
+ *    matters.
  *  - **Auto margins, not `justify-center`.** Auto margins centre content when there is
  *    slack, and collapse to nothing when there is not. So tall content starts at the
  *    top and scrolls inside the body instead. `justify-center` would instead clip the

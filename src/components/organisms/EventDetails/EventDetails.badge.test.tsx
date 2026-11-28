@@ -36,6 +36,7 @@ vi.mock('@/hooks/use-prefetch-event', () => ({
 // Neither is what this asserts. Register and the facts render a marker rather than
 // null, because the badge's POSITION between the two is half of what is asserted
 // below, and a null stub leaves nothing to order against.
+vi.mock('./EventShareAndReport', () => ({ EventShareAndReport: () => null }))
 vi.mock('./EventRegister', () => ({
   EventRegisterBar: () => <i>register-slot</i>,
 }))

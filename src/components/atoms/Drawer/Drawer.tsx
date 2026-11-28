@@ -28,21 +28,21 @@ import { overlayContainer } from '@/lib/overlay'
 // `DrawerStack` renders a SINGLE drawer, holding the active (top) view. Parent
 // views appear as static peek cards behind it, not real nested drawers.
 // Direction is left at ≥md, and bottom on mobile. `snapPoints` are the mobile
-// peek, third, and full ladder. Map-less, the drawer uses `mode="filled"`. It
-// is then absolute and fills the widget container, instead of fixed to the
-// viewport.
+// peek, third, and full ladder. A map-less atlas renders no drawer at all: its
+// views sit in the inline embed's column, in `DrawerSlotsProvider mode="inline"`.
 
 export type DrawerDirection = 'left' | 'right' | 'top' | 'bottom'
 
 type DrawerSlots = ReturnType<typeof drawer>
 
+type DrawerMode = 'anchored' | 'inline'
+
 type DrawerCtx = {
   slots: DrawerSlots
   direction: DrawerDirection
-  // A `filled` drawer, map-less, hides the drag handle. There is nothing to drag.
-  mode: 'anchored' | 'filled'
+  mode: DrawerMode
   wide?: boolean
-  // The portal target for a real drawer. Map-less mode passes the widget container.
+  // The portal target for a real drawer.
   container?: HTMLElement | null
   // Where the panel starts before vaul places it (`enterInPlace`); absent means off screen.
   initialTransform?: string
@@ -56,13 +56,22 @@ const DrawerContext = createContext<DrawerCtx>({
 
 const useDrawerSlots = () => useContext(DrawerContext)
 
-export type DrawerProps = VariantProps<typeof drawer> & {
+/**
+ * `inline` in the inline embed's column, where the views sit in the page's flow; `anchored` in a
+ * real drawer. For a decision CSS cannot make from the slots, such as how many lines a loading
+ * title takes in a column wider than a panel.
+ */
+export const useDrawerMode = (): DrawerMode => useDrawerSlots().mode
+
+// A real drawer is anchored. `inline` is a surface with no drawer at all, reached only through
+// `DrawerSlotsProvider`.
+export type DrawerProps = Omit<VariantProps<typeof drawer>, 'mode'> & {
   /** Controlled open state. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
   /** Non-modal by default. The map and content behind it stay interactive. */
   modal?: boolean
-  /** When false, the drawer cannot be closed by swipe, Esc, or clicking outside (map-less root). */
+  /** When false, the drawer cannot be closed by swipe, Esc, or clicking outside. */
   dismissible?: boolean
   /** Restricts dragging to the handle. When no handle renders (the left panel),
    *  this makes the drawer undraggable, but the close button still dismisses it. */
@@ -71,7 +80,7 @@ export type DrawerProps = VariantProps<typeof drawer> & {
   snapPoints?: (number | string)[]
   activeSnapPoint?: number | string | null
   setActiveSnapPoint?: (snapPoint: number | string | null) => void
-  /** The portal target. Map-less passes the widget container. The default is the theme root. */
+  /** The portal target. The default is the theme root. */
   container?: HTMLElement | null
   /**
    * The box vaul measures snap points against. **This is not the same
@@ -99,7 +108,6 @@ export function Drawer({
   modal = false,
   dismissible = true,
   handleOnly = false,
-  mode = 'anchored',
   wide = false,
   snapPoints,
   activeSnapPoint,
@@ -109,7 +117,7 @@ export function Drawer({
   enterInPlace = false,
   children,
 }: DrawerProps) {
-  const slots = drawer({ direction, mode, wide })
+  const slots = drawer({ direction, mode: 'anchored', wide })
   const initialTransform = enterInPlace
     ? inPlaceTransform(snapPoints ? (activeSnapPoint ?? snapPoints[0]) : undefined)
     : undefined
@@ -120,10 +128,10 @@ export function Drawer({
   const rootProps = {
     // ⚠ Vaul measures the CONTAINER when given one, and `window.innerHeight`
     // otherwise (`snapPointsOffset`, vaul dist). Passing one is what makes a
-    // fractional snap point correct inside `CompactEmbedView`'s dialog. That
-    // dialog keeps a margin, so it is 16-32px shorter than the window.
-    // Without this prop, the near-full snap sat that far out, and the sheet
-    // overran the clip edge.
+    // fractional snap point correct inside the expanded dialog, which starts
+    // below the host's header and so is shorter than the window. Without
+    // this prop, the near-full snap sat that far out, and the sheet overran
+    // the clip edge.
     //
     // ⚠ **But it must be a box, and the portal target is not always one.**
     // This code briefly passed `container`, the element this drawer portals
@@ -140,9 +148,9 @@ export function Drawer({
     // through it.
     //
     // So the measurement box is its own prop. `DrawerStack` supplies
-    // `frameElement()`: the compact card's expanded dialog, or a contained
-    // map's `MapFrame` (#169). It supplies `undefined` wherever there is no
-    // frame, and that is where vaul's own `window.innerHeight` is correct.
+    // `frameElement()`: the expanded dialog. It supplies `undefined` wherever
+    // there is no frame, and that is where vaul's own `window.innerHeight` is
+    // correct.
     container: measureAgainst ?? undefined,
     direction,
     dismissible,
@@ -167,7 +175,14 @@ export function Drawer({
 
   return (
     <DrawerContext.Provider
-      value={{ slots, direction: direction ?? 'bottom', mode, wide, container, initialTransform }}
+      value={{
+        slots,
+        direction: direction ?? 'bottom',
+        mode: 'anchored',
+        wide,
+        container,
+        initialTransform,
+      }}
     >
       <Vaul.Root {...rootProps} />
     </DrawerContext.Provider>
@@ -179,15 +194,14 @@ export function Drawer({
  * mode plus direction) WITHOUT a vaul root, so a view's `Drawer*` subtree can be
  * previewed outside a real drawer (the story harness) with the SAME chrome the app
  * renders. The app itself always goes through `<Drawer>`/`<DrawerContent>`. This is
- * only for rendering the inner content standalone. It defaults to the map-less
- * `filled` bottom drawer, which is what the harness simulates.
+ * only for rendering the inner content standalone, and for the inline embed's column.
  */
 export function DrawerSlotsProvider({
-  mode = 'filled',
+  mode = 'anchored',
   direction = 'bottom',
   children,
 }: {
-  mode?: 'anchored' | 'filled'
+  mode?: DrawerMode
   direction?: DrawerDirection
   children: ReactNode
 }) {
@@ -203,7 +217,7 @@ export type DrawerContentProps = {
   'aria-label': string
   children: ReactNode
   className?: string
-  /** Shows the drag handle. Defaults to true for bottom sheets (never when filled). */
+  /** Shows the drag handle. Defaults to true for bottom sheets. */
   handle?: boolean
   /**
    * Escape, before vaul acts on it.
@@ -229,7 +243,7 @@ export function DrawerContent({
   // State, not a ref: the portal mounts the panel a pass after this component does.
   const [panel, setPanel] = useState<HTMLDivElement | null>(null)
 
-  useSheetDragClaim(direction === 'bottom' && mode !== 'filled' ? panel : null)
+  useSheetDragClaim(direction === 'bottom' ? panel : null)
 
   // The floating panel is as tall as its view, so its height changes as the content does.
   // CSS cannot ease that: the height stays `auto` while only the content changes, so no
@@ -270,7 +284,7 @@ export function DrawerContent({
     }
   }, [panel, eases])
 
-  const showHandle = handle ?? (direction === 'bottom' && mode !== 'filled')
+  const showHandle = handle ?? direction === 'bottom'
   // `undefined` means use the default themed root. An explicit `null` opts out.
   const target = container === undefined ? overlayContainer() : container
 
@@ -403,10 +417,15 @@ export function DrawerFooter({
    * top of the published height: the body's bottom edge sits that far below the
    * viewport at any snap but the top one, and the bar paints at the viewport
    * (#326).
+   *
+   * Inline, where there is no sheet, it sticks to the bottom of the screen instead, in the page's
+   * own flow, for as long as its view is on screen. In flow, it needs no clearance.
    */
   sticky?: boolean
 }) {
-  const { slots } = useDrawerSlots()
+  const { slots, mode } = useDrawerSlots()
+  const pinned = sticky && mode !== 'inline'
+  const stuck = sticky && mode === 'inline'
   const ref = useRef<HTMLDivElement>(null)
 
   // The body clears this footer by its own trailing length, and no caller can
@@ -429,7 +448,7 @@ export function DrawerFooter({
     const el = ref.current
     const layer = el?.parentElement
 
-    if (!sticky || !el || !layer || typeof ResizeObserver === 'undefined') return
+    if (!pinned || !el || !layer || typeof ResizeObserver === 'undefined') return
 
     const observer = new ResizeObserver(([entry]) => {
       const height = entry?.borderBoxSize?.[0]?.blockSize ?? el.offsetHeight
@@ -443,13 +462,13 @@ export function DrawerFooter({
       observer.disconnect()
       layer.style.removeProperty('--sy-footer-h')
     }
-  }, [sticky])
+  }, [pinned])
 
   return (
     <div
       ref={ref}
       className={slots.footer({
-        className: `${sticky ? 'fixed inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${className ?? ''}`,
+        className: `${pinned ? 'fixed inset-x-0 bottom-[var(--sy-sheet-top,0px)] z-10 bg-background' : ''} ${stuck ? 'sticky bottom-0 z-10 bg-background' : ''} ${className ?? ''}`,
       })}
     >
       {children}
@@ -457,7 +476,7 @@ export function DrawerFooter({
           home indicator, so a bar flush with it puts its control in the gesture
           area. The spacer carries the inset rather than the footer's padding,
           which a caller's own `py-*` would merge away. */}
-      {sticky && <div className="h-[env(safe-area-inset-bottom)]" />}
+      {(pinned || stuck) && <div className="h-[env(safe-area-inset-bottom)]" />}
     </div>
   )
 }

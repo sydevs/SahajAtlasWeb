@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import { Check, Link } from 'lucide-react'
 
 import { CopyFailedCaption } from './CopyFailed'
-import { TARGET_CLASS } from './target'
+import { DISC, ROW_TARGET_CLASS, TARGET_CLASS } from './target'
 
 import { useCopy } from '@/hooks/use-copy'
 
@@ -12,7 +12,7 @@ import { useCopy } from '@/hooks/use-copy'
  * Copy link, as one more disc in the grid. It answers on itself — a check and "Link copied" —
  * so the popover stays open. Where the host refuses the clipboard, the URL is selected below.
  */
-export function CopyLinkTarget({ url }: { url: string }) {
+export function CopyLinkTarget({ url, row = false }: { url: string; row?: boolean }) {
   const { t } = useTranslation()
   const { copied, failed, copy } = useCopy(2500)
   const captionRef = useRef<HTMLParagraphElement>(null)
@@ -22,15 +22,21 @@ export function CopyLinkTarget({ url }: { url: string }) {
     <>
       <button
         data-vaul-no-drag
-        className={TARGET_CLASS}
+        className={row ? ROW_TARGET_CLASS : TARGET_CLASS}
         type="button"
         onClick={() => void copy(url, captionRef.current)}
       >
         <span
-          className={clsx(
-            'flex size-11 items-center justify-center rounded-full',
-            copied ? 'bg-primary-9 text-primary-foreground' : 'bg-gray-4 text-gray-12',
-          )}
+          // In the row it leads in the brand's colour, as the page's own way to share: the
+          // Button's own primary flat surface, as a 48px disc.
+          className={
+            row
+              ? DISC({ color: 'primary' })
+              : clsx(
+                  'flex size-11 items-center justify-center rounded-full',
+                  copied ? 'bg-primary-9 text-primary-foreground' : 'bg-gray-4 text-gray-12',
+                )
+          }
         >
           {copied ? (
             <Check aria-hidden size={20} strokeWidth={3} />
