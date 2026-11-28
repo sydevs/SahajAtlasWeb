@@ -28,6 +28,16 @@ const backTo = (scope: Scope, title: string) =>
 const placeHeading = (scope: Scope, place: string) =>
   scope.getByRole('heading', { name: copy(en.countries.place_title, { place }), exact: true })
 
+// On a class, the page heading names the class in its town, whichever town the fixture is in.
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const classHeading = (scope: Scope, title: string) => {
+  const [before, after] = copy(en.event.display.title_in_place, { title, place: '\u0000' }).split(
+    '\u0000',
+  )
+
+  return scope.getByRole('heading', { name: new RegExp(`^${escape(before)}.+${escape(after)}$`) })
+}
+
 test('browsing the expanded map moves the URL and the drawers, and Back retraces it', async ({
   page,
 }) => {
@@ -76,10 +86,8 @@ test('a deep link opens inline onto its class, and Back goes past the places tha
 
   const atlas = widget(page)
 
-  // Inline, the page heading names the class's place and the class keeps its own name below it.
-  await expect(
-    atlas.getByRole('heading', { name: SAHAJCLOUD_EVENT.title, exact: true }),
-  ).toBeVisible()
+  // Inline, the page heading names the class in its town.
+  await expect(classHeading(atlas, SAHAJCLOUD_EVENT.title)).toBeVisible()
   await expect(atlas.getByRole('dialog')).toHaveCount(0)
 
   // A deep link has no in-widget history, so `navigate(-1)` here would take the HOST page back
@@ -99,9 +107,7 @@ test('a link to a place with one class opens it, and Back does not bounce into i
   const atlas = widget(page)
 
   await expect.poll(() => atlasRoute(page)).toBe(SAHAJCLOUD_EVENT.path)
-  await expect(
-    atlas.getByRole('heading', { name: SAHAJCLOUD_EVENT.title, exact: true }),
-  ).toBeVisible()
+  await expect(classHeading(atlas, SAHAJCLOUD_EVENT.title)).toBeVisible()
 
   await backTo(atlas, COUNTRY.title).click()
   await expect.poll(() => atlasRoute(page)).toBe(COUNTRY.route)

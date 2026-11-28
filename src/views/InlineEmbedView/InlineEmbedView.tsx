@@ -70,8 +70,8 @@ import {
 
 /**
  * "Free meditation classes in London": the place the route is in (`headingPlace`), or the
- * world's own title. On a class and its sign-up, the class's own name instead, so the page has
- * one title for it; a venue keeps its own name as the panel's smaller heading below. It is the
+ * world's own title. On a class and its sign-up, the class's own name in its town instead
+ * ("Friday Morning Meditation in Cambridge"), so the page has one title for it; a venue keeps its own name as the panel's smaller heading below. It is the
  * page's main heading only where the host's page has none of its own.
  */
 export function PlaceHeading() {
@@ -95,7 +95,9 @@ export function PlaceHeading() {
   return (
     <Heading className="min-w-0 text-2xl font-semibold">
       {classId && event
-        ? event.title
+        ? place
+          ? t('event.display.title_in_place', { title: event.title, place })
+          : event.title
         : place
           ? t('countries.place_title', { place })
           : t('countries.title')}
