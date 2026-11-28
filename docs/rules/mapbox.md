@@ -224,7 +224,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   `useSheetCover`, so the camera reserves the peek while the sheet is collapsed
   and a class's or the filters' measured height while it is
   open, down to a strip of `MIN_MAP_STRIP_PX` (`config/responsive.ts`). A sheet
-  leaving less than that strip hides the map's control column, and the filters
+  leaving less than that strip hides the map's corner, and the filters
   dim what is left above them.
 - **The FIRST camera command of a session arrives instead of flying, and the
   canvas is held until it does.** `<ReactMapGL>` is uncontrolled with no
@@ -338,7 +338,7 @@ it** — the same rule the root `AGENTS.md` states for a new fetch origin. Read
 the specifics there. Here, only the rule: **enumerate from the rendered control
 list and the libraries behind it, never from a grep.**
 
-That list is two: `GeolocateControl` (its button hidden, driven by the column's own)
+That list is two: `GeolocateControl` (its button hidden, driven by our own)
 and `AttributionControl`. The second reaches for nothing — a button and links — so it
 added no row to that table.
 
@@ -346,7 +346,7 @@ added no row to that table.
 
 Mapbox's terms require both, and mapbox's own default for the wordmark is the
 bottom left, which the side panel covers. `logoPosition="bottom-right"` on the map
-plus `position: 'top-right'` on the control column (`MapControls.tsx`) are the
+plus `position: 'top-right'` on the corner control (`MapCorner.tsx`) are the
 entire placement — no stylesheet rule moves a corner, no custom property, no width
 measurement. **This is not a responsive decision**, and `src/components/AGENTS.md`'s
 signal table carries no row for it.
@@ -367,42 +367,46 @@ A corner that follows the layout therefore costs a measured width in React, a
 custom property, and a CSS rule that moves mapbox's container — which is the shape
 #330 shipped first and its review replaced.
 
-**The top right holds ONE control: find-me and settings in a column, with the credits under
-them, and on a computer the filter menus beside them.** Mapbox's corner containers float and `clear: both`, so separate controls there
-stack in mount order with Mapbox's own margins, and lining them up with a control of ours would
-take exactly the stylesheet rules above. So `MapControls` is a single `useControl` whose element
-lays out its own children:
+**The top right holds ONE control, `MapCorner`: the map's controls, with the credits under
+them.** Mapbox's corner containers float and `clear: both`, so separate controls there stack in
+mount order with Mapbox's own margins, and lining them up with a control of ours would take
+exactly the stylesheet rules above. So `MapCorner` is a single `useControl` whose element lays
+out its own children: a slot the map's `controls` prop portals into, then the credits.
 
-- **Find-me and settings are floating `Button`s**, so they take the theme in every state, and
-  each draws its name out of its end in a `HoverLabel` on hover and keyboard focus, the same pill
-  shape as the credits button opened.
-- **The inline map leaves settings out** (`MapLayer settings={false}`): the page heading's row
-  carries the cog, in the page's flow, and the expanded map's column carries its own.
-- **The filter buttons render in the same control, beside the column.** `FullInterface` hands
-  them to the map as a prop, and `MapControls` shows them while `useMapControls().filterMenus`
-  holds, so Mapbox places them with the buttons and no stylesheet rule positions them. They cap their width against the map, which `globals.css` makes the size
-  container, so they wrap rather than run under the side panel. Being in the same control, the
-  column's hover labels draw over them.
-- **The whole column hides on `useMapControls`.** Today only the phone sheet's near-full stop sets
-  it, since there the sheet covers all of the column but a sliver of its top; a drawer elsewhere
-  leaves it clear or covers it whole. Anything else that covers the map, or takes these controls
-  over itself, sets the same switch. Find-me alone steps aside while the filter buttons show
-  (#542): their Where menu's Near me asks the same question through the same control.
-- **Find-me drives Mapbox's `GeolocateControl` without showing it.** `Map.tsx` renders it with
-  `showButton={false}`, and our button calls its `trigger()` through `useLocate`; the blue dot, the permission flow
-  and the `onError` dialog are unchanged. While the map is mounted, `useLocate` registers that
-  control as the locator's source (`hooks/use-locator.tsx`, one per `FullInterface`), so the
-  filters' Near me asks through it too and draws the same dot. One request is out at a time, a
-  second ask shares it, and each control acts only on its own. ⚠ Mapbox answers nothing once its
-  control has left the map, so unmounting rejects the request it was answering. A permission denied before the map loaded used to
-  leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
+- **The controls are the `MapControls` organism, which knows nothing of Mapbox.** The full and
+  expanded maps hand it to the corner, `floating`: the filter buttons beside a column of find-me
+  and settings, each a floating `Button` drawing its name out of its end in a `HoverLabel`, the
+  same pill shape as the credits button opened. The inline map hands the corner nothing: the same
+  organism, `inline`, is the toolbar above that map, and its corner holds the credits alone.
+- **The filter buttons show in the corner while `useMapControls().filterMenus` holds**: the panel
+  sits beside the map, and neither the full-width calendar nor the filters' own drawer is on top.
+  They cap their width against the map, which `globals.css` makes the size container, so they
+  wrap rather than run under the side panel. Being in the same control, the column's hover labels
+  draw over them. Find-me steps aside wherever they show (#542): their Where menu's Near me asks
+  the same question through the same control.
+- **The whole corner hides on `useMapControls().hidden`.** Today only the phone sheet's near-full
+  stop sets it, since there the sheet covers all of the corner but a sliver of its top; a drawer
+  elsewhere leaves it clear or covers it whole. Anything else that covers the map, or takes these
+  controls over itself, sets the same switch.
+- **Find-me drives Mapbox's `GeolocateControl` without showing it, from wherever its button
+  sits.** `Map.tsx` renders the control with `showButton={false}`, owns the request through
+  `useLocate`, and publishes its state and `locate` on `useFindMe` (`Mapbox/find-me.ts`), so the
+  button can sit in the inline toolbar, outside the map, as well as in the corner. The blue dot,
+  the permission flow and the `onError` dialog are unchanged; the dialog hands focus back to the
+  button the store names. While the map is mounted, `useLocate` registers that control as the
+  locator's source (`hooks/use-locator.tsx`, one per map), so the filters' Near me asks through it
+  too and draws the same dot. One request is out at a time, a second ask shares it, and each
+  control acts only on its own. ⚠ Mapbox answers nothing once its control has left the map, so
+  unmounting rejects the request it was answering. A permission denied before the map loaded used
+  to leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
   dialog too.
 - **The credits are Mapbox's own compact `AttributionControl`, in Mapbox's own look**, created
-  inside the column's element, under the buttons, rather than added to the map, so nothing else
-  on the map has to clear it sideways. Opened, it grows leftward from there. `globals.css` only resets Mapbox's corner margin and
-  float inside our element, centres it under the 40px buttons, adds the 44px touch tap area, and carries #370's dark-theme fix.
-  `attribution.test.ts` pins the corner literals, the single attribution, and that the
-  stylesheet still names the classes it targets.
+  inside the corner's element, under the controls, rather than added to the map, so nothing else
+  on the map has to clear it sideways. Opened, it grows leftward from there. `globals.css` only
+  resets Mapbox's corner margin and float inside our element, centres it under the 40px buttons,
+  adds the 44px touch tap area, and carries #370's dark-theme fix. `attribution.test.ts` pins the
+  corner literals, the single attribution, and that the stylesheet still names the classes it
+  targets.
 
 ⚠ **Not beside the wordmark.** The bottom right looks like its natural place, but the phone
 sheet's peek covers the whole bottom edge at every snap, so the credits would never be visible
@@ -415,9 +419,8 @@ collapsed form — its own information button, which `compact` renders — and s
 any other placement must be reviewed and approved by Mapbox, so the credits
 cannot move into the settings menu, and cannot be redrawn as one of our Buttons.
 
-⚠ The top-right corner is the control column, so nothing else of ours may sit there:
-the inline map's "Expand map" takes the bottom LEFT, clear of find-me's hover label, which
-grows across the top of a narrow box, and the expanded map's "Close map" floats at the bottom
+⚠ The top-right corner is `MapCorner`'s, so nothing else of ours may sit there: the inline
+map's "Expand map" takes the bottom LEFT, and the expanded map's "Close map" floats at the bottom
 middle. `.mapboxgl-ctrl-top-right` takes the right-hand safe area,
 and moves the whole corner as one; it is not a per-layout rule.
 

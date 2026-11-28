@@ -209,7 +209,7 @@ shipping a narrow embed that quietly behaves like a desktop.
 | Drawer direction — left panel vs. bottom sheet (`DrawerStack`) | container (the inline column, or the frame) | A fit question: does a 384px side panel leave usable space beside it? The expanded map's frame is its dialog. |
 | Drag handle, swipe-dismiss, `handleOnly`, the snap ladder | container (follows direction) | The handle exists only for a bottom sheet, which is the Drawer atom's own default. Every drawer sits over a map and is dismissible, so the handle never advertises a drag that is not there. |
 | Filter-overlay direction (right vs. bottom) | container | Same panel-vs-sheet question, same answer. |
-| Filter buttons vs. the Filters button (`useFilterMenusOnMap`) | container (follows direction) | The buttons show over the map wherever the panel sits beside it, wrapping where the map is narrow. The full-width calendar carries them in its header instead (`isCalendarFullWidth`). |
+| Filter buttons vs. the Filters button (`useFilterMenusOnMap`) | container (follows direction), or the inline mode | The buttons show over the map wherever the panel sits beside it, wrapping where the map is narrow, and always in the inline embed's toolbar above its map. The full-width calendar carries them in its header instead (`isCalendarFullWidth`), except inline. |
 | Sticky Register bar (`EventView`) | container | A snap sheet can scroll the CTA out of sight. This is a property of the sheet. |
 | Map camera padding (`use-map-controller`) | container (the frame) | Camera padding must agree with whatever picked the panel it pads around. Reads `frameElement()` — `null`, and so the viewport, wherever no frame exists. |
 | Map controls: column vs row (`MapControls`) | viewport (via `useIsShortViewport`) | A phone on its side is too short for a column. The same answer caps the frameless phone sheet's stops (`DrawerStack`), so the row stays above that sheet's top. |
@@ -257,6 +257,11 @@ once. The expanded map is `MapInterface`, the same interface without that boot.
   flag, and remounts on collapse, re-framing as its controller arrives. They share the padding
   store: `RealMapControllerProvider inline` writes nothing, since the store's margin-only default
   is its padding, and the expanded map's provider gives that default back when it unmounts.
+- **The inline map's controls sit in a toolbar above it**, not on it: `InlineColumns` renders
+  the `MapControls` organism `inline`, with the filter buttons in their inline look and the
+  settings menu, so the map's own corner (`MapCorner`) holds the credits alone. Over the filters'
+  own view the buttons give way to find-me, which reads the map's request off `useFindMe`. A
+  map-less embed has no toolbar, so its settings sit beside the page heading.
 - **Beside the inline map, a class's Register and actions sit under it**, in `InlineColumns`'
   aside: `EventDetails` portals them there through `InlineAside` (`hooks/use-inline-aside.tsx`),
   and the map's square shrinks by the aside's height, so both stay in view while they stick.

@@ -6,14 +6,14 @@ import { readRepoSource as read } from '@/test-support/repo-source'
 // getting that wrong is silent: a control in the corner the drawer takes renders perfectly, behind
 // a panel, and no gate in this repo looks at a corner name.
 //
-// Two literals pick the corners — `logoPosition` on the map, `position` on the control column that
+// Two literals pick the corners — `logoPosition` on the map, `position` on the corner control that
 // carries the attribution — and mapbox reads each once, at construction. They name different
 // corners on purpose, so each is pinned on its own.
 //
 // This reads the files rather than rendering them: mapbox reads these literals only when it
 // constructs a map, which takes a WebGL context the node lane does not have.
 const MAP = 'src/components/organisms/Mapbox/Map.tsx'
-const CONTROLS = 'src/components/organisms/Mapbox/MapControls.tsx'
+const CONTROLS = 'src/components/organisms/Mapbox/MapCorner.tsx'
 const LOCATE = 'src/components/organisms/Mapbox/use-locate.ts'
 const STYLES = 'src/styles/globals.css'
 const MAPBOX_STYLES = 'node_modules/mapbox-gl/dist/mapbox-gl.css'
@@ -30,13 +30,13 @@ describe('the Mapbox wordmark and attribution corners', () => {
 
   it('renders exactly one attribution, and it is the one this app places', () => {
     // Mapbox adds its own at a position no prop can change, so both halves matter: declining it
-    // and rendering the column that carries it. Dropping either leaves no attribution or two.
+    // and rendering the corner that carries it. Dropping either leaves no attribution or two.
     expect(map).toContain('attributionControl={false}')
     expect(map).not.toMatch(/<AttributionControl\b/)
-    expect(map.match(/<MapControls\b/g)).toHaveLength(1)
+    expect(map.match(/<MapCorner\b/g)).toHaveLength(1)
     expect(controls.match(/new mapLib\.AttributionControl\(/g)).toHaveLength(1)
     expect(controls).toContain('compact: true')
-    // Created but never added to the map, so the column is what puts it on screen.
+    // Created but never added to the map, so the corner is what puts it on screen.
     expect(controls).toMatch(/append\(this\.attribution\.onAdd\(map\)\)/)
   })
 
@@ -93,7 +93,7 @@ describe('a refused location request', () => {
     expect(control, 'the GeolocateControl element').toMatch(/onError=\{/)
   })
 
-  it("is asked for by the column's button, with Mapbox's own hidden", () => {
+  it("is asked for by our own button, with Mapbox's own hidden", () => {
     // Mapbox's button left visible would be a second find-me in the corner.
     expect(control, 'the GeolocateControl element').toContain('showButton={false}')
     expect(control).toContain('ref={locate.geolocateRef}')
@@ -114,7 +114,7 @@ describe('a refused location request', () => {
   it('hands focus back to the locate control on close', () => {
     // Radix returns focus to a `Dialog.Trigger`, and this dialog has none.
     expect(map.split('</ReactMapGL>')[1]).toMatch(
-      /onCloseAutoFocus=\{[\s\S]*?locate\.buttonRef\.current\?\.focus\(\)/,
+      /onCloseAutoFocus=\{[\s\S]*?useFindMe\.getState\(\)\.button\?\.focus\(\)/,
     )
   })
 })

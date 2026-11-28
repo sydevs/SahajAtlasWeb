@@ -11,7 +11,7 @@ import { DrawerSlotsProvider } from '@/components/atoms/Drawer'
 import { SettingsMenu } from '@/components/molecules/SettingsMenu'
 import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
-import { WidgetModeContext, type WidgetMode } from '@/config/mode'
+import { WidgetModeContext, type WidgetMode, useWidgetMode } from '@/config/mode'
 import { clientQuery, geojsonQuery, regionsQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { WidgetWidthContext, useIsWide } from '@/config/responsive'
@@ -345,14 +345,17 @@ export function ViewHarness({ seedKey, seed, mode, path, children }: ViewHarness
 function InlineForm({ children }: { children: ReactNode }) {
   const [column, setColumn] = useState<HTMLDivElement | null>(null)
   const isWide = useIsWide(column)
+  const { hasMap } = useWidgetMode()
 
   return (
     <div className="@container flex min-h-screen w-full flex-col gap-2 bg-background py-4 text-foreground">
       <div className="flex items-center gap-3 px-4">
         <PlaceHeading />
-        <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
+        {!hasMap && (
+          <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
+        )}
       </div>
-      <InlineColumns map={<MapLayer settings={false} />}>
+      <InlineColumns map={<MapLayer controls={false} />}>
         <WidgetWidthContext.Provider value={isWide}>
           <div ref={setColumn} className="flex flex-col">
             <DrawerSlotsProvider mode="inline">{children}</DrawerSlotsProvider>

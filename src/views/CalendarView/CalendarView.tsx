@@ -9,7 +9,7 @@ import { MonthView } from './MonthView'
 import { WeekList } from './WeekList'
 
 import { Button } from '@/components/atoms/Button'
-import { DrawerBody, DrawerHeader } from '@/components/atoms/Drawer'
+import { DrawerBody, DrawerHeader, useDrawerMode } from '@/components/atoms/Drawer'
 import { CALENDAR_HEADER } from '@/components/organisms/Skeleton/Skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/atoms/ToggleGroup'
 import { ActiveFilterChips, ResetErrorBoundary } from '@/components/molecules'
@@ -88,7 +88,10 @@ function CalendarHeader({ view, week }: { view: CalendarViewName; week: Calendar
   const dateInputRef = useRef<HTMLInputElement>(null)
   const today = todayISO()
   const isWeek = view === 'week'
-  const fullWidth = isCalendarFullWidth('calendar', useIsWideWidget(), view)
+  // Inline, the toolbar above the map carries the filter buttons, so the header never does.
+  const inline = useDrawerMode() === 'inline'
+  const isWide = useIsWideWidget()
+  const fullWidth = !inline && isCalendarFullWidth('calendar', isWide, view)
   const month = DateTime.fromISO(focused).startOf('month')
   const label = !isWeek
     ? formatMonth(month, formatLocale)
@@ -218,7 +221,10 @@ export function CalendarView() {
   const [params] = useSearchParams()
   const view = calendarViewFromParams(params)
   const week = calendarWindow(params, todayISO())
-  const fullWidth = isCalendarFullWidth('calendar', useIsWideWidget(), view)
+  // Inline, the toolbar above the map carries the filter buttons, so the header never does.
+  const inline = useDrawerMode() === 'inline'
+  const isWide = useIsWideWidget()
+  const fullWidth = !inline && isCalendarFullWidth('calendar', isWide, view)
 
   return (
     <>

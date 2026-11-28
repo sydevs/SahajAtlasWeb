@@ -138,8 +138,8 @@ test('a box too small for the atlas shows its heading and "Expand map" alone', a
 })
 
 // A narrow inline column opens the calendar at the near-full stop a phone sheet takes, but it covers
-// no map: the inline map keeps its control column, and with it Mapbox's credits.
-test('a narrow inline calendar leaves the map its controls', async ({ page }) => {
+// no map: the inline map keeps its corner, and with it Mapbox's credits.
+test('a narrow inline calendar leaves the map its credits', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto(hostPage('full-map.html', '/calendar'))
 
@@ -152,9 +152,9 @@ test('a narrow inline calendar leaves the map its controls', async ({ page }) =>
       timeout: 15_000,
     },
   )
-  await expect(
-    atlas.getByRole('button', { name: en.common.map.find_my_location, exact: true }),
-  ).toBeVisible()
+  // The corner, not the credits button: the lane's fixture style credits nobody, so Mapbox draws
+  // none. What a tall stop would do is hide the whole corner (`useMapControls().hidden`).
+  await expect(atlas.locator('.sy-map-controls')).toHaveCSS('visibility', 'visible')
 })
 
 // WeMeditate's own atlas page never scrolls: its shell clips whatever grows past it. So the widget

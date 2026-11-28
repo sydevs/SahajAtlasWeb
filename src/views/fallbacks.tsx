@@ -172,7 +172,7 @@ export function DrawerChrome({
       return (
         <>
           <DrawerHeader className="justify-between">
-            <DrawerTitle title={t('countries.title')} />
+            <DrawerTitle isPlace title={t('countries.title')} />
             <div className="flex min-h-8 items-center pointer-coarse:min-h-11">
               {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
             </div>

@@ -22,7 +22,6 @@ export type LocateState = 'idle' | 'waiting' | 'found' | 'failed'
 export function useLocate(onLocated: (position: GeolocationPosition) => void) {
   const locator = useLocator()
   const geolocateRef = useRef<GeolocateControl>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
   const [state, setState] = useState<LocateState>('idle')
   const [failed, setFailed] = useState(false)
   // The request Mapbox is answering now, from either control.
@@ -109,5 +108,5 @@ export function useLocate(onLocated: (position: GeolocationPosition) => void) {
     )
   }, [locator, found])
 
-  return { geolocateRef, buttonRef, state, locate, onError, onGeolocate, failed, setFailed }
+  return { geolocateRef, state, locate, onError, onGeolocate, failed, setFailed }
 }

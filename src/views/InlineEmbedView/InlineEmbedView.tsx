@@ -41,6 +41,8 @@ import {
 } from '@/views/FullInterface'
 import { type Box, MIN_INLINE_HEIGHT_PX, MIN_INLINE_WIDTH_PX } from '@/views/InlineEmbedView/fit'
 import { headingPlace } from '@/views/InlineEmbedView/heading-place'
+import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
+import { MapControls } from '@/components/organisms/MapControls'
 import { InlineAsideProvider } from '@/hooks/use-inline-aside'
 import {
   hostElement,
@@ -243,6 +245,10 @@ function ExpandButton({ className }: { className?: string }) {
  * Side by side, a list gives the map 60% and a class takes 60% itself. Neither column goes under
  * 352px, so at the crossing (two of them and the gap) both start out even.
  *
+ * The map's controls sit in a toolbar above it, not on it: the filter buttons, in their inline
+ * look, and settings. Over the filters' own view, which asks the same questions, find-me stands
+ * in for the buttons.
+ *
  * The view stories render one view in it, which is why it takes its content as children.
  */
 const CLASS_VIEWS = new Set<string>(['event', 'register'] satisfies StackEntry['kind'][])
@@ -259,10 +265,13 @@ export function InlineColumns({
   const { hasMap } = useWidgetMode()
   const { pathname } = useLocation()
   // A class's own sign-up keeps its split, so opening it moves no column.
-  const classPage = CLASS_VIEWS.has(resolveStack(pathname).at(-1)?.kind ?? '')
+  const topKind = resolveStack(pathname).at(-1)?.kind
+  const classPage = CLASS_VIEWS.has(topKind ?? '')
   const [grid, setGrid] = useState<HTMLDivElement | null>(null)
+  const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)
   const [aside, setAside] = useState<HTMLDivElement | null>(null)
-  const asideHeight = useHeight(aside)
+  // What sits beside the square in the sticky column, which the square gives way to.
+  const besideHeight = useHeight(toolbar) + useHeight(aside)
   // Under the map only beside it: a narrow page stacks the map above the content, where a
   // class's Register pins to the screen's bottom and its actions follow its details instead.
   const sideBySide = useTwoColumns(grid)
@@ -287,11 +296,20 @@ export function InlineColumns({
           <div
             // The map and what the view puts under it stick together. The square is capped to
             // what fits below the header beside them, so all of it stays in view.
-            className="@min-sy-cols:sticky @min-sy-cols:top-[calc(var(--sy-inline-top,0px)+16px)] @min-sy-cols:ms-auto @min-sy-cols:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px-var(--sy-aside-h,0px))]"
+            className="@min-sy-cols:sticky @min-sy-cols:top-[calc(var(--sy-inline-top,0px)+16px)] @min-sy-cols:ms-auto @min-sy-cols:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px-var(--sy-beside-h,0px))]"
             style={
-              { '--sy-inline-top': `${top}px`, '--sy-aside-h': `${asideHeight}px` } as CSSProperties
+              {
+                '--sy-inline-top': `${top}px`,
+                '--sy-beside-h': `${besideHeight}px`,
+              } as CSSProperties
             }
           >
+            <div ref={setToolbar} className="pb-3">
+              <MapControls
+                filterMenus={topKind === 'filters' ? undefined : <FilterMenuBar />}
+                variant="inline"
+              />
+            </div>
             <div
               // ⚠ `contain: layout` makes this box the containing block for the canvas, which is
               // fixed. `transform-gpu` gives WebKit's compositor the same box to clip it to (#424).
@@ -432,18 +450,18 @@ function InlineLayout() {
               style={{ scrollMarginTop: top + 16 }}
             >
               <PlaceHeading />
-              {/* The page's settings, beside its heading, so the inline map's own controls leave
-                  them out; the expanded map carries its own. The negative end margin puts the 20px
-                  glyph, not its 32px (44px on touch) box, on the row's gutter, in line with the
-                  map's edge below. */}
-              <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
+              {/* With a map, settings sit in the toolbar above it. Without one, here. The negative
+                  end margin puts the 20px glyph, not its 32px (44px on touch) box, on the gutter. */}
+              {!hasMap && (
+                <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
+              )}
             </div>
             <MapProviders inline>
               <InlineColumns
                 // The expanded dialog runs its own map, and two maps would fight over the one
                 // camera-settled flag; this one comes back, and re-frames, on collapse.
                 map={
-                  !expanded && <MapLayer cooperative={embed.config.cooperative} settings={false} />
+                  !expanded && <MapLayer controls={false} cooperative={embed.config.cooperative} />
                 }
                 top={top}
               >

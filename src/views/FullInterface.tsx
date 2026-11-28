@@ -12,6 +12,7 @@ import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
 import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
+import { MapControls } from '@/components/organisms/MapControls'
 import api from '@/config/api'
 
 /**
@@ -161,22 +162,25 @@ export function useInterfaceBoot({ clientLoaded, homePath, primaryDomain = '' }:
  * its box behind the drawers, independent of Tailwind viewport-unit utility generation.
  *
  * `cooperative` leaves one-finger and wheel scrolling to the page (`gestures=cooperative`). Never
- * in a map that fills its own window, where nothing scrolls. `settings={false}` leaves the settings
- * menu out of the map's controls, for the inline map, whose page heading carries it.
+ * in a map that fills its own window, where nothing scrolls. `controls={false}` leaves the map's
+ * corner to its credits, for the inline map, whose controls sit in the toolbar above it.
  */
 export function MapLayer({
   cooperative = false,
-  settings = true,
+  controls = true,
 }: {
   cooperative?: boolean
-  settings?: boolean
+  controls?: boolean
 }) {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
       <Mapbox
+        controls={
+          controls && (
+            <MapControls filterMenus={<FilterMenuBar variant="floating" />} variant="floating" />
+          )
+        }
         cooperative={cooperative}
-        filterMenus={<FilterMenuBar variant="floating" />}
-        settings={settings}
       />
       <MapCurtain />
     </div>

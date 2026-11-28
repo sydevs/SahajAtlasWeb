@@ -23,6 +23,11 @@ export type { RecoveryButtonProps, SearchFiltersProps } from './SearchFilters'
 export { FilterMenus } from './FilterMenus'
 export type { FilterMenusProps } from './FilterMenus'
 
+// MapControls — the map's controls: the filter buttons, or find-me, and settings. Floating in the
+// full map's corner, or a row in the toolbar above the inline embed's map.
+export { MapControls } from './MapControls'
+export type { MapControlsProps } from './MapControls'
+
 // Only the mounted host is public. The form inside it is module-private
 // (see the folder's index.ts). Unlike the code-split families below, this
 // is a normal static import. The App mounts it at load, so the error
