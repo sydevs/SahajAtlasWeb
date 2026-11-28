@@ -1,10 +1,7 @@
-import type { TranslationKey } from '@/types/i18next'
-
 import { useTranslation } from 'react-i18next'
 
 import { Button, type ButtonProps } from '@/components/atoms/Button'
-import { useLocale } from '@/hooks/use-locale'
-import { weekdayNames } from '@/lib/time'
+import { useAnswerLabels } from '@/hooks/use-answer-labels'
 import { type EventFilters, type FilterRecovery } from '@/lib/shape'
 
 export type RecoveryButtonProps = {
@@ -25,19 +22,7 @@ export function RecoveryButton({
   variant,
 }: RecoveryButtonProps) {
   const { t } = useTranslation()
-  const { formatLocale, languageLabel } = useLocale()
-  const labels: Record<FilterRecovery['group'], () => string> = {
-    format: () => t(`filters.format.${filters.format}` as TranslationKey),
-    days: () => {
-      const names = weekdayNames(formatLocale)
-
-      return filters.daysOfWeek.map((day) => names[day - 1]).join(', ')
-    },
-    time: () => filters.timeOfDay.map((period) => t(`filters.time.${period}`)).join(', '),
-    cadence: () => t(`filters.cadence.${filters.cadence.toLowerCase()}` as TranslationKey),
-    languages: () => filters.languages.map(languageLabel).join(', '),
-    dates: () => t('filters.dates.label'),
-  }
+  const labels = useAnswerLabels(filters)
 
   return (
     <Button
@@ -47,7 +32,7 @@ export function RecoveryButton({
       onClick={() => onApply({ ...filters, ...recovery.patch })}
     >
       <span className="truncate">
-        {t('filters.chrome.widen', { label: labels[recovery.group](), count: recovery.count })}
+        {t('filters.chrome.widen', { label: labels[recovery.group], count: recovery.count })}
       </span>
     </Button>
   )

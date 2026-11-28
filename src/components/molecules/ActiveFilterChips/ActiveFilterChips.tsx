@@ -1,6 +1,3 @@
-import type { TranslationKey } from '@/types/i18next'
-
-import { useMemo } from 'react'
 import { DateTime } from 'luxon'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -8,10 +5,11 @@ import { useTranslation } from 'react-i18next'
 import { Chip } from '@/components/atoms/Chip'
 import { regionsQuery } from '@/config/api'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
+import { useAnswerLabels } from '@/hooks/use-answer-labels'
 import { useFilterMenusOnMap } from '@/hooks/use-filter-menus'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
-import { formatDate, weekdayNames } from '@/lib/time'
+import { formatDate } from '@/lib/time'
 import { type EventFilters, isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
 /**
@@ -32,7 +30,7 @@ import { type EventFilters, isDateRestricted, isTimeRestricted } from '@/lib/sha
 export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) {
   const menusShown = useFilterMenusOnMap()
   const { t } = useTranslation()
-  const { formatLocale, languageLabel } = useLocale()
+  const { formatLocale } = useLocale()
   const applied = useEventFilters()
   // A view may show fewer than the URL holds: the calendar's place is its title, not a pill.
   const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } =
@@ -47,7 +45,7 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
     setRegion,
   } = useSetFilters()
 
-  const weekdaysShort = useMemo(() => weekdayNames(formatLocale, 'short'), [formatLocale])
+  const labels = useAnswerLabels(filters ?? applied)
 
   // The cache-once region tree, to resolve the selected slug to its display name below.
   const { data: regions } = useQuery(regionsQuery())
@@ -65,21 +63,21 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
   if (format !== 'any') {
     chips.push({
       key: 'format',
-      label: t(`filters.format.${format}`),
+      label: labels.format,
       onRemove: () => setFormat('any'),
     })
   }
   if (cadence !== 'any') {
     chips.push({
       key: 'cadence',
-      label: t(`filters.cadence.${cadence.toLowerCase()}` as TranslationKey),
+      label: labels.cadence,
       onRemove: () => setCadence('any'),
     })
   }
   if (daysOfWeek.length > 0) {
     chips.push({
       key: 'days',
-      label: daysOfWeek.map((day) => weekdaysShort[day - 1]).join(', '),
+      label: labels.days,
       onRemove: () => setDaysOfWeek([]),
     })
   }
@@ -94,7 +92,7 @@ export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) 
   if (languages.length > 0) {
     chips.push({
       key: 'languages',
-      label: languages.map(languageLabel).join(', '),
+      label: labels.languages,
       onRemove: () => setLanguages([]),
     })
   }

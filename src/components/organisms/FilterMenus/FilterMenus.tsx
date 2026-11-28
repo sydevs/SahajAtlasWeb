@@ -1,5 +1,3 @@
-import type { TranslationKey } from '@/types/i18next'
-
 import { type ReactNode } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 import clsx from 'clsx'
@@ -15,8 +13,8 @@ import {
   TimeFilter,
 } from '@/components/organisms/SearchFilters'
 import { useFilterFacets, useFilterScope } from '@/hooks/use-filter-facets'
+import { useAnswerLabels } from '@/hooks/use-answer-labels'
 import { useLocale } from '@/hooks/use-locale'
-import { weekdayNames } from '@/lib/time'
 import {
   type EventFilters,
   type FilterFacets,
@@ -177,26 +175,22 @@ export function FilterMenus({
   where,
   variant = 'inline',
 }: FilterMenusProps) {
-  const { t, formatLocale, languageLabel } = useLocale()
+  const { t } = useLocale()
   const scope = useFilterScope(value)
-  const weekdays = weekdayNames(formatLocale, 'short')
+  const labels = useAnswerLabels(value)
   const menu = { value, onChange, where }
 
-  const whereSummary = summarize([
-    where?.place,
-    value.format !== 'any' && t(`filters.format.${value.format}`),
-  ])
-  const days = value.daysOfWeek.map((day) => weekdays[day - 1])
-  const periods = value.timeOfDay.map((period) => t(`filters.time.${period}`))
-  const cadence =
-    value.cadence !== 'any' && t(`filters.cadence.${value.cadence.toLowerCase()}` as TranslationKey)
-  const dates = isDateRestricted(value.dateRange) && t('filters.dates.label')
-  const whenCount = [...days, ...periods, cadence, dates].filter(Boolean).length
+  const whereSummary = summarize([where?.place, labels.format])
+  const whenCount =
+    value.daysOfWeek.length +
+    value.timeOfDay.length +
+    Number(value.cadence !== 'any') +
+    Number(isDateRestricted(value.dateRange))
   // Past two answers a button names how many, not which: a list would not fit it.
   const whenSummary =
     whenCount > MAX_NAMED
       ? t('filters.when.count', { count: whenCount })
-      : summarize([days.join(', '), periods.join(', '), cadence, dates])
+      : summarize([labels.days, labels.time, labels.cadence, labels.dates])
   // What the closed buttons need of the scope, judged without counting it (`shownGroups` asks the
   // same of the counts inside each menu).
   const hasLanguages =
@@ -258,7 +252,7 @@ export function FilterMenus({
           summary={
             value.languages.length > MAX_NAMED
               ? t('filters.language.count', { count: value.languages.length })
-              : value.languages.map(languageLabel).join(', ')
+              : labels.languages
           }
           variant={variant}
         >
