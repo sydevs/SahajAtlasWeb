@@ -1,7 +1,5 @@
 import type { TranslationKey } from '@/types/i18next'
 
-import { useMemo } from 'react'
-
 import { useLocale } from '@/hooks/use-locale'
 import { type EventFilters, type FilterRecovery, isDateRestricted } from '@/lib/shape'
 import { weekdayNames } from '@/lib/time'
@@ -13,7 +11,7 @@ import { weekdayNames } from '@/lib/time'
  */
 export function useAnswerLabels(filters: EventFilters): Record<FilterRecovery['group'], string> {
   const { t, formatLocale, languageLabel } = useLocale()
-  const weekdays = useMemo(() => weekdayNames(formatLocale, 'short'), [formatLocale])
+  const weekdays = weekdayNames(formatLocale, 'short')
 
   return {
     format: filters.format === 'any' ? '' : t(`filters.format.${filters.format}`),
