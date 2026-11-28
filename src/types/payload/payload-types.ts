@@ -9618,6 +9618,34 @@ export interface SyAtlasTranslationsEventDisplayStrings {
    * Label of the register button in the register slot.
    */
   register_now?: string;
+  /**
+   * The inline atlas class page’s one heading: the class name and its town. `%{title}` = the class name, `%{place}` = the town the class is in.
+   */
+  title_in_place?: string;
+  /**
+   * Label above the class’s schedule in the class page’s detailed facts, on a computer.
+   */
+  fact_time?: string;
+  /**
+   * Label above the class’s address in the class page’s detailed facts, on a computer.
+   */
+  fact_place?: string;
+  /**
+   * Label above the class’s cost in the class page’s detailed facts, on a computer.
+   */
+  fact_cost?: string;
+  /**
+   * The cost line under the `fact_cost` label in the class page’s detailed facts, on a computer.
+   */
+  fact_cost_free?: string;
+  /**
+   * Heading of the row of share targets (copy link, a messaging app, email, more) beside the map on the inline atlas class page.
+   */
+  share_title?: string;
+  /**
+   * Link under the share row on the inline atlas class page that lets a visitor report that the class’s details (time, place, contact) are wrong.
+   */
+  report_details?: string;
 }
 export interface SyAtlasTranslationsEventActionsStrings {
   /**
@@ -10240,6 +10268,10 @@ export interface SyAtlasTranslationsShareStrings {
    * Label under the email icon in the Share popover. Brand names such as WhatsApp stay untranslated, so this is the only label there that needs copy.
    */
   email?: string;
+  /**
+   * Last target in the share row on the inline atlas class page. Opens the device’s own share sheet, or the full list of share targets.
+   */
+  more?: string;
 }
 export interface SyAtlasTranslationsSeoStrings {
   /**
