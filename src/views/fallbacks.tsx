@@ -32,6 +32,7 @@ import { useInlineAside } from '@/hooks/use-inline-aside'
 import {
   CalendarButton,
   DrawerTitle,
+  useRootHeader,
   ExpandSheetButton,
   FilterButton,
   SearchField,
@@ -121,6 +122,7 @@ export function DrawerChrome({
   const { hasMap } = useWidgetMode()
   const { collapsed } = useDrawerControl()
   const inline = useDrawerMode() === 'inline'
+  const rootHeader = useRootHeader()
   const location = useLocation()
   const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
 
@@ -171,12 +173,14 @@ export function DrawerChrome({
     if (!entry) {
       return (
         <>
-          <DrawerHeader className="justify-between">
-            <DrawerTitle isPlace title={t('countries.title')} />
-            <div className="flex min-h-8 items-center pointer-coarse:min-h-11">
-              {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
-            </div>
-          </DrawerHeader>
+          {rootHeader && (
+            <DrawerHeader className="justify-between">
+              <DrawerTitle isPlace title={t('countries.title')} />
+              <div className="flex min-h-8 items-center pointer-coarse:min-h-11">
+                {collapsed ? <ExpandSheetButton /> : <FilterButton iconOnly />}
+              </div>
+            </DrawerHeader>
+          )}
           <DrawerToolbar field>
             {field}
             {loading && <SkeletonLocation />}

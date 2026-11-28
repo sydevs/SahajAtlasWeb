@@ -52,6 +52,7 @@ vi.mock('@/views/shared', () => ({
   FilterButton: () => <i>filter-button</i>,
   SearchField: () => <i>search-field</i>,
   useDrawerControl: () => ({ collapsed: false }),
+  useRootHeader: () => true,
 }))
 
 const at = (path: string, view: ReactNode) =>

@@ -259,9 +259,12 @@ once. The expanded map is `MapInterface`, the same interface without that boot.
   is its padding, and the expanded map's provider gives that default back when it unmounts.
 - **The inline map's controls sit in a toolbar above it**, not on it: `InlineColumns` renders
   the `MapControls` organism `inline`, with the filter buttons in their inline look and the
-  settings menu, so the map's own corner (`MapCorner`) holds the credits alone. Over the filters'
-  own view the buttons give way to find-me, which reads the map's request off `useFindMe`. A
-  map-less embed has no toolbar, so its settings sit beside the page heading.
+  settings menu, so the map's own corner (`MapCorner`) holds the credits alone. Side by side the
+  toolbar sits across from the page heading, the two bottoms level, and sticks with the map. Over
+  the filters' own view, a class and its sign-up the buttons give way to find-me, which reads the
+  map's request off `useFindMe`. A map-less embed has no toolbar, so its settings sit beside the
+  page heading. With the buttons there, the root view's header would hold nothing, so it draws
+  none (`useRootHeader`).
 - **Beside the inline map, a class's Register and actions sit under it**, in `InlineColumns`'
   aside: `EventDetails` portals them there through `InlineAside` (`hooks/use-inline-aside.tsx`),
   and the map's square shrinks by the aside's height, so both stay in view while they stick.

@@ -171,6 +171,13 @@ function CloseMapButton({ beside }: { beside: boolean }) {
   )
 }
 
+// The views the filter buttons step aside on.
+const NO_FILTER_MENUS = new Set<string>([
+  'filters',
+  'event',
+  'register',
+] satisfies StackEntry['kind'][])
+
 // The whole drawer navigation, derived purely from the pathname. ONE persistent vaul
 // drawer holds the active (top) view. The sheet renders once — DrawerStack owns the
 // DrawerContent, and views are just its inner content. So navigating never remounts or
@@ -259,9 +266,9 @@ export function DrawerStack({
     calendarViewFromParams(new URLSearchParams(location.search)),
   )
   // The filter buttons show beside the map's controls wherever the panel sits beside it, except
-  // under the full-width calendar, which carries them in its own header, and over the filters'
-  // own drawer, which asks the same questions.
-  const filterMenus = sheeted && isWide && !wide && top?.kind !== 'filters'
+  // under the full-width calendar, which carries them in its own header, over the filters' own
+  // drawer, which asks the same questions, and on a class and its sign-up, which filter nothing.
+  const filterMenus = sheeted && isWide && !wide && !NO_FILTER_MENUS.has(top?.kind ?? '')
   const setFilterMenus = useMapControls((s) => s.setFilterMenus)
 
   useEffect(() => {

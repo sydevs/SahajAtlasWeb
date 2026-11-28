@@ -11,6 +11,7 @@ import { CalendarDays, ChevronRight, Funnel, MapPin } from 'lucide-react'
 import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
+import { useDrawerMode } from '@/components/atoms/Drawer'
 import { Alert } from '@/components/atoms/Alert'
 import { Spinner } from '@/components/atoms/Spinner'
 import { FallbackPanel } from '@/components/molecules'
@@ -184,6 +185,17 @@ export function ExpandSheetButton() {
       {t('common.chrome.show_more')}
     </Button>
   )
+}
+
+/**
+ * Whether the root view draws its header. Inline beside a map it would hold nothing: its title
+ * gives way to the page heading, and the Filters button to the buttons above the map.
+ */
+export const useRootHeader = (): boolean => {
+  const inline = useDrawerMode() === 'inline'
+  const menusShown = useFilterMenusOnMap()
+
+  return !(inline && menusShown)
 }
 
 // The event-filters trigger that opens the filter drawer by navigating to

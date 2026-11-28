@@ -379,7 +379,8 @@ out its own children: a slot the map's `controls` prop portals into, then the cr
   same pill shape as the credits button opened. The inline map hands the corner nothing: the same
   organism, `inline`, is the toolbar above that map, and its corner holds the credits alone.
 - **The filter buttons show in the corner while `useMapControls().filterMenus` holds**: the panel
-  sits beside the map, and neither the full-width calendar nor the filters' own drawer is on top.
+  sits beside the map, and neither the full-width calendar, the filters' own drawer, nor a class
+  or its sign-up is on top.
   They cap their width against the map, which `globals.css` makes the size container, so they
   wrap rather than run under the side panel. Being in the same control, the column's hover labels
   draw over them. Find-me steps aside wherever they show (#542): their Where menu's Near me asks

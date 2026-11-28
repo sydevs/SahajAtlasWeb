@@ -252,12 +252,19 @@ function ExpandButton({ className }: { className?: string }) {
  * The view stories render one view in it, which is why it takes its content as children.
  */
 const CLASS_VIEWS = new Set<string>(['event', 'register'] satisfies StackEntry['kind'][])
+// The views the toolbar's filter buttons step aside on: the filters' own, which asks the same
+// questions, and a class and its sign-up, which filter nothing.
+const NO_FILTER_MENUS = new Set<string>(['filters', ...CLASS_VIEWS])
+// The toolbar's distance above the map, `mt-3`.
+const TOOLBAR_GAP = 12
 
 export function InlineColumns({
+  heading,
   map,
   top = 0,
   children,
 }: {
+  heading: ReactNode
   map: ReactNode
   top?: number
   children: ReactNode
@@ -268,34 +275,46 @@ export function InlineColumns({
   const topKind = resolveStack(pathname).at(-1)?.kind
   const classPage = CLASS_VIEWS.has(topKind ?? '')
   const [grid, setGrid] = useState<HTMLDivElement | null>(null)
+  const [headingBox, setHeadingBox] = useState<HTMLDivElement | null>(null)
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)
   const [aside, setAside] = useState<HTMLDivElement | null>(null)
-  // What sits beside the square in the sticky column, which the square gives way to.
-  const besideHeight = useHeight(toolbar) + useHeight(aside)
+  const headingHeight = useHeight(headingBox)
+  const toolbarHeight = useHeight(toolbar)
+  // What sits beside the square in the sticky column, which the square gives way to: the toolbar
+  // and its gap, and the aside.
+  const besideHeight = toolbarHeight + TOOLBAR_GAP + useHeight(aside)
   // Under the map only beside it: a narrow page stacks the map above the content, where a
   // class's Register pins to the screen's bottom and its actions follow its details instead.
   const sideBySide = useTwoColumns(grid)
+  // Side by side, the toolbar sits across from the heading, their bottoms level: whichever is
+  // shorter starts lower by the difference.
+  const lift = sideBySide ? headingHeight - toolbarHeight : 0
 
   return (
     <div
       ref={setGrid}
       className={clsx(
-        'grid gap-4',
+        'grid gap-x-4 gap-y-2',
         hasMap &&
           (classPage
             ? '@min-sy-cols:grid-cols-[3fr_minmax(352px,2fr)]'
             : '@min-sy-cols:grid-cols-[minmax(352px,2fr)_3fr]'),
       )}
     >
-      {/* The page heading sets the width here, so the bands' own cap is lifted. */}
-      <div className="flex min-w-0 flex-col [--sy-content-max:none]">
-        <InlineAsideProvider value={sideBySide ? aside : null}>{children}</InlineAsideProvider>
+      <div
+        className="min-w-0 @min-sy-cols:col-start-1 @min-sy-cols:row-start-1"
+        style={{ paddingTop: Math.max(0, -lift) }}
+      >
+        <div ref={setHeadingBox}>{heading}</div>
       </div>
       {hasMap && (
-        <div className="order-first px-gutter @min-sy-cols:order-none @min-sy-cols:ps-0">
+        <div
+          className="px-gutter @min-sy-cols:col-start-2 @min-sy-cols:row-span-2 @min-sy-cols:row-start-1 @min-sy-cols:ps-0"
+          style={{ paddingTop: Math.max(0, lift) }}
+        >
           <div
-            // The map and what the view puts under it stick together. The square is capped to
-            // what fits below the header beside them, so all of it stays in view.
+            // The toolbar, the map and what the view puts under it stick together. The square is
+            // capped to what fits below the header beside them, so all of it stays in view.
             className="@min-sy-cols:sticky @min-sy-cols:top-[calc(var(--sy-inline-top,0px)+16px)] @min-sy-cols:ms-auto @min-sy-cols:max-w-[calc(100vh-var(--sy-inline-top,0px)-32px-var(--sy-beside-h,0px))]"
             style={
               {
@@ -304,16 +323,16 @@ export function InlineColumns({
               } as CSSProperties
             }
           >
-            <div ref={setToolbar} className="pb-3">
+            <div ref={setToolbar}>
               <MapControls
-                filterMenus={topKind === 'filters' ? undefined : <FilterMenuBar />}
+                filterMenus={NO_FILTER_MENUS.has(topKind ?? '') ? undefined : <FilterMenuBar />}
                 variant="inline"
               />
             </div>
             <div
               // ⚠ `contain: layout` makes this box the containing block for the canvas, which is
               // fixed. `transform-gpu` gives WebKit's compositor the same box to clip it to (#424).
-              className="relative h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-sy-cols:aspect-square @min-sy-cols:h-auto"
+              className="relative mt-3 h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-sy-cols:aspect-square @min-sy-cols:h-auto"
             >
               {map}
               <ExpandButton className="absolute bottom-3 left-3 z-10" />
@@ -322,6 +341,10 @@ export function InlineColumns({
           </div>
         </div>
       )}
+      {/* The page heading sets the width here, so the bands' own cap is lifted. */}
+      <div className="flex min-w-0 flex-col pt-2 [--sy-content-max:none] @min-sy-cols:col-start-1 @min-sy-cols:row-start-2 @min-sy-cols:pt-0">
+        <InlineAsideProvider value={sideBySide ? aside : null}>{children}</InlineAsideProvider>
+      </div>
     </div>
   )
 }
@@ -439,25 +462,27 @@ function InlineLayout() {
             <ExpandButton />
           </div>
         ) : (
-          <div
-            ref={setContent}
-            className="flex flex-col gap-2 py-4"
-            style={{ minHeight: pinnedHeight }}
-          >
-            <div
-              ref={heading}
-              className="flex items-center gap-3 px-gutter"
-              style={{ scrollMarginTop: top + 16 }}
-            >
-              <PlaceHeading />
-              {/* With a map, settings sit in the toolbar above it. Without one, here. The negative
-                  end margin puts the 20px glyph, not its 32px (44px on touch) box, on the gutter. */}
-              {!hasMap && (
-                <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
-              )}
-            </div>
+          <div ref={setContent} className="py-4" style={{ minHeight: pinnedHeight }}>
             <MapProviders inline>
               <InlineColumns
+                heading={
+                  <div
+                    ref={heading}
+                    className="flex items-center gap-3 px-gutter"
+                    style={{ scrollMarginTop: top + 16 }}
+                  >
+                    <PlaceHeading />
+                    {/* With a map, settings sit in the toolbar above it. Without one, here. The
+                        negative end margin puts the 20px glyph, not its 32px (44px on touch) box,
+                        on the gutter. */}
+                    {!hasMap && (
+                      <SettingsMenu
+                        className="ms-auto -me-1.5 pointer-coarse:-me-3"
+                        variant="ghost"
+                      />
+                    )}
+                  </div>
+                }
                 // The expanded dialog runs its own map, and two maps would fight over the one
                 // camera-settled flag; this one comes back, and re-frames, on collapse.
                 map={

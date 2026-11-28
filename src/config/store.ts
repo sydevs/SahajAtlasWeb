@@ -383,7 +383,8 @@ type MapControlsState = {
   setHidden: (hidden: boolean) => void
   /**
    * True while the filter buttons show beside the column: the panel sits beside the map, and
-   * neither the full-width calendar nor the filters' own drawer is on top. Find-me steps aside
+   * neither the full-width calendar, the filters' own drawer, nor a class or its sign-up is on
+   * top. Find-me steps aside
    * then, since their Where menu's Near me asks the same question.
    */
   filterMenus: boolean

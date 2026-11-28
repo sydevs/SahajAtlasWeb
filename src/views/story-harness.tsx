@@ -348,14 +348,18 @@ function InlineForm({ children }: { children: ReactNode }) {
   const { hasMap } = useWidgetMode()
 
   return (
-    <div className="@container flex min-h-screen w-full flex-col gap-2 bg-background py-4 text-foreground">
-      <div className="flex items-center gap-3 px-4">
-        <PlaceHeading />
-        {!hasMap && (
-          <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
-        )}
-      </div>
-      <InlineColumns map={<MapLayer controls={false} />}>
+    <div className="@container min-h-screen w-full bg-background py-4 text-foreground">
+      <InlineColumns
+        heading={
+          <div className="flex items-center gap-3 px-gutter">
+            <PlaceHeading />
+            {!hasMap && (
+              <SettingsMenu className="ms-auto -me-1.5 pointer-coarse:-me-3" variant="ghost" />
+            )}
+          </div>
+        }
+        map={<MapLayer controls={false} />}
+      >
         <WidgetWidthContext.Provider value={isWide}>
           <div ref={setColumn} className="flex flex-col">
             <DrawerSlotsProvider mode="inline">{children}</DrawerSlotsProvider>
