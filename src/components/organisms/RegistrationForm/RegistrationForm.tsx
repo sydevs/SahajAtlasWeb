@@ -325,21 +325,10 @@ export function RegistrationForm({
     challengeRef,
     token,
     status: challengeStatus,
+    needsClick,
     reset: resetChallenge,
     retry: retryChallenge,
   } = useTurnstile()
-  // The frame says when the check has passed, never that it wants a tick. A wait this long is
-  // taken to mean the visitor may have something to do, and the line under Register says so.
-  const [checkIsSlow, setCheckIsSlow] = useState(false)
-
-  useEffect(() => {
-    setCheckIsSlow(false)
-    if (token) return
-
-    const timer = window.setTimeout(() => setCheckIsSlow(true), CHECK_PATIENCE_MS)
-
-    return () => window.clearTimeout(timer)
-  }, [token])
 
   // A refusal the visitor can fix in one field lands ON that field, the way a
   // schema error does: the sentence under it, `aria-invalid`, and focus moved
@@ -361,8 +350,19 @@ export function RegistrationForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: the story's refusal and the restored draft never change
   }, [])
 
+  // Holds a second submit while one is out. Validation is async, so two Enter presses can both
+  // reach the submit callback from the same render — `mutation.isPending` in that closure is
+  // still false for both — and the `scope` would queue the second to send the same single-use
+  // token after the first had spent it. A ref is read live, not off the render.
+  // A ref, not `mutation.isPending`: two submits that clear validation together both run from
+  // one render's closure, where `isPending` still reads false, and would send one token twice.
+  const sending = useRef(false)
+
   const mutation = useMutation({
     scope: { id: `registration-for-${eventId}` },
+    onSettled: () => {
+      sending.current = false
+    },
     mutationFn: ({ registration, captcha }: { registration: Registration; captcha: string }) => {
       return api.createRegistration(eventId, registration, captcha)
     },
@@ -452,7 +452,7 @@ export function RegistrationForm({
           : t(
               challengeStatus === 'blocked'
                 ? 'registration.form.register_when_check_loads'
-                : checkIsSlow
+                : needsClick
                   ? 'registration.form.security_check'
                   : 'registration.form.checking',
             )}
@@ -470,7 +470,10 @@ export function RegistrationForm({
         // extra safeguard for the Enter-key path. It is also what makes
         // `captcha` a plain string, rather than a nullable one, all the way
         // down to the header.
-        if (!isPreview && token) mutation.mutate({ registration: data, captcha: token })
+        if (isPreview || !token || sending.current) return
+
+        sending.current = true
+        mutation.mutate({ registration: data, captcha: token })
       })}
     >
       {submitted ? (
@@ -572,9 +575,6 @@ export function RegistrationForm({
     </form>
   )
 }
-
-/** How long the check may stay unsolved before the line under Register asks for the tick. */
-const CHECK_PATIENCE_MS = 4000
 
 /** The confirmation's way to pass the class on: Share, with the same networks as the class's own Share action, then Copy link. */
 function InviteFriend({ children }: { children: ReactNode }) {

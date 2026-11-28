@@ -7,7 +7,7 @@ import type { TFunction } from 'i18next'
 import type { ReactElement } from 'react'
 import type { Control, ControllerRenderProps, FieldError, UseFormRegister } from 'react-hook-form'
 
-import { memo, useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -325,8 +325,15 @@ export function ReportIssueForm({
     [fields],
   )
 
+  // A ref, not `mutation.isPending`: two submits that clear validation together both run from
+  // one render's closure, where `isPending` still reads false, and would send one token twice.
+  const sending = useRef(false)
+
   const mutation = useMutation({
     mutationFn: api.sendReport,
+    onSettled: () => {
+      sending.current = false
+    },
     // A Turnstile token is single-use, and the write-guard redeems it
     // during verification — BEFORE the collection accepts the row. So
     // after any later failure, the token is already spent, and
@@ -417,8 +424,9 @@ export function ReportIssueForm({
         // No token means the challenge is not solved, or it was just reset
         // after a failed send. The control is disabled in that state. This
         // check is an extra safeguard.
-        if (!token || mutation.isPending) return
+        if (!token || sending.current) return
 
+        sending.current = true
         mutation.mutate({
           form: form.id,
           answers: reportAnswers(fields, values),

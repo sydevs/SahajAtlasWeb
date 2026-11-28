@@ -1,7 +1,27 @@
-import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
+import { createActor } from 'xstate'
 
 import { useLocale } from '@/hooks/use-locale'
 import { useTheme } from '@/hooks/use-theme'
+import {
+  type ChallengeActor,
+  type ChallengeMessage,
+  type ChallengeSnapshot,
+  HANDSHAKE_TIMEOUT_MS,
+  UNMOUNTED_CHALLENGE,
+  challengeMachine,
+  type TurnstileStatus,
+  challengeView,
+} from '@/lib/challenge-machine'
+
+export type { TurnstileStatus }
 
 // Turnstile rendered explicitly, hand-rolled rather than through `@marsidev/react-turnstile`
 // (#79): this bundle ships on host pages we do not control, so a dependency is weight.
@@ -28,24 +48,7 @@ const CHALLENGE_PATH = '/api/atlas/challenge'
  */
 const CHALLENGE_CHANNEL = 'sahaj-atlas-turnstile'
 
-/**
- * `ready` is the handshake: Turnstile is live in the frame. `error` includes SahajCloud refusing
- * this page's origin, which no client record lists. The page renders Turnstile
- * `interaction-only`, so it is invisible until Cloudflare wants a click: `interactive` and
- * `settled` bracket that window (sydevs/SahajCloud#1090).
- */
-type ChallengeEvent =
-  | { type: 'ready' }
-  | { type: 'interactive' }
-  | { type: 'settled' }
-  | { type: 'expired' }
-  | { type: 'error' }
-  | { type: 'token'; token: string }
-
-/** What a frame reports to its owner: the page's own messages, plus its silence. */
-type FrameEvent = ChallengeEvent | { type: 'timeout' }
-
-function readChallengeEvent(data: unknown): ChallengeEvent | null {
+function readChallengeEvent(data: unknown): ChallengeMessage | null {
   if (typeof data !== 'object' || data === null) return null
 
   const { channel, type, token } = data as Record<string, unknown>
@@ -71,14 +74,6 @@ function readChallengeEvent(data: unknown): ChallengeEvent | null {
  *  until the challenge turns interactive. */
 const FRAME_WIDTH = 300
 const FRAME_HEIGHT = 65
-
-/**
- * Bounds a frame that never answers. A `frame-src` that refuses it is silent to its parent, so
- * this is also how a host's stale CSP is found. Nothing blocks on it, so a generous bound costs a
- * late answer rather than a slow first paint. 10 seconds was not generous enough: a slow load
- * replaced a working Atlas with the blocked screen about once in 30 loads on an iPhone.
- */
-const HANDSHAKE_TIMEOUT_MS = 20_000
 
 /**
  * How many silent frames the page-wide check waits out before it calls Turnstile blocked. Silence
@@ -144,12 +139,14 @@ type FrameOptions = { theme: 'light' | 'dark' | 'auto'; language: string; probe?
  * probe. `event.source` pins a message to this frame's window, which no other document can forge;
  * `origin` pins it to SahajCloud, so a frame navigated elsewhere cannot answer as the challenge.
  *
- * ⚠ **Silence is delivered as `timeout`**, beside the page's own `error`: a frame that never
- * handshakes is as dead as one that failed, but the page-wide check gives silence one more try.
+ * ⚠ **Silence is reported to `onSilence` alone**, apart from the page's own `error`: a frame that
+ * never handshakes is as dead as one that failed, but the page-wide check gives silence one more
+ * try. A form's frame passes none — its machine times the handshake (`lib/challenge-machine.ts`).
  */
 function createChallengeFrame(
   { theme, language, probe = false }: FrameOptions,
-  onEvent: (message: FrameEvent) => void,
+  onMessage: (message: ChallengeMessage) => void,
+  onSilence?: () => void,
 ) {
   const url = new URL(CHALLENGE_PATH, import.meta.env.VITE_SAHAJCLOUD_URL)
 
@@ -174,7 +171,7 @@ function createChallengeFrame(
   frame.referrerPolicy = 'strict-origin'
   frame.allow = TURNSTILE_FEATURES
 
-  const onMessage = (event: MessageEvent) => {
+  const listener = (event: MessageEvent) => {
     // Presence as well as identity: before the frame has a window both sides are `null`, and a
     // message carrying no source would pass an identity test alone.
     if (!frame.contentWindow || event.source !== frame.contentWindow) return
@@ -185,15 +182,15 @@ function createChallengeFrame(
     if (!message) return
 
     clearTimeout(timer)
-    onEvent(message)
+    onMessage(message)
   }
-  const timer = setTimeout(() => onEvent({ type: 'timeout' }), HANDSHAKE_TIMEOUT_MS)
+  const timer = onSilence && setTimeout(onSilence, HANDSHAKE_TIMEOUT_MS)
 
-  window.addEventListener('message', onMessage)
+  window.addEventListener('message', listener)
 
   const dispose = () => {
     clearTimeout(timer)
-    window.removeEventListener('message', onMessage)
+    window.removeEventListener('message', listener)
     frame.remove()
   }
 
@@ -222,13 +219,15 @@ export async function probeTurnstile(): Promise<boolean> {
       const { frame, dispose } = createChallengeFrame(
         { theme: 'auto', language: 'auto', probe: true },
         (message) => {
-          if (message.type !== 'ready' && message.type !== 'error' && message.type !== 'timeout') {
-            return
-          }
+          if (message.type !== 'ready' && message.type !== 'error') return
 
           dispose()
-          if (message.type === 'timeout' && left > 1) attempt(left - 1)
-          else resolve(message.type === 'ready')
+          resolve(message.type === 'ready')
+        },
+        () => {
+          dispose()
+          if (left > 1) attempt(left - 1)
+          else resolve(false)
         },
       )
 
@@ -252,21 +251,18 @@ export async function probeTurnstile(): Promise<boolean> {
   return availability
 }
 
-/**
- * `loading` until the challenge renders, `blocked` when Turnstile is unavailable. A caller must
- * degrade on `blocked` rather than leave a submit button that can never produce a token.
- */
-export type TurnstileStatus = 'loading' | 'ready' | 'blocked'
-
 export type UseTurnstile = {
   /** Attach to the element the challenge frame is appended to. */
   challengeRef: RefObject<HTMLDivElement | null>
   /** The solved token, or null while unsolved or expired. */
   token: string | null
   status: TurnstileStatus
+  /** Cloudflare is waiting on the visitor's click, in the frame now shown. */
+  needsClick: boolean
   /**
    * Discards the token and re-runs the challenge in place. A no-op while it is not rendered, so
-   * a caller never has to check `status` first.
+   * a caller never has to check `status` first. A frame that has lost its window cannot be told
+   * to reset, so it is replaced instead — keeping its token would keep a spent one.
    *
    * **A Turnstile token is single-use**, redeemed the moment the server verifies it and before
    * the work it gated. So after ANY failed submit the token in hand may be spent, and re-sending
@@ -278,16 +274,30 @@ export type UseTurnstile = {
   retry: () => void
 }
 
+type LiveFrame = { frame: HTMLIFrameElement; origin: string; actor: ChallengeActor }
+
 export function useTurnstile(): UseTurnstile {
   const challengeRef = useRef<HTMLDivElement>(null)
   // A ref as well as the effect closure, so `reset` reaches the live frame without re-running the
   // effect. The origin rides along so a frame navigated elsewhere receives no command.
-  const frameRef = useRef<{ frame: HTMLIFrameElement; origin: string } | null>(null)
-  const [token, setToken] = useState<string | null>(null)
-  const [status, setStatus] = useState<TurnstileStatus>('loading')
+  const live = useRef<LiveFrame | null>(null)
+  // One machine per mounted frame: a remount is a new challenge, so it starts from `loading`.
+  const [actor, setActor] = useState<ChallengeActor | null>(null)
   const { theme } = useTheme()
   const { languageCode } = useLocale()
   const [attempt, setAttempt] = useState(0)
+
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const subscription = actor?.subscribe(onChange)
+
+      return () => subscription?.unsubscribe()
+    },
+    [actor],
+  )
+  const readSnapshot = (): ChallengeSnapshot | null => actor?.getSnapshot() ?? null
+  const snapshot = useSyncExternalStore(subscribe, readSnapshot, () => null)
+  const view = snapshot ? challengeView(snapshot) : UNMOUNTED_CHALLENGE
 
   // Re-mounting on a theme or language change is deliberate: Turnstile bakes both in at render
   // time, so the frame carries them in its URL and the teardown drops the unsolved token with it.
@@ -295,66 +305,63 @@ export function useTurnstile(): UseTurnstile {
     const slot = challengeRef.current
 
     if (!slot) return
-    collapseSlot(slot, true)
-    setToken(null)
-    setStatus('loading')
 
+    const machine = createActor(challengeMachine)
     const { frame, origin, dispose } = createChallengeFrame(
       { theme, language: languageCode },
-      (message) => {
-        switch (message.type) {
-          case 'ready':
-            setStatus('ready')
-            break
-          case 'interactive':
-            collapseFrame(frame, false)
-            collapseSlot(slot, false)
-            break
-          case 'settled':
-            collapseFrame(frame, true)
-            collapseSlot(slot, true)
-            break
-          // Turnstile's `retry` defaults to `auto`, so a transient failure is often followed by a
-          // retry that solves. `blocked` must NOT latch, or the user holds a valid token while
-          // the UI still offers only the mailto escape.
-          case 'token':
-            setToken(message.token)
-            setStatus('ready')
-            break
-          case 'expired':
-            setToken(null)
-            break
-          case 'error':
-          case 'timeout':
-            setToken(null)
-            setStatus('blocked')
-            break
-        }
-      },
+      (message) => machine.send(message),
     )
 
-    frameRef.current = { frame, origin }
+    // The frame takes room only while the machine says the visitor should see it.
+    let shown: boolean | null = null
+    const place = (next: ChallengeSnapshot) => {
+      const { frameShown } = challengeView(next)
+
+      if (frameShown === shown) return
+      shown = frameShown
+      collapseFrame(frame, !frameShown)
+      collapseSlot(slot, !frameShown)
+    }
+    const placement = machine.subscribe(place)
+
+    machine.start()
+    place(machine.getSnapshot())
+    live.current = { frame, origin, actor: machine }
     slot.appendChild(frame)
+    setActor(machine)
 
     return () => {
+      placement.unsubscribe()
+      machine.stop()
       dispose()
-      frameRef.current = null
+      live.current = null
     }
   }, [attempt, theme, languageCode])
+
+  const retry = useCallback(() => setAttempt((n) => n + 1), [])
 
   // Stable with no dependencies: the caller hands this to `useMutation`'s `onError`, and a fresh
   // identity each render would re-run the observer's `setOptions` for nothing. The new token
   // arrives through the normal path, since the re-run challenge sends `token` on success.
   const reset = useCallback(() => {
-    const live = frameRef.current
+    const current = live.current
 
-    if (!live?.frame.contentWindow) return
+    if (!current) return
+    if (!current.frame.contentWindow) return retry()
 
-    setToken(null)
-    live.frame.contentWindow.postMessage({ channel: CHALLENGE_CHANNEL, type: 'reset' }, live.origin)
-  }, [])
+    current.actor.send({ type: 'reset' })
+    current.frame.contentWindow.postMessage(
+      { channel: CHALLENGE_CHANNEL, type: 'reset' },
+      current.origin,
+    )
+  }, [retry])
 
-  const retry = useCallback(() => setAttempt((n) => n + 1), [])
-
-  return { challengeRef, token, status, reset, retry }
+  return {
+    challengeRef,
+    token: view.token,
+    status: view.status,
+    needsClick: view.needsClick,
+    reset,
+    retry,
+  }
 }

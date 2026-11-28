@@ -5,6 +5,7 @@ import type { MountDecision } from './lib/shape'
 import r2wc from '@r2wc/react-to-web-component'
 import { type ReactNode, Suspense, useEffect, useRef, useState } from 'react'
 import { QueryClientProvider, useSuspenseQuery } from '@tanstack/react-query'
+import { createActor } from 'xstate'
 
 import App, { RootBoundary } from './App'
 import AtlasRouter from './router'
@@ -20,6 +21,7 @@ import { usePublishedNode } from './hooks/use-published-node'
 import { getInitialTheme, setThemeRoot } from './hooks/use-theme'
 import { ELEMENT_NAME } from './lib/element'
 import { releaseAnnouncement } from './lib/embed-announce'
+import { createOwnershipMachine } from './lib/ownership'
 import { classifyError, reportIntegrationWarning } from './lib/report'
 import { type SlotDecision, decideSlot } from './lib/slot-decision'
 import { WIDGET_SCOPE_CLASS } from './lib/scope'
@@ -353,7 +355,7 @@ function Atlas({ prefix }: { prefix?: string }) {
 
   // Does the interface fit the slot the host gave us, and what do they need to hear
   // about it? Decided ONCE, on the first render, from the element itself — which is
-  // reachable here without a ref, because exactly one runs per page (see `owner`,
+  // reachable here without a ref, because exactly one runs per page (`currentOwner`,
   // below).
   //
   // **Once, and not on resize, deliberately.** Switching form remounts the whole
@@ -373,7 +375,7 @@ function Atlas({ prefix }: { prefix?: string }) {
 
   if (!slot.current) {
     slot.current = decideSlot({
-      element: owner,
+      element: currentOwner(),
       hasMap,
       // BOTH reads must agree, and they are taken at different moments: the
       // loader's at script execution, ours at React render, separated by a
@@ -496,47 +498,33 @@ const R2WC_CONNECTED = Symbol.for('r2wc.connected')
 // simple, and closed buys nothing a host cannot already defeat from script.
 const AtlasElementBase = r2wc(Widget, { shadow: 'open' }) as unknown as new () => AtlasElement
 
-// Which element owns the page. A widget owns page-global singletons — the API key
-// (`config/api/auth`), the boot config (`config/embed`), the theme root, and BrandTheme's
-// system-theme watcher — so a second `<sahaj-atlas>` would run on instance A's key
-// and steal its theme root, in silence. Exactly one runs, and the rule is enforced
-// where the thing being counted actually lives: the element, not a React render pass.
-//
-// `isConnected` on this is what separates a REPLACEMENT from a second embed: a departed
-// owner yields the page, a live one refuses the arrival. So a replacement has to disconnect
-// before its successor connects — `replaceWith` and a framework re-render both do. Insert
-// first and the arrival is refused while the old owner still stands, never gets a second
-// `connectedCallback`, and the old owner's teardown then leaves the page with no widget at all.
-let owner: AtlasElement | null = null
+/**
+ * Which element owns the page, and whether a removed owner is still inside its grace window.
+ * The states, the transitions and the reasons for each live in `lib/ownership.ts`; this element
+ * feeds the machine its lifecycle callbacks and carries out the two effects the machine names.
+ */
+const ownership = createActor(
+  createOwnershipMachine<AtlasElement>().provide({
+    actions: {
+      release: () => releaseOwnership(),
+      refuse: () =>
+        reportIntegrationWarning(
+          `only one <${ELEMENT_NAME}> runs per page — this one will not render.`,
+        ),
+    },
+  }),
+).start()
+
+/** The element that owns the page, or `null` while nothing does. */
+const currentOwner = () => ownership.getSnapshot().context.owner
 
 /**
- * How long a removed element has to come back before its page-global state is
- * released.
+ * Releases the page-global state an element owned. Idempotent.
  *
- * **Moving a node is a disconnect followed by a connect**, and page builders do it:
- * Elementor's "Optimized Markup" relocates elements after load. Releasing the API key
- * and clearing the query cache the instant an element is removed therefore meant a
- * builder rearranging its canvas wiped an hour of warm cache (`WHOLESALE_GC_TIME`)
- * mid-session, and refetched the whole feed.
- *
- * `Element.moveBefore()` — which preserves state across a move — does not help twice
- * over: it has no Safari support, and it is the *host* who would have to call it.
- *
- * So the teardown is deferred rather than removed. The reason it exists stays
- * unchanged and still load-bearing: an element re-added with a DIFFERENT `key` must
- * not authenticate as the first, and only `['client', apiKey]` carries the credential
- * in its key — `['regions']`, `['geojson']`, the titles sliver, and every event stay
- * key-agnostic, so a re-add under another key would read the first key's responses out
- * of the cache.
+ * ⚠ Must not throw: it runs as a machine action, and a throwing action stops the actor for good
+ * (`lib/ownership.ts`). Every call below is a plain assignment or an idempotent DOM write.
  */
-const TEARDOWN_GRACE_MS = 1_000
-
-let pendingTeardown: ReturnType<typeof setTimeout> | null = null
-
-/** Releases the page-global state an element owned. Idempotent. */
 function releaseOwnership() {
-  pendingTeardown = null
-  owner = null
   atlasAuth.apiKey = null
   queryClient.clear()
 
@@ -557,31 +545,14 @@ class SahajAtlasElement extends AtlasElementBase {
   }
 
   connectedCallback() {
-    if (pendingTeardown) {
-      clearTimeout(pendingTeardown)
-      pendingTeardown = null
+    ownership.send({
+      type: 'connect',
+      element: this,
+      keyChanged: atlasAuth.apiKey !== embed.config.key,
+    })
 
-      // A host router that re-renders its page replaces this element on every Back/Forward
-      // press, so what the cache has to survive is a NEW element and not only a returning
-      // one. A different key must still release — `TEARDOWN_GRACE_MS` says why — and
-      // `owner !== this` keeps a plain reconnect out of a comparison `AtlasBoot` may not
-      // have answered yet.
-      // shortcut: only `['client', apiKey]` is key-scoped, so a release is the whole cache;
-      // key every factory in `config/api/index.ts` if two keys reach one page.
-      if (owner !== this && atlasAuth.apiKey !== embed.config.key) {
-        releaseOwnership()
-      }
-    }
-
-    if (owner && owner !== this && owner.isConnected) {
-      reportIntegrationWarning(
-        `only one <${ELEMENT_NAME}> runs per page — this one will not render.`,
-      )
-
-      return
-    }
-
-    owner = this
+    // Refused: another element stands as owner, and the machine has said so.
+    if (currentOwner() !== this) return
 
     // **Before `super`, which is what mounts React.** The stylesheet no longer lives in
     // the host's `<head>`, because a document sheet cannot reach into a shadow root
@@ -597,12 +568,7 @@ class SahajAtlasElement extends AtlasElementBase {
   }
 
   disconnectedCallback() {
-    // Deferred, not immediate — see TEARDOWN_GRACE_MS. A duplicate that was refused
-    // while this one lived stays refused either way: it gets no second
-    // connectedCallback.
-    if (owner === this && !pendingTeardown) {
-      pendingTeardown = setTimeout(releaseOwnership, TEARDOWN_GRACE_MS)
-    }
+    ownership.send({ type: 'disconnect', element: this })
 
     super.disconnectedCallback()
   }

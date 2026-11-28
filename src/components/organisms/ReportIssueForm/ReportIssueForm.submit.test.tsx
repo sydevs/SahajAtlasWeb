@@ -125,6 +125,10 @@ async function submit() {
   await act(async () => {
     form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
   })
+  // ⚠ React Query publishes a settled mutation from a 0ms timer, which async `act` sometimes
+  // runs and sometimes does not (`docs/testing.md`, the Radix focus-restore race). Wait it out
+  // after the submit's `act` returns, never inside it.
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
 }
 
 const MESSAGE = 'The venue address on this class is wrong.'
@@ -307,6 +311,30 @@ describe('ReportIssueForm, sent while the browser is offline', () => {
 
     expect(sdk.request).toHaveBeenCalledTimes(1)
     expect(container.textContent).not.toContain('THANKYOU')
+
+    await act(async () => root.unmount())
+  })
+})
+
+describe('ReportIssueForm, submitted twice at once', () => {
+  it('sends a token once when two submits clear validation together', async () => {
+    sdk.request.mockRejectedValue(
+      Object.assign(new Error('Could not deliver your message.'), { status: 502 }),
+    )
+
+    const root = await mountForm()
+
+    await type('#report-field-0', MESSAGE)
+
+    const form = container.querySelector('form')
+
+    // Two Enter presses inside one validation pass: both callbacks run before React re-renders.
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(sdk.request).toHaveBeenCalledTimes(1)
 
     await act(async () => root.unmount())
   })

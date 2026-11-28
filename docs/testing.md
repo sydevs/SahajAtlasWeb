@@ -450,6 +450,7 @@ one forges further outputs on a fork's pull request.
 | host CSS does not reach the widget                                | `hostile-css.html`     | no shadow root (#236); the baseline's `letter-spacing` reset dropped |
 | registration accepted, and failing with a 500                     | `sidebar-mapless.html` | a drifted create envelope; the thank-you shown on failure (#103)     |
 | a place's calendar, its Week by name, and List back to the place  | `full-map.html?atlas=` | the List switch stacking the place again instead of stepping back    |
+| Escape collapses the phone sheet, and Show more reopens it        | `full-map.html`        | the sheet machine's toggle leaving the sheet at its peek             |
 
 ### Why hermetic: it answers the missing-backend problem
 

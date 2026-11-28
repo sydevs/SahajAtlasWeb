@@ -107,13 +107,13 @@ export const MapControls = memo(function MapControls({
               <Button
                 ref={locateRef}
                 isIconOnly
-                aria-busy={locate === 'waiting' || undefined}
+                aria-busy={locate === 'locating' || undefined}
                 aria-label={locateLabel}
                 radius="full"
                 variant="floating"
                 onClick={onLocate}
               >
-                {locate === 'waiting' ? (
+                {locate === 'locating' ? (
                   <Spinner decorative color="current" size="sm" />
                 ) : (
                   <LocateFixed

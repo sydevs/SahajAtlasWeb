@@ -617,7 +617,7 @@ export function Mapbox({
           onLocate={locate.locate}
         />
       </ReactMapGL>
-      <Modal open={locate.failed} onOpenChange={locate.setFailed}>
+      <Modal open={locate.dialogOpen} onOpenChange={locate.setDialogOpen}>
         <ModalContent
           closeLabel={t('common.chrome.close')}
           description={t('common.map.location_failed')}

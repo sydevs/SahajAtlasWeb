@@ -253,6 +253,59 @@ describe('useTurnstile', () => {
     )
   })
 
+  it('says when the challenge needs a click, and stops saying so once it settles', async () => {
+    await mount()
+    fromFrame({ type: 'ready' })
+
+    expect(hook.needsClick).toBe(false)
+
+    fromFrame({ type: 'interactive' })
+    expect(hook.needsClick).toBe(true)
+
+    fromFrame({ type: 'settled' })
+    expect(hook.needsClick).toBe(false)
+  })
+
+  it('keeps a clicked challenge on screen until it settles', async () => {
+    await mount()
+    fromFrame({ type: 'ready' })
+    fromFrame({ type: 'interactive' })
+    fromFrame({ type: 'token', token: 'tok-1' })
+
+    // Cloudflare shows its success mark in the frame; collapsing on the token would cut it off.
+    expect(hook.token).toBe('tok-1')
+    expect(frame()?.height).toBe('65')
+
+    fromFrame({ type: 'settled' })
+    expect(frame()?.height).toBe('0')
+    expect(hook.token).toBe('tok-1')
+  })
+
+  it('collapses the frame when a shown challenge errors', async () => {
+    await mount()
+    fromFrame({ type: 'ready' })
+    fromFrame({ type: 'interactive' })
+    fromFrame({ type: 'error' })
+
+    expect(hook.status).toBe('blocked')
+    expect(frame()?.height).toBe('0')
+    expect(frame()?.parentElement?.style.position).toBe('absolute')
+  })
+
+  it('replaces a frame it cannot reach to reset, rather than keep a spent token', async () => {
+    await mount()
+    fromFrame({ type: 'token', token: 'tok-1' })
+
+    const first = frame()
+
+    vi.spyOn(first as HTMLIFrameElement, 'contentWindow', 'get').mockReturnValue(null)
+    act(() => hook.reset())
+
+    expect(hook.token).toBeNull()
+    expect(hook.status).toBe('loading')
+    expect(frame()).not.toBe(first)
+  })
+
   it('detaches its window listener on unmount', async () => {
     // Not a tidiness check: the listener is on `window`, which the HOST page owns and which
     // outlives every form. One leaked per open accumulates for the life of their page, and

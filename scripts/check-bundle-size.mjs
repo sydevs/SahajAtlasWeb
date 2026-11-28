@@ -92,6 +92,10 @@ import { annotate, report } from './_ci-output.mjs'
 // Every step to today's three figures, newest first, as standalone/embed and as
 // loader. `git log -p` on this constant holds each one in full, dated.
 //
+//   349/350  346.4/347.8  #PRNUM  xstate 5, +11.6/+11.8 KiB: page ownership (`Widget.tsx`)
+//                           and the shared locate status put it in both shells, and the
+//                           sheet and the challenge machines reuse it from lazy chunks.
+//                           Each budget keeps the ~1 KiB it had spare before
 //   338  334.8/336.0  #531  embed only. The first screen's title, its location line
 //                           (the Alert, Near me's hook and the guess's rules) and its
 //                           sheet stop took the last of the headroom, as #435 did
@@ -134,9 +138,9 @@ import { annotate, report } from './_ci-output.mjs'
 // glyphs cost less than the hand-drawn path data they replaced. A swap that
 // adds a dependency can still win space.
 export const BUDGET_KIB = {
-  standalone: 336,
+  standalone: 349,
   loader: 3.6,
-  embed: 338,
+  embed: 350,
 }
 
 // What `@sentry/vite-plugin`'s per-chunk debug-ID snippet adds to each graph,

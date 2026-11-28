@@ -28,7 +28,6 @@ import {
   MIN_MAP_STRIP_PX,
   SHEET_OPEN_PX,
   SHEET_PEEK_PX,
-  WIDE_SNAP,
   WidgetWidthContext,
   capStop,
   shortSheetCap,
@@ -42,7 +41,6 @@ import {
   type StackEntry,
   calendarViewFromParams,
   backStep,
-  sameRoute,
   baseStackEntry,
   isCalendarFullWidth,
   isFilterOverlay,
@@ -61,12 +59,12 @@ import {
   heldFoldPx,
   HOME_SNAP,
   OPEN_SNAP,
-  PEEK_SNAP,
   resolveStop,
   sheetLadder,
   sheetOpening,
 } from '@/views/DrawerStack/sheet-ladder'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
+import { createSheetStore, escapeGoesOutward, isCollapsed } from '@/views/DrawerStack/sheet-machine'
 import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
@@ -183,11 +181,26 @@ export function DrawerStack() {
   const measured = useIsWide(provided === null ? (container ?? frameElement()) : null)
   const isWide = provided ?? measured
   const direction: Direction = isWide ? 'left' : 'bottom'
-  const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
-  // Set by "Show N classes": the results it closes onto open at the near-full stop.
-  const resultsTall = useRef(false)
-  // Where a step back is due to land, and the entry it left (`dismiss`).
-  const landing = useRef<{ key: string; to: string } | null>(null)
+  // The phone sheet's stop, and the intents a dismissal leaves for the next location
+  // (`sheet-machine.ts`). Its landing rewrite navigates through the latest `navigate`.
+  const navigateRef = useRef(navigate)
+
+  useLayoutEffect(() => {
+    navigateRef.current = navigate
+  })
+  const [sheetStore] = useState(() =>
+    createSheetStore((to, state) => navigateRef.current(to, { replace: true, state })),
+  )
+
+  const subscribeSheet = useCallback(
+    (onChange: () => void) => {
+      const subscription = sheetStore.subscribe(onChange)
+
+      return () => subscription.unsubscribe()
+    },
+    [sheetStore],
+  )
+  const snap = useSyncExternalStore(subscribeSheet, () => sheetStore.getSnapshot().context.snap)
   // Whether the sheet is sitting at its peek, measured by the sheet-top loop below. Never true
   // where the sheet cannot collapse, since the loop does not run there.
   const [atPeek, setAtPeek] = useState(false)
@@ -286,16 +299,9 @@ export function DrawerStack() {
     () => sheetLadder({ classView, fit, fold, home }),
     [classView, fit, fold, home],
   )
-  const { points: snapPoints, fitSnap } = ladder
+  const { points: snapPoints } = ladder
   const openSnap = fitsContent ? FIT_SNAP : home ? HOME_SNAP : OPEN_SNAP
   const vaulSnap = resolveStop(ladder, snap)
-  // vaul echoes every `activeSnapPoint` it is handed back through this setter. Taking the echo
-  // literally would swap the token for whatever it resolved to that render, and the sheet would
-  // stop following its content.
-  const setVaulSnap = (next: number | string | null) => {
-    if (next === vaulSnap) return
-    setSnap(fitSnap !== null && next === fitSnap ? FIT_SNAP : next)
-  }
   // A short window caps the pixel stops (`shortSheetCap`) only on the way to vaul, so
   // `snap` keeps naming the logical stop and everything that compares it stays as it is. The
   // near-full stop is a fraction, and still covers the map on purpose.
@@ -304,16 +310,9 @@ export function DrawerStack() {
   // Memoised like the ladder it is built from: vaul re-measures every stop when this changes.
   const shownSnapPoints = useMemo(() => capPoints(snapPoints, snapCap), [snapPoints, snapCap])
   const shownSnap = capStop(vaulSnap, snapCap)
-  const setShownSnap = (next: number | string | null) => {
-    // A capped stop stands for every stop above the cap: the sheet stays where it was if that caps
-    // to here, and otherwise opens at its usual open stop.
-    if (snapCap !== null && next === `${snapCap}px` && !snapPoints.includes(next)) {
-      if (shownSnap !== next) setSnap(openSnap)
-
-      return
-    }
-    setVaulSnap(next)
-  }
+  // vaul echoes every stop it is handed back through this setter (`onVaulSnap` says what one means).
+  const setShownSnap = (next: number | string | null) =>
+    sheetStore.send({ type: 'VAUL_SNAP', next, ladder, cap: snapCap, openSnap })
   // What the sheet covers of the map, resolved from the snap it sits at, so the camera reserves
   // the collapsed peek while the sheet is collapsed and a class's taller sheet while it is open.
   // The near-full stop hides the class's pin whatever the camera does, so there the camera frames
@@ -493,31 +492,20 @@ export function DrawerStack() {
     }
   }, [canCollapse])
 
-  // Each view opens at its own height (`sheetOpening`). Keyed on the view KIND (not `wide`), so
-  // switching the calendar between month/week/list keeps it tall. This runs only when the top
-  // view changes, so it never fights a manual drag within one.
+  // Each view opens at its own height (`sheetOpening`), keyed on the view KIND (not `wide`).
   useEffect(() => {
-    if (direction !== 'bottom') return
+    if (direction === 'bottom') sheetStore.send({ type: 'VIEW_CHANGED', opening, openSnap })
+  }, [direction, opening, openSnap, top?.kind, openedClass, sheetStore])
 
-    const landTall = resultsTall.current
-
-    resultsTall.current = false
-    setSnap(opening === 'tall' || landTall ? WIDE_SNAP : openSnap)
-  }, [direction, opening, openSnap, top?.kind, openedClass])
-
-  // A new searched place lifts the sheet out of its peek, so results are never
-  // fetched into a sheet the visitor cannot see. The effect above does not cover this
-  // case: the geolocate control lives on the MAP, so "drag the sheet down to see the
-  // map, then press locate" is the likely gesture — and it re-searches `/search`
-  // without changing `top.kind`.
-  //
-  // `?center` moves only on a real re-search (never on a `?q` keystroke, never on a
-  // filter edit), so this cannot fight a deliberate drag. Raising the sheet ONLY out
-  // of the peek, rather than setting the snap outright, leaves a sheet the visitor
-  // pulled tall exactly where they put it.
+  // ⚠ After the reset above, which runs first in the same commit and spends a "Show N classes"
+  // intent; a move that changed no view drops it here instead.
   useEffect(() => {
-    if (direction === 'bottom') setSnap((current) => (current === PEEK_SNAP ? OPEN_SNAP : current))
-  }, [direction, searchCenter])
+    sheetStore.send({ type: 'LOCATION_SETTLED' })
+  }, [location.key, sheetStore])
+
+  useEffect(() => {
+    if (direction === 'bottom') sheetStore.send({ type: 'SEARCH_MOVED' })
+  }, [direction, searchCenter, sheetStore])
 
   // Back, swipe and Esc all run `dismiss`, and Back's label reads the same `step`, so what it
   // says is where it goes. With in-widget history it goes chronologically back, restoring the
@@ -525,51 +513,44 @@ export function DrawerStack() {
   // embedded widget shares browser history). The root view collapses to its peek. Closing the
   // filters replaces their own entry instead, or steps back onto the view they covered.
   const dismiss = useCallback(() => {
-    if (!step) return setSnap(PEEK_SNAP)
+    if (!step) return sheetStore.send({ type: 'COLLAPSE' })
     // A transition: unmounting a heavy view (the calendar's large grid) would otherwise
     // reconcile synchronously and freeze the click for a beat ("nothing happened").
     startTransition(() => {
       if (step.how === 'history') {
-        landing.current = { key: location.key, to: step.to }
+        sheetStore.send({ type: 'STEP_BACK', key: location.key, to: step.to })
         navigate(-1)
       } else if (step.how === 'replace') navigate(step.to, { replace: true, state: location.state })
       // A climb says where it climbed from, so a place that opens its lone class climbs on
       // rather than bouncing back into it (RegionView, `loneClassExit`).
       else navigate(step.to, { state: { climbedFrom: location.pathname } })
     })
-  }, [step, navigate, location.key, location.pathname, location.state])
+  }, [step, navigate, location.key, location.pathname, location.state, sheetStore])
 
-  // A step back lands where it said: closing the filters onto the search they covered keeps the
-  // answers tapped since, by rewriting the landed entry's query rather than restoring the old one.
+  // Layout phase, so a landed step back's rewrite replaces the entry before it paints.
   useLayoutEffect(() => {
-    const pending = landing.current
+    const { key, pathname, search, state } = location
 
-    if (!pending || pending.key === location.key) return
-    landing.current = null
-    if (
-      location.pathname === pending.to.split('?')[0] &&
-      !sameRoute(`${location.pathname}${location.search}`, pending.to)
-    ) {
-      navigate(pending.to, { replace: true, state: location.state })
-    }
-  }, [location, navigate])
+    sheetStore.send({ type: 'LOCATION', key, pathname, search, state })
+  }, [location, sheetStore])
 
   // "Show N classes" closes the filters like the X does, then opens the results tall.
   const showResults = useCallback(() => {
-    resultsTall.current = canCollapse
+    sheetStore.send({ type: 'SHOW_RESULTS', tall: canCollapse })
     dismiss()
-  }, [canCollapse, dismiss])
+  }, [canCollapse, dismiss, sheetStore])
 
+  const collapsed = isCollapsed({ canCollapse, atPeek })
   const control = useMemo(
     () => ({
       // The filter overlay's X is the way out while it covers the calendar.
       backTo: filterOverlay ? undefined : step?.to,
-      collapsed: canCollapse && atPeek,
-      toggle: () => setSnap((s) => (s === PEEK_SNAP ? openSnap : PEEK_SNAP)),
+      collapsed,
+      toggle: () => sheetStore.send({ type: 'TOGGLE', openSnap }),
       dismiss,
       showResults,
     }),
-    [filterOverlay, step, atPeek, openSnap, canCollapse, dismiss, showResults],
+    [filterOverlay, step, collapsed, openSnap, dismiss, showResults, sheetStore],
   )
 
   // The filter overlay's own control: its X, swipe and Esc close it the same way, through the
@@ -613,7 +594,7 @@ export function DrawerStack() {
        * the sheet is either already collapsed or has no snap points left to collapse to.
        */
       onEscapeKeyDown={(event) => {
-        if (step || (canCollapse && snap !== PEEK_SNAP)) return
+        if (!escapeGoesOutward({ hasStep: Boolean(step), canCollapse, collapsed })) return
 
         event.preventDefault()
         collapse()

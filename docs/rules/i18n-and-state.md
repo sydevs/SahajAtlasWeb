@@ -12,6 +12,10 @@ paths:
   - 'src/config/a11y/**'
   - 'src/config/locale.ts'
   - 'src/hooks/use-available-locales.ts'
+  - 'src/lib/ownership.ts'
+  - 'src/lib/locate-machine.ts'
+  - 'src/lib/challenge-machine.ts'
+  - 'src/views/DrawerStack/sheet-machine.ts'
 ---
 
 # i18n & State
@@ -296,6 +300,31 @@ source of truth, so all three stay linkable and shareable:
 
 Camera control always goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`) — never a store, never the map directly.
+
+## Lifecycles are XState machines
+
+A store holds a value. A lifecycle — states that may only follow one another, a timer that
+moves between them, an intent the next event spends — is an **XState 5 machine** instead, so
+the legal states are one type and a transition table can be tested without React. Four exist:
+
+| Machine | Owns | Driven by |
+| --- | --- | --- |
+| `lib/ownership.ts` | which `<sahaj-atlas>` owns the page, and the teardown grace window | `Widget.tsx`'s element callbacks |
+| `lib/locate-machine.ts` | the one position request the map's find-me and Near me share | the locator (`hooks/use-locator.tsx`) |
+| `lib/challenge-machine.ts` | one Turnstile frame's token, click prompt and blocked state | `hooks/use-turnstile.ts` |
+| `views/DrawerStack/sheet-machine.ts` | the phone sheet's stop and the intents a dismissal leaves | `DrawerStack` |
+
+- **The machine module is pure**: no React, no DOM. Side effects are named actions the caller
+  supplies with `.provide()`, and each module has a node-lane table spec.
+- **React reads an actor through `useSyncExternalStore`**, over `actor.subscribe` and
+  `getSnapshot`. Do not add `@xstate/react`: it is a second dependency in the eager graph for
+  what one hook already does.
+- ⚠ **xstate is in both eager graphs** (`Widget.standalone.test.ts`), and it cost 11.6 KiB
+  (`scripts/check-bundle-size.mjs`). A fifth machine adds no library weight, but it is still a
+  decision: reach for one only when the state is a lifecycle, not a value.
+- ⚠ **A stopped actor ignores every later event, and a throwing action stops it.** Stop an actor
+  only when it owns a timer or a child, and from the same effect that created it, so StrictMode's
+  remount gets a fresh one. An action that may throw is wrapped by its caller.
 
 ## Error boundaries (issue #89)
 
