@@ -11,6 +11,10 @@ import { weekdayNames } from '@/lib/time'
  *
  * `width` is the day names': short where space is tight, `long` where the answer sits in a
  * sentence, as the removal under an empty list does ("Remove Monday").
+ *
+ * The full form's own fields (`SearchFilters/filter-blocks.tsx`) stay out, though
+ * `LanguageChoices` names languages identically today: a field shows its value, where these
+ * abbreviate to fit.
  */
 export function useAnswerLabels(
   filters: EventFilters,
