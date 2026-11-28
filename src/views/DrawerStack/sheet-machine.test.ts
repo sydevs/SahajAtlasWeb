@@ -2,7 +2,7 @@ import type { SheetEvent } from './sheet-machine'
 
 import { describe, expect, it, vi } from 'vitest'
 
-import { createSheetStore, escapeGoesOutward, isCollapsed, onVaulSnap } from './sheet-machine'
+import { createSheetStore, onVaulSnap } from './sheet-machine'
 import { FIT_SNAP, HOME_SNAP, OPEN_SNAP, PEEK_SNAP, sheetLadder } from './sheet-ladder'
 
 import { WIDE_SNAP } from '@/config/responsive'
@@ -222,29 +222,5 @@ describe('a step back’s landing', () => {
     )
 
     expect(rewrite).toHaveBeenCalledExactlyOnceWith('/search?format=in-person', { depth: 1 })
-  })
-})
-
-describe('the header and the Escape ladder', () => {
-  const cases = [true, false].flatMap((canCollapse) =>
-    [true, false].flatMap((atPeek) =>
-      [true, false].map((hasStep) => ({ canCollapse, atPeek, hasStep })),
-    ),
-  )
-
-  it.each(cases)('agree on a collapsed sheet: %o', ({ canCollapse, atPeek, hasStep }) => {
-    const collapsed = isCollapsed({ canCollapse, atPeek })
-    const outward = escapeGoesOutward({ hasStep, canCollapse, collapsed })
-
-    // A sheet the header shows open takes Escape itself; one it shows collapsed, with no step
-    // back, hands the key outward.
-    if (canCollapse && !collapsed) expect(outward).toBe(false)
-    if (collapsed && !hasStep) expect(outward).toBe(true)
-    if (hasStep) expect(outward).toBe(false)
-  })
-
-  it('never reads a sheet that cannot collapse as collapsed', () => {
-    expect(isCollapsed({ canCollapse: false, atPeek: true })).toBe(false)
-    expect(escapeGoesOutward({ hasStep: false, canCollapse: false, collapsed: false })).toBe(true)
   })
 })

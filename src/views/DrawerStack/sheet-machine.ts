@@ -62,33 +62,6 @@ export function onVaulSnap(
 }
 
 /**
- * Whether the sheet reads as collapsed — the header's controls and the Escape ladder both ask.
- *
- * ⚠ Geometry, not the logical stop: `atPeek` comes from the sheet's live top (DrawerStack's
- * loop), so a sheet dragged up fills in as it rises, not when it lands. Decided twice, the
- * header and the body disagreed for the length of a drag, and the row offered a view's actions
- * over an invisible body; Escape read the logical stop and could disagree with the header the same
- * way. The camera is the one reader that stays on the logical stop (`sheetCover`): it frames for
- * where the sheet settles, and following a drag would re-frame the map every frame.
- */
-export const isCollapsed = ({ canCollapse, atPeek }: { canCollapse: boolean; atPeek: boolean }) =>
-  canCollapse && atPeek
-
-/**
- * The Escape ladder's last rung: whether the key belongs outward (`useExpansion().collapse`). The
- * stack dismisses while it has a step back, and the sheet collapses while it is not collapsed.
- */
-export const escapeGoesOutward = ({
-  hasStep,
-  canCollapse,
-  collapsed,
-}: {
-  hasStep: boolean
-  canCollapse: boolean
-  collapsed: boolean
-}) => !hasStep && (!canCollapse || collapsed)
-
-/**
  * The phone sheet's stop and the two intents a dismissal leaves for the next location: "open the
  * results tall" (`results`) and "rewrite the landed entry" (`landing`). Each intent is consumed or
  * dropped by the next navigation, so neither can outlive the move it was armed for.

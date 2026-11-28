@@ -66,7 +66,7 @@ import {
   type Stop,
 } from '@/views/DrawerStack/sheet-ladder'
 import { useFitSnap } from '@/views/DrawerStack/use-fit-snap'
-import { createSheetStore, escapeGoesOutward, isCollapsed } from '@/views/DrawerStack/sheet-machine'
+import { createSheetStore } from '@/views/DrawerStack/sheet-machine'
 import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
@@ -537,7 +537,14 @@ export function DrawerStack() {
     dismiss()
   }, [canCollapse, dismiss, sheetStore])
 
-  const collapsed = isCollapsed({ canCollapse, atPeek })
+  // ⚠ Geometry, not the logical stop: `atPeek` comes from the sheet's live top (the loop above),
+  // so a sheet dragged up fills in as it rises, not when it lands. Decided twice, the header and
+  // the body disagreed for the length of a drag, and the row offered a view's actions over an
+  // invisible body. One local, read by the header's control and by the Escape ladder below, is
+  // what keeps them from drifting apart again. The camera is the one reader that stays on the
+  // logical stop (`sheetCover`): it frames for where the sheet settles, and following a drag
+  // would re-frame the map every frame.
+  const collapsed = canCollapse && atPeek
   const control = useMemo(
     () => ({
       // The filter overlay's X is the way out while it covers the calendar.
@@ -591,7 +598,7 @@ export function DrawerStack() {
        * the sheet is either already collapsed or has no snap points left to collapse to.
        */
       onEscapeKeyDown={(event) => {
-        if (!escapeGoesOutward({ hasStep: Boolean(step), canCollapse, collapsed })) return
+        if (step || (canCollapse && !collapsed)) return
 
         event.preventDefault()
         collapse()
