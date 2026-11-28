@@ -33,9 +33,10 @@ import api from '@/config/api'
  * like the `.catch` below, and `Widget.tsx` has no spec that could hold it — a duplicate send is
  * precisely the regression no gate would see.
  *
- * **`releaseAnnouncement` deliberately does NOT reset it**, which is the difference between this
- * and the marker. One report per page load: a widget re-mounted after a teardown has nothing new
- * to tell the server, and the endpoint would suppress the repeat anyway.
+ * **`releaseAnnouncement` deliberately does NOT reset it once the report has gone**, which is the
+ * difference between this and the marker. One report per page load: a widget re-mounted after a
+ * teardown has nothing new to tell the server, and the endpoint would suppress the repeat anyway.
+ * A report released before it was sent was never filed, so that one gives the flag back.
  *
  * ⚠ Lifting this is now *safe* but still a decision, not a tidy-up. The mount is read fresh at
  * every send (`currentMount`), so a re-mount would file the page it is actually on rather than —
@@ -48,13 +49,24 @@ let reported = false
 /**
  * How long the report may wait for an idle moment.
  *
- * **Deliberately below `TEARDOWN_GRACE_MS` (1 s, `Widget.tsx`)**, and that is a correctness bound
- * rather than tuning. Release nulls `atlasAuth.apiKey`, and `applyRequestContext` only attaches
- * `Authorization` when there is one — so a deadline past the grace period lets an element removed
- * shortly after mount fire an *unauthenticated* POST, which the server refuses and the catch below
- * then reports to the host as a problem with their allowed-domains list. Their console, our race.
+ * Tuning, not a correctness bound: a release during the wait cancels the send (`waiting`, below),
+ * so the deadline need not stay under `TEARDOWN_GRACE_MS` (`lib/ownership.ts`) for the POST to go
+ * out authenticated.
  */
 const IDLE_DEADLINE_MS = 500
+
+/**
+ * The report waiting for its idle moment, if one is.
+ *
+ * Release nulls `atlasAuth.apiKey`, and `applyRequestContext` only attaches `Authorization` when
+ * there is one — so a send that outlived its owner would go out *unauthenticated*, or under the
+ * key of whichever element replaced it. The server refuses the first, and the catch below then
+ * reports it to the host as a problem with their allowed-domains list: their console, our race. A
+ * different-key replacement releases at once rather than after the grace window, which is what put
+ * this inside the wait. So `releaseAnnouncement` cancels a send that has not started, and gives the
+ * flag back — nothing was filed, and the next owner's mount is the one to file.
+ */
+let waiting: AbortController | null = null
 
 /**
  * Wait for the host's page to be idle, for at most {@link IDLE_DEADLINE_MS}.
@@ -148,11 +160,19 @@ export async function announceEmbed(args: {
 
   reported = true
 
+  const send = new AbortController()
+
+  waiting = send
+
   // Everything from here is inside the try, including the wait: this function is called as
   // `void announceEmbed(...)`, so anything that rejects becomes an unhandled rejection in a page
   // we do not own — a host's bug report for a diagnostic of ours.
   try {
     await whenIdle()
+
+    if (send.signal.aborted) return
+
+    waiting = null
     // The flattening IS the wire shape, named by `EmbedReportBody` rather than left to be whatever
     // a domain type happens to hold — see that type for what the implicit version cost.
     await api.reportEmbed({ ...observed, ...mount })
@@ -169,14 +189,22 @@ export async function announceEmbed(args: {
  * Take the marker down when the widget stops vouching for itself.
  *
  * Paired with `Widget.tsx`'s `releaseOwnership`, so a marker cannot outlive the widget it attests
- * to on a host SPA that unmounted it. **The report flag is not reset** — see it for why re-filing a
- * stale mount is worse than not re-filing at all.
+ * to on a host SPA that unmounted it. **A filed report's flag is not reset** — see it for why
+ * re-filing a stale mount is worse than not re-filing at all. A report still waiting to be sent is
+ * cancelled instead, and its flag given back (`waiting`).
  */
 export function releaseAnnouncement(): void {
   clearReadiness()
+
+  if (waiting) {
+    waiting.abort()
+    waiting = null
+    reported = false
+  }
 }
 
 /** Reset the once-per-page-load report flag. Test seam — nothing in the app calls it. */
 export function resetReportedForTest(): void {
   reported = false
+  waiting = null
 }

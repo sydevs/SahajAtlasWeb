@@ -6,13 +6,18 @@
 // and its refusal re-cast stay inside the system under test.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
+import {
+  QueryClient,
+  QueryClientProvider,
+  notifyManager,
+  onlineManager,
+} from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegistrationForm } from './RegistrationForm'
 
 import { queryClient } from '@/config/query-client'
-import { challengeFrameStub } from '@/test-support/turnstile-frame'
+import { challengeFrameStub, sendFromFrame } from '@/test-support/turnstile-frame'
 
 const sdk = vi.hoisted(() => ({ find: vi.fn(), findByID: vi.fn(), request: vi.fn() }))
 
@@ -32,6 +37,11 @@ vi.mock('react-i18next', () => ({
     i18n: { on: () => {}, off: () => {}, resolvedLanguage: 'en' },
   }),
 }))
+
+// ⚠ React Query publishes a settled mutation from a 0ms timer, which async `act` sometimes runs
+// and sometimes does not (`docs/testing.md`, the Radix focus-restore race), so a read of the
+// failure screen passed at random. A microtask lands inside the submit's `act` every time.
+notifyManager.setScheduler(queueMicrotask)
 
 let container: HTMLDivElement
 // The challenge page, not our hook: the real `useTurnstile` frames that page and takes its
@@ -316,6 +326,74 @@ describe('RegistrationForm, submitted while the browser is offline', () => {
     expect(sdk.request).toHaveBeenCalledTimes(1)
 
     onLine.mockRestore()
+    await act(async () => root.unmount())
+  })
+})
+
+describe('RegistrationForm submit', () => {
+  it('sends a token once when two submits clear validation together', async () => {
+    // A 500 after the guard spent the token: a second request queued behind it would send the
+    // same spent token, and its refusal would replace the first failure on screen.
+    sdk.request.mockRejectedValue(
+      Object.assign(new Error('Something went wrong.'), {
+        errors: [{ message: 'Something went wrong.' }],
+        status: 500,
+      }),
+    )
+
+    const root = await mountForm()
+
+    await type('#name', 'Ada Lovelace')
+    await type('#email', 'ada@example.org')
+
+    const form = container.querySelector('form')
+
+    // Two Enter presses inside one validation pass: both callbacks run before React re-renders.
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+
+    await act(async () => root.unmount())
+  })
+})
+
+describe('RegistrationForm challenge line', () => {
+  const line = () => container.querySelector('p[aria-live="polite"]')?.textContent
+
+  it('asks for the click only once the challenge asks for one', async () => {
+    const root = createRoot(container)
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={new QueryClient()}>
+          <RegistrationForm
+            eventId={42}
+            eventTitle="Evening meditation"
+            isOnline={false}
+            questions={['questions']}
+            upcomingDates={[new Date('2026-12-01T18:00:00Z')]}
+          />
+        </QueryClientProvider>,
+      )
+    })
+
+    const frame = container.querySelector('iframe') as HTMLIFrameElement
+
+    act(() => sendFromFrame(frame, { type: 'ready' }))
+    expect(line()).toBe('registration.form.checking')
+
+    act(() => sendFromFrame(frame, { type: 'interactive' }))
+    expect(line()).toBe('registration.form.security_check')
+
+    act(() => sendFromFrame(frame, { type: 'settled' }))
+    expect(line()).toBe('registration.form.checking')
+
+    act(() => sendFromFrame(frame, { type: 'token', token: 'tok-1' }))
+    expect(line()).toBe('')
+
     await act(async () => root.unmount())
   })
 })

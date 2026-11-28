@@ -17,8 +17,9 @@
 import { act, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Link, useLocation, useSearchParams } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createQueryHistory } from '@/lib/atlas-history'
 import AtlasRouter from '@/router'
 
 /** jsdom's own origin — the assertions below are about SHAPE, not about a particular host. */
@@ -280,5 +281,75 @@ describe('the path router, against the real react-router', () => {
     renderPath(<Probe />, '/fallback', '/map')
 
     expect(read('path')).toBe('/')
+  })
+})
+
+/** jsdom traverses history in a task of its own, as a browser does. */
+const popped = () =>
+  new Promise((resolve) => window.addEventListener('popstate', resolve, { once: true }))
+
+describe("the history's own mechanics, on jsdom's session history", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('never writes an identical URL on a replace, and still tells the tree', () => {
+    visit(`${ORIGIN}/classes?atlas=/gb`)
+
+    const history = createQueryHistory({ initialPath: '/fallback' })
+    const replaceState = vi.spyOn(window.history, 'replaceState')
+    const listener = vi.fn()
+
+    history.listen(listener)
+    history.replace('/gb')
+
+    expect(replaceState).not.toHaveBeenCalled()
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the tree in step with the route when the document refuses the write', () => {
+    const history = createQueryHistory({ initialPath: '/fallback' })
+    const listener = vi.fn()
+
+    vi.spyOn(window.history, 'pushState').mockImplementation(() => {
+      throw new DOMException('refused', 'SecurityError')
+    })
+    history.listen(listener)
+
+    expect(() => history.push('/gb')).not.toThrow()
+    expect(history.location.pathname).toBe('/gb')
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('pops back to the stored entry, then to the boot route on one that predates the widget', async () => {
+    const history = createQueryHistory({ initialPath: '/fallback' })
+    const unlisten = history.listen(() => {})
+
+    history.push('/gb')
+
+    const gbKey = history.location.key
+
+    history.push('/gb/london')
+    history.go(-1)
+    await popped()
+
+    expect(history.action).toBe('POP')
+    expect(history.location).toMatchObject({ pathname: '/gb', key: gbKey })
+
+    history.go(-1)
+    await popped()
+
+    expect(history.location.pathname).toBe('/fallback')
+    unlisten()
+  })
+
+  it('stops listening on unsubscribe', () => {
+    const history = createQueryHistory({ initialPath: '/fallback' })
+    const listener = vi.fn()
+
+    history.listen(listener)()
+    history.push('/gb')
+
+    expect(listener).not.toHaveBeenCalled()
   })
 })

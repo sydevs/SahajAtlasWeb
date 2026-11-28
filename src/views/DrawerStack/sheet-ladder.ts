@@ -55,7 +55,11 @@ const SHEET_OPENING: Record<StackEntry['kind'], SheetOpening> = {
 export const sheetOpening = (kind: StackEntry['kind'] | undefined): SheetOpening =>
   kind === undefined ? 'home' : SHEET_OPENING[kind]
 
-type Stop = number | string | null
+/**
+ * The sheet's logical stop: a ladder rung, the `FIT_SNAP` token, or the literal px of a key-facts
+ * stop a visitor dragged to (`heldFoldPx`). `null` only before vaul has a ladder.
+ */
+export type Stop = number | string | null
 
 export type Ladder = {
   points: Array<number | string>

@@ -111,6 +111,19 @@ describe('a host replacing the element', () => {
     expect(atlasAuth.apiKey).toBe(OTHER_KEY)
   })
 
+  // The wiring half of the machine's refusal: the element returns before `super`, so React never
+  // mounts into it, and the live owner keeps the page.
+  it('refuses a second element while the first still stands', () => {
+    load(KEY)
+
+    const first = connect()
+    const second = connect()
+
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('only one'))
+    expect(second.shadowRoot?.textContent).toBe('')
+    expect(first.shadowRoot?.textContent).toContain('the app')
+  })
+
   it('still releases once nothing comes back inside the grace window', () => {
     load(KEY)
 

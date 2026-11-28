@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react'
+import type { LocatePhase } from '@/lib/locate-machine'
 
 import { createContext, useContext, useState } from 'react'
+import { createActor, fromCallback, waitFor } from 'xstate'
 
+import { useActorSelector } from '@/hooks/use-actor-selector'
 import { LOCATE_POSITION_OPTIONS } from '@/lib/geolocation'
+import { locateMachine } from '@/lib/locate-machine'
 
 /** How a position request is answered. */
 export type PositionAnswer = {
@@ -17,17 +21,11 @@ export type PositionSource = (answer: PositionAnswer) => void
  * The visitor's position, for every control that asks: the map's "find my location" and the
  * filters' Near me. While the map is mounted its GeolocateControl is the source, so every
  * request draws the blue dot; without a map the browser is asked directly.
+ *
+ * The request's phase is shared (`lib/locate-machine.ts`), so every control shows the same
+ * one; each control still ACTS only on the requests it made.
  */
-export type Locator = {
-  /**
-   * One request at a time: an ask while one is out shares its answer, so two controls never
-   * start two permission prompts. Each control still acts only on the requests it made.
-   * Rejects on refusal, timeout, or a page with no geolocation.
-   */
-  request: () => Promise<GeolocationPosition>
-  /** The map registers its control while mounted, and `null` on the way out. */
-  setSource: (source: PositionSource | null) => void
-}
+export type Locator = ReturnType<typeof createLocator>
 
 const devicePosition: PositionSource = ({ resolve, reject }) => {
   if (!navigator.geolocation) return reject()
@@ -35,45 +33,56 @@ const devicePosition: PositionSource = ({ resolve, reject }) => {
   navigator.geolocation.getCurrentPosition(resolve, () => reject(), LOCATE_POSITION_OPTIONS)
 }
 
-/**
- * A backstop past the request's own timeout. Mapbox answers nothing once its control has left
- * the map, and a request that never settled would leave every control waiting for good.
- */
-const SETTLE_MS = (LOCATE_POSITION_OPTIONS.timeout ?? 30_000) + 5_000
-
-export function createLocator(): Locator {
+export function createLocator() {
   let source: PositionSource | null = null
-  let pending: Promise<GeolocationPosition> | null = null
+
+  const actor = createActor(
+    locateMachine.provide({
+      actors: {
+        ask: fromCallback(({ sendBack }) => {
+          ;(source ?? devicePosition)({
+            resolve: (position) => sendBack({ type: 'answer', position }),
+            reject: () => sendBack({ type: 'refuse' }),
+          })
+        }),
+      },
+    }),
+  ).start()
 
   return {
+    actor,
+    /**
+     * One request at a time: an ask while one is out shares its answer, so two controls never
+     * start two permission prompts. Rejects on refusal, timeout, or a page with no geolocation.
+     */
     request() {
-      pending ??= new Promise<GeolocationPosition>((resolve, reject) => {
-        const timer = setTimeout(reject, SETTLE_MS)
+      // The machine ignores `request` while one is out, so a second ask waits on the first.
+      actor.send({ type: 'request' })
 
-        ;(source ?? devicePosition)({
-          resolve: (position) => {
-            clearTimeout(timer)
-            resolve(position)
-          },
-          reject: () => {
-            clearTimeout(timer)
-            reject()
-          },
-        })
-      }).finally(() => {
-        pending = null
-      })
-
-      return pending
+      return waitFor(actor, (snapshot) => !snapshot.matches('locating')).then((snapshot) =>
+        snapshot.matches('found') && snapshot.context.position
+          ? snapshot.context.position
+          : Promise.reject(snapshot.context.error),
+      )
     },
-    setSource(next) {
+    /** A fix nobody asked for — Mapbox answering after the request had failed. */
+    fix(position: GeolocationPosition) {
+      actor.send({ type: 'fix', position })
+    },
+    /** The map registers its control while mounted, and `null` on the way out. */
+    setSource(next: PositionSource | null) {
       source = next
     },
+    getPhase: () => actor.getSnapshot().value,
+    /** The id of the request now out, or of the last one (`LocateContext.requestId`). */
+    getRequestId: () => actor.getSnapshot().context.requestId,
   }
 }
 
-// Outside a provider (a story, a spec), a locator of its own.
-const LocatorContext = createContext<Locator>(createLocator())
+const LocatorContext = createContext<Locator | null>(null)
+
+// Outside a provider (a story, a spec), one locator of their own, made on first use.
+let fallback: Locator | null = null
 
 /**
  * One locator per interface, so the map and the filters beside it share it, and it goes when
@@ -85,4 +94,14 @@ export function LocatorProvider({ children }: { children: ReactNode }) {
   return <LocatorContext.Provider value={locator}>{children}</LocatorContext.Provider>
 }
 
-export const useLocator = () => useContext(LocatorContext)
+export const useLocator = (): Locator =>
+  useContext(LocatorContext) ?? (fallback ??= createLocator())
+
+/** The shared request's phase, and which request it belongs to. */
+export function useLocateState(): { phase: LocatePhase; requestId: number } {
+  const { actor } = useLocator()
+  const phase = useActorSelector(actor, (snapshot) => snapshot.value, 'idle')
+  const requestId = useActorSelector(actor, (snapshot) => snapshot.context.requestId, 0)
+
+  return { phase, requestId }
+}

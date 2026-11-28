@@ -612,12 +612,11 @@ export function Mapbox({
             bottom right: `docs/rules/mapbox.md`, "The wordmark and the attribution" (#330). */}
         <MapControls
           filterMenus={filterMenus}
-          locate={locate.state}
           locateRef={locate.buttonRef}
           onLocate={locate.locate}
         />
       </ReactMapGL>
-      <Modal open={locate.failed} onOpenChange={locate.setFailed}>
+      <Modal open={locate.dialogOpen} onOpenChange={locate.setDialogOpen}>
         <ModalContent
           closeLabel={t('common.chrome.close')}
           description={t('common.map.location_failed')}

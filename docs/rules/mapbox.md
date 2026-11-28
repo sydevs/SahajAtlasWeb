@@ -391,7 +391,9 @@ lays out its own children:
   and the `onError` dialog are unchanged. While the map is mounted, `useLocate` registers that
   control as the locator's source (`hooks/use-locator.tsx`, one per `FullInterface`), so the
   filters' Near me asks through it too and draws the same dot. One request is out at a time, a
-  second ask shares it, and each control acts only on its own. ⚠ Mapbox answers nothing once its
+  second ask shares it, and its phase is one XState machine (`lib/locate-machine.ts`) both controls
+  read, so a Near me fix lights find-me too; each control still acts only on its own presses, and Near me
+  raises its failure alert only for its own. ⚠ Mapbox answers nothing once its
   control has left the map, so unmounting rejects the request it was answering. A permission denied before the map loaded used to
   leave Mapbox's button disabled and silent — `trigger()` asks anyway, so that case reaches the
   dialog too.

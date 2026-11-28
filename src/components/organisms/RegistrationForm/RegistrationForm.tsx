@@ -324,22 +324,12 @@ export function RegistrationForm({
   const {
     challengeRef,
     token,
+    take: takeToken,
     status: challengeStatus,
+    needsClick,
     reset: resetChallenge,
     retry: retryChallenge,
   } = useTurnstile()
-  // The frame says when the check has passed, never that it wants a tick. A wait this long is
-  // taken to mean the visitor may have something to do, and the line under Register says so.
-  const [checkIsSlow, setCheckIsSlow] = useState(false)
-
-  useEffect(() => {
-    setCheckIsSlow(false)
-    if (token) return
-
-    const timer = window.setTimeout(() => setCheckIsSlow(true), CHECK_PATIENCE_MS)
-
-    return () => window.clearTimeout(timer)
-  }, [token])
 
   // A refusal the visitor can fix in one field lands ON that field, the way a
   // schema error does: the sentence under it, `aria-invalid`, and focus moved
@@ -452,7 +442,7 @@ export function RegistrationForm({
           : t(
               challengeStatus === 'blocked'
                 ? 'registration.form.register_when_check_loads'
-                : checkIsSlow
+                : needsClick
                   ? 'registration.form.security_check'
                   : 'registration.form.checking',
             )}
@@ -466,11 +456,13 @@ export function RegistrationForm({
       className="mx-auto flex w-full max-w-md flex-col gap-4"
       id={formId}
       onSubmit={handleSubmit((data) => {
-        // `token` is also what gates the submit button, so this check is an
-        // extra safeguard for the Enter-key path. It is also what makes
-        // `captcha` a plain string, rather than a nullable one, all the way
-        // down to the header.
-        if (!isPreview && token) mutation.mutate({ registration: data, captcha: token })
+        // `token` gates the submit button; this covers the Enter-key path, and two submits that
+        // clear the async validation together, which `takeToken` hands one token between them.
+        if (isPreview) return
+
+        const captcha = takeToken()
+
+        if (captcha) mutation.mutate({ registration: data, captcha })
       })}
     >
       {submitted ? (
@@ -572,9 +564,6 @@ export function RegistrationForm({
     </form>
   )
 }
-
-/** How long the check may stay unsolved before the line under Register asks for the tick. */
-const CHECK_PATIENCE_MS = 4000
 
 /** The confirmation's way to pass the class on: Share, with the same networks as the class's own Share action, then Copy link. */
 function InviteFriend({ children }: { children: ReactNode }) {

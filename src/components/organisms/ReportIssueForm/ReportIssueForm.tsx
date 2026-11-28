@@ -311,7 +311,7 @@ export function ReportIssueForm({
   initialValues,
 }: ReportIssueFormProps) {
   const { t } = useTranslation()
-  const { challengeRef, token, status, reset: resetCaptcha } = useTurnstile()
+  const { challengeRef, token, take: takeToken, status, reset: resetCaptcha } = useTurnstile()
 
   // All three are memoized because this form validates on every keystroke (`mode: 'onChange'`
   // below), and react-hook-form reads the defaults once, at mount. Rebuilding a zod schema and
@@ -414,16 +414,17 @@ export function ReportIssueForm({
     <form
       className="flex min-h-0 flex-1 flex-col"
       onSubmit={handleSubmit((values) => {
-        // No token means the challenge is not solved, or it was just reset
-        // after a failed send. The control is disabled in that state. This
-        // check is an extra safeguard.
-        if (!token || mutation.isPending) return
+        // No token means the challenge is not solved, or it was just reset after a failed send,
+        // or a submit in the same tick already took it. The control is disabled in the first two.
+        const turnstileToken = takeToken()
+
+        if (!turnstileToken) return
 
         mutation.mutate({
           form: form.id,
           answers: reportAnswers(fields, values),
           senderEmail: reportSenderEmail(fields, values),
-          turnstileToken: token,
+          turnstileToken,
           context,
         })
       })}

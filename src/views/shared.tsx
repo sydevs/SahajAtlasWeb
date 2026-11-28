@@ -534,15 +534,12 @@ function LocationLine({ near, onRefused }: { near: SearchNear; onRefused: () => 
   const shown = locationLineHere(near, countryCode)
   // The filters' Near me, here as a line: a map-less embed promises no Mapbox calls, so there it
   // searches the coordinates unnamed.
+  // A refusal takes the line away, so the cursor goes to the search.
   const { status, locate } = useNearMe({
     naming: hasMap,
     onPlace: (place) => navigate(placeSearchPath(searchParams, place)),
+    onRefused,
   })
-
-  // A refusal takes the line away, so the cursor goes to the search.
-  useEffect(() => {
-    if (status === 'failed') onRefused()
-  }, [status, onRefused])
 
   const activeSearch = hasActivePlaceSearch(searchParams)
   const offer =

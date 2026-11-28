@@ -12,6 +12,11 @@ paths:
   - 'src/config/a11y/**'
   - 'src/config/locale.ts'
   - 'src/hooks/use-available-locales.ts'
+  - 'src/lib/ownership.ts'
+  - 'src/lib/locate-machine.ts'
+  - 'src/lib/challenge-machine.ts'
+  - 'src/views/DrawerStack/sheet-machine.ts'
+  - 'src/hooks/use-actor-selector.ts'
 ---
 
 # i18n & State
@@ -35,6 +40,7 @@ paths:
 
   The rename that established this is only worth keeping if it holds. A new symbol
   that resolves, narrows, stores or fetches a tag says `locale`, never `language`.
+
 - **Screen-reader strings are this repo's** (`src/config/a11y/`). A string that is only ever
   spoken lives in `<locale>.json`, mounted at `<group>.a11y.<key>`, machine-translated by whoever
   adds it; translators never see it. English is mounted into the boot resource
@@ -93,7 +99,7 @@ paths:
   (`src/config/api/client.ts`). The translations read names its own locale, and it is
   the one request whose locale is deliberately not the active language.
 - **Detection persists nothing** (`i18nDetectionOptions`): `order: ['querystring',
-  'hostHtmlLang', 'navigator']`, `caches: []`. The library's defaults would read
+'hostHtmlLang', 'navigator']`, `caches: []`. The library's defaults would read
   cookies and localStorage, and write `i18nextLng` onto the HOST page's own origin —
   undeclared storage on a domain that is not ours (#95). Read the active locale with
   `useLocale()`, never `i18n.language` directly. `?locale=cimode` is refused
@@ -148,7 +154,7 @@ Ten stores, each the single source of truth for its own slice:
   remounts views, and opening an event then coming back would otherwise drop the
   reader at the top of a list they had paged deep into. Read and advanced through
   `useReveal`, keyed by **`revealKey`** (built from the events query key plus the
-  sort, which that key omits) — reading under a different key simply *is* the
+  sort, which that key omits) — reading under a different key simply _is_ the
   first page, so a new search, a filter edit, or a re-sort resets the reveal **by
   construction**. The reveal advances inside a `useTransition` (`aria-busy`, not
   `disable`, since a disabled control unfocuses under keyboard use).
@@ -234,7 +240,7 @@ source of truth, so all three stay linkable and shareable:
   lights the filter badge.
 - **The searched location** — `?q` / `?center` / `?bbox`, plus **`?cc`** (the
   searched country's ISO code). Read with a local parse helper, not a codec:
-  unlike filters or sort, these are *replaced* by a new search, not merged —
+  unlike filters or sort, these are _replaced_ by a new search, not merged —
   `preserveSearchState` re-encodes from an **empty** base, so a previous country
   can never leak into the next search. The region filter (`?region=`) is a Where
   too and goes with the old place: a new place search keeps the other filters,
@@ -250,7 +256,7 @@ source of truth, so all three stay linkable and shareable:
   path does not, so there is one claimed name and one encoder in both modes.
 
 - **Navigation** — the drawer stack is a pure function of the URL
-  (`resolveStack`) — of the *router's* location, which on a host page whose
+  (`resolveStack`) — of the _router's_ location, which on a host page whose
   anchor the widget declined to take is a `MemoryRouter`'s location rather than
   the address bar's (`mountDecision`). Nothing below the router can tell, which
   is the point. Back, swipe and Esc are one `dismiss`, history-aware: a
@@ -297,6 +303,43 @@ source of truth, so all three stay linkable and shareable:
 Camera control always goes through the `MapController` seam
 (`src/hooks/use-map-controller.tsx`) — never a store, never the map directly.
 
+## Lifecycles are explicit state machines
+
+A store holds a value. A lifecycle — states that may only follow one another, a timer that
+moves between them, an intent the next event spends — is an **explicit state machine** instead,
+so the legal states are one type and a transition table can be tested without React. Four
+exist, and **which graph a machine rides in decides how it is written**:
+
+| Machine                              | Owns                                                               | Written as                                     |
+| ------------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------- |
+| `lib/ownership.ts`                   | which `<sahaj-atlas>` owns the page, and the teardown grace window | a plain table — eager, through `Widget.tsx`    |
+| `lib/challenge-machine.ts`           | one Turnstile frame's token, click prompt and blocked state        | a plain table — eager, through the report form |
+| `lib/locate-machine.ts`              | the one position request the map's find-me and Near me share       | XState 5 — lazy, behind the map interface      |
+| `views/DrawerStack/sheet-machine.ts` | the phone sheet's stop and the intents a dismissal leaves          | XState 5 — lazy, with `DrawerStack`            |
+
+- ⚠ **xstate is in NEITHER eager graph, and must stay out.** `Widget.standalone.test.ts` holds
+  the eager packages by name and fails if it returns; it is about 12 KiB gzipped on every host
+  page, which is most of `scripts/check-bundle-size.mjs`'s whole headroom. So a lifecycle an
+  eager module reaches is a hand-rolled table: a `Record<state, Partial<Record<event, state>>>`,
+  one step function over it, and a `getSnapshot`/`subscribe` pair where React reads it. Behind
+  the lazy seam the library is already paid for, and regions, invoked actors and delayed
+  transitions are worth having.
+- **The machine module is pure either way**: no React, no DOM. Side effects are named and
+  supplied by the caller — `.provide()` for an XState machine, a constructor argument for a
+  table — and each module has a node-lane table spec over every cell.
+- **React reads either kind through `useActorSelector`** (`hooks/use-actor-selector.ts`), one
+  primitive or snapshot-held value at a time. That is why the hook takes a `getSnapshot` +
+  `subscribe` shape rather than an XState actor type, and why a table's store supplies the same
+  two methods. Do not add `@xstate/react`: a second dependency for what that hook already does,
+  and it would only serve half the machines.
+- ⚠ **A throwing effect is unrecoverable in both shapes, for different reasons.** A throwing
+  XState action stops the actor, and a stopped actor ignores every later event. A table carries
+  its effects out inline, so a throw leaves the state half-applied and propagates into whatever
+  called `send` — a custom-element lifecycle callback, in `ownership`'s case. Supply only
+  effects that cannot throw.
+- ⚠ **Stop an actor only when it owns a timer or a child**, and from the same effect that
+  created it, so StrictMode's remount gets a fresh one.
+
 ## Error boundaries (issue #89)
 
 **Where a boundary sits decides how far a failure propagates. `ERROR_POLICY`
@@ -321,7 +364,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
   `DrawerErrorBody` — never the chrome-ful pair, which would draw a second
   header.
 - **Body-level boundaries need `resetKeys`.** The drawer boundary keys on the
-  *pathname*, but a re-search or a filter change only moves the query string —
+  _pathname_, but a re-search or a filter change only moves the query string —
   without a `resetKeys` entry, one failure pins its error over every later
   attempt. Search excludes `?q` (only a label; typing never writes it — the URL
   changes when a place is picked).
@@ -377,7 +420,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
   the page's own global error events, and on a host page those belong to someone
   else.
 - **Above all of it is `RootBoundary`** (`App.tsx`, #92) — static, untranslated,
-  inline-styled. It catches failures in what the app is *built on*
+  inline-styled. It catches failures in what the app is _built on_
   (`Providers`, `BrandTheme`, the query client, the i18n boot), so it reads
   none of them: a rung that has to consult the thing that just broke is not a
   rung. It mounts twice — in `App` (both entries) and at the widget element's
@@ -395,6 +438,6 @@ two axes separate — an inner fallback must never re-throw to escalate.
 - Keep stores small and slice-focused. Add a new store rather than overloading
   an existing one.
 - Co-locate the `State` type, the `Action` type, and the `create<State &
-  Action>()` call, as the existing stores do.
+Action>()` call, as the existing stores do.
 - Read with selectors (`useViewState(s => s.zoom)` or `useShallow`) rather than
   pulling the whole store object into a component.

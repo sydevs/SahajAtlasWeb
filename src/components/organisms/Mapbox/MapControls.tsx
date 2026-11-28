@@ -1,5 +1,4 @@
 import type { AttributionControl, IControl, Map as MapboxMap } from 'mapbox-gl'
-import type { LocateState } from './use-locate'
 
 import { memo, type ReactNode, type Ref, useEffect } from 'react'
 import { createPortal } from 'react-dom'
@@ -14,6 +13,7 @@ import { SettingsMenu } from '@/components/molecules/SettingsMenu'
 import { useIsShortViewport } from '@/config/responsive'
 import { useMapControls } from '@/config/store'
 import { useFilterButtonsShown } from '@/hooks/use-filter-buttons'
+import { useLocateState } from '@/hooks/use-locator'
 
 /**
  * The map's controls as ONE Mapbox control, so Mapbox's `position` prop places them all and no
@@ -62,7 +62,6 @@ class ControlColumn implements IControl {
 }
 
 type MapControlsProps = {
-  locate: LocateState
   onLocate: () => void
   /** The find-me button, so the location dialog can hand focus back to it. */
   locateRef: Ref<HTMLButtonElement>
@@ -73,12 +72,13 @@ type MapControlsProps = {
 // Memoised: the map re-renders on every hover and camera write, and the settings menu under this
 // is the heaviest thing it would otherwise redraw each time.
 export const MapControls = memo(function MapControls({
-  locate,
   onLocate,
   locateRef,
   filterMenus,
 }: MapControlsProps) {
   const { t } = useTranslation()
+  // The shared request's phase, from either control: a Near me fix lights this button too.
+  const { phase: locate } = useLocateState()
   const hidden = useMapControls((s) => s.hidden)
   const menusShown = useFilterButtonsShown()
   // A phone on its side is too short for a column, so the buttons run as a row there, clear of
@@ -107,13 +107,13 @@ export const MapControls = memo(function MapControls({
               <Button
                 ref={locateRef}
                 isIconOnly
-                aria-busy={locate === 'waiting' || undefined}
+                aria-busy={locate === 'locating' || undefined}
                 aria-label={locateLabel}
                 radius="full"
                 variant="floating"
                 onClick={onLocate}
               >
-                {locate === 'waiting' ? (
+                {locate === 'locating' ? (
                   <Spinner decorative color="current" size="sm" />
                 ) : (
                   <LocateFixed

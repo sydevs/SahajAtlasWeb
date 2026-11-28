@@ -294,6 +294,39 @@ describe('announceEmbed', () => {
   })
 
   /**
+   * A release during the idle wait — a different-key replacement releases at once — must not let
+   * the old owner's report go out after its key was nulled, and must leave the next mount free to
+   * file, since nothing was.
+   */
+  it('cancels a report released while it waits, and lets the next mount file', async () => {
+    let idle: () => void = () => {}
+
+    vi.stubGlobal('requestIdleCallback', (callback: () => void) => {
+      idle = callback
+
+      return 0
+    })
+    sdk.request.mockResolvedValue(jsonResponse({ ok: true, mount: 'x', stored: true }))
+
+    const first = announceEmbed({ routing: 'query', observed })
+
+    releaseAnnouncement()
+    idle()
+    await first
+
+    expect(sdk.request).not.toHaveBeenCalled()
+
+    vi.stubGlobal('requestIdleCallback', (callback: () => void) => {
+      callback()
+
+      return 0
+    })
+    await announceEmbed({ routing: 'query', observed })
+
+    expect(sdk.request).toHaveBeenCalledTimes(1)
+  })
+
+  /**
    * `void announceEmbed(...)` is how the widget calls this, so anything that rejects is an
    * unhandled rejection in a page we do not own. The wait is the easiest half to leave outside the
    * try, and a host that patched `requestIdleCallback` — consent managers and perf shims do — is
