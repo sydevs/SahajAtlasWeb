@@ -82,7 +82,6 @@ function CalendarHeader({
 }: {
   view: CalendarViewName
   week: CalendarWindow
-  /** The Month fills the widget and covers the map, so the header carries the filter buttons. */
   fullWidth: boolean
 }) {
   const { t } = useTranslation()

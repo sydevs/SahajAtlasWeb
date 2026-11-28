@@ -7,10 +7,10 @@ import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 
 // Node-only SSR, on the English snapshot the widget boots from.
 
-const labelsOf = (filters: Partial<EventFilters>) => {
+const labelsOf = (filters: Partial<EventFilters>, width?: 'long' | 'short') => {
   let labels: ReturnType<typeof useFilterLabels> | undefined
   const Probe = () => {
-    labels = useFilterLabels({ ...DEFAULT_FILTERS, ...filters })
+    labels = useFilterLabels({ ...DEFAULT_FILTERS, ...filters }, width)
 
     return null
   }
@@ -39,6 +39,10 @@ describe('useFilterLabels', () => {
       languages: 'English, French',
       dates: 'Date',
     })
+  })
+
+  it('names the days in full where the sentence is prose, not a chip', () => {
+    expect(labelsOf({ daysOfWeek: [1, 7] }, 'long').days).toBe('Monday, Sunday')
   })
 
   it('leaves every open question empty', () => {

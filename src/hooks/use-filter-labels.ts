@@ -1,19 +1,27 @@
 import type { TranslationKey } from '@/types/i18next'
 
-import { useMemo } from 'react'
-
 import { useLocale } from '@/hooks/use-locale'
 import { type EventFilters, type FilterRecovery, isDateRestricted } from '@/lib/shape'
 import { weekdayNames } from '@/lib/time'
 
 /**
- * Each answered question in words, as the filter buttons and the removal under an empty list
- * name it ("Tue, Wed", "Evening", "English, French"). An open question is ''. The filter tags
- * take it too, except for times and dates, which they spell out in full (hours, the range).
+ * Each answered question in words, as the filter buttons and tags name it ("Tue, Wed",
+ * "Evening", "English, French"). An open question is ''. The tags take it except for times and
+ * dates, which they spell out in full (hours, the range).
+ *
+ * `width` is the day names': short where space is tight, `long` where the answer sits in a
+ * sentence, as the removal under an empty list does ("Remove Monday", `useFilterRecovery`).
+ *
+ * The full form's own fields (`SearchFilters/filter-blocks.tsx`) stay out, though
+ * `LanguageChoices` names languages identically today: a field shows its value, where these
+ * abbreviate to fit.
  */
-export function useFilterLabels(filters: EventFilters): Record<FilterRecovery['group'], string> {
+export function useFilterLabels(
+  filters: EventFilters,
+  width: 'long' | 'short' = 'short',
+): Record<FilterRecovery['group'], string> {
   const { t, formatLocale, languageLabel } = useLocale()
-  const weekdays = useMemo(() => weekdayNames(formatLocale, 'short'), [formatLocale])
+  const weekdays = weekdayNames(formatLocale, width)
 
   return {
     format: filters.format === 'any' ? '' : t(`filters.format.${filters.format}`),
