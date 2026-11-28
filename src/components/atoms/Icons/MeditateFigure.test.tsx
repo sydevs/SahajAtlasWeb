@@ -13,15 +13,11 @@ describe('MeditateFigure', () => {
     expect(renderToStaticMarkup(<MeditateFigure size={18} />)).toContain('height="18"')
   })
 
-  it('takes the surrounding text colour, as a lucide glyph does', () => {
+  it('takes the surrounding text colour, or a class on it, as a lucide glyph does', () => {
     expect(html).not.toMatch(/<path[^>]*\sclass=/)
-  })
-
-  it('carries its coral on the path when asked, so no call site repeats it', () => {
-    expect(renderToStaticMarkup(<MeditateFigure accent />)).toMatch(
-      /<path[^>]*\sclass="text-contrast-10 dark:text-contrast"/,
+    expect(renderToStaticMarkup(<MeditateFigure className="text-contrast-10" />)).toMatch(
+      /<svg[^>]*\sclass="text-contrast-10"/,
     )
-    expect(html).not.toMatch(/<svg[^>]*\sclass=/)
   })
 
   it('carries no id, so two copies on one page cannot collide', () => {

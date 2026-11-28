@@ -133,7 +133,9 @@ function CalendarHeader({
 
   return (
     <>
-      <div className="flex w-full items-center justify-between gap-2">
+      {/* Inline beside a map this row empties: Back goes above the page heading and the filter
+          buttons above the map, so it takes no room then. */}
+      <div className="flex w-full items-center justify-between gap-2 [&:not(:has(button,a))]:hidden">
         <BackButton />
         {/* Full width, the calendar covers the map, so its header carries the filter buttons. */}
         {fullWidth ? (

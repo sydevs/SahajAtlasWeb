@@ -6,7 +6,7 @@ import { Check, Ellipsis, Link, Share } from 'lucide-react'
 import { CopyFailedCaption } from './CopyFailed'
 import { CopyLinkTarget } from './CopyLinkTarget'
 import { PlatformButton, ShareTargets } from './platform-buttons'
-import { ROW_TARGET_CLASS } from './target'
+import { DISC, ROW_TARGET_CLASS } from './target'
 
 import { Button, type ButtonProps } from '@/components/atoms/Button'
 import { useCopy } from '@/hooks/use-copy'
@@ -148,7 +148,7 @@ export function ShareRow({ label, url, country }: ShareContentProps) {
           type="button"
           {...referenceProps({ onClick: open })}
         >
-          <span className="flex size-12 items-center justify-center rounded-full bg-gray-3 text-gray-12">
+          <span className={DISC({ color: 'neutral' })}>
             <Ellipsis aria-hidden size={23} />
           </span>
           <span className="max-w-full truncate">{t('share.more')}</span>

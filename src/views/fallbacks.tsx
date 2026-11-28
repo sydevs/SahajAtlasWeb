@@ -28,7 +28,8 @@ import {
   skeletonShape,
 } from '@/components/organisms/Skeleton/Skeleton'
 import { BackButton, NavHeader, NavRow } from '@/views/nav'
-import { InlineAbove, useInlineAbove, useInlineAside } from '@/hooks/use-inline-aside'
+import { useFilterButtonsShown } from '@/hooks/use-filter-buttons'
+import { useInlineAbove, useInlineAside } from '@/hooks/use-inline-aside'
 import {
   CalendarButton,
   DrawerTitle,
@@ -124,6 +125,7 @@ export function DrawerChrome({
   const inline = useDrawerMode() === 'inline'
   const rootHeader = useRootHeader()
   const above = useInlineAbove() !== null
+  const menusShown = useFilterButtonsShown()
   const location = useLocation()
   const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
 
@@ -212,9 +214,7 @@ export function DrawerChrome({
   if (loading && entry.kind === 'event') {
     // Inline, as EventView: the way back above the page heading, and no header here.
     return above ? (
-      <InlineAbove>
-        <NavRow />
-      </InlineAbove>
+      <NavRow />
     ) : (
       <EventHeader nav={<NavRow />} title={title} titleLines={inline ? 1 : 2} />
     )
@@ -224,7 +224,8 @@ export function DrawerChrome({
   if (loading && entry.kind === 'calendar') {
     return (
       <DrawerHeader className={CALENDAR_HEADER}>
-        <SkeletonCalendarControls />
+        {above && <BackButton />}
+        <SkeletonCalendarControls backRow={!(above && menusShown)} />
       </DrawerHeader>
     )
   }
@@ -234,19 +235,18 @@ export function DrawerChrome({
   // place still loading draws its title's line instead, outside any heading.
   const header = (
     <NavHeader
+      // Both still work — they navigate rather than read — and are scoped to the region whose
+      // page failed, which is exactly where a viewer wanted to be. Not for a place that doesn't
+      // exist: there is nothing to scope them to. None at all leaves the inline row out.
       actions={
-        <>
-          {/* Both still work — they navigate rather than read — and are scoped to the region
-              whose page failed, which is exactly where a viewer wanted to be. Not for a place
-              that doesn't exist: there is nothing to scope them to. */}
-          {entry.kind === 'region' && !notFound && (
-            <>
-              <CalendarButton regionSlug={entry.slug} />
-              <FilterButton iconOnly />
-            </>
-          )}
-          {entry.kind === 'calendar' && <FilterButton iconOnly />}
-        </>
+        entry.kind === 'region' && !notFound ? (
+          <>
+            <CalendarButton regionSlug={entry.slug} />
+            <FilterButton iconOnly />
+          </>
+        ) : entry.kind === 'calendar' ? (
+          <FilterButton iconOnly />
+        ) : undefined
       }
       close={entry.kind === 'filters'}
       // A region is a place unless the tree says it is a venue, whose page heading names its

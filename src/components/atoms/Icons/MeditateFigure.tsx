@@ -9,11 +9,10 @@ const PATH =
 export type MeditateFigureProps = Omit<SVGProps<SVGSVGElement>, 'children'> & {
   /** Edge length in px, as on a lucide glyph. */
   size?: number
-  /** The mark's own coral, as the brand draws it, instead of the surrounding text colour. */
-  accent?: boolean
 }
 
-export function MeditateFigure({ size = 24, accent = false, ...props }: MeditateFigureProps) {
+/** Coloured like a lucide glyph: the text colour where it sits, or a `text-*` class on it. */
+export function MeditateFigure({ size = 24, ...props }: MeditateFigureProps) {
   return (
     <svg
       aria-hidden="true"
@@ -28,10 +27,7 @@ export function MeditateFigure({ size = 24, accent = false, ...props }: Meditate
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      {/* The coral lives on the path, not at the call site: `currentColor` resolves against this
-          element's own colour, and no caller's spread can reach it. Without it, the figure takes
-          the text colour around it, as a lucide glyph does. */}
-      <path className={accent ? 'text-contrast-10 dark:text-contrast' : undefined} d={PATH} />
+      <path d={PATH} />
     </svg>
   )
 }

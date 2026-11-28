@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import { Check, Link } from 'lucide-react'
 
 import { CopyFailedCaption } from './CopyFailed'
-import { ROW_TARGET_CLASS, TARGET_CLASS } from './target'
+import { DISC, ROW_TARGET_CLASS, TARGET_CLASS } from './target'
 
 import { useCopy } from '@/hooks/use-copy'
 
@@ -27,12 +27,16 @@ export function CopyLinkTarget({ url, row = false }: { url: string; row?: boolea
         onClick={() => void copy(url, captionRef.current)}
       >
         <span
-          // In the row it leads in the brand's colour, as the page's own way to share.
-          className={clsx(
-            'flex items-center justify-center rounded-full',
-            row ? 'size-12' : 'size-11',
-            copied || row ? 'bg-primary-9 text-primary-foreground' : 'bg-gray-4 text-gray-12',
-          )}
+          // In the row it leads in the brand's colour, as the page's own way to share: the
+          // Button's own primary flat surface, as a 48px disc.
+          className={
+            row
+              ? DISC({ color: 'primary' })
+              : clsx(
+                  'flex size-11 items-center justify-center rounded-full',
+                  copied ? 'bg-primary-9 text-primary-foreground' : 'bg-gray-4 text-gray-12',
+                )
+          }
         >
           {copied ? (
             <Check aria-hidden size={20} strokeWidth={3} />

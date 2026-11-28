@@ -25,7 +25,7 @@ import { NavRow } from '@/views/nav'
 import { useDrawerControl, useFrameEventOnTop } from '@/views/shared'
 import { ErrorPanel } from '@/views/fallbacks'
 import { SkeletonBody } from '@/components/organisms/Skeleton/Skeleton'
-import { InlineAbove, useInlineAbove, useInlineAside } from '@/hooks/use-inline-aside'
+import { useInlineAbove, useInlineAside } from '@/hooks/use-inline-aside'
 
 // EventDetails pulls in DOMPurify and the action-row wiring. This keeps it out of the main
 // chunk, as pages/event.tsx used to, by lazy-loading it here.
@@ -100,13 +100,7 @@ export function EventView({ id, basePath }: { id: number; basePath: string }) {
       {standalone && <EventMetadata event={event} />}
       {/* Inline, the page heading names the class, so its way back sits above that heading and
           the panel draws no header of its own. */}
-      {above ? (
-        <InlineAbove>
-          <NavRow />
-        </InlineAbove>
-      ) : (
-        <EventHeader nav={<NavRow />} title={event.title} />
-      )}
+      {above ? <NavRow /> : <EventHeader nav={<NavRow />} title={event.title} />}
       {/* The body slot's own spacer clears the pinned bar's CONTENT, at the footer's
           published height. Clearing the SCROLL is this body's, and only this body's: focus
           would otherwise park a field behind the bar. It carries the sheet's live top on

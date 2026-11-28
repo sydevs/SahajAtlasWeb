@@ -270,14 +270,15 @@ once. The expanded map is `MapInterface`, the same interface without that boot.
   gap above the map, and the inline Drawer bands drop their top padding when first
   (`drawer-style.ts`), so the first band's top is the map's top however the heading or the
   toolbar wraps. No gap between the columns: the content's own gutter spaces it from the map.
-- **A class's page is headed by the class in its town**: `PlaceHeading` names it on a class and
-  its sign-up (`event.display.title_in_place`),
-  and `EventView` moves its way back above that heading (`InlineAbove`,
-  `hooks/use-inline-aside.tsx`) and draws no header of its own. Beside the map, its facts and
-  description take `EventFacts`' `detailed` treatment: each fact under a small label, and a
-  Cost row (every class is free). Under Register there, `EventShareAndReport` shows the share
-  targets themselves (`ShareRow`, so Share leaves the action row) and "Report incorrect class
-  details", which opens the report form; the page path names the class.
+- **Back sits above the page heading on every inline view**, labelled in full: `BackButton`
+  renders into `InlineAbove` (`hooks/use-inline-aside.tsx`) wherever a view puts it, and
+  `NavRow` keeps only the view's own controls. A class's page is headed by the class in its
+  town (`PlaceHeading`, `event.display.title_in_place`), and `EventView` draws no header of its
+  own. Beside the map, its facts and description take `EventFacts`' `detailed` treatment: each
+  fact under a small label, and a Cost row (every class is free). Under Register there,
+  `EventShareAndReport` shows the share targets themselves (`ShareRow`, so Share leaves the
+  action row) and "Report incorrect class details", which opens the report form; the page path
+  names the class. The inline map's toolbar offers neither filters nor find-me on a class.
 - **Beside the inline map, a class's Register and actions sit under it**, in `InlineColumns`'
   aside: `EventDetails` portals them there through `InlineAside` (`hooks/use-inline-aside.tsx`),
   and the map's square shrinks by the aside's height, so both stay in view while they stick.

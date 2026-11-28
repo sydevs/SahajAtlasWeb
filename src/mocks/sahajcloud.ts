@@ -183,6 +183,8 @@ export const sahajCloud = {
   eventTitles: paginated([...titles].map(([id, title]) => ({ id, title }))),
   /** `GET /api/events/:id`, by id. */
   events: eventDocs,
+  /** `GET /api/forms/:id`, by id: the authored report form, where the config names one. */
+  forms: {} as Record<string, Json>,
   /** `POST /api/user-submissions`, accepted: Payload's create envelope, `201 { doc, message }`. */
   submissionCreated: toJson({
     doc: { id: 1, uuid: '00000000-0000-4000-8000-000000000001', createdAt: STAMP },
@@ -227,6 +229,10 @@ export function answerSahajCloud(
     const id = /^\/events\/(\d+)$/.exec(path)?.[1]
 
     if (id) return fixtures.events[id] ? ok(fixtures.events[id]) : ok(fixtures.notFound, 404)
+
+    const form = /^\/forms\/(\d+)$/.exec(path)?.[1]
+
+    if (form) return fixtures.forms[form] ? ok(fixtures.forms[form]) : ok(fixtures.notFound, 404)
   }
 
   if (method === 'POST') {

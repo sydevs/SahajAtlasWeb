@@ -349,6 +349,8 @@ export function InlineColumns({
             <div ref={setToolbar}>
               <MapControls
                 filterMenus={NO_FILTER_MENUS.has(topKind ?? '') ? undefined : <FilterMenus />}
+                // A class's own page has nothing to look for near the visitor.
+                findMe={!classPage}
                 variant="inline"
               />
             </div>

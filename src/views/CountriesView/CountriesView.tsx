@@ -124,7 +124,7 @@ export function CountriesView() {
               count={onlineCount}
               description={t('online.subtitle')}
               href={onlineSearch}
-              icon={<MeditateFigure accent size={24} />}
+              icon={<MeditateFigure className="text-contrast-10" size={24} />}
               label={t('online.title')}
             />
           </List>

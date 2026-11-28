@@ -9,6 +9,7 @@ import { DrawerHeader } from '@/components/atoms/Drawer'
 import { SkeletonGroup, SkeletonLine } from '@/components/organisms/Skeleton/Skeleton'
 import { regionsQuery } from '@/config/api'
 import { useLocale } from '@/hooks/use-locale'
+import { InlineAbove, useInlineAbove } from '@/hooks/use-inline-aside'
 import { backLabel } from '@/views/nav-names'
 import {
   DrawerTitle,
@@ -31,6 +32,8 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
   const { t, regionNames: countryNames } = useLocale()
   const { backTo, dismiss } = useDrawerControl()
   const queryClient = useQueryClient()
+  // Inline, every view's way back sits in one place, above the page heading, labelled in full.
+  const above = useInlineAbove() !== null
 
   if (!backTo) return null
 
@@ -43,7 +46,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
         ?.find((node) => node.slug === slug)?.name ?? undefined,
   })
 
-  if (iconOnly) {
+  if (iconOnly && !above) {
     return (
       <Button {...HEADER_CONTROL} aria-label={label} className="-ms-2.5" onClick={dismiss}>
         <ChevronLeft className="rtl:-scale-x-100" size={20} />
@@ -51,7 +54,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
     )
   }
 
-  return (
+  const button = (
     // The atom's own `sm` padding, pulled out by it so the chevron lines up with the title. The
     // glyph sits 7.5px inside its 20px box, so the icon is pulled in by about that much, which
     // leaves the same 12px of hover either side of what is drawn.
@@ -66,6 +69,14 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
       <span className="min-w-0 truncate">{label}</span>
     </Button>
   )
+
+  return above ? (
+    <InlineAbove>
+      <div className="flex min-h-8 items-center">{button}</div>
+    </InlineAbove>
+  ) : (
+    button
+  )
 }
 
 /**
@@ -75,6 +86,20 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
  */
 export function NavRow({ children }: { children?: ReactNode }) {
   const { collapsed } = useDrawerControl()
+  const above = useInlineAbove() !== null
+
+  // Inline, Back goes above the page heading (`BackButton`), and the row keeps only the view's
+  // own controls, or nothing at all.
+  if (above) {
+    return (
+      <>
+        <BackButton />
+        {children && (
+          <div className="mb-2 flex min-h-8 items-center justify-end gap-1">{children}</div>
+        )}
+      </>
+    )
+  }
 
   return (
     // The bottom margin keeps Back from reading as part of the title below it. Back has no end

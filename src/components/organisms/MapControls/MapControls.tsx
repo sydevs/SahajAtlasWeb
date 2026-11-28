@@ -22,6 +22,11 @@ export type MapControlsProps = {
    * while `useFilterButtonsShown` holds; inline, whenever given.
    */
   filterMenus?: ReactNode
+  /**
+   * "Find my location" where the filter buttons are not shown. Off on a page with nothing to
+   * look for near the visitor, such as a class's own.
+   */
+  findMe?: boolean
 }
 
 const publishButton = (button: HTMLButtonElement | null) => useFindMe.setState({ button })
@@ -75,6 +80,7 @@ function FindMe({ floating }: { floating: boolean }) {
 export const MapControls = memo(function MapControls({
   variant = 'floating',
   filterMenus,
+  findMe = true,
 }: MapControlsProps) {
   const claimed = useFilterButtonsShown()
   // A phone on its side is too short for a column, so the buttons run as a row there, clear of
@@ -87,7 +93,7 @@ export const MapControls = memo(function MapControls({
     return (
       <div className="flex items-start gap-1">
         <div className="flex min-w-0 flex-1 justify-end">{menus}</div>
-        {!menus && <FindMe floating={false} />}
+        {findMe && !menus && <FindMe floating={false} />}
         <SettingsMenu align="end" className="-me-1.5 pointer-coarse:-me-3" variant="ghost" />
       </div>
     )
@@ -97,7 +103,7 @@ export const MapControls = memo(function MapControls({
     <div className="flex items-start gap-2">
       {menus}
       <div className={short ? 'flex flex-row gap-2' : 'flex flex-col gap-2'}>
-        {!menus && <FindMe floating />}
+        {findMe && !menus && <FindMe floating />}
         <SettingsMenu labelled align="end" />
       </div>
     </div>
