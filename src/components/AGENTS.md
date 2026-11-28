@@ -214,7 +214,7 @@ shipping a narrow embed that quietly behaves like a desktop.
 | Map camera padding (`use-map-controller`) | container (the frame) | Camera padding must agree with whatever picked the panel it pads around. Reads `frameElement()` — `null`, and so the viewport, wherever no frame exists. |
 | Map controls: column vs row (`MapControls`) | viewport (via `useIsShortViewport`) | A phone on its side is too short for a column. The same answer caps the frameless phone sheet's stops (`DrawerStack`), so the row stays above that sheet's top. |
 | Anchored-panel geometry — `lg:top-4`, the content-height cap, `lg:rounded-2xl` (Drawer atom) | viewport (accepted residue) | #169 broke "viewport equals container". A contained map can reach a `lg:` crossing its frame never sees. What survives is cosmetic float, rounding, and a panel as tall as its view. |
-| Which calendar view renders, which options the switch offers, and which one it lights (`CalendarView`, and `DrawerStack` for the drawer's width) | container (via `useIsWideWidget`) | Not a fit question but a **capability** one: Schedule-X refuses its month grid and its week grid below the crossing, and substitutes silently. So this is the one row where the signal decides what a third-party library *can draw*, not how much room to give it — and a viewport read would light a grid a 320px column cannot render (#331). All five seams read one resolver, so they cannot disagree. |
+| Month's layout — day boxes or the dot grid (`MonthView`), and the drawer's width (`DrawerStack`: the Month takes the wide panel, the Week keeps the side panel) | container (via `useIsWideWidget`) | A fit question like the drawer's: a 7-column grid of named boxes needs the wide panel, and a 320px column gets the dot grid. A viewport read would draw boxes in a narrow embed. |
 | Modal box sizing | container (the frame) | Portals through `overlayContainer()`, so a frame contains and clips it on both axes. |
 | `EventHeader`'s `md:pt-4` | viewport (accepted residue) | The only variant that fires wrongly in a narrow map-less embed. It is cosmetic — fix it if you are already there. |
 | Form-field font size — the 16px floor (the `field-size` utility, on `fieldChrome` and both search fields) | **input, then viewport** — one `@utility` in `globals.css`, not one of the three hooks | iOS Safari scales the whole page in when a focused field computes under 16px, and embedded that zoom lands on the host's page. The trigger is the engine, not the box: an iPhone is 932px wide in landscape, so a `md:`-only floor handed it the 14px size back and zoomed exactly as before (measured). So 14px needs a wide screen **and** a fine pointer — the hardware question `useCoarsePointer()` asks (as the copy-failure hint does), in CSS. A 400px iframe on a desktop therefore does render 16px fields, which is cosmetic and accepted. One utility rather than a class pair also lets `[&_input]:field-size` reach the geocoder's own input in a single arm. `src/styles/mobile-zoom.test.ts` holds the floor, refuses a bare `md:`, and refuses a caller `text-*`, which a custom utility cannot outrank (#322). |
@@ -456,27 +456,6 @@ whenever a patched package has a release.
 | `vaul@1.1.2` | Stops vaul injecting its unscoped `<style>` (global `@keyframes`) into the host's `<head>`; forwards `modal` to Radix so `modal={false}` is really non-modal (#30, #91). ⚠ The `modal` hunk is in `dist/index.mjs` alone — the build every consumer loads (bundle, dev pre-bundle, Ladle, both lane environments); the `require` build has only the CSS hunk | [vaul#497](https://github.com/emilkowalski/vaul/issues/497), [vaul#192](https://github.com/emilkowalski/vaul/issues/192). **Unmaintained**: the upstream README says so, and 1.1.2 (2024-12-14) was still the newest release on 2026-11-19. Re-check with `npm view vaul version time.modified` and the note atop the README at github.com/emilkowalski/vaul | A vaul release forwards `modal` and stops injecting CSS, or we move off vaul |
 | `@radix-ui/react-focus-scope@1.3.1` | `focusin`/`focusout`/`activeElement` retarget to the shadow host, so the modal trap, Tab cycle and mount auto-focus break (#236) | [primitives#3353](https://github.com/radix-ui/primitives/issues/3353) (open) | FocusScope resolves `composedPath()` and the deep active element itself |
 | `aria-hidden@1.2.6` | `hideOthers` cannot cross a shadow boundary, so a modal never hides the background (#236) | [aria-hidden#14](https://github.com/theKashey/aria-hidden/issues/14) is the related closed report; 1.2.6 is the newest release | A release that climbs `ShadowRoot.host` and descends into kept roots |
-| `@schedule-x/calendar@4.9.1` | Looks up ids and selectors on `document` and writes CSS variables on `<html>`; breaks inside a shadow root (#236). Also reads a global `Temporal`, which the polyfill only provides by overwriting the host page's `Temporal`, `Intl.DateTimeFormat` and `Date.prototype.toTemporalInstant`. And re-zones an event on every read of its start or end, which made a full feed several times slower to lay out than 2.36 | [schedule-x#1223](https://github.com/schedule-x/schedule-x/issues/1223) (open, no fix linked; 4.9.1 is the newest release). Nothing filed for `Temporal` or the re-zoning | A release whose lookups and variables are scoped to the rendered root; for `Temporal`, one that imports it or takes it in config; for the re-zoning, one that skips it for an event already in the calendar's zone |
-
-**The Schedule-X patch** is made in all three builds (`core.js`, `core.cjs.js`, `core.umd.js`)
-and re-derived with `pnpm patch` on every upgrade. Its hunks do four things:
-
-- **`Temporal` is the `temporal-polyfill` module**, bound once at the top, so the core never reads
-  the page's global. ⚠ CalendarView imports the same module: the core's `instanceof` checks fail
-  against a second copy.
-- **Every `document` lookup and `<html>` variable write the rendered calendar reaches goes through
-  three helpers**, `sydevsById`, `sydevsQuery` and `sydevsSetProperty`, which try `document`, then
-  the root of every element a calendar rendered into. `shadow-patches.test.ts` pins the built
-  files.
-- **`render` records its element and sets the colours again**, since the ones `createCalendar` set
-  reached no element; `destroy` forgets it.
-- **An event's `start` and `end` getters return an event already in the calendar's `timezone` as
-  is**, rather than re-zoning it on every read. CalendarView anchors every entry in that zone
-  (`timeline.ts`), so none is re-zoned.
-
-Deliberately left on `document`: `getDirection`, which reads the HOST page's `<html dir>`, and
-UI this app hides or never registers — the date picker, the view dropdown, the year grid's day
-modal, and the resize handler only `isResponsive` registers.
 
 **`pnpm.overrides` also holds `undici`, which pins no patch.** It is a security floor for
 build tooling: `wrangler`'s `miniflare` pins `undici` to one exact version that carries known

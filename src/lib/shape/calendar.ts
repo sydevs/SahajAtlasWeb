@@ -3,13 +3,7 @@ import type { EventSchedule, EventType } from '@/types'
 import { DateTime } from 'luxon'
 
 import { DEFAULT_DURATION, eventTimeZone, scheduleTimeZone, withEndTime } from './event'
-import {
-  type EventFilters,
-  type TimePeriod,
-  dateFloor,
-  occurrenceMatchesFilters,
-  timePeriodRanges,
-} from './filters'
+import { type EventFilters, dateFloor, occurrenceMatchesFilters } from './filters'
 
 /**
  * Feed → calendar-entry expansion. SahajCloud pre-computes each event's recurrence
@@ -26,47 +20,52 @@ export type CalendarSourceEvent = {
   path: string
   eventType: EventType
   schedule?: EventSchedule | null
-  /** The event's parent region name — the default (concise) calendar label. */
+  /** The event's parent region name — where it is when it has no address. */
   regionName?: string | null
-  /** The event's locality (address city) — the label when the calendar is region-scoped. */
+  /** The event's locality (address city) — where it is. */
   locality?: string | null
 }
 
-// The event's place (parent region name, or — when the calendar is already scoped to a
-// region so every entry shares it — the finer-grained address locality). No title fallback
-// here: the caller decides what a placeless entry reads as.
-const placeOf = (event: CalendarSourceEvent, regionScoped: boolean): string | undefined => {
-  const region = event.regionName?.trim() || undefined
-  const locality = event.locality?.trim() || undefined
-
-  return regionScoped ? locality || region : region || locality
-}
-
-// The concise label a calendar entry shows instead of the (often long) event title: the
-// event's place (see `placeOf`), or the title itself when it has no place. The "Online"
-// designation is NOT folded in here — it rides the SX `location` field (see the expansion).
-const calendarLabel = (event: CalendarSourceEvent, regionScoped: boolean): string =>
-  placeOf(event, regionScoped) || event.title
+/**
+ * A town typed all in capitals ("HARROGATE") reads as shouting beside the rest, so it is recased.
+ * Any other name keeps the case it was given ("McLean"), and so does one of three letters or
+ * fewer, which is likelier an abbreviation ("NYC") than a town.
+ */
+export const tidyPlaceCase = (name: string): string =>
+  name !== name.toUpperCase() || name.length <= 3
+    ? name
+    : name
+        .toLowerCase()
+        // After an apostrophe only a name, not a possessive: "L'Aquila", "St John's".
+        .replace(
+          /(^|[\s-]|['’](?=\p{L}{2}))(\p{L})/gu,
+          (_, before: string, letter: string) => before + letter.toUpperCase(),
+        )
 
 /** One occurrence, as the wall clock of its display zone (`YYYY-MM-DD HH:mm`, no zone). */
 export type CalendarEntry = {
   /** Unique per occurrence: `${eventId}-${startMillis}`. */
   id: string
-  title: string
+  name: string
+  /** The town it is in, left out where the name already is the place. */
+  place?: string
   start: string
   end: string
   /** The event's route, carried through so a click opens the right EventView. */
   path: string
-  /** Schedule-X calendar id — set to `online` for online programs so they get their own colour. */
-  calendarId?: string
-  /** Schedule-X `location` (shown with a pin in the week/day views): the "Online" term for
-   *  online programs. The month/list views distinguish them by colour instead. */
-  location?: string
+  online: boolean
 }
 
-// The occurrence already resolved into its display zone, so what the grid shows is the local
-// class time. CalendarView hands this wall clock to Schedule-X.
+// The occurrence already resolved into its display zone, so what the calendar shows is the local
+// class time.
 const WALL_CLOCK = 'yyyy-MM-dd HH:mm'
+
+/** The day an entry starts on, `yyyy-MM-dd`. */
+export const entryDay = (entry: Pick<CalendarEntry, 'start'>): string => entry.start.slice(0, 10)
+
+/** An entry's start or end as its wall clock, for `formatTimeRange`, which reads only that. */
+export const entryTime = (at: string): DateTime =>
+  DateTime.fromFormat(at, WALL_CLOCK, { zone: 'utc' })
 
 /**
  * Expands events into calendar entries: one per `upcomingDates` occurrence whose start
@@ -83,14 +82,11 @@ const WALL_CLOCK = 'yyyy-MM-dd HH:mm'
 export const eventsToCalendarEntries = (
   events: CalendarSourceEvent[],
   filters: EventFilters,
-  opts?: { from?: DateTime; to?: DateTime; today?: string; onlineLabel?: string },
+  opts?: { from?: DateTime; to?: DateTime; today?: string },
 ): CalendarEntry[] => {
   const from = opts?.from ?? DateTime.now().startOf('day')
   const to = opts?.to ?? from.plus({ months: 12 })
   const floor = dateFloor(filters, opts?.today ?? from.toISODate() ?? undefined)
-  // When a region is selected every entry sits under it, so the region name would be the
-  // same for all — show the finer-grained locality instead (computed per event below).
-  const regionScoped = filters.region != null
   const entries: CalendarEntry[] = []
 
   for (const event of events) {
@@ -105,11 +101,13 @@ export const eventsToCalendarEntries = (
     const displayZone = eventTimeZone(event)
     const eventZone = event.schedule ? scheduleTimeZone(event.schedule) : 'UTC'
     const endTime = event.schedule?.endTime
-    const label = calendarLabel(event, regionScoped)
-    // Online programs carry a distinct colour + the "Online" term in the SX `location` field.
     const online = event.eventType === 'online'
-    const location = online ? opts?.onlineLabel : undefined
-    const calendarId = online ? 'online' : undefined
+    // The address city first: a region can be one venue ("R. do Catete, 311"), which says
+    // nothing next to the class name.
+    const where = event.locality?.trim() || event.regionName?.trim()
+    const place = where ? tidyPlaceCase(where) : undefined
+    const title = event.title.trim()
+    const name = title || place || ''
 
     for (const occurrence of occurrences) {
       // Read the occurrence in the event's own zone (so the event-local endTime applies to
@@ -129,12 +127,13 @@ export const eventsToCalendarEntries = (
 
       entries.push({
         id: `${event.id}-${start.toMillis()}`,
-        title: label,
+        name,
+        // An online class's region says nothing about where to be.
+        place: title && !online ? place : undefined,
         start: start.toFormat(WALL_CLOCK),
         end: finish.toFormat(WALL_CLOCK),
         path: event.path,
-        calendarId,
-        location,
+        online,
       })
     }
   }
@@ -142,184 +141,121 @@ export const eventsToCalendarEntries = (
   return entries
 }
 
-const clampHour = (hour: number): number => Math.max(0, Math.min(24, hour))
+// ===== VIEWS ===== //
 
-// An `HH:00` bound Schedule-X's `dayBoundaries` reads (it accepts an overnight span
-// where start > end).
-const hhmm = (hour: number): string => `${String(clampHour(hour)).padStart(2, '0')}:00`
+/** The calendar's two views. Month is the default, so only `?view=week` is ever written. */
+export type CalendarViewName = 'month' | 'week'
 
-// The wall-clock hour (fractional) of an entry's `YYYY-MM-DD HH:mm` bound.
-const entryHour = (wallClock: string): number => {
-  const [hour, minute] = (wallClock.split(' ')[1] ?? '').split(':').map(Number)
+const VIEW_PARAM = 'view'
+// The Week's first day, when it is not today. Its own word rather than the `dates` filter, so the
+// arrows never touch a range the visitor chose.
+const WEEK_PARAM = 'week'
 
-  return (hour || 0) + (minute || 0) / 60
-}
-
-/**
- * The week/day time-grid bounds to frame the visible hours (Schedule-X `dayBoundaries`),
- * or `undefined` to leave its default:
- *
- * - **Time-of-day filter set** → span the selected period(s). A single range (including a
- *   night span that wraps midnight, e.g. `21:00`–`06:00`) frames the grid directly.
- *   Several non-wrapping ranges span from the earliest start to the latest end.
- * - **Otherwise** → hug the entries: 1 h before the earliest occurrence start and 1 h
- *   after the latest end (an overnight entry counts to the day's end). This is undefined
- *   when there are no entries.
- */
-export const computeDayBoundaries = (
-  entries: CalendarEntry[],
-  timeOfDay: readonly TimePeriod[],
-): { start: string; end: string } | undefined => {
-  if (timeOfDay.length > 0) {
-    const ranges = timePeriodRanges(timeOfDay)
-
-    if (ranges.length === 1) return { start: hhmm(ranges[0][0]), end: hhmm(ranges[0][1]) }
-    if (ranges.length > 1 && !ranges.some(([s, e]) => s > e)) {
-      return {
-        start: hhmm(Math.min(...ranges.map(([s]) => s))),
-        end: hhmm(Math.max(...ranges.map(([, e]) => e))),
-      }
-    }
-
-    return undefined // whole-day cover, or an ambiguous wrap → Schedule-X default
-  }
-
-  let earliest = 24
-  let latest = 0
-
-  for (const entry of entries) {
-    const start = entryHour(entry.start)
-    let end = entryHour(entry.end)
-
-    if (end <= start) end = 24 // an overnight entry ends the next day — count to day's end
-
-    earliest = Math.min(earliest, start)
-    latest = Math.max(latest, end)
-  }
-
-  if (earliest >= latest) return undefined // no entries
-
-  return { start: hhmm(Math.floor(earliest) - 1), end: hhmm(Math.ceil(latest) + 1) }
-}
-
-// ===== VIEW RESOLUTION ===== //
+export const calendarViewFromParams = (params: URLSearchParams): CalendarViewName =>
+  params.get(VIEW_PARAM) === 'week' ? 'week' : 'month'
 
 /**
- * The Schedule-X view names this app registers — the view switch's values, and what
- * `useCalendarPosition` persists and restores.
- */
-export const CALENDAR_VIEW_MONTH = 'month-grid'
-export const CALENDAR_VIEW_MONTH_AGENDA = 'month-agenda'
-export const CALENDAR_VIEW_WEEK = 'week'
-export const CALENDAR_VIEW_LIST = 'list'
-
-/**
- * Whether the calendar on top fills the widget rather than the 352px panel: its month or week
- * grid, above the wide crossing (#331). Its list is one narrow column that reads better at the
- * panel's width. The drawer's size and the filter row both read this.
+ * Whether the calendar on top fills the widget rather than the 352px panel: its Month, above the
+ * wide crossing (#331). Its Week is one column and keeps the panel. The drawer's size and the
+ * calendar's own header row both read this.
  */
 export const isCalendarFullWidth = (
   top: string | undefined,
   isWide: boolean,
-  view: string | null,
-): boolean => top === 'calendar' && isWide && view !== CALENDAR_VIEW_LIST
+  view: CalendarViewName,
+): boolean => top === 'calendar' && isWide && view === 'month'
 
-/** Every Schedule-X view this app registers. */
-export type CalendarViewName =
-  | typeof CALENDAR_VIEW_MONTH
-  | typeof CALENDAR_VIEW_MONTH_AGENDA
-  | typeof CALENDAR_VIEW_WEEK
-  | typeof CALENDAR_VIEW_LIST
+/** Writes the view onto `params`: `view=week` and its `week`, or neither for the Month. */
+export const calendarViewToParams = (
+  view: CalendarViewName,
+  week: string | null,
+  params: URLSearchParams,
+): URLSearchParams => {
+  if (view === 'week') params.set(VIEW_PARAM, 'week')
+  else params.delete(VIEW_PARAM)
+  if (view === 'week' && week) params.set(WEEK_PARAM, week)
+  else params.delete(WEEK_PARAM)
+
+  return params
+}
+
+// ===== THE WEEK ===== //
+
+const WEEK_DAYS = 7
+
+const addDays = (iso: string, days: number): string =>
+  DateTime.fromISO(iso).plus({ days }).toISODate() ?? iso
+
+/** The seven days the Week shows, as `yyyy-MM-dd`. */
+export type CalendarWindow = { start: string; end: string; isThisWeek: boolean }
 
 /**
- * The three the view switch offers. `month-agenda` is deliberately absent: it renders FOR
- * Month below the crossing and is never lit, so the type refuses the mix-up rather than
- * leaving the switch able to hold a value with no matching item.
+ * The seven days the address opens: from its `week` day, or from today with none. A day that has
+ * passed, or is no date, opens today.
  */
-export type CalendarViewOption =
-  typeof CALENDAR_VIEW_MONTH | typeof CALENDAR_VIEW_WEEK | typeof CALENDAR_VIEW_LIST
+export const calendarWindow = (params: URLSearchParams, today: string): CalendarWindow => {
+  const asked = params.get(WEEK_PARAM)
+  const start =
+    asked && asked > today && DateTime.fromFormat(asked, 'yyyy-MM-dd').isValid ? asked : today
 
-const CALENDAR_VIEW_OPTIONS: readonly CalendarViewOption[] = [
-  CALENDAR_VIEW_MONTH,
-  CALENDAR_VIEW_WEEK,
-  CALENDAR_VIEW_LIST,
-]
-
-/**
- * Narrows a switch value to an option the switch offers. Radix hands `onValueChange` a bare
- * `string`, empty on a deselect, so this is the one runtime boundary between the toggle group
- * and a store typed to the three options.
- */
-export const isCalendarViewOption = (value: string): value is CalendarViewOption =>
-  (CALENDAR_VIEW_OPTIONS as readonly string[]).includes(value)
-
-/** What the calendar renders at a given width, and which switch option that lights. */
-export type ResolvedCalendarView = {
-  /** The Schedule-X view to render. */
-  view: CalendarViewName
-  /** The switch's value — always an option the switch offers at this width. */
-  option: CalendarViewOption
+  return { start, end: addDays(start, WEEK_DAYS - 1), isThisWeek: start === today }
 }
 
 /**
- * Resolves a stored view against the widget's width class, so the lit option always matches
- * what rendered.
- *
- * `month-grid` and `week` both declare `hasSmallScreenCompat: false`, so below the crossing
- * neither can render and both collapse onto `month-agenda` — not onto `list`, because the
- * agenda keeps a chosen day's own hours in view, which is what Week was being read for. The
- * switch lights Month there, the only option it offers besides List (#331).
+ * The `week` that opens the Week on `day`. Nothing before today has classes, so a day at or before
+ * it opens this week, whose address is the plain one.
  */
-export const resolveCalendarView = (
-  stored: CalendarViewOption | null,
-  isWide: boolean,
-): ResolvedCalendarView => {
-  if (stored === CALENDAR_VIEW_LIST) {
-    return { view: CALENDAR_VIEW_LIST, option: CALENDAR_VIEW_LIST }
+export const weekFrom = (day: string, today: string): string | null => (day <= today ? null : day)
+
+/** The `week` of the seven days next to a window. */
+export const shiftWeek = (
+  window: CalendarWindow,
+  direction: -1 | 1,
+  today: string,
+): string | null => weekFrom(addDays(window.start, direction * WEEK_DAYS), today)
+
+/** Every day from `start` to `end`, inclusive, as `yyyy-MM-dd`. */
+export const daysBetween = (start: string, end: string): string[] => {
+  const days: string[] = []
+
+  for (let day = start; day <= end; day = addDays(day, 1)) days.push(day)
+
+  return days
+}
+
+// ===== THE MONTH ===== //
+
+/**
+ * The days a month grid shows: whole weeks from the one holding the 1st to the one holding the
+ * last day, starting on `firstWeekday` (1 = Monday … 7 = Sunday, as Luxon numbers them).
+ */
+export const monthGrid = (month: string, firstWeekday: number): string[][] => {
+  const first = DateTime.fromISO(month).startOf('month')
+  const last = first.endOf('month').startOf('day')
+  const lead = (first.weekday - firstWeekday + 7) % 7
+  const start = first.minus({ days: lead })
+  const weeks: string[][] = []
+
+  for (let week = start; week <= last; week = week.plus({ weeks: 1 })) {
+    weeks.push(
+      Array.from({ length: 7 }, (_, offset) => week.plus({ days: offset }).toISODate() ?? ''),
+    )
   }
 
-  const option = stored === CALENDAR_VIEW_WEEK ? CALENDAR_VIEW_WEEK : CALENDAR_VIEW_MONTH
-
-  if (isWide) return { view: option, option }
-
-  return { view: CALENDAR_VIEW_MONTH_AGENDA, option: CALENDAR_VIEW_MONTH }
+  return weeks
 }
 
-// Schedule-X validates `locale` against its own supported BCP-47 set, and THROWS
-// (`InvalidLocaleError`) on an unknown code — this project's short `en`/`de`/… crash it. This
-// maps this project's locales to the closest one SX ships. Hungarian, which SX lacks, falls
-// back to en-US chrome. This project's own header stays fully localized via i18n.
-const SCHEDULE_X_LOCALES: Record<string, string> = {
-  de: 'de-DE',
-  fr: 'fr-FR',
-  es: 'es-ES',
-  cs: 'cs-CZ',
-  nl: 'nl-NL',
-  ru: 'ru-RU',
-  uk: 'uk-UA',
-  // Schedule-X ships Brazilian Portuguese only, so every Portuguese browser runs it (`pt-PT`).
-  pt: 'pt-BR',
-}
+/** Entries grouped by the day they start on, each day's in start order. */
+export const entriesByDay = (entries: readonly CalendarEntry[]): Map<string, CalendarEntry[]> => {
+  const days = new Map<string, CalendarEntry[]>()
 
-/** Whether `locale` writes the day before the month, as en-GB does and en-US does not. */
-const dayFirst = (locale: string): boolean => {
-  const order = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' })
-    .formatToParts(0)
-    .map((part) => part.type)
+  for (const entry of [...entries].sort((a, b) => a.start.localeCompare(b.start))) {
+    const day = entryDay(entry)
+    const list = days.get(day)
 
-  return order.indexOf('day') < order.indexOf('month')
-}
+    if (list) list.push(entry)
+    else days.set(day, [entry])
+  }
 
-/**
- * The Schedule-X locale for a locale tag: the exact tag, then its base language, so a `de-AT` or
- * `fr-CA` browser (see `regionalLocale`) keeps calendar labels in its own language. A regional
- * English runs as en-GB or en-US by its date order, so the grid's dates read like the lists'
- * (`en-CZ` and `en-AU` day first, `en-CA` month first).
- */
-export const scheduleXLocale = (locale: string): string => {
-  const language = locale.split('-')[0].toLowerCase()
-
-  if (language === 'en') return dayFirst(locale) ? 'en-GB' : 'en-US'
-
-  return SCHEDULE_X_LOCALES[locale] ?? SCHEDULE_X_LOCALES[language] ?? 'en-US'
+  return days
 }

@@ -10,7 +10,6 @@ import {
   forbiddenOrigins,
   keyframeFailures,
   propertyFailures,
-  remFailures,
   remLengths,
   scopeFailures,
   varFailures,
@@ -46,11 +45,11 @@ const APP =
   '@media (width>=40rem){:where(.sy-atlas) .sm\\:w-80{width:320px}}' +
   '@keyframes sy-atlas-spin{to{transform:rotate(360deg)}}'
 
-/** Schedule-X's theme in miniature: the one sheet allowed `rem`. */
+/** A lazy chunk's own sheet, injected when that chunk loads. */
 const CALENDAR =
-  ':where(.sy-atlas){--sx-font-small:.875rem}' +
-  ':where(.sy-atlas) :is(.sx__chevron-wrapper .sx__chevron){border-width:.2rem .2rem 0 0}' +
-  ':where(.sy-atlas) .sx__event-modal{top:var(--sx-event-modal-top)}'
+  ':where(.sy-atlas){--sy-agenda:4px}' +
+  ':where(.sy-atlas) :is(.grid .cell){border-width:2px 2px 0 0}' +
+  ':where(.sy-atlas) .cell{top:var(--sy-agenda)}'
 
 const SHEET = 'dist/assets/sheet-BSYtLEmB.js'
 const CALENDAR_CHUNK = 'dist/assets/CalendarView-IdZs4xkT.js'
@@ -210,7 +209,7 @@ describe('check 3: no request to a third-party font CDN', () => {
   })
 })
 
-describe('check 4: no rem outside the calendar chunk', () => {
+describe('check 4: no rem in any sheet', () => {
   it('rejects a rem length in any other sheet, and names the declaration', () => {
     expect(audit(withApp(':where(.sy-atlas) .w-4{width:1rem}')).failures).toEqual([
       expect.stringMatching(
@@ -219,15 +218,13 @@ describe('check 4: no rem outside the calendar chunk', () => {
     ])
   })
 
-  // The exemption is the calendar's FILE. The same bytes injected from another chunk are a rem
-  // length a host can rescale, and a check keyed on the sheet would wave them through.
-  it('rejects the calendar’s own sheet injected from another chunk', () => {
-    const elsewhere = 'dist/assets/ShareView-DpfbjdUS.js'
-    const { failures, sheets, rules } = audit({ ...GOOD, [elsewhere]: chunk(CALENDAR) })
+  it('rejects a rem length in a lazy chunk’s sheet too', () => {
+    const { failures } = audit({
+      ...GOOD,
+      [CALENDAR_CHUNK]: chunk(`${CALENDAR}:where(.sy-atlas) .x{width:1rem}`),
+    })
 
-    expect(failures).toEqual([expect.stringContaining(`${elsewhere}: 2 rem length(s)`)])
-    // Counted as a third injection, read as the second sheet.
-    expect({ sheets, rules }).toEqual({ sheets: 3, rules: 7 })
+    expect(failures).toEqual([expect.stringContaining(`${CALENDAR_CHUNK}: 1 rem length(s)`)])
   })
 
   it('reads a sign, a fraction and either case as a length', () => {
@@ -254,19 +251,6 @@ describe('check 4: no rem outside the calendar chunk', () => {
 
     expect(remLengths(parse(css))).toEqual([])
   })
-
-  // The calendar's rem is also the detector's own proof of life: with none found there, a
-  // detector the minifier's output had outgrown would pass every other sheet unread.
-  it('fails when the calendar chunk shows it no rem at all', () => {
-    const build = { ...GOOD, [CALENDAR_CHUNK]: chunk(CALENDAR.replace(/rem\b/g, 'px')) }
-
-    expect(audit(build).failures).toEqual([
-      expect.stringContaining('found no rem in the calendar chunk'),
-    ])
-    expect(remFailures([{ file: SHEET, rem: [] }])).toEqual([
-      expect.stringContaining('found no rem in the calendar chunk'),
-    ])
-  })
 })
 
 describe('check 5: every fallbackless var() names a declared property', () => {
@@ -285,7 +269,7 @@ describe('check 5: every fallbackless var() names a declared property', () => {
   it('accepts a property another chunk’s sheet declares', () => {
     const build = {
       ...GOOD,
-      [CALENDAR_CHUNK]: chunk(`${CALENDAR}:where(.sy-atlas) .sx__x{color:var(--color-primary-9)}`),
+      [CALENDAR_CHUNK]: chunk(`${CALENDAR}:where(.sy-atlas) .cell-x{color:var(--color-primary-9)}`),
     }
 
     expect(audit(build)).toMatchObject({ failures: [], varRefs: 4 })

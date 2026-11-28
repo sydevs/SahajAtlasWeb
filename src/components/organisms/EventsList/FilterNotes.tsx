@@ -4,6 +4,7 @@ import { Button } from '@/components/atoms/Button'
 import { RecoveryButton } from '@/components/organisms/SearchFilters'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
+import { DEFAULT_FILTERS } from '@/lib/shape'
 
 /**
  * A list the filters emptied: one line saying so, then the ways out as links, stacked — the one
@@ -15,7 +16,9 @@ import { useEventFilters, useSetFilters } from '@/hooks/use-filters'
 export function NoFilterMatches() {
   const { t } = useTranslation()
   const filters = useEventFilters()
-  const { clearFilters, setFilters } = useSetFilters()
+  const { setFilters } = useSetFilters()
+  // Clear resets the answers, not the Where: the visitor is still looking in the same place.
+  const clearFilters = () => setFilters({ ...DEFAULT_FILTERS, region: filters.region })
   const recovery = useFilterFacets(filters)?.recovery
 
   return (
@@ -37,7 +40,9 @@ export function NoFilterMatches() {
  */
 export function HiddenByFilters({ count }: { count: number }) {
   const { t } = useTranslation()
-  const { clearFilters } = useSetFilters()
+  const filters = useEventFilters()
+  const { setFilters } = useSetFilters()
+  const clearFilters = () => setFilters({ ...DEFAULT_FILTERS, region: filters.region })
 
   return (
     <p className="px-gutter py-4 text-sm text-gray-11">

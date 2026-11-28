@@ -35,15 +35,11 @@ import {
   useIsWide,
 } from '@/config/responsive'
 import { useWidgetMode } from '@/config/mode'
-import {
-  useBrowsedCountry,
-  useCalendarPosition,
-  useMapControls,
-  useSheetCover,
-} from '@/config/store'
+import { useBrowsedCountry, useMapControls, useSheetCover } from '@/config/store'
 import { frameElement, overlayContainer } from '@/lib/overlay'
 import {
   type StackEntry,
+  calendarViewFromParams,
   backStep,
   sameRoute,
   baseStackEntry,
@@ -81,8 +77,8 @@ import { EventView } from '@/views/EventView/EventView'
 
 // The two views most visitors never open, split out of the eager graph (issue #96). Each
 // one is the only consumer of a large dependency the widget would otherwise pay for at first
-// paint on every host page. The calendar owns the whole Schedule-X stack — its grid, its
-// views, its theme CSS. Registration owns react-hook-form plus the resolver.
+// paint on every host page. The calendar owns its own Month and Week. Registration owns
+// react-hook-form plus the resolver.
 //
 // These are the RIGHT two to split, because neither can be the first thing on screen
 // by accident. Each is reached by pressing something — the calendar button, an event's
@@ -211,13 +207,15 @@ export function DrawerStack() {
   // that key to tell whether it is still the view on top, and the two agreeing is what
   // makes the comparison mean anything.
   const top = baseStackEntry(entries, hasMap) ?? null
-  // The calendar is the one full-width view. It fills the widget, minus the floating margins,
-  // instead of the 352px left panel (see the Drawer `wide` variant) — EXCEPT in its list
-  // (agenda) view, one narrow column that reads better at the regular width. `isWide` is here
-  // because the wide panel exists only above the crossing (#331). The view is read reactively, so
-  // switching it resizes the drawer. Date changes do not re-render this component.
-  const calendarView = useCalendarPosition((s) => s.view)
-  const wide = isCalendarFullWidth(top?.kind, isWide, calendarView)
+  // The calendar's Month is the one full-width view: it fills the widget, minus the floating
+  // margins, instead of the 352px left panel (the Drawer `wide` variant). Its Week is one column
+  // and keeps the panel, so the map stays in view. `isWide` is here because the wide panel exists
+  // only above the crossing (#331).
+  const wide = isCalendarFullWidth(
+    top?.kind,
+    isWide,
+    calendarViewFromParams(new URLSearchParams(location.search)),
+  )
   // The filter buttons show beside the map's controls wherever the panel sits beside it, except
   // under the full-width calendar, which carries them in its own header, and over the filters'
   // own drawer, which asks the same questions.

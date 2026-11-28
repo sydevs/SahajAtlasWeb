@@ -32,56 +32,61 @@ const at = (dayOffset: number, hour: number, minute: number, zone: string): Date
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-// A weekly class in `city` (its region + locality — what the calendar labels events by) at hh:mm,
-// running an hour, physical unless `online`. Occurrences repeat weekly so the grid fills out. All
-// single-day + timed, matching the real feed (no all-day or multi-day events).
+// A weekly class at hh:mm in `city` (its region and its address's town), running an hour, in
+// person unless `online`. Occurrences repeat weekly so the grid fills out, all single-day and
+// timed, as the real feed is.
 const weekly = (
   id: number,
+  title: string,
   city: string,
   dayOffset: number,
   hour: number,
   minute = 0,
   online = false,
 ): CalendarSourceEvent => {
-  // Online events read in the viewer's zone — a null tz makes the expansion treat the stored
-  // instant as UTC. Physical events read in their own zone. This authors each occurrence in
-  // that same zone.
+  // An online class reads in the viewer's zone (a null tz is read as UTC), an in-person one in
+  // its own, and each occurrence is authored in that zone.
   const zone = online ? 'utc' : EVENT_ZONE
 
   return {
     id,
-    title: `${city} meditation class`,
+    title,
     path: `/${id}`,
     eventType: online ? 'online' : 'offline',
-    regionName: city,
-    locality: city,
+    regionName: online ? 'United Kingdom' : city,
+    locality: online ? null : city,
     schedule: {
       firstDate: at(dayOffset, hour, minute, zone),
       firstDate_tz: online ? null : EVENT_ZONE,
-      endTime: `${pad(hour + 1)}:${pad(minute)}`,
+      endTime: `${pad((hour + 1) % 24)}:${pad(minute)}`,
       recurrenceType: 'WEEKLY',
       upcomingDates: [0, 7, 14, 21].map((week) => at(dayOffset + week, hour, minute, zone)),
     },
   }
 }
 
-// A realistic slice of the seeded UK feed — a mix of morning and evening weekly classes across
-// several cities (one online), plus a one-off weekend workshop.
+// The cases a calendar has to draw, a week of them repeating: a busy day mixing online and in
+// person (more than three dots, more than a desktop box holds), a day with one of each, a lone
+// online class, a town typed in capitals, a quiet day, and a one-off workshop. Online classes are
+// authored near noon UTC, so they stay on one day across a reviewer's zone.
 const mockCalendarEvents = (): CalendarSourceEvent[] => [
-  weekly(1, 'Harrow', 1, 11, 0),
-  weekly(2, 'Slough', 1, 11, 30),
-  weekly(3, 'Bath', 2, 18, 30),
-  weekly(4, 'Sheffield', 2, 19, 0),
-  // The online class is authored near noon UTC: it displays in the VIEWER's zone, and noon is
-  // farthest from midnight either way, so its 1h span stays single-day across the plausible
-  // reviewer band (US Pacific … India) rather than straddling a far-eastern viewer's midnight.
-  weekly(5, 'London', 3, 12, 0, true),
-  weekly(6, 'Edinburgh', 4, 11, 30),
-  weekly(7, 'Leeds', 5, 19, 0),
+  weekly(1, 'Evening Meditation', 'Bath', 0, 20, 0),
+  weekly(2, 'Morning Meditation', 'Harrow', 1, 9, 30),
+  weekly(3, 'Introduction to Meditation', 'Slough', 1, 11, 0),
+  weekly(4, 'Online Lunchtime Meditation', 'Online', 1, 12, 0, true),
+  weekly(5, 'Evening Meditation', 'Sheffield', 1, 18, 30),
+  weekly(6, 'Meditation for Beginners', 'Leeds', 1, 19, 30),
+  weekly(7, 'Online Meditation', 'Online', 2, 12, 30, true),
+  weekly(8, 'Evening Meditation', 'Edinburgh', 2, 19, 0),
+  weekly(9, 'Online Morning Meditation', 'Online', 3, 11, 0, true),
+  weekly(10, 'Meditation Evening', 'HARROGATE', 4, 19, 0),
+  weekly(11, 'Morning Meditation', 'Brighton', 5, 10, 0),
+  weekly(12, 'Afternoon Meditation', 'Oxford', 5, 14, 0),
+  weekly(13, 'Evening Meditation', 'Bristol', 5, 19, 0),
   {
-    id: 8,
-    title: 'Cambridge weekend workshop',
-    path: '/8',
+    id: 14,
+    title: 'Weekend Meditation Workshop',
+    path: '/14',
     eventType: 'offline',
     regionName: 'Cambridge',
     locality: 'Cambridge',
@@ -95,21 +100,18 @@ const mockCalendarEvents = (): CalendarSourceEvent[] => [
   },
 ]
 
-// A couple of applied filters so the pills row (below the header) renders. The story pre-seeds
-// the calendar data regardless of the filters, so these are for the pill UI, not to cut events.
-const activeFilters = {
-  ...DEFAULT_FILTERS,
-  format: 'offline' as const,
-  timeOfDay: ['evening' as const],
-}
+// The calendar of a place, as a place page's Calendar button opens it. Filters a visitor adds
+// in the story are answered by the Ladle backend rather than these classes.
+const activeFilters = { ...DEFAULT_FILTERS, region: 'gb' }
 const activeParams = filtersToParams(activeFilters)
+const seededFilters = [activeFilters]
 
 // "Grid failure" stays on the EXAMPLE axis rather than moving to the State control,
 // because the two throw at different depths and that is the whole point of the case: this
 // one trips the boundary BELOW the header (issue #89), so the month nav, the view picker,
 // the filter button, the close control and the pills all stay put and stay usable. The
 // State control throws at the view level, replacing all of that. Compare the two.
-const EXAMPLES = ['Month', 'Grid failure'] as const
+const EXAMPLES = ['Calendar', 'Grid failure'] as const
 
 // Not an array — `eventsToCalendarEntries` iterates it, so this throws during the grid's
 // render rather than at fetch time. Deliberately unlike the seeded feed: what is being
@@ -138,13 +140,12 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
       example={example}
       path="/calendar"
       seed={(client: QueryClient) => {
-        // Seed the default key (initial render) AND the active-filter key (once the params are
-        // seeded into the URL) so the calendar resolves from cache either way.
-        for (const filters of [DEFAULT_FILTERS, activeFilters]) {
+        // The calendar reads one key for every date, so the place's key answers it.
+        for (const filters of seededFilters) {
           client.setQueryData<CalendarSourceEvent[]>(
             ['calendar', filtersKey(filters), locale],
             // The error case seeds a shape the expansion cannot consume, so the throw happens
-            // where a Schedule-X or contract failure would: inside CalendarGrid's render,
+            // where a contract failure would: inside CalendarBody's render,
             // below the header. This casts the value because that is precisely the point. The
             // types say this cannot happen, and the boundary exists for when it does.
             example === 'Grid failure' ? (POISONED as unknown as CalendarSourceEvent[]) : events,
@@ -160,13 +161,13 @@ export const Default: Story<{ example: (typeof EXAMPLES)[number]; state: StoryFa
   )
 }
 
-Default.args = { example: 'Month', state: NO_ERROR }
+Default.args = { example: 'Calendar', state: NO_ERROR }
 Default.argTypes = {
   example: {
     name: 'Example',
     options: [...EXAMPLES],
     control: { type: 'radio' },
-    defaultValue: 'Month',
+    defaultValue: 'Calendar',
   },
   state: stateControl(),
 }

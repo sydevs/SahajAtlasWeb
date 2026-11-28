@@ -49,12 +49,31 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **The calendar is the widget's own, with a Week list, and names each class.** ([#538])
+  - **Switch:** Month | Week | List at every width. List leads back to the place's own page, and a
+    place page's **Calendar** button opens the calendar scoped to that place, named at its top.
+  - **Week:** the next seven days, each under its date ("Friday 13 Nov", with Today or Tomorrow
+    beside it), each class by name with its time in the visitor's own format ("17:45–18:45" in the
+    UK, "5:45 – 6:45 PM" in the US), its town, and an Online chip for an online class. The arrows
+    step a week, and a link to a past week opens on today's. A dates filter narrows the Week as it
+    does the Month, and survives switching between them. On a computer the Week keeps the side panel, so the map stays in view; the hour-by-hour week grid
+    is gone.
+  - **Month:** on a computer, a box per class ("18:30 Bath", or "Online"), the name on hover, and
+    "+ 3 classes" on a busy day, which opens the Week from that day. On a phone, a dot per class
+    (online in the class card's colour, a plus past three) and the chosen day's classes listed
+    below it.
+  - **Your root font size no longer shrinks the calendar.** It was the one part of the widget
+    sized in `rem`; with its third-party grid gone, a theme that sets `html { font-size: 62.5% }`
+    renders it at the same size as the rest.
+  - The view rides inside `atlas` (`/calendar?view=week&week=2026-12-04`), so a host's page writes no new
+    parameter. No origin, CSP or permission change.
+
 - **"Add to calendar" on the registration confirmation spans the panel, in your second brand
   colour.** ([#549]) It was a narrower button in the first brand colour. Its menu of calendars
   is unchanged and still opens under the button's start edge.
 - **On a computer the filters are three buttons over the map: Where, When and Language.** ([#542])
   Wherever the panel sits beside the map (from 768px of widget width) they sit at the top right
-  of the map, wrapping where it is narrow, and the full-width calendar (its month and week views)
+  of the map, wrapping where it is narrow, and the full-width calendar (its Month)
   carries them in its header, instead of a Filters button. Each opens a small menu with the same
   questions and live counts as the phone's filters, and a tap applies at once. A button with an
   answer fills and names it ("Tue · Evening"), and Clear leads the row; on a place page, Clear goes
@@ -1464,6 +1483,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   found. ([#111], [#136])
 
 [#509]: https://github.com/sydevs/SahajAtlasWeb/pull/509
+[#538]: https://github.com/sydevs/SahajAtlasWeb/pull/538
 [#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
 [#485]: https://github.com/sydevs/SahajAtlasWeb/pull/485
 [#483]: https://github.com/sydevs/SahajAtlasWeb/pull/483

@@ -2,22 +2,23 @@ import { describe, it, expect } from 'vitest'
 import { DateTime } from 'luxon'
 
 import {
-  CALENDAR_VIEW_LIST,
-  CALENDAR_VIEW_MONTH,
-  CALENDAR_VIEW_MONTH_AGENDA,
-  CALENDAR_VIEW_WEEK,
-  computeDayBoundaries,
-  eventsToCalendarEntries,
   isCalendarFullWidth,
-  isCalendarViewOption,
-  resolveCalendarView,
-  scheduleXLocale,
   type CalendarEntry,
   type CalendarSourceEvent,
+  calendarViewFromParams,
+  calendarWindow,
+  daysBetween,
+  entriesByDay,
+  eventsToCalendarEntries,
+  monthGrid,
+  shiftWeek,
+  calendarViewToParams,
+  entryDay,
+  entryTime,
+  weekFrom,
+  tidyPlaceCase,
 } from './calendar'
 import { DEFAULT_FILTERS, type EventFilters } from './filters'
-
-import { regionalLocale } from '@/lib/time'
 
 const at = (zone: string, iso: string) => DateTime.fromISO(iso, { zone })
 
@@ -60,7 +61,7 @@ describe('eventsToCalendarEntries', () => {
 
     expect(entries).toHaveLength(2)
     expect(entries[0]).toMatchObject({
-      title: 'Meditation',
+      name: 'Meditation',
       start: '2026-07-06 09:30',
       end: '2026-07-06 11:00',
       path: '/1',
@@ -120,70 +121,74 @@ describe('eventsToCalendarEntries', () => {
     ).toEqual([])
   })
 
-  it('labels entries with the parent region name (not the event title) by default', () => {
+  it('names the class, with the town it is in', () => {
     const evt = makeEvent({
-      title: 'Weekly Sahaja Yoga meditation for beginners',
+      title: 'Evening meditation',
       regionName: 'London',
       locality: 'Camden',
       occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')],
     })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(entry.title).toBe('London')
+    expect(entry).toMatchObject({ name: 'Evening meditation', place: 'Camden' })
   })
 
-  it('labels entries with the locality when the calendar is scoped to a region', () => {
-    const evt = makeEvent({
-      title: 'Weekly Sahaja Yoga meditation for beginners',
-      regionName: 'London',
-      locality: 'Camden',
-      occurrences: [at('Asia/Kolkata', '2026-07-06T09:30')],
+  it('says where by the address city, and by the region only without one', () => {
+    // A region can be a single venue, named for its street.
+    const venue = makeEvent({
+      regionName: 'R. do Catete, 311',
+      locality: 'Rio de Janeiro',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
     })
-    const scoped: EventFilters = { ...DEFAULT_FILTERS, region: 'london' }
+    const noAddress = makeEvent({
+      regionName: 'London',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
+    })
 
-    const [entry] = eventsToCalendarEntries([evt], scoped, RANGE)
-
-    expect(entry.title).toBe('Camden')
+    expect(eventsToCalendarEntries([venue], DEFAULT_FILTERS, RANGE)[0].place).toBe('Rio de Janeiro')
+    expect(eventsToCalendarEntries([noAddress], DEFAULT_FILTERS, RANGE)[0].place).toBe('London')
   })
 
-  it('puts the "Online" term in the location (not the title) and tags its calendar', () => {
+  it('marks an online class, which has no place to name', () => {
     const evt = makeEvent({
       eventType: 'online',
       regionName: 'London',
       occurrences: [at('UTC', '2026-07-06T18:00')],
     })
-    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, {
-      ...RANGE,
-      onlineLabel: 'Online',
-    })
-
-    // The title is the place. "Online" rides the location field (the colour
-    // distinguishes it in the month/list views, which do not render location).
-    expect(entry.title).toBe('London')
-    expect(entry.location).toBe('Online')
-    expect(entry.calendarId).toBe('online')
-
-    // Placeless online → the title falls back to the event title. The location still flags it.
     const placeless = makeEvent({
       eventType: 'online',
       title: 'Weekly meditation',
       occurrences: [at('UTC', '2026-07-06T18:00')],
     })
-    const [bare] = eventsToCalendarEntries([placeless], DEFAULT_FILTERS, {
-      ...RANGE,
-      onlineLabel: 'Online',
-    })
+    const [entry, bare] = eventsToCalendarEntries([evt, placeless], DEFAULT_FILTERS, RANGE)
 
-    expect(bare.title).toBe('Weekly meditation')
-    expect(bare.location).toBe('Online')
+    expect(entry).toMatchObject({ place: undefined, online: true })
+    expect(bare).toMatchObject({ name: 'Weekly meditation', place: undefined, online: true })
   })
 
-  it('leaves offline entries untagged (no calendarId, no location)', () => {
-    const evt = makeEvent({ regionName: 'London', occurrences: [at('UTC', '2026-07-06T09:30')] })
+  it('leaves an in-person class with no place untagged, with no place', () => {
+    const evt = makeEvent({ title: 'Just the title', occurrences: [at('UTC', '2026-07-06T09:30')] })
     const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
 
-    expect(entry.calendarId).toBeUndefined()
-    expect(entry.location).toBeUndefined()
+    expect(entry.online).toBe(false)
+    expect(entry.place).toBeUndefined()
+  })
+
+  it('names an untitled class by its place, and says the place once', () => {
+    const evt = makeEvent({
+      title: ' ',
+      locality: 'Harrogate',
+      occurrences: [at('UTC', '2026-07-06T09:30')],
+    })
+    const [entry] = eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)
+
+    expect(entry).toMatchObject({ name: 'Harrogate', place: undefined })
+  })
+
+  it('recases a town typed all in capitals', () => {
+    const evt = makeEvent({ locality: 'HARROGATE', occurrences: [at('UTC', '2026-07-06T09:30')] })
+
+    expect(eventsToCalendarEntries([evt], DEFAULT_FILTERS, RANGE)[0].place).toBe('Harrogate')
   })
 
   it('builds the online end time from the event-local endTime (converted, not applied in the viewer zone)', () => {
@@ -203,22 +208,6 @@ describe('eventsToCalendarEntries', () => {
     expect(end.diff(start, 'minutes').minutes).toBe(60)
   })
 
-  it('falls back through region → locality → title when a source is missing', () => {
-    // Region-scoped but no locality → the region name. Neither present → the title.
-    const noLocality = makeEvent({
-      regionName: 'London',
-      occurrences: [at('UTC', '2026-07-06T09:30')],
-    })
-    const bare = makeEvent({
-      title: 'Just the title',
-      occurrences: [at('UTC', '2026-07-06T09:30')],
-    })
-    const scoped: EventFilters = { ...DEFAULT_FILTERS, region: 'london' }
-
-    expect(eventsToCalendarEntries([noLocality], scoped, RANGE)[0].title).toBe('London')
-    expect(eventsToCalendarEntries([bare], DEFAULT_FILTERS, RANGE)[0].title).toBe('Just the title')
-  })
-
   it('trims occurrences to the active day filter (not just event-level match)', () => {
     // A weekly event with a Monday and a Wednesday occurrence. Filter to Mondays only.
     // The event matches at the event level, but only its Monday occurrence should show.
@@ -236,169 +225,134 @@ describe('eventsToCalendarEntries', () => {
   })
 })
 
-describe('computeDayBoundaries', () => {
-  const entry = (start: string, end: string): CalendarEntry => ({
-    id: start,
-    title: 'x',
-    start,
-    end,
-    path: '/1',
+describe('tidyPlaceCase', () => {
+  it('recases a name typed all in capitals, keeping its joining words lower case', () => {
+    expect(tidyPlaceCase('HARROGATE')).toBe('Harrogate')
+    expect(tidyPlaceCase('SOUTHEND-ON-SEA')).toBe('Southend-On-Sea')
+    expect(tidyPlaceCase("L'AQUILA")).toBe("L'Aquila")
+    expect(tidyPlaceCase("ST JOHN'S")).toBe("St John's")
+    expect(tidyPlaceCase('SÃO PAULO')).toBe('São Paulo')
   })
 
-  it('frames to the events (1h either side) when no time filter is set', () => {
-    const entries = [
-      entry('2026-07-06 09:30', '2026-07-06 10:30'),
-      entry('2026-07-06 14:00', '2026-07-06 15:00'),
-    ]
-
-    expect(computeDayBoundaries(entries, [])).toEqual({ start: '08:00', end: '16:00' })
-  })
-
-  it('counts an overnight event to the day end', () => {
-    const entries = [entry('2026-07-06 23:00', '2026-07-07 00:30')]
-
-    expect(computeDayBoundaries(entries, [])).toEqual({ start: '22:00', end: '24:00' })
-  })
-
-  it('is undefined with no entries and no filter', () => {
-    expect(computeDayBoundaries([], [])).toBeUndefined()
-  })
-
-  it('spans a single selected period, ignoring the events', () => {
-    expect(computeDayBoundaries([], ['morning'])).toEqual({ start: '06:00', end: '12:00' })
-  })
-
-  it('spans multiple non-wrapping periods from earliest to latest', () => {
-    expect(computeDayBoundaries([], ['morning', 'evening'])).toEqual({
-      start: '06:00',
-      end: '24:00',
-    })
-  })
-
-  it('frames an overnight span (evening into night) as start > end', () => {
-    expect(computeDayBoundaries([], ['night'])).toEqual({ start: '00:00', end: '06:00' })
-    expect(computeDayBoundaries([], ['evening', 'night'])).toEqual({ start: '17:00', end: '06:00' })
-  })
-
-  it('is undefined when every period is selected (whole day)', () => {
-    expect(computeDayBoundaries([], ['morning', 'afternoon', 'evening', 'night'])).toBeUndefined()
+  it('leaves any other name as it was given, and an abbreviation too', () => {
+    expect(tidyPlaceCase('NYC')).toBe('NYC')
+    expect(tidyPlaceCase('McLean')).toBe('McLean')
+    expect(tidyPlaceCase('coventry')).toBe('coventry')
+    expect(tidyPlaceCase('東京')).toBe('東京')
   })
 })
 
-describe('isCalendarViewOption', () => {
-  it('accepts the three the switch offers', () => {
-    expect(isCalendarViewOption(CALENDAR_VIEW_MONTH)).toBe(true)
-    expect(isCalendarViewOption(CALENDAR_VIEW_WEEK)).toBe(true)
-    expect(isCalendarViewOption(CALENDAR_VIEW_LIST)).toBe(true)
+const entry = (start: string): CalendarEntry => ({
+  id: start,
+  name: 'x',
+  start,
+  end: start,
+  path: '/1',
+  online: false,
+})
+
+describe('the Week', () => {
+  const today = '2026-11-27'
+  const at = (query: string) => calendarWindow(new URLSearchParams(query), today)
+
+  it('opens on the seven days from today, or from its own later day', () => {
+    expect(at('')).toEqual({ start: today, end: '2026-12-03', isThisWeek: true })
+    expect(at('week=2026-12-10')).toEqual({
+      start: '2026-12-10',
+      end: '2026-12-16',
+      isThisWeek: false,
+    })
+    // A day that has passed, or no date at all, opens today; a dates filter is not its week.
+    expect(at('week=2026-11-01').start).toBe(today)
+    expect(at('week=2026-13-40').start).toBe(today)
+    expect(at('dates=2026-12-10,2026-12-31').start).toBe(today)
   })
 
-  // The one name the store must never hold: it renders FOR Month and the switch has no item
-  // for it, so a stored `month-agenda` would light nothing.
-  it('refuses the month agenda', () => {
-    expect(isCalendarViewOption(CALENDAR_VIEW_MONTH_AGENDA)).toBe(false)
+  it('pages a week at a time, and back to this week’s plain address', () => {
+    const next = shiftWeek(at(''), 1, today)
+
+    expect(next).toBe('2026-12-04')
+    expect(shiftWeek(at(`week=${next}`), -1, today)).toBeNull()
   })
 
-  // Radix reports a deselect as the empty string, which is what the guard replaced.
-  it('refuses an empty value and an unknown name', () => {
-    expect(isCalendarViewOption('')).toBe(false)
-    expect(isCalendarViewOption('day')).toBe(false)
+  it('takes its view from the address', () => {
+    expect(calendarViewFromParams(new URLSearchParams('view=week'))).toBe('week')
+    expect(calendarViewFromParams(new URLSearchParams('view=list'))).toBe('month')
+    expect(daysBetween('2026-11-30', '2026-12-02')).toEqual([
+      '2026-11-30',
+      '2026-12-01',
+      '2026-12-02',
+    ])
   })
 })
 
-describe('resolveCalendarView', () => {
-  it('renders what the viewer picked at or above the crossing', () => {
-    expect(resolveCalendarView(CALENDAR_VIEW_MONTH, true)).toEqual({
-      view: CALENDAR_VIEW_MONTH,
-      option: CALENDAR_VIEW_MONTH,
-    })
-    expect(resolveCalendarView(CALENDAR_VIEW_WEEK, true)).toEqual({
-      view: CALENDAR_VIEW_WEEK,
-      option: CALENDAR_VIEW_WEEK,
-    })
+describe('the Month', () => {
+  it('lays a month out in whole weeks from the locale’s first weekday', () => {
+    const monday = monthGrid('2026-11-27', 1)
+    const sunday = monthGrid('2026-11-27', 7)
+
+    expect(monday[0][0]).toBe('2026-10-26')
+    expect(monday.at(-1)?.at(-1)).toBe('2026-12-06')
+    expect(sunday[0][0]).toBe('2026-11-01')
+    expect(sunday.every((week) => week.length === 7)).toBe(true)
   })
 
-  it('collapses month onto the month agenda below the crossing, still lighting Month', () => {
-    expect(resolveCalendarView(CALENDAR_VIEW_MONTH, false)).toEqual({
-      view: CALENDAR_VIEW_MONTH_AGENDA,
-      option: CALENDAR_VIEW_MONTH,
-    })
-  })
+  it('groups entries by their start day, each day in start order', () => {
+    const days = entriesByDay([
+      entry('2026-11-27 19:00'),
+      entry('2026-11-27 09:00'),
+      entry('2026-11-28 10:00'),
+    ])
 
-  it('collapses week onto the month agenda below the crossing, where Week is not offered', () => {
-    expect(resolveCalendarView(CALENDAR_VIEW_WEEK, false)).toEqual({
-      view: CALENDAR_VIEW_MONTH_AGENDA,
-      option: CALENDAR_VIEW_MONTH,
-    })
-  })
-
-  it('passes the list view through at either width', () => {
-    for (const isWide of [true, false]) {
-      expect(resolveCalendarView(CALENDAR_VIEW_LIST, isWide)).toEqual({
-        view: CALENDAR_VIEW_LIST,
-        option: CALENDAR_VIEW_LIST,
-      })
-    }
-  })
-
-  it('treats an unset store as month, so a fresh phone mount renders the agenda', () => {
-    expect(resolveCalendarView(null, true).view).toBe(CALENDAR_VIEW_MONTH)
-    expect(resolveCalendarView(null, false).view).toBe(CALENDAR_VIEW_MONTH_AGENDA)
-  })
-
-  // The store keeps the viewer's pick, never the resolution, so widening restores it — the
-  // round trip the criteria name, a resize over the crossing in both directions.
-  it('restores a stored week above the crossing after a trip below it', () => {
-    const stored = CALENDAR_VIEW_WEEK
-
-    expect(resolveCalendarView(stored, false).option).toBe(CALENDAR_VIEW_MONTH)
-    expect(resolveCalendarView(stored, true).option).toBe(CALENDAR_VIEW_WEEK)
+    expect(days.get('2026-11-27')?.map((e) => e.start)).toEqual([
+      '2026-11-27 09:00',
+      '2026-11-27 19:00',
+    ])
+    expect([...days.keys()]).toEqual(['2026-11-27', '2026-11-28'])
   })
 })
 
-describe('scheduleXLocale', () => {
-  it('keeps an exact match', () => {
-    expect(scheduleXLocale('en-GB')).toBe('en-GB')
-    expect(scheduleXLocale('pt-BR')).toBe('pt-BR')
+describe('the calendar’s own rules', () => {
+  const today = '2026-11-27'
+
+  it('opens the Week on a later day, and on this week’s plain address from today or before', () => {
+    expect(weekFrom('2026-12-04', today)).toBe('2026-12-04')
+    expect(weekFrom(today, today)).toBeNull()
+    expect(weekFrom('2026-11-20', today)).toBeNull()
   })
 
-  it('falls back to the base language for a regional tag it lacks', () => {
-    expect(scheduleXLocale('de-DE')).toBe('de-DE')
-    expect(scheduleXLocale('de-AT')).toBe('de-DE')
-    expect(scheduleXLocale('fr-CA')).toBe('fr-FR')
-    expect(scheduleXLocale('es-MX')).toBe('es-ES')
-    // A Portuguese page whose browser reads pt-PT still runs the grid in Portuguese.
-    expect(scheduleXLocale(regionalLocale('pt-BR', ['pt-PT']))).toBe('pt-BR')
-    expect(scheduleXLocale('pt')).toBe('pt-BR')
+  it('writes the view and its week into the address, and leaves the dates filter alone', () => {
+    const params = 'region=gb&dates=2026-12-01%2C2026-12-31'
+
+    expect(calendarViewToParams('week', '2026-12-04', new URLSearchParams(params)).toString()).toBe(
+      `${params}&view=week&week=2026-12-04`,
+    )
+    expect(
+      calendarViewToParams('week', null, new URLSearchParams('week=2026-12-04')).toString(),
+    ).toBe('view=week')
+    expect(
+      calendarViewToParams(
+        'month',
+        null,
+        new URLSearchParams(`${params}&view=week&week=2026-12-04`),
+      ).toString(),
+    ).toBe(params)
   })
 
-  // The lists beside the grid read `regionalLocale`'s tag, so the grid follows its date order: a
-  // Czech browser's en-CZ reads day first in both.
-  it('runs a regional English as en-GB or en-US by its date order', () => {
-    expect(scheduleXLocale('en')).toBe('en-US')
-    expect(scheduleXLocale('en-US')).toBe('en-US')
-    expect(scheduleXLocale(regionalLocale('en', ['cs-CZ', 'en-US']))).toBe('en-GB')
-    expect(scheduleXLocale('en-DE')).toBe('en-GB')
-    expect(scheduleXLocale('en-AU')).toBe('en-GB')
-    expect(scheduleXLocale('en-ZA')).toBe('en-GB')
-    expect(scheduleXLocale('en-CA')).toBe('en-US')
-    expect(scheduleXLocale(regionalLocale('en', ['pt-BR']))).toBe('en-US')
-  })
-
-  it('falls back to en-US for a language Schedule-X lacks', () => {
-    expect(scheduleXLocale('hu')).toBe('en-US')
-    expect(scheduleXLocale('hu-HU')).toBe('en-US')
+  it('reads an entry’s day and its wall clock off its start', () => {
+    expect(entryDay({ start: '2026-11-27 19:45' })).toBe('2026-11-27')
+    expect(entryTime('2026-11-27 19:45').toFormat('HH:mm')).toBe('19:45')
   })
 })
 
 describe('isCalendarFullWidth', () => {
-  it('is the calendar on top, wide, in its month or week grid', () => {
-    expect(isCalendarFullWidth('calendar', true, CALENDAR_VIEW_MONTH)).toBe(true)
-    expect(isCalendarFullWidth('calendar', true, CALENDAR_VIEW_WEEK)).toBe(true)
+  it('is the calendar on top, wide, in its Month', () => {
+    expect(isCalendarFullWidth('calendar', true, 'month')).toBe(true)
   })
 
-  it('keeps the list, a narrow widget and every other view at the panel width', () => {
-    expect(isCalendarFullWidth('calendar', true, CALENDAR_VIEW_LIST)).toBe(false)
-    expect(isCalendarFullWidth('calendar', false, CALENDAR_VIEW_MONTH)).toBe(false)
-    expect(isCalendarFullWidth('region', true, CALENDAR_VIEW_MONTH)).toBe(false)
+  it('keeps the Week, a narrow widget and every other view at the panel width', () => {
+    expect(isCalendarFullWidth('calendar', true, 'week')).toBe(false)
+    expect(isCalendarFullWidth('calendar', false, 'month')).toBe(false)
+    expect(isCalendarFullWidth('region', true, 'month')).toBe(false)
   })
 })

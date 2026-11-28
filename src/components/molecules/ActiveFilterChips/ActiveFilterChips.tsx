@@ -12,7 +12,7 @@ import { useFilterMenusOnMap } from '@/hooks/use-filter-menus'
 import { useLocale } from '@/hooks/use-locale'
 import { formatTimePeriods } from '@/lib'
 import { formatDate, weekdayNames } from '@/lib/time'
-import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
+import { type EventFilters, isDateRestricted, isTimeRestricted } from '@/lib/shape'
 
 /**
  * The active filters, as a row of removable chips at the top of the search
@@ -29,11 +29,14 @@ import { isDateRestricted, isTimeRestricted } from '@/lib/shape'
  *
  * Beside the filter buttons, which already name every answer, it shows nothing.
  */
-export function ActiveFilterChips() {
+export function ActiveFilterChips({ filters }: { filters?: EventFilters } = {}) {
   const menusShown = useFilterMenusOnMap()
   const { t } = useTranslation()
   const { formatLocale, languageLabel } = useLocale()
-  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } = useEventFilters()
+  const applied = useEventFilters()
+  // A view may show fewer than the URL holds: the calendar's place is its title, not a pill.
+  const { format, timeOfDay, daysOfWeek, languages, cadence, dateRange, region } =
+    filters ?? applied
   const {
     setFormat,
     setCadence,
