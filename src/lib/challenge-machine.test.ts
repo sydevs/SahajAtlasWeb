@@ -148,6 +148,11 @@ describe('challengeMachine', () => {
       { state: 'loading', status: 'loading', token: null, needsClick: false, frameShown: false },
     ],
     [
+      'a click request before the handshake proves the frame alive, and asks for the click',
+      [ev('interactive')],
+      { state: 'needsClick', status: 'ready', token: null, needsClick: true, frameShown: true },
+    ],
+    [
       'an expiry proves the frame alive',
       [ev('expired')],
       { state: 'unsolved', status: 'ready', token: null, needsClick: false, frameShown: false },
