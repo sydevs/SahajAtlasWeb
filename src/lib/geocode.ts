@@ -92,3 +92,25 @@ export const reverseGeocode = async (
     return null
   }
 }
+
+/**
+ * The ids a picked place could be stored under as a region's `mapboxId`: its own, then the town's.
+ * A temporary lookup answers the same id a permanent one stores, so these are compared, never kept
+ * (`docs/rules/mapbox.md`).
+ */
+export const geocodeRegionIds = (feature: GeocodingFeature): string[] => {
+  const properties = feature.properties
+  // A pick of one of these may open the town it sits in, and never anything coarser. The literal
+  // is `FeatureTypes` so a typo fails to compile, and the Set is read as `string` because the
+  // vendor types `feature_type` as one — asking a `Set<FeatureTypes>` directly does not compile.
+  const withinTown: ReadonlySet<string> = new Set<FeatureTypes>([
+    'locality',
+    'neighborhood',
+    'postcode',
+  ])
+  const town = withinTown.has(properties?.feature_type)
+    ? properties?.context?.place?.mapbox_id
+    : undefined
+
+  return [properties?.mapbox_id, town].filter((id): id is string => !!id)
+}

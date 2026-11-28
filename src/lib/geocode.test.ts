@@ -2,7 +2,7 @@ import type { GeocodingFeature } from '@mapbox/search-js-core'
 
 import { describe, it, expect } from 'vitest'
 
-import { geocodeCountryCode } from './geocode'
+import { geocodeCountryCode, geocodeRegionIds } from './geocode'
 
 // A geocoder result reduced to what the reader touches: its `feature_type` (only to
 // distinguish the cases below — the read itself is level-independent by design) and
@@ -48,5 +48,29 @@ describe('geocodeCountryCode', () => {
     expect(geocodeCountryCode(feature('place', { country_code: '' }))).toBeUndefined()
     expect(geocodeCountryCode(feature('place', { country_code: 42 }))).toBeUndefined()
     expect(geocodeCountryCode(feature('place', { name: 'Nowhere' }))).toBeUndefined()
+  })
+})
+
+describe('geocodeRegionIds', () => {
+  const picked = (featureType: string, mapboxId: string, placeId?: string): GeocodingFeature =>
+    ({
+      properties: {
+        feature_type: featureType,
+        mapbox_id: mapboxId,
+        context: placeId ? { place: { mapbox_id: placeId, name: 'Town' } } : {},
+      },
+    }) as unknown as GeocodingFeature
+
+  it.each(['locality', 'neighborhood', 'postcode'])('offers the town around a %s', (type) => {
+    expect(geocodeRegionIds(picked(type, 'pick', 'london'))).toEqual(['pick', 'london'])
+  })
+
+  it.each(['place', 'district'])('never climbs from a %s', (type) => {
+    expect(geocodeRegionIds(picked(type, 'pick', 'london'))).toEqual(['pick'])
+  })
+
+  it('yields nothing for a feature that carries no id', () => {
+    expect(geocodeRegionIds({} as GeocodingFeature)).toEqual([])
+    expect(geocodeRegionIds(picked('neighborhood', ''))).toEqual([])
   })
 })

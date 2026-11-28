@@ -31,7 +31,13 @@ import {
 } from '@/lib/shape'
 import { validateWebUrl } from '@/lib/url'
 import { NavHeader } from '@/views/nav'
-import { CalendarButton, FilterButton, SearchField, useFrameOnTop } from '@/views/shared'
+import {
+  CalendarButton,
+  FilterButton,
+  SearchField,
+  useFrameOnTop,
+  useFrameableRegion,
+} from '@/views/shared'
 
 // A region at any level, at route `<region-path>`. It shows child-region cards, then this
 // region's own located events, in ONE mixed list. A city can hold both venue and centre
@@ -75,10 +81,16 @@ export function RegionView({ slug }: { slug: string }) {
         ? { to: climbDestination(location.pathname), state: { climbedFrom: location.pathname } }
         : { to: lone, state: location.state }
 
+  // A region whose only classes are online has no bounds, so framing it moves nothing and leaves
+  // the camera wherever the visitor came from. The climb hands back the nearest ancestor that can
+  // be fitted, and `region` itself when there is none — which still clears the boundary and the
+  // pin the previous view drew.
+  const framed = useFrameableRegion(slug)
+
   // The page it redirects to frames the map itself, so framing this one too flew the camera twice.
   useFrameOnTop(() => {
-    if (!redirect) frameRegion(region)
-  }, [region, frameRegion, Boolean(redirect)])
+    if (!redirect) frameRegion(framed ?? region)
+  }, [framed, region, frameRegion, Boolean(redirect)])
 
   const header = (region.countryCode && regionNames.of(region.countryCode)) || region.name
   const canonicalUrl = validateWebUrl(region.webUrl)

@@ -162,6 +162,7 @@ const REGIONS_SELECT = {
   parent: true,
   webPath: true,
   webUrl: true,
+  mapboxId: true,
 } as const
 
 // ── Region tree + feed reads (stale-while-revalidate) ───────────────────────────
@@ -484,6 +485,35 @@ const toListItem = (
 const byEventCountDesc = (a: RegionListItem, b: RegionListItem) => b.eventCount - a.eventCount
 
 // ── Hierarchy fetchers (region tree + geojson-derived counts/bounds) ────────────
+
+/**
+ * The page of the first region stored under one of a searched place's Mapbox ids
+ * (`geocodeRegionIds`, most specific first) that holds a class passing `filters`, with the `id`
+ * that matched, or `undefined` to search around the place instead: an empty region's page would
+ * say so, where the search lists the nearest classes. It takes the cached tree and feed rather
+ * than loading them, so a pick never waits on a cold read.
+ *
+ * The matched id is reported because a climbed candidate can resolve to the page the pick was
+ * made from, and the caller must tell that apart from a pick of the page itself.
+ */
+export const searchedRegionRoute = (
+  regions: RegionNode[] | undefined,
+  geojson: Geojson | undefined,
+  ids: readonly string[],
+  filters?: EventFilters,
+): { id: string; route: string } | undefined => {
+  if (!regions || !geojson) return undefined
+
+  const visible = visibleFeatures(indexedFeed(regions, geojson).events, regions, filters)
+
+  for (const id of ids) {
+    const node = regions.find((region) => region.mapboxId === id)
+
+    if (node && countUnder(visible, node.id) > 0) return { id, route: regionRoute(node) }
+  }
+
+  return undefined
+}
 
 // This builds the home and search country list.
 // It lists level=country regions with counts and ISO codes.

@@ -81,7 +81,13 @@ export const eventsQuery = (
 // Each is declared in `fetch.ts`, beside the fetcher it wraps and the loader or warm-up that consumes it.
 // Declaring one here instead would close an import cycle, since this module imports that one.
 // This re-exports them here with the rest, so callers still find every factory in one place.
-export { countriesQuery, eventTitlesQuery, geojsonQuery, regionsQuery } from './fetch'
+export {
+  countriesQuery,
+  eventTitlesQuery,
+  geojsonQuery,
+  regionsQuery,
+  searchedRegionRoute,
+} from './fetch'
 
 // This is the authored report form's contract, in one place.
 // The modal host's warm read and the panel's suspending read inside the boundary both share it, so the key can never drift.

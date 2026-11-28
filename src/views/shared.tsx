@@ -6,7 +6,7 @@ import type { Event, Region } from '@/types'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useQueries, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { CalendarDays, ChevronRight, Funnel, MapPin } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -16,7 +16,13 @@ import { Alert } from '@/components/atoms/Alert'
 import { Spinner } from '@/components/atoms/Spinner'
 import { FallbackPanel } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
+import {
+  eventQuery,
+  geojsonQuery,
+  regionQuery,
+  regionsQuery,
+  searchedRegionRoute,
+} from '@/config/api'
 import { useApproxLocation, useCameraHistory, useSearchFocus } from '@/config/store'
 import { useWidgetMode } from '@/config/mode'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -27,7 +33,7 @@ import { useNearMe } from '@/hooks/use-near-me'
 import { useMapController } from '@/hooks/use-map-controller'
 import { deepActiveElement } from '@/lib/active-element'
 import { hasMapPoint } from '@/lib/camera'
-import { geocodeBounds, geocodeCountryCode } from '@/lib/geocode'
+import { geocodeBounds, geocodeCountryCode, geocodeRegionIds } from '@/lib/geocode'
 import { atlasError } from '@/lib/report'
 import {
   guessedPlace,
@@ -42,9 +48,13 @@ import {
   atlasDepth,
   calendarPath,
   cameFrom,
+  filtersFromParams,
+  isCanonicalPath,
   placeSearchPath,
+  preserveSearchState,
   resolvePath,
   topViewKey,
+  withQuery,
 } from '@/lib/shape'
 
 // The collapse/expand and dismiss control for the sheet, provided by DrawerStack.
@@ -313,10 +323,32 @@ export function SearchField({
     }
   }, [])
   const navigate = useAtlasNavigate()
+  const queryClient = useQueryClient()
+  const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
+      const kept = preserveSearchState(searchParams)
+      const ids = geocodeRegionIds(value)
+      const region = searchedRegionRoute(
+        queryClient.getQueryData(regionsQuery().queryKey),
+        queryClient.getQueryData(geojsonQuery().queryKey),
+        ids,
+        filtersFromParams(kept),
+      )
+
+      if (region && !isCanonicalPath(pathname, region.route)) {
+        navigate(withQuery(region.route, kept))
+
+        return
+      }
+
+      // Picking the place whose page this already is stays put, rather than stacking the page on
+      // itself. A pick that only CLIMBED to this page asked for somewhere narrower, so it falls
+      // through to the search on that point rather than answering with nothing.
+      if (region && region.id === ids[0]) return
+
       navigate(
         // `placeSearchPath` carries the active filters and sort across and
         // resets the searched location — one builder shared with the IP
@@ -334,7 +366,7 @@ export function SearchField({
         }),
       )
     },
-    [navigate, searchParams],
+    [navigate, pathname, queryClient, searchParams],
   )
 
   // After a refused location the line is gone, and the cursor goes to the field, unless the
@@ -419,7 +451,7 @@ export function useFrameOnTop(frame: (ctx: FrameContext) => void, deps: Dependen
 }
 
 /**
- * The region a placeless view should frame: the nearest one at or above `regionSlug` that
+ * The region a view should frame: the nearest one at or above `regionSlug` that
  * `frameRegion` can actually move the camera to. Undefined for no slug, for `map=false`,
  * or while the reads are in flight.
  *

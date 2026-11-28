@@ -30,6 +30,7 @@ export const RegionNodeSchema = z.object({
   parent: z.number().nullish(),
   webPath: z.string().nullish(),
   webUrl: z.string().nullish(),
+  mapboxId: z.string().nullish(),
 } satisfies PartialZodShape<SahajCloudRegion>)
 export type RegionNode = z.infer<typeof RegionNodeSchema>
 
