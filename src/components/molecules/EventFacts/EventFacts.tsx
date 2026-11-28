@@ -110,7 +110,17 @@ export function EventFacts({
     {
       icon: CalendarDays,
       label: t('event.display.fact_time'),
-      text: [primary, time].filter(Boolean).join(' · '),
+      // The class page gives the pattern and the time a line each; a card keeps them on one.
+      text:
+        surface === 'page' && primary && time ? (
+          <>
+            <div>{primary}</div>
+            <div>{time}</div>
+          </>
+        ) : (
+          [primary, time].filter(Boolean).join(' · ')
+        ),
+      stacked: surface === 'page' && Boolean(primary && time),
       subtext: detail ?? undefined,
     },
   ]

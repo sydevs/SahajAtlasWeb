@@ -72,7 +72,7 @@ export function BackButton({ iconOnly = false }: { iconOnly?: boolean }) {
 
   return above ? (
     <InlineAbove>
-      <div className="flex min-h-8 items-center">{button}</div>
+      <div className="mb-2 flex min-h-8 items-center">{button}</div>
     </InlineAbove>
   ) : (
     button
