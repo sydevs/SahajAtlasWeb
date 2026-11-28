@@ -14,13 +14,13 @@ export type FilterRowPlace = 'map' | 'header' | null
  * - Nowhere over the filters' own drawer, which asks the same questions.
  */
 export const filterRowPlace = ({
-  chipsWide,
+  menusWide,
   hasMap,
   top,
   calendarFullWidth,
 }: {
-  /** The widget meets `FILTER_CHIPS_MIN_PX`. */
-  chipsWide: boolean
+  /** The widget meets `FILTER_MENUS_MIN_PX`. */
+  menusWide: boolean
   hasMap: boolean
   /** The view the drawer shows; `undefined` is the countries root. */
   top: StackEntry['kind'] | undefined
@@ -28,7 +28,7 @@ export const filterRowPlace = ({
   calendarFullWidth: boolean
 }): FilterRowPlace => {
   if (top === 'calendar' && calendarFullWidth) return 'header'
-  if (!chipsWide || !hasMap || top === 'filters') return null
+  if (!menusWide || !hasMap || top === 'filters') return null
 
   return 'map'
 }

@@ -56,7 +56,7 @@ export const WIDE_MIN_PX = 768
  * header) rather than a drawer behind the Filters button: Where, When and Language each need about
  * 140px beside the 352px panel and the map's control column. `filterRowPlace` decides where.
  */
-export const FILTER_CHIPS_MIN_PX = 1024
+export const FILTER_MENUS_MIN_PX = 1024
 
 /**
  * This is how long a width has to hold before the app acts on it.

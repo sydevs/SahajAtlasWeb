@@ -19,11 +19,11 @@ import {
   DEFAULT_FILTERS,
   type EventFilters,
   type PlaceSearch,
-  filterOriginRegion,
   filtersToParams,
   hasActiveFilters,
   listsFilteredClasses,
   noPlaceSearch,
+  pageRegion,
   parentOf,
   parseBounds,
   parseCenter,
@@ -45,7 +45,7 @@ export function FilterView() {
   const { locale } = useLocale()
   const control = useDrawerControl()
   const applied = useEventFilters()
-  const originRegion = filterOriginRegion(location.pathname)
+  const originRegion = pageRegion(location.pathname)
 
   // Opened over a region, the filters are scoped to it without saying so in the URL, so an
   // untouched `/gb/filters` still reads as nothing chosen and closes back onto `/gb`.

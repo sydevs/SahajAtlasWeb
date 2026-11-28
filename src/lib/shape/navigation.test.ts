@@ -265,6 +265,19 @@ describe('pageRegion', () => {
     expect(pageRegion('/search')).toBeNull()
     expect(pageRegion('/')).toBeNull()
   })
+
+  it('steps over a trailing filters, at any depth', () => {
+    expect(pageRegion('/gb/filters')).toBe('gb')
+    expect(pageRegion('/gb/london/filters')).toBe('london')
+    expect(pageRegion('/gb/s%C3%A3o-paulo/filters')).toBe('são-paulo')
+  })
+
+  it('is null over a filters path whose page is not a place', () => {
+    expect(pageRegion('/filters')).toBeNull()
+    expect(pageRegion('/search/filters')).toBeNull()
+    expect(pageRegion('/calendar/filters')).toBeNull()
+    expect(pageRegion('/gb/london/507/filters')).toBeNull()
+  })
 })
 
 describe('clearsBackToPlace', () => {

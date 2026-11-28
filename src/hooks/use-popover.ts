@@ -14,6 +14,8 @@ import {
   useRole,
 } from '@floating-ui/react'
 
+import { widgetOverlayContainer } from '@/lib/overlay'
+
 // This is the floating-ui setup shared by every popover surface in the app.
 // Those surfaces are the Dropdown atom's panel and the Share button's fallback networks.
 // Both used to spell out the same `useFloating` plus `offset(8)`, `flip`, `shift`, plus click, dismiss, and role stack.
@@ -82,11 +84,22 @@ export function usePopover({
   // ⚠ Escape belongs to the open popover alone (#542). The drawer around it is a Radix layer,
   // which hears the key in the document's capture phase, before Floating UI's own dismiss, and
   // would close the page with it. The window's capture phase runs before both.
+  //
+  // ⚠ That phase is the whole host page's, so the key is only ours where it was pressed inside
+  // the widget — otherwise an Escape in the host's own modal closes this popover and never
+  // reaches them. `composedPath` is what reads it: the embed mounts in a shadow root, which
+  // retargets `event.target` to `<sahaj-atlas>`. Floating UI's own dismiss still closes the
+  // popover for a key pressed outside, from the document, which is where it belongs.
   useEffect(() => {
     if (!isOpen) return
 
     const claim = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.isComposing) return
+
+      const widget = widgetOverlayContainer()
+
+      if (widget && !event.composedPath().includes(widget)) return
+
       event.stopPropagation()
       setIsOpen(false)
     }

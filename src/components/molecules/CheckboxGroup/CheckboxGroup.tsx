@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 import { Search } from 'lucide-react'
 
 import { Checkbox } from '@/components/atoms/Checkbox'
@@ -9,8 +9,8 @@ import { tv } from '@/styles/tv'
 export type CheckboxGroupOption = {
   value: string
   label: string
-  /** Quiet text at the row's end, such as a count. */
-  meta?: ReactNode
+  /** A live count, shown quietly at the row's end. */
+  count?: number
   disabled?: boolean
 }
 
@@ -21,11 +21,12 @@ export type CheckboxGroupProps = {
   onChange: (next: string[]) => void
   /** Names the group for a screen reader. */
   'aria-label': string
-  /** Names the search box, which shows once there are more than `searchableAbove` options. */
+  /** Names the search box, which shows once the list is long enough to need one. */
   searchLabel: string
-  /** @default 10 */
-  searchableAbove?: number
 }
+
+/** Past this many options the list gets a search box and keeps what is checked at its top. */
+const SEARCHABLE_ABOVE = 10
 
 const group = tv({
   slots: {
@@ -34,13 +35,14 @@ const group = tv({
     searchIcon: 'pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-gray-11',
     row: 'w-full rounded-lg px-2 py-1.5 hover:bg-gray-3',
     rowLabel: 'flex w-full items-baseline justify-between gap-3',
+    count: 'text-xs font-normal text-gray-11 tabular-nums',
   },
 })
 
 /**
- * A list of checkboxes, each with an optional count at its end. A long list (more than
- * `searchableAbove` options) gets a search box at its top, and keeps what is checked at its top,
- * so the visitor's own choices stay in view as they pick.
+ * A list of checkboxes, each with an optional count at its end. A long list gets a search box at
+ * its top, and keeps what is checked at its top, so the visitor's own choices stay in view as
+ * they pick.
  */
 export function CheckboxGroup({
   options,
@@ -48,10 +50,9 @@ export function CheckboxGroup({
   onChange,
   'aria-label': ariaLabel,
   searchLabel,
-  searchableAbove = 10,
 }: CheckboxGroupProps) {
   const slots = group()
-  const long = options.length > searchableAbove
+  const long = options.length > SEARCHABLE_ABOVE
   const [query, setQuery] = useState('')
   const ordered = long
     ? [
@@ -91,7 +92,7 @@ export function CheckboxGroup({
         >
           <span className={slots.rowLabel()}>
             {option.label}
-            {option.meta}
+            {option.count !== undefined && <span className={slots.count()}>{option.count}</span>}
           </span>
         </Checkbox>
       ))}

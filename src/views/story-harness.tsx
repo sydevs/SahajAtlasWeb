@@ -304,7 +304,7 @@ export function ViewHarness({
   const calendarView = useCalendarPosition((s) => s.view)
   const top = path ? resolveStack(path).at(-1)?.kind : undefined
   const filterRow = filterRowPlace({
-    chipsWide: false,
+    menusWide: false,
     hasMap: withMap,
     top,
     calendarFullWidth: isCalendarFullWidth(top, isWide, calendarView),

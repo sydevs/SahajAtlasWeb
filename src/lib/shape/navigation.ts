@@ -6,14 +6,7 @@
  */
 import { filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
 import { ancestorIds, indexRegions } from './hierarchy'
-import {
-  type PlacePathOf,
-  type StackEntry,
-  filterOriginRegion,
-  parentOf,
-  placedPathname,
-  resolveStack,
-} from './path'
+import { type PlacePathOf, type StackEntry, parentOf, placedPathname, resolveStack } from './path'
 
 /**
  * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
@@ -174,7 +167,7 @@ export const backStep = (
           listsFiltered
             ? params
             : filtersToParams(
-                { ...filters, region: filters.region ?? filterOriginRegion(pathname) },
+                { ...filters, region: filters.region ?? pageRegion(pathname) },
                 params,
               ),
         )
@@ -235,9 +228,17 @@ export const loneClassExit = (
 export const listsFilteredClasses = (pathname: string): boolean =>
   pathname === '/search' || pathname === '/calendar'
 
-/** The region a place page shows, or `null` off one: `/gb/south-east/london` → `london`. */
+/**
+ * The region a path is about, or `null` off one: `/gb/south-east/london` → `london`.
+ *
+ * A trailing `filters` is stepped over, so a filter drawer is about the page under it —
+ * `/gb/london/filters` → `london`. A region's own list does not reflect filters, so applying from
+ * there lands on `/search`; without this as the starting scope that search would be worldwide,
+ * and filtering "evenings" from the UK would list evenings everywhere.
+ */
 export const pageRegion = (pathname: string): string | null => {
-  const entry = resolveStack(pathname).at(-1)
+  const entries = resolveStack(pathname)
+  const entry = entries.at(-1)?.kind === 'filters' ? entries.at(-2) : entries.at(-1)
 
   return entry?.kind === 'region' ? entry.slug : null
 }
