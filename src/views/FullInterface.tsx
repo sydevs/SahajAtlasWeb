@@ -8,10 +8,10 @@ import { useWidgetMode } from '@/config/mode'
 import { Mapbox } from '@/components/organisms/Mapbox'
 import { LocatorProvider } from '@/hooks/use-locator'
 import { NoopMapControllerProvider } from '@/hooks/use-map-controller'
-import { RealMapControllerProvider } from '@/hooks/use-map-controller-real'
+import { MapboxControllerProvider } from '@/hooks/use-map-controller-mapbox'
 import { useTurnstileGuard } from '@/hooks/use-turnstile-guard'
 import { DrawerStack } from '@/views'
-import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
+import { FilterMenus } from '@/components/organisms/FilterMenus'
 import { MapControls } from '@/components/organisms/MapControls'
 import api from '@/config/api'
 
@@ -181,7 +181,7 @@ export function MapLayer({
         action={action}
         controls={
           controls && (
-            <MapControls filterMenus={<FilterMenuBar variant="floating" />} variant="floating" />
+            <MapControls filterMenus={<FilterMenus variant="floating" />} variant="floating" />
           )
         }
         cooperative={cooperative}
@@ -207,7 +207,7 @@ export function MapProviders({
     <LocatorProvider>
       {useWidgetMode().hasMap ? (
         <MapProvider>
-          <RealMapControllerProvider inline={inline}>{children}</RealMapControllerProvider>
+          <MapboxControllerProvider inline={inline}>{children}</MapboxControllerProvider>
         </MapProvider>
       ) : (
         <NoopMapControllerProvider>{children}</NoopMapControllerProvider>

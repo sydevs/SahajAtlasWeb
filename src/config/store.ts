@@ -381,14 +381,6 @@ type MapControlsState = {
   /** True where something over the map leaves its control column no clean place to show. */
   hidden: boolean
   setHidden: (hidden: boolean) => void
-  /**
-   * True while the filter buttons show beside the column: the panel sits beside the map, and
-   * neither the full-width calendar, the filters' own drawer, nor a class or its sign-up is on
-   * top. Find-me steps aside
-   * then, since their Where menu's Near me asks the same question.
-   */
-  filterMenus: boolean
-  setFilterMenus: (shown: boolean) => void
 }
 
 /**
@@ -399,8 +391,6 @@ type MapControlsState = {
 export const useMapControls = create<MapControlsState>((set) => ({
   hidden: false,
   setHidden: (hidden) => set(() => ({ hidden })),
-  filterMenus: false,
-  setFilterMenus: (filterMenus) => set(() => ({ filterMenus })),
 }))
 
 type BrowsedCountryState = {

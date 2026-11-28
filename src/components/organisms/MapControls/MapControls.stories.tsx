@@ -1,47 +1,16 @@
 import type { Story, StoryDefault } from '@ladle/react'
 import type { LocateState } from '@/components/organisms/Mapbox/use-locate'
 
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect } from 'react'
 
 import { StorySection, StoryWrapper } from '../../ladle'
 
-import { MapControls, type MapControlsProps } from './MapControls'
+import { MapControls } from './MapControls'
 
 import { FilterMenus } from '@/components/organisms/FilterMenus'
 import { useFindMe } from '@/components/organisms/Mapbox/find-me'
-import { useMapControls } from '@/config/store'
-import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
-import { WhereFilter } from '@/views/Filters/WhereFilter'
 
 export default { title: 'Organisms' } satisfies StoryDefault
-
-/** Live filter buttons in a variant, every tap editing its own answers. */
-function Menus({ variant }: { variant: MapControlsProps['variant'] }) {
-  const [value, setValue] = useState<EventFilters>(DEFAULT_FILTERS)
-
-  return (
-    <FilterMenus
-      value={value}
-      variant={variant}
-      where={{
-        always: true,
-        placeAnswered: false,
-        menu: (facets) => (
-          <WhereFilter
-            searchable
-            counts={facets?.counts.format}
-            region={value.region}
-            onClear={() => setValue({ ...value, region: null })}
-            onPlace={() => {}}
-            onSearchInstead={() => {}}
-          />
-        ),
-      }}
-      onChange={setValue}
-      onClear={() => setValue(DEFAULT_FILTERS)}
-    />
-  )
-}
 
 /** A stand-in for the map behind the floating look. */
 const MapBackdrop = ({ children }: { children: ReactNode }) => (
@@ -53,7 +22,8 @@ const MapBackdrop = ({ children }: { children: ReactNode }) => (
  * they do not (their Where menu's Near me asks the same question), and the settings menu.
  *
  * **Floating** sits in the full map's top-right corner, over the credits (`MapCorner`); its
- * filter buttons show only while the panel sits beside the map. **Inline** is the toolbar above
+ * filter buttons show only while the panel sits beside a map (`useFilterButtonsShown`), which a
+ * story alone has none of, so the Interactive story shows them. **Inline** is the toolbar above
  * the inline embed's map.
  *
  * Find-me follows the map's request as `find-me.ts` publishes it; the Find me control here plays
@@ -62,12 +32,8 @@ const MapBackdrop = ({ children }: { children: ReactNode }) => (
 export const Default: Story<{ findMe: LocateState }> = ({ findMe }) => {
   useEffect(() => {
     useFindMe.setState({ locate: () => {}, state: findMe })
-    useMapControls.setState({ filterMenus: true })
 
-    return () => {
-      useFindMe.setState({ locate: null, state: 'idle' })
-      useMapControls.setState({ filterMenus: false })
-    }
+    return () => useFindMe.setState({ locate: null, state: 'idle' })
   }, [findMe])
 
   return (
@@ -82,19 +48,10 @@ export const Default: Story<{ findMe: LocateState }> = ({ findMe }) => {
       </StorySection>
 
       <StorySection
-        description="Beside the side panel the filter buttons join them, and find-me steps aside."
-        title="Floating, with the filter buttons"
-      >
-        <MapBackdrop>
-          <MapControls filterMenus={<Menus variant="floating" />} />
-        </MapBackdrop>
-      </StorySection>
-
-      <StorySection
         description="The toolbar above the inline embed's map: the filter buttons, then settings."
         title="Inline"
       >
-        <MapControls filterMenus={<Menus variant="inline" />} variant="inline" />
+        <MapControls filterMenus={<FilterMenus />} variant="inline" />
       </StorySection>
 
       <StorySection

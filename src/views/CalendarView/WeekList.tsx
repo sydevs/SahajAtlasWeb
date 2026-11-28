@@ -8,7 +8,7 @@ import { DayClasses } from './EntryList'
 
 import { Button } from '@/components/atoms/Button'
 import { FallbackPanel } from '@/components/molecules'
-import { NoFilterMatches } from '@/components/organisms'
+import { FilterNotice } from '@/components/organisms'
 import { daysBetween, entriesByDay } from '@/lib/shape'
 import { formatDate } from '@/lib/time'
 
@@ -34,7 +34,7 @@ export function WeekList({ entries, week, locale, filtered, onWeekFrom }: WeekLi
 
     // Filters that hid every class say so as every list does; a quiet week offers the next
     // class's week.
-    if (filtered) return <NoFilterMatches />
+    if (filtered) return <FilterNotice kind="no-match" />
 
     return (
       <FallbackPanel align="start" kind="empty">

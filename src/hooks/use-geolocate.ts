@@ -23,7 +23,7 @@ import { placeSearchPath } from '@/lib/shape'
  *    This wiring would otherwise sit there, beside `GeolocationSuggestion`'s identical flow.
  *    `shared.tsx` imports `MapSearch` from the organisms barrel, which re-exports `Mapbox`. That would be a real cycle.
  *  - `Map.tsx` cannot call `useMapController()` at all.
- *    It is a SIBLING of `RealMapControllerProvider`, not a descendant, so it would silently receive the no-op.
+ *    It is a SIBLING of `MapboxControllerProvider`, not a descendant, so it would silently receive the no-op.
  *
  * The feed arrives as an argument because `Map.tsx` already holds it.
  * Passing it keeps this hook off a second `['geojson']` observer, for a value the caller is already subscribed to.
@@ -33,7 +33,7 @@ export function useGeolocateToSearch(geojson: Geojson | undefined) {
   // This is the RAW navigate, for the naming replace below.
   // `useAtlasNavigate` is for pushes. It stamps an incrementing `atlasDepth` and remembers the outgoing camera.
   // Doing either for an entry that added no history would leave Back naming a step that does not exist.
-  // Its own docblock reserves it for pushes, the same way FilterView's apply-replace does.
+  // Its own docblock reserves it for pushes, the same way the filters' in-place writes do.
   const replace = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()

@@ -21,7 +21,7 @@ import { isOnline } from './event'
  * The events passed in are already cut to the scope (the world, a region, or the area around a
  * searched place), so the region filter is not consulted again. Every count goes through
  * `matchesFilters`, the predicate the list and the map apply, so the numbers cannot drift from
- * what Apply then shows.
+ * what the list then shows.
  */
 
 const DAYS = [1, 2, 3, 4, 5, 6, 7] as const
@@ -189,4 +189,16 @@ export const shownGroups = (filters: EventFilters, facets: FilterFacets | undefi
   time: filters.timeOfDay.length > 0 || (facets?.relevance.time ?? true),
   cadence: filters.cadence !== 'any' || (facets?.relevance.cadence ?? true),
   languages: filters.languages.length > 0 || (facets?.counts.languages.length ?? 0) > 0,
+})
+
+/**
+ * `shownGroups`' Where and Language answers, judged on the scope without counting it, for the
+ * closed filter buttons, which need nothing else: whether the scope mixes online and in-person
+ * classes, and whether any of its classes has a language. Unlike `shownGroups` before the counts
+ * arrive, an empty scope (the feed still loading) offers neither, so the buttons wait for it.
+ */
+export const scopeOffers = (filters: EventFilters, events: readonly FilterableEvent[]) => ({
+  format:
+    filters.format !== 'any' || (events.some(isOnline) && events.some((event) => !isOnline(event))),
+  languages: filters.languages.length > 0 || events.some((event) => event.languages?.length),
 })

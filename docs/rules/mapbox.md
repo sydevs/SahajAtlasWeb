@@ -204,7 +204,7 @@ The map is the heart of the app and its hottest render path. Treat it carefully.
   whole world, and it asks by name via `reset()`.
 - **Framing moves only as needed, and flies** (the zoom constants — `EVENT_ZOOM`,
   `VENUE_MAX_ZOOM`, `AREA_MAX_ZOOM`, `REGION_FIT_PADDING`, `ONLINE_ZOOM` — are in
-  `use-map-controller-real.tsx`; the feel is tuned by `FLY_CURVE` / `FLY_SPEED` in
+  `use-map-controller-mapbox.tsx`; the feel is tuned by `FLY_CURVE` / `FLY_SPEED` in
   `use-mapbox.ts`). `frameEvent` keeps the current zoom only for
   an on-screen pin already at detail zoom, and flies in otherwise. A city, region or
   country fit caps at `AREA_MAX_ZOOM` with edge padding, so a place whose classes meet
@@ -378,9 +378,9 @@ out its own children: a slot the map's `controls` prop portals into, then the cr
   and settings, each a floating `Button` drawing its name out of its end in a `HoverLabel`, the
   same pill shape as the credits button opened. The inline map hands the corner nothing: the same
   organism, `inline`, is the toolbar above that map, and its corner holds the credits alone.
-- **The filter buttons show in the corner while `useMapControls().filterMenus` holds**: the panel
-  sits beside the map, and neither the full-width calendar, the filters' own drawer, nor a class
-  or its sign-up is on top.
+- **The filter buttons show in the corner while `useFilterButtonsShown` holds** (the rule the
+  Filters button and the list's filter tags read too): the panel sits beside the map, and
+  neither the full-width calendar, the filters' own drawer, nor a class or its sign-up is on top.
   They cap their width against the map, which `globals.css` makes the size container, so they
   wrap rather than run under the side panel. Being in the same control, the column's hover labels
   draw over them. Find-me steps aside wherever they show (#542): their Where menu's Near me asks

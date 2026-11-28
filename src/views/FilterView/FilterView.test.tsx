@@ -22,14 +22,17 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
   useQuery: () => ({ data: undefined }),
 }))
 vi.mock('@/hooks/use-locale', () => ({
-  useLocale: () => ({ locale: 'en', formatLocale: 'en-GB', languageLabel: (code: string) => code }),
+  useLocale: () => ({
+    t: (key: string) => key,
+    locale: 'en',
+    formatLocale: 'en-GB',
+    languageLabel: (code: string) => code,
+  }),
 }))
 vi.mock('@/config/api', () => ({ regionQuery: () => ({ queryKey: ['region'] }) }))
-vi.mock('@/hooks/use-filter-facets', () => ({ useFilterFacets: () => facets.current }))
-vi.mock('./WhereFilter', () => ({ WhereFilter: () => null }))
-vi.mock('@/components/organisms', async () => ({
-  RecoveryButton: (await import('@/components/organisms/SearchFilters/RecoveryButton'))
-    .RecoveryButton,
+vi.mock('@/hooks/use-filter-counts', () => ({ useFilterCounts: () => facets.current }))
+vi.mock('@/components/organisms', () => ({
+  WhereFilter: () => null,
   SearchFilters: ({ value }: { value: EventFilters }) => <i>region:{value.region ?? '∅'}</i>,
 }))
 vi.mock('@/views/nav', () => ({ NavHeader: () => null }))

@@ -1,6 +1,6 @@
-import type { TranslationKey } from '@/types/i18next'
-
 import { type ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router'
 import { ChevronDown, X } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -14,19 +14,25 @@ import {
   MoreFilters,
   TimeFilter,
 } from '@/components/organisms/SearchFilters'
-import { useFilterFacets, useFilterScope } from '@/hooks/use-filter-facets'
+import { WhereFilter, type WhereFilterProps } from '@/components/organisms/WhereFilter'
+import { regionsQuery } from '@/config/api'
+import { useSearchFocus } from '@/config/store'
+import { useFilterCounts, useFilterScope } from '@/hooks/use-filter-counts'
+import { useFilterEditor } from '@/hooks/use-filter-editor'
+import { useFilterLabels } from '@/hooks/use-filter-labels'
 import { useLocale } from '@/hooks/use-locale'
-import { weekdayNames } from '@/lib/time'
+import { useNearVisitor } from '@/hooks/use-near-me'
 import {
   type EventFilters,
-  type FilterFacets,
   hasActiveFilters,
   isDateRestricted,
-  isOnline,
+  parseCenter,
+  scopeOffers,
+  searchedPlaceName,
 } from '@/lib/shape'
 
 /** The parts of an answer that are set, as one line: "Tue, Wed · Evening". */
-const summarize = (parts: (string | false | null | undefined)[]): string =>
+const summarize = (parts: (string | null | undefined)[]): string =>
   parts.filter(Boolean).join(' · ')
 
 type Menu = 'where' | 'when' | 'language'
@@ -47,29 +53,21 @@ const buttonLook = (variant: Variant, filled: boolean) =>
 // How many answers a button names before it counts them instead.
 const MAX_NAMED = 2
 
-export type FilterMenusWhere = {
-  /** The place in scope, as the button names it: its first part, or Near me. */
-  place?: string | null
-  /** A searched place or Near me is an answer; a place page names its place without being one. */
-  placeAnswered: boolean
-  /** The place half of the menu, which needs the router and the geocoder; format follows it. */
-  menu: (facets: FilterFacets | undefined) => ReactNode
-  /** Shown even where the place half has nothing to offer, as where Near me is. */
-  always: boolean
-}
-
 export type FilterMenusProps = {
-  value: EventFilters
-  onChange: (next: EventFilters) => void
-  /** Clear leads the row once anything is answered. */
-  onClear: () => void
-  /** The Where button, supplied by the view. Absent, there is none. */
-  where?: FilterMenusWhere
   /**
    * `inline` (default): smaller bordered buttons in a view's toolbar, such as the calendar's.
    * `floating`: buttons lifted off the map, beside its own controls in Mapbox's control corner.
    */
   variant?: Variant
+}
+
+// Focuses the list's search box beside the buttons, and leaves no request behind where none is
+// on screen to take it.
+const focusSearch = () => {
+  const { request, consume } = useSearchFocus.getState()
+
+  request()
+  consume()
 }
 
 /**
@@ -85,9 +83,9 @@ function MenuBody({
   menu: Menu
   value: EventFilters
   onChange: (next: EventFilters) => void
-  where?: FilterMenusWhere
+  where: Omit<WhereFilterProps, 'counts' | 'onSearchInstead'>
 }) {
-  const facets = useFilterFacets(value)
+  const facets = useFilterCounts(value)
   const block = {
     value,
     facets,
@@ -98,7 +96,7 @@ function MenuBody({
     <>
       {menu === 'where' && (
         <>
-          {where?.menu(facets)}
+          <WhereFilter {...where} counts={facets?.counts.format} onSearchInstead={focusSearch} />
           <FormatFilter {...block} />
         </>
       )}
@@ -167,43 +165,39 @@ function FilterMenu({
 
 /**
  * The filters on a computer: Where, When and Language, each a button whose menu asks the phone's
- * own questions (`shownGroups`) from the same blocks. Fully controlled: every tap reports the next
- * answers at once. A button with an answer is filled and names it ("Tue · Evening").
+ * own questions (`shownGroups`) from the same blocks. They read and write the URL
+ * (`useFilterEditor`), and every tap applies at once. A button with an answer is filled and names
+ * it ("Tue · Evening"); Where names the place in scope, as an answer where a place was searched.
  */
-export function FilterMenus({
-  value,
-  onChange,
-  onClear,
-  where,
-  variant = 'inline',
-}: FilterMenusProps) {
-  const { t, formatLocale, languageLabel } = useLocale()
+export function FilterMenus({ variant = 'inline' }: FilterMenusProps) {
+  const { t } = useLocale()
+  const { filters: value, write: onChange, clear: onClear, where } = useFilterEditor('buttons')
+  const [searchParams] = useSearchParams()
+  const center = parseCenter(searchParams.get('center'))
+  const nearMe = useNearVisitor(center)
+  const { data: regions } = useQuery(regionsQuery())
   const scope = useFilterScope(value)
-  const weekdays = weekdayNames(formatLocale, 'short')
+  const labels = useFilterLabels(value)
   const menu = { value, onChange, where }
 
-  const whereSummary = summarize([
-    where?.place,
-    value.format !== 'any' && t(`filters.format.${value.format}`),
-  ])
-  const days = value.daysOfWeek.map((day) => weekdays[day - 1])
-  const periods = value.timeOfDay.map((period) => t(`filters.time.${period}`))
-  const cadence =
-    value.cadence !== 'any' && t(`filters.cadence.${value.cadence.toLowerCase()}` as TranslationKey)
-  const dates = isDateRestricted(value.dateRange) && t('filters.dates.label')
-  const whenCount = [...days, ...periods, cadence, dates].filter(Boolean).length
+  // A searched place or Near me is an answer; a place page names its place without being one.
+  const place = center
+    ? nearMe
+      ? t('filters.where.near_me')
+      : searchedPlaceName(searchParams.get('q'))
+    : regions?.find((node) => node.slug === value.region)?.name
+  const whereSummary = summarize([place, labels.format])
+  const whenCount =
+    value.daysOfWeek.length +
+    value.timeOfDay.length +
+    Number(value.cadence !== 'any') +
+    Number(isDateRestricted(value.dateRange))
   // Past two answers a button names how many, not which: a list would not fit it.
   const whenSummary =
     whenCount > MAX_NAMED
       ? t('filters.when.count', { count: whenCount })
-      : summarize([days.join(', '), periods.join(', '), cadence, dates])
-  // What the closed buttons need of the scope, judged without counting it (`shownGroups` asks the
-  // same of the counts inside each menu).
-  const hasLanguages =
-    value.languages.length > 0 || Boolean(scope?.some((event) => event.languages?.length))
-  const mixesFormats =
-    value.format !== 'any' ||
-    Boolean(scope?.some(isOnline) && scope.some((event) => !isOnline(event)))
+      : summarize([labels.days, labels.time, labels.cadence, labels.dates])
+  const offers = scopeOffers(value, scope ?? [])
 
   // Clear leads a row that ends on the right, in either variant, so its arrival moves nothing
   // already there (a button whose menu is open must not slide out from under the pointer), and in
@@ -232,16 +226,14 @@ export function FilterMenus({
       // wraps rather than running under the panel. `font-sans` undoes the map's own Helvetica.
       className={clsx(
         'flex flex-wrap items-center justify-end gap-2',
-        variant === 'floating'
-          ? 'max-w-[calc(100cqw-var(--sy-drawer-w,384px)-96px)] font-sans'
-          : 'ms-auto',
+        variant === 'floating' && 'max-w-[calc(100cqw-var(--sy-drawer-w,384px)-96px)] font-sans',
       )}
       role="group"
     >
       {clear}
-      {where && (where.always || mixesFormats || value.region) && (
+      {(where.searchable || offers.format || value.region) && (
         <FilterMenu
-          filled={where.placeAnswered || value.format !== 'any'}
+          filled={Boolean(center) || value.format !== 'any'}
           label={t('filters.where.label')}
           summary={whereSummary}
           variant={variant}
@@ -252,13 +244,13 @@ export function FilterMenus({
       <FilterMenu label={t('filters.when.label')} summary={whenSummary} variant={variant}>
         <MenuBody {...menu} menu="when" />
       </FilterMenu>
-      {hasLanguages && (
+      {offers.languages && (
         <FilterMenu
           label={t('filters.language.label')}
           summary={
             value.languages.length > MAX_NAMED
               ? t('filters.language.count', { count: value.languages.length })
-              : value.languages.map(languageLabel).join(', ')
+              : labels.languages
           }
           variant={variant}
         >

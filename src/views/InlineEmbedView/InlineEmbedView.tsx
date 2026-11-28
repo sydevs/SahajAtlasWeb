@@ -41,7 +41,7 @@ import {
 } from '@/views/FullInterface'
 import { type Box, MIN_INLINE_HEIGHT_PX, MIN_INLINE_WIDTH_PX } from '@/views/InlineEmbedView/fit'
 import { headingPlace } from '@/views/InlineEmbedView/heading-place'
-import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
+import { FilterMenus } from '@/components/organisms/FilterMenus'
 import { MapControls } from '@/components/organisms/MapControls'
 import { InlineAboveProvider, InlineAsideProvider } from '@/hooks/use-inline-aside'
 import {
@@ -346,7 +346,7 @@ export function InlineColumns({
           >
             <div ref={setToolbar}>
               <MapControls
-                filterMenus={NO_FILTER_MENUS.has(topKind ?? '') ? undefined : <FilterMenuBar />}
+                filterMenus={NO_FILTER_MENUS.has(topKind ?? '') ? undefined : <FilterMenus />}
                 variant="inline"
               />
             </div>

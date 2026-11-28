@@ -6,6 +6,7 @@ import {
   lazy,
   startTransition,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -73,7 +74,7 @@ import { DrawerControlContext, NO_DRAWER_CONTROL } from '@/views/shared'
 import { DrawerErrorFallback, DrawerLoading } from '@/views/fallbacks'
 import { CountriesView } from '@/views/CountriesView/CountriesView'
 import { SearchView } from '@/views/SearchView/SearchView'
-import { FilterView } from '@/views/Filters/FilterView'
+import { FilterView } from '@/views/FilterView/FilterView'
 import { RegionView } from '@/views/RegionView/RegionView'
 import { OnlineView } from '@/views/OnlineView/OnlineView'
 import { EventView } from '@/views/EventView/EventView'
@@ -171,13 +172,6 @@ function CloseMapButton({ beside }: { beside: boolean }) {
   )
 }
 
-// The views the filter buttons step aside on.
-const NO_FILTER_MENUS = new Set<string>([
-  'filters',
-  'event',
-  'register',
-] satisfies StackEntry['kind'][])
-
 // The whole drawer navigation, derived purely from the pathname. ONE persistent vaul
 // drawer holds the active (top) view. The sheet renders once — DrawerStack owns the
 // DrawerContent, and views are just its inner content. So navigating never remounts or
@@ -216,13 +210,17 @@ export function DrawerStack({
   const queryClient = useQueryClient()
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   // How wide the WIDGET is, not the screen (issue #107). `container` is the inline content
-  // column. In map mode there is no such element, but there
-  // can be a FRAME — the expanded dialog. Where one exists, it is the honest answer to "does a
-  // 384px side panel leave usable space beside it?", because the panel sits inside it. With
-  // no frame, this call is `useIsWide(null)`, the viewport. This value is shared with the
-  // subtree via `WidgetWidthContext` at the foot of this component, so no descendant can
+  // column. In map mode there is no such element, but there can be a FRAME — the expanded
+  // dialog. Where one exists, it is the honest answer to "does a 384px side panel leave usable
+  // space beside it?", because the panel sits inside it. With no frame, this call is
+  // `useIsWide(null)`, the viewport. On a map the map controller measures that frame and provides
+  // the answer to the map and to this stack alike (`MapboxControllerProvider`), so the map's
+  // controls cannot disagree with the panel; inline, this stack measures its own column and
+  // provides it at its foot. Either way no descendant can
   // disagree with the drawer it sits in.
-  const isWide = useIsWide(container ?? frameElement())
+  const provided = useContext(WidgetWidthContext)
+  const measured = useIsWide(provided === null ? (container ?? frameElement()) : null)
+  const isWide = provided ?? measured
   const direction: Direction = isWide ? 'left' : 'bottom'
   const [snap, setSnap] = useState<number | string | null>(OPEN_SNAP)
   // Set by "Show N classes": the results it closes onto open at the near-full stop.
@@ -265,17 +263,6 @@ export function DrawerStack({
     isWide,
     calendarViewFromParams(new URLSearchParams(location.search)),
   )
-  // The filter buttons show beside the map's controls wherever the panel sits beside it, except
-  // under the full-width calendar, which carries them in its own header, over the filters' own
-  // drawer, which asks the same questions, and on a class and its sign-up, which filter nothing.
-  const filterMenus = sheeted && isWide && !wide && !NO_FILTER_MENUS.has(top?.kind ?? '')
-  const setFilterMenus = useMapControls((s) => s.setFilterMenus)
-
-  useEffect(() => {
-    setFilterMenus(filterMenus)
-
-    return () => setFilterMenus(false)
-  }, [filterMenus, setFilterMenus])
   // What Back does, worked out once for its label and its press. A fresh deep link's climb follows
   // the region tree, not the words typed: `/united-kingdom/south-east/london` shows London, and
   // Back must lead to the UK at `/gb`, not a `/united-kingdom` that doesn't exist. It also passes
@@ -690,7 +677,7 @@ export function DrawerStack({
 
   // The filter overlay drawer (map mode only): a modal panel over the mounted
   // calendar — right at ≥md, a bottom sheet on mobile — with its own control.
-  // FilterView's Apply and Clear actions navigate to /calendar too, which closes it.
+  // Closing it, by its button, the X or Esc, lands back on /calendar.
   const filterDrawer = filterOverlay ? (
     <DrawerControlContext.Provider value={overlayControl}>
       <Drawer
@@ -740,51 +727,49 @@ export function DrawerStack({
   const target = overlayContainer()
 
   return (
-    <WidgetWidthContext.Provider value={isWide}>
-      <DrawerControlContext.Provider value={control}>
-        {target &&
-          createPortal(
-            <>
-              <div
-                ref={sheetOriginRef}
-                aria-hidden
-                className="pointer-events-none fixed top-0 h-0 w-0"
-              />
-              {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
-              {expanded && (
-                <div ref={floatRef} className="contents">
-                  <CloseMapButton beside={isWide && !wide} />
-                </div>
-              )}
-            </>,
-            target,
-          )}
-        <Drawer
-          key={direction}
-          dismissible
-          enterInPlace
-          open
-          activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
-          container={target}
-          direction={direction}
-          // The left panel (≥md) has no handle and no snap points, so restricting
-          // drag to the (absent) handle makes it undraggable — dismiss stays Back
-          // only. The mobile bottom sheet keeps its full-panel snap-drag.
-          handleOnly={direction === 'left'}
-          // The box vaul measures snap points against — the frame, or the window.
-          // Deliberately NOT `target`: that is the portal target, which embedded is
-          // the `display: contents` theme root and measures 0×0. See the note in
-          // `Drawer.tsx`.
-          measureAgainst={frameElement()}
-          setActiveSnapPoint={direction === 'bottom' ? setShownSnap : undefined}
-          snapPoints={direction === 'bottom' ? shownSnapPoints : undefined}
-          wide={wide}
-          onOpenChange={(o) => !o && control.dismiss()}
-        >
-          {sheet}
-        </Drawer>
-        {filterDrawer}
-      </DrawerControlContext.Provider>
-    </WidgetWidthContext.Provider>
+    <DrawerControlContext.Provider value={control}>
+      {target &&
+        createPortal(
+          <>
+            <div
+              ref={sheetOriginRef}
+              aria-hidden
+              className="pointer-events-none fixed top-0 h-0 w-0"
+            />
+            {dimmed && <div aria-hidden className="fixed inset-0 z-30 bg-black/50" />}
+            {expanded && (
+              <div ref={floatRef} className="contents">
+                <CloseMapButton beside={isWide && !wide} />
+              </div>
+            )}
+          </>,
+          target,
+        )}
+      <Drawer
+        key={direction}
+        dismissible
+        enterInPlace
+        open
+        activeSnapPoint={direction === 'bottom' ? shownSnap : undefined}
+        container={target}
+        direction={direction}
+        // The left panel (≥md) has no handle and no snap points, so restricting
+        // drag to the (absent) handle makes it undraggable — dismiss stays Back
+        // only. The mobile bottom sheet keeps its full-panel snap-drag.
+        handleOnly={direction === 'left'}
+        // The box vaul measures snap points against — the frame, or the window.
+        // Deliberately NOT `target`: that is the portal target, which embedded is
+        // the `display: contents` theme root and measures 0×0. See the note in
+        // `Drawer.tsx`.
+        measureAgainst={frameElement()}
+        setActiveSnapPoint={direction === 'bottom' ? setShownSnap : undefined}
+        snapPoints={direction === 'bottom' ? shownSnapPoints : undefined}
+        wide={wide}
+        onOpenChange={(o) => !o && control.dismiss()}
+      >
+        {sheet}
+      </Drawer>
+      {filterDrawer}
+    </DrawerControlContext.Provider>
   )
 }

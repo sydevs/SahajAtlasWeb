@@ -13,7 +13,7 @@ import {
   List,
   ListItem,
 } from '@/components/molecules'
-import { NoFilterMatches } from '@/components/organisms'
+import { FilterNotice } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
 import { useEventFilters, useFilterSearch } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
@@ -180,7 +180,7 @@ export function RegionView({ slug }: { slug: string }) {
         )}
         {isEmpty ? (
           hasActiveFilters(filters) ? (
-            <NoFilterMatches />
+            <FilterNotice kind="no-match" />
           ) : (
             <FallbackPanel hasSearchChrome align="start" kind="empty" />
           )

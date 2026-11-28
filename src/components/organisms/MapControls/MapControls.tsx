@@ -9,7 +9,7 @@ import { Spinner } from '@/components/atoms/Spinner'
 import { SettingsMenu } from '@/components/molecules/SettingsMenu'
 import { useFindMe } from '@/components/organisms/Mapbox/find-me'
 import { useIsShortViewport } from '@/config/responsive'
-import { useMapControls } from '@/config/store'
+import { useFilterButtonsShown } from '@/hooks/use-filter-buttons'
 
 export type MapControlsProps = {
   /**
@@ -19,7 +19,7 @@ export type MapControlsProps = {
   variant?: 'floating' | 'inline'
   /**
    * The filter buttons (`FilterMenus`), in the same variant. Floating, they show beside the column
-   * while `useMapControls().filterMenus` holds; inline, whenever given.
+   * while `useFilterButtonsShown` holds; inline, whenever given.
    */
   filterMenus?: ReactNode
 }
@@ -76,7 +76,7 @@ export const MapControls = memo(function MapControls({
   variant = 'floating',
   filterMenus,
 }: MapControlsProps) {
-  const claimed = useMapControls((s) => s.filterMenus)
+  const claimed = useFilterButtonsShown()
   // A phone on its side is too short for a column, so the buttons run as a row there, clear of
   // the short window's sheet, which `DrawerStack` caps by the same signal.
   const short = useIsShortViewport()
@@ -86,7 +86,7 @@ export const MapControls = memo(function MapControls({
   if (!floating) {
     return (
       <div className="flex items-start gap-1">
-        <div className="min-w-0 flex-1">{menus}</div>
+        <div className="flex min-w-0 flex-1 justify-end">{menus}</div>
         {!menus && <FindMe floating={false} />}
         <SettingsMenu align="end" className="-me-1.5 pointer-coarse:-me-3" variant="ghost" />
       </div>

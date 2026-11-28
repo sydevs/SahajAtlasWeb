@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { DrawerBody, DrawerHeader, DrawerToolbar } from '@/components/atoms/Drawer'
 import { MeditateFigure } from '@/components/atoms/Icons'
 import { ActiveFilterChips, List, ListItem } from '@/components/molecules'
-import { NoFilterMatches } from '@/components/organisms'
+import { FilterNotice } from '@/components/organisms'
 import api, { clientQuery, countriesQuery } from '@/config/api'
 import atlasAuth from '@/config/api/auth'
 import { useEventFilters, useFilterSearch } from '@/hooks/use-filters'
@@ -137,7 +137,7 @@ export function CountriesView() {
           </h2>
         )}
         {noMatches ? (
-          <NoFilterMatches />
+          <FilterNotice kind="no-match" />
         ) : (
           <List>
             {sortedCountries.map((country) => (

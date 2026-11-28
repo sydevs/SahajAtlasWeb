@@ -10,6 +10,9 @@ export type { StorySectionProps } from './StorySection'
 export { SeedSearchParams } from './SeedSearchParams'
 export type { SeedSearchParamsProps } from './SeedSearchParams'
 
+export { StoryAddress } from './StoryAddress'
+export type { StoryAddressProps } from './StoryAddress'
+
 export {
   StoryGrid,
   StoryGridHeader,
