@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { DrawerBody } from '@/components/atoms/Drawer'
 import { ActiveFilterChips, EventListItem, List } from '@/components/molecules'
-import { NoFilterMatches } from '@/components/organisms'
+import { FilterNotice } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
 import { useEventFilters } from '@/hooks/use-filters'
 import { useLocale } from '@/hooks/use-locale'
@@ -61,7 +61,7 @@ export function OnlineView({ regionSlug, path }: { regionSlug: string; path: str
       <DrawerBody>
         <ActiveFilterChips />
         {events.length === 0 && hasActiveFilters(filters) ? (
-          <NoFilterMatches />
+          <FilterNotice kind="no-match" />
         ) : events.length === 0 ? (
           <EmptyEventList />
         ) : (

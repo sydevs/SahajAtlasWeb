@@ -6,13 +6,13 @@ import { WhereFilter } from './WhereFilter'
 
 import { DrawerBody, DrawerFooter } from '@/components/atoms/Drawer'
 import { Button } from '@/components/atoms/Button'
-import { RecoveryButton } from '@/components/molecules/RecoveryButton'
 import { SearchFilters } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useSearchFocus } from '@/config/store'
 import { useFilterEditor } from '@/hooks/use-filter-editor'
 import { useFilterCounts } from '@/hooks/use-filter-counts'
+import { useFilterRecovery } from '@/hooks/use-filter-recovery'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
 import { hasActiveFilters, pageRegion, parseBounds, parseCenter } from '@/lib/shape'
@@ -63,9 +63,9 @@ export function FilterView() {
   }
 
   const answered = hasActiveFilters({ ...filters, region: null })
-  const recovery = count === 0 ? facets?.recovery : undefined
+  const removal = useFilterRecovery(filters, count === 0 ? facets?.recovery : undefined, write)
   // Nothing matches, and removing any one answer still finds nothing: Clear is the way out.
-  const clearLeads = count === 0 && !recovery
+  const clearLeads = count === 0 && !removal
   // On the phone sheet the bar is pinned to the screen's bottom edge, so the way out stays in
   // reach whatever the sheet's height. The calendar's overlay fills the screen, so its own end is
   // already there.
@@ -111,13 +111,10 @@ export function FilterView() {
               {t('filters.chrome.clear')}
             </Button>
           )}
-          {recovery ? (
-            <RecoveryButton
-              className="min-w-0 flex-1"
-              filters={filters}
-              recovery={recovery}
-              onApply={write}
-            />
+          {removal ? (
+            <Button className="min-w-0 flex-1" color="primary" onClick={removal.apply}>
+              <span className="truncate">{removal.label}</span>
+            </Button>
           ) : (
             !clearLeads && (
               <Button

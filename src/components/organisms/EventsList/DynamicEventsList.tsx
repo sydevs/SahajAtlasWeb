@@ -3,11 +3,11 @@ import { useSearchParams } from 'react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { EventsList } from './EventsList'
-import { HiddenByFilters, NoFilterMatches } from './FilterNotes'
 import { LoadMore } from './LoadMore'
 
 import { ActiveFilterChips } from '@/components/molecules/ActiveFilterChips'
 import { FallbackPanel } from '@/components/molecules/Fallbacks'
+import { FilterNotice } from '@/components/organisms/FilterNotice'
 import { useFilterScope } from '@/hooks/use-filter-counts'
 import {
   DEFAULT_REVEAL,
@@ -160,7 +160,7 @@ export function DynamicEventsList({
           <EventsList events={rows} searchedPlace={searchedPlace} showDistance={hasSearchCenter} />
         )}
       </div>
-      {rows.length > 0 && hidden > 0 && <HiddenByFilters count={hidden} />}
+      {rows.length > 0 && hidden > 0 && <FilterNotice count={hidden} kind="hidden" />}
       {/* At this point, nothing is left to offer and nothing has announced yet.
           But once a reveal HAS happened, the footer stays mounted. This way,
           the final press's announcement is not unmounted in the same commit
@@ -206,7 +206,7 @@ export function DynamicEventsList({
 //     "show events farther than N km" control below the list is how the user
 //     reaches them. This is the one row that offers nothing else, because
 //     that control is already the way out.
-//  3. Otherwise, when filters are the reason, `NoFilterMatches` says so, with the one removal
+//  3. Otherwise, when filters are the reason, `FilterNotice` says so, with the one removal
 //     that brings classes back and "Clear filters". Else this shows the plain "no events" line,
 //     with the onward offer behind it.
 //
@@ -250,7 +250,7 @@ function EmptyResults({ nearbyKm }: { nearbyKm?: number }) {
     )
   }
 
-  if (hasActiveFilters(filters)) return <NoFilterMatches />
+  if (hasActiveFilters(filters)) return <FilterNotice kind="no-match" />
 
   return <FallbackPanel hasSearchChrome align="start" kind="empty" />
 }

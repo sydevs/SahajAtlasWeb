@@ -334,7 +334,7 @@ two axes separate — an inner fallback must never re-throw to escalate.
   barren region and a URL that never existed leave a
   viewer in the same position, so both render `FallbackPanel` and only the
   policy row differs. A list the filters emptied is the exception: the filters
-  are the explanation and the way out, so `NoFilterMatches` says so in one line
+  are the explanation and the way out, so `FilterNotice` says so in one line
   with its ways out as links, the same on every list.
   - **`unavailable`** is the row whose next step is a person: a full, ended, or
     closed class still exists, so `contact` leads with a number where one

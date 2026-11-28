@@ -63,7 +63,7 @@ function Example({ initial, place, placeAnswered = false, variant }: ExampleProp
  * chosen, so its arrival moves nothing already there.
  *
  * A set that matches nothing is not the menus' to explain: the list of classes says so, with the
- * way out (`NoFilterMatches`).
+ * way out (`FilterNotice`).
  *
  * The browser here refuses the visitor's location, so Near me in any Where menu shows what it says
  * then.

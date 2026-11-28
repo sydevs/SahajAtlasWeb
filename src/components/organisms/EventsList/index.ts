@@ -4,5 +4,4 @@
 // presentational list — from its story, for example — does not add the api
 // and i18n graph.
 export { DynamicEventsList } from './DynamicEventsList'
-export { NoFilterMatches } from './FilterNotes'
 export type { DynamicEventsListProps } from './DynamicEventsList'
