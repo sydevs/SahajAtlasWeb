@@ -18,7 +18,7 @@ import clsx from 'clsx'
 
 import { Button } from '@/components/atoms/Button'
 import { SettingsMenu } from '@/components/molecules'
-import { regionsQuery } from '@/config/api'
+import { eventQuery, regionsQuery } from '@/config/api'
 import embed from '@/config/embed'
 import { useWidgetMode } from '@/config/mode'
 import { useReportModal } from '@/config/store'
@@ -43,7 +43,7 @@ import { type Box, MIN_INLINE_HEIGHT_PX, MIN_INLINE_WIDTH_PX } from '@/views/Inl
 import { headingPlace } from '@/views/InlineEmbedView/heading-place'
 import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
 import { MapControls } from '@/components/organisms/MapControls'
-import { InlineAsideProvider } from '@/hooks/use-inline-aside'
+import { InlineAboveProvider, InlineAsideProvider } from '@/hooks/use-inline-aside'
 import {
   hostElement,
   pageHasHeading,
@@ -69,14 +69,22 @@ import {
 // ===== THE HEADING ===== //
 
 /**
- * "Free Meditation classes in London": the place the route is in (`headingPlace`), or the
- * world's own title. A venue or a class keeps its own name as the panel's smaller heading below.
- * It is the page's main heading only where the host's page has none of its own.
+ * "Free meditation classes in London": the place the route is in (`headingPlace`), or the
+ * world's own title. On a class and its sign-up, the class's own name instead, so the page has
+ * one title for it; a venue keeps its own name as the panel's smaller heading below. It is the
+ * page's main heading only where the host's page has none of its own.
  */
 export function PlaceHeading() {
-  const { t, regionNames } = useLocale()
+  const { t, regionNames, locale } = useLocale()
   const { pathname } = useLocation()
   const { data: tree } = useQuery(regionsQuery())
+  const classId = resolveStack(pathname)
+    .filter((entry) => entry.kind === 'event')
+    .at(-1)
+  const { data: event } = useQuery({
+    ...eventQuery(classId?.kind === 'event' ? classId.id : 0, locale),
+    enabled: classId?.kind === 'event',
+  })
   const [Heading] = useState<'h1' | 'h2'>(() => (pageHasHeading(hostElement()) ? 'h2' : 'h1'))
 
   const place = useMemo(
@@ -86,7 +94,11 @@ export function PlaceHeading() {
 
   return (
     <Heading className="min-w-0 text-2xl font-semibold">
-      {place ? t('countries.place_title', { place }) : t('countries.title')}
+      {classId && event
+        ? event.title
+        : place
+          ? t('countries.place_title', { place })
+          : t('countries.title')}
     </Heading>
   )
 }
@@ -203,15 +215,15 @@ function ExpandedDialog({ children }: { children: ReactNode }) {
 // ===== THE VIEW ===== //
 
 /**
- * Over the inline map's bottom-left corner — physically left, since the wordmark holds the bottom
- * right — or under the heading of an atlas too small for its box. Not the top left: in a box
- * narrower than about 350px, find-me's hover label grows from the top right across it.
+ * In the inline map's bottom-left corner, placed by Mapbox as the map's one action (`MapAction`)
+ * — physically left, since the wordmark holds the bottom right — or under the heading of an atlas
+ * too small for its box.
  *
  * A frame cannot grow where it is — the standalone page framed, or a host page that is itself
  * framed — so there the button opens a page that fits, in a new tab. So does a map-less atlas,
  * which has no map of its own to expand.
  */
-function ExpandButton({ className }: { className?: string }) {
+export function ExpandButton({ className }: { className?: string }) {
   const { t } = useLocale()
   const { standalone, hasMap } = useWidgetMode()
   const { expand } = useExpansion()
@@ -255,7 +267,7 @@ const CLASS_VIEWS = new Set<string>(['event', 'register'] satisfies StackEntry['
 // The views the toolbar's filter buttons step aside on: the filters' own, which asks the same
 // questions, and a class and its sign-up, which filter nothing.
 const NO_FILTER_MENUS = new Set<string>(['filters', ...CLASS_VIEWS])
-// The toolbar's distance above the map, `mt-3`.
+// The toolbar's distance above the map, `mt-3`, which is also the rows' gap.
 const TOOLBAR_GAP = 12
 
 export function InlineColumns({
@@ -276,6 +288,7 @@ export function InlineColumns({
   const classPage = CLASS_VIEWS.has(topKind ?? '')
   const [grid, setGrid] = useState<HTMLDivElement | null>(null)
   const [headingBox, setHeadingBox] = useState<HTMLDivElement | null>(null)
+  const [above, setAbove] = useState<HTMLDivElement | null>(null)
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)
   const [aside, setAside] = useState<HTMLDivElement | null>(null)
   const headingHeight = useHeight(headingBox)
@@ -294,7 +307,12 @@ export function InlineColumns({
     <div
       ref={setGrid}
       className={clsx(
-        'grid gap-x-4 gap-y-2',
+        // No gap between the columns: the content's own gutter spaces it from the map. The rows'
+        // gap is the toolbar's above the map, so row 2 starts level with the map's top.
+        'grid gap-y-3',
+        // The heading's row hugs it: a map column taller than the content would otherwise share
+        // its spare height into that row, opening a gap under the heading.
+        hasMap && '@min-sy-cols:grid-rows-[auto_1fr]',
         hasMap &&
           (classPage
             ? '@min-sy-cols:grid-cols-[3fr_minmax(352px,2fr)]'
@@ -305,7 +323,10 @@ export function InlineColumns({
         className="min-w-0 @min-sy-cols:col-start-1 @min-sy-cols:row-start-1"
         style={{ paddingTop: Math.max(0, -lift) }}
       >
-        <div ref={setHeadingBox}>{heading}</div>
+        <div ref={setHeadingBox}>
+          <div ref={setAbove} className="px-gutter empty:hidden" />
+          {heading}
+        </div>
       </div>
       {hasMap && (
         <div
@@ -335,15 +356,16 @@ export function InlineColumns({
               className="relative mt-3 h-[clamp(180px,33vh,320px)] transform-gpu overflow-clip rounded-2xl border border-divider [contain:layout] @min-sy-cols:aspect-square @min-sy-cols:h-auto"
             >
               {map}
-              <ExpandButton className="absolute bottom-3 left-3 z-10" />
             </div>
-            <div ref={setAside} className="flex flex-col gap-3 pt-4 empty:hidden" />
+            <div ref={setAside} className="flex flex-col gap-4 pt-4 empty:hidden" />
           </div>
         </div>
       )}
       {/* The page heading sets the width here, so the bands' own cap is lifted. */}
       <div className="flex min-w-0 flex-col pt-2 [--sy-content-max:none] @min-sy-cols:col-start-1 @min-sy-cols:row-start-2 @min-sy-cols:pt-0">
-        <InlineAsideProvider value={sideBySide ? aside : null}>{children}</InlineAsideProvider>
+        <InlineAboveProvider value={above}>
+          <InlineAsideProvider value={sideBySide ? aside : null}>{children}</InlineAsideProvider>
+        </InlineAboveProvider>
       </div>
     </div>
   )
@@ -486,7 +508,13 @@ function InlineLayout() {
                 // The expanded dialog runs its own map, and two maps would fight over the one
                 // camera-settled flag; this one comes back, and re-frames, on collapse.
                 map={
-                  !expanded && <MapLayer controls={false} cooperative={embed.config.cooperative} />
+                  !expanded && (
+                    <MapLayer
+                      action={<ExpandButton />}
+                      controls={false}
+                      cooperative={embed.config.cooperative}
+                    />
+                  )
                 }
                 top={top}
               >

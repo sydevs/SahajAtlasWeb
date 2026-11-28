@@ -20,3 +20,20 @@ export function InlineAside({ children }: { children: ReactNode }) {
 
   return target && createPortal(children, target)
 }
+
+const InlineAboveContext = createContext<HTMLElement | null>(null)
+
+/**
+ * The box above the inline embed's page heading, for what a view leads with ahead of that
+ * heading: a class's way back, since the heading names the class. `null` anywhere else.
+ */
+export const InlineAboveProvider = InlineAboveContext.Provider
+
+export const useInlineAbove = () => useContext(InlineAboveContext)
+
+/** Renders its children above the inline page heading, or nothing where there is no such box. */
+export function InlineAbove({ children }: { children: ReactNode }) {
+  const target = useInlineAbove()
+
+  return target && createPortal(children, target)
+}

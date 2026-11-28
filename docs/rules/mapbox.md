@@ -420,10 +420,12 @@ collapsed form — its own information button, which `compact` renders — and s
 any other placement must be reviewed and approved by Mapbox, so the credits
 cannot move into the settings menu, and cannot be redrawn as one of our Buttons.
 
-⚠ The top-right corner is `MapCorner`'s, so nothing else of ours may sit there: the inline
-map's "Expand map" takes the bottom LEFT, and the expanded map's "Close map" floats at the bottom
-middle. `.mapboxgl-ctrl-top-right` takes the right-hand safe area,
-and moves the whole corner as one; it is not a per-layout rule.
+⚠ The top-right corner is `MapCorner`'s, so nothing else of ours may sit there. The inline
+map's "Expand map" is the map's one action, bottom LEFT, and Mapbox places it too: `MapAction`
+is a `useControl` in that corner, so no stylesheet rule positions it. Both sit 12px in from the
+map's edges, and the credits, with no controls above them, sit on that inset too. The expanded
+map's "Close map" floats at the bottom middle. `.mapboxgl-ctrl-top-right` takes the right-hand
+safe area, and moves the whole corner as one; it is not a per-layout rule.
 
 ## A geocoder lookup is temporary, and nothing stores its answer
 

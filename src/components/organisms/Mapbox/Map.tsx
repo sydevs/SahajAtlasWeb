@@ -32,7 +32,7 @@ import {
   type SymbolLayerProps,
 } from './layers'
 import { useFindMe } from './find-me'
-import { MapCorner } from './MapCorner'
+import { MapAction, MapCorner } from './MapCorner'
 import { mapWorldview, syncMapLanguage } from './map-language'
 import { loadMapLib } from './map-lib'
 import { markerColors, registerMarkerImages } from './markers'
@@ -243,11 +243,13 @@ function EventPinPopover({
  *   two fingers or Ctrl/⌘ + wheel (`gestures=cooperative`, the inline map only).
  * @param controls What sits in the map's top-right corner above the credits (`MapControls`). The
  *   inline map has none: its controls sit in the toolbar above it.
+ * @param action The map's one action, bottom left: the inline map's "Expand map".
  */
 export function Mapbox({
   cooperative = false,
   controls,
-}: { cooperative?: boolean; controls?: ReactNode } = {}) {
+  action,
+}: { cooperative?: boolean; controls?: ReactNode; action?: ReactNode } = {}) {
   let navigate = useAtlasNavigate()
   const { mapbox, padding, moveMap } = useMapbox()
   // ⚠ Not `zoom`, `latitude` or `longitude`: the map is uncontrolled, so nothing here draws from
@@ -618,6 +620,7 @@ export function Mapbox({
             one corner no drawer covers. Why that corner, and why the wordmark sits apart in the
             bottom right: `docs/rules/mapbox.md`, "The wordmark and the attribution" (#330). */}
         <MapCorner>{controls}</MapCorner>
+        {action && <MapAction>{action}</MapAction>}
       </ReactMapGL>
       <Modal open={locate.failed} onOpenChange={locate.setFailed}>
         <ModalContent

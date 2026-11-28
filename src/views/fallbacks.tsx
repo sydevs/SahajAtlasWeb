@@ -28,7 +28,7 @@ import {
   skeletonShape,
 } from '@/components/organisms/Skeleton/Skeleton'
 import { BackButton, NavHeader, NavRow } from '@/views/nav'
-import { useInlineAside } from '@/hooks/use-inline-aside'
+import { InlineAbove, useInlineAbove, useInlineAside } from '@/hooks/use-inline-aside'
 import {
   CalendarButton,
   DrawerTitle,
@@ -123,6 +123,7 @@ export function DrawerChrome({
   const { collapsed } = useDrawerControl()
   const inline = useDrawerMode() === 'inline'
   const rootHeader = useRootHeader()
+  const above = useInlineAbove() !== null
   const location = useLocation()
   const { data: titles } = useQuery({ ...eventTitlesQuery(locale), enabled: false })
 
@@ -209,7 +210,14 @@ export function DrawerChrome({
   // A class loading takes EventView's own header, so the title lands where the real one will. A
   // title fits one line in the inline column, wider than a panel, and wraps to two in a panel.
   if (loading && entry.kind === 'event') {
-    return <EventHeader nav={<NavRow />} title={title} titleLines={inline ? 1 : 2} />
+    // Inline, as EventView: the way back above the page heading, and no header here.
+    return above ? (
+      <InlineAbove>
+        <NavRow />
+      </InlineAbove>
+    ) : (
+      <EventHeader nav={<NavRow />} title={title} titleLines={inline ? 1 : 2} />
+    )
   }
 
   // The calendar's header is its controls, not a title.

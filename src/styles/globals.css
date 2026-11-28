@@ -581,7 +581,8 @@ html.sy-atlas {
 
 /* Mapbox's controls stay sharp and usable above the blur that covers the map until the camera
    arrives (`MapCurtain`, z-10). Without this they read as grey smudges. */
-.mapboxgl-ctrl-top-right {
+.mapboxgl-ctrl-top-right,
+.mapboxgl-ctrl-bottom-left {
   z-index: 20;
 }
 
@@ -596,10 +597,15 @@ html.sy-atlas {
    top edge, so they are reset; the column's own gap spaces it. On a touch screen it gets the 44px
    tap area every other control has, without growing the 24px button.
    `attribution.test.ts` fails if a mapbox-gl upgrade renames the classes this targets. */
-/* Centred under the 40px buttons above it while closed; open, it grows leftward from there. */
+/* Centred under the 40px buttons above it while closed; open, it grows leftward from there. With
+   no buttons above it, as on the inline map, it sits on the corner's own inset. */
 .sy-map-controls .mapboxgl-ctrl-attrib.mapboxgl-compact {
-  margin: 0 8px 0 0;
+  margin: 0;
   float: none;
+}
+
+.sy-map-controls:has(> div:first-child:not(:empty)) .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  margin-right: 8px;
 }
 
 /* No `relative` beside the utility: Mapbox already makes this button `position: absolute`, which

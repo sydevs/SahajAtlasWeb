@@ -20,11 +20,14 @@ class ControlCorner implements IControl {
   private readonly root = document.createElement('div')
 
   constructor(private readonly attribution: AttributionControl) {
-    // The top inset clears a phone's status bar where `viewport-fit=cover` runs the map beneath
-    // it. ⚠ The 10px gap is the credits' 44px tap area overhanging its 24px button on a touch
-    // screen: any less and the button above it takes the shared pixels.
+    // 12px in from the edges, as the action across the map is (`ActionSlot`): change the two
+    // together. The top inset also clears a phone's status bar where `viewport-fit=cover` runs
+    // the map beneath it. ⚠ The 10px gap is the credits' 44px tap area overhanging its 24px
+    // button on a touch screen: any less and the button above it takes the shared pixels.
     this.root.className =
-      'sy-map-controls pointer-events-auto mt-[calc(16px+env(safe-area-inset-top,0px))] mr-4 flex flex-col items-end gap-2.5'
+      'sy-map-controls pointer-events-auto mt-[calc(12px+env(safe-area-inset-top,0px))] mr-3 flex flex-col items-end gap-2.5'
+    // Empty, as on the inline map, the slot takes no gap above the credits.
+    this.slot.className = 'empty:hidden'
     this.root.append(this.slot)
   }
 
@@ -62,4 +65,32 @@ export const MapCorner = memo(function MapCorner({ children }: { children?: Reac
   useEffect(() => corner.hide(hidden), [corner, hidden])
 
   return children ? createPortal(children, corner.slot) : null
+})
+
+/** The map's one action, in the bottom-left corner: the inline map's "Expand map". */
+class ActionSlot implements IControl {
+  readonly slot = document.createElement('div')
+
+  constructor() {
+    // The corner's own 12px inset (`ControlCorner`).
+    this.slot.className = 'pointer-events-auto mb-3 ml-3'
+  }
+
+  onAdd() {
+    return this.slot
+  }
+
+  onRemove() {
+    this.slot.remove()
+  }
+}
+
+/**
+ * Places `children` in the map's bottom-left corner through Mapbox's own control placement, the
+ * same inset in from the edges as the top-right corner's.
+ */
+export const MapAction = memo(function MapAction({ children }: { children: ReactNode }) {
+  const action = useControl(() => new ActionSlot(), { position: 'bottom-left' })
+
+  return createPortal(children, action.slot)
 })

@@ -22,7 +22,7 @@ import { mockErrors, mockNotFound } from '@/mocks/errors'
 import { parentOf } from '@/lib/shape'
 import { mockApproxLocation, mockGeojson, mockRegionNodes } from '@/mocks/regions'
 import { MapLayer, MapProviders } from '@/views/FullInterface'
-import { InlineColumns, PlaceHeading } from '@/views/InlineEmbedView/InlineEmbedView'
+import { ExpandButton, InlineColumns, PlaceHeading } from '@/views/InlineEmbedView/InlineEmbedView'
 import { VIEW_CONTROLS } from '@/views/story-controls'
 import { DrawerStack } from '@/views/DrawerStack/DrawerStack'
 
@@ -358,7 +358,7 @@ function InlineForm({ children }: { children: ReactNode }) {
             )}
           </div>
         }
-        map={<MapLayer controls={false} />}
+        map={<MapLayer action={<ExpandButton />} controls={false} />}
       >
         <WidgetWidthContext.Provider value={isWide}>
           <div ref={setColumn} className="flex flex-col">

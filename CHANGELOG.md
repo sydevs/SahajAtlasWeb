@@ -284,7 +284,8 @@ cover everything a host would notice since the widget was first deployed.
   included. A class's Register and actions sit under the map; on a narrow widget, Register sticks to the
   bottom of the screen while the class is in view, and its actions follow its details. Above
   the map, Where, When and Language buttons filter the classes, beside the settings menu, so the
-  map itself carries only its credits. A narrow widget stacks a short map strip above the classes; `map=false` shows
+  map itself carries only its credits. A class's page is headed by the class's own name, with
+  the way back above it and larger facts beside the map. A narrow widget stacks a short map strip above the classes; `map=false` shows
   the classes alone. "Expand map" opens the full map, with its panel, in a modal covering the
   screen below your header, and "Close map" brings the visitor back. See
   [Sizing the element](docs/embedding.md#sizing-the-element). What you can observe:

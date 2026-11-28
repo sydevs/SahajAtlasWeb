@@ -32,6 +32,16 @@ const facts = tv({
       // Every fact takes at least 22px, so one-line facts never sit line on line.
       card: { base: 'gap-1.5', item: 'min-h-5.5 gap-2', icon: 'text-gray-11', text: 'text-sm' },
     },
+    // The class page with a page's width to read across (the inline embed beside its map): larger
+    // icons drawn finer, and larger values, each fact roomier.
+    detailed: {
+      true: {
+        base: 'gap-5',
+        item: 'gap-3.5',
+        text: 'text-lg font-medium',
+        subtext: 'text-sm font-normal',
+      },
+    },
     // A two-line fact hangs its icon beside the FIRST line. A lone line centres it.
     stacked: {
       true: { item: 'items-start' },
@@ -66,6 +76,8 @@ export type EventFactsProps = {
   distance?: ReactNode
   /** Drops every faded second line. */
   hideSubtext?: boolean
+  /** The class page's larger treatment, for a page-wide column. `page` surface only. */
+  detailed?: boolean
   className?: string
 }
 
@@ -83,6 +95,7 @@ export function EventFacts({
   surface = 'page',
   distance,
   hideSubtext = false,
+  detailed = false,
   className,
 }: EventFactsProps) {
   const { display, surfaces, whereLine, whereLineWithPostCode, roomLine, whereSubtext } = strings
@@ -119,8 +132,8 @@ export function EventFacts({
     })
   }
 
-  const size = ICON_SIZE[surface]
-  const slots = facts({ surface })
+  const size = detailed ? 32 : ICON_SIZE[surface]
+  const slots = facts({ surface, detailed })
 
   return (
     // `data-sheet-fold`: the panel's facts end a class's key-facts stop (`foldHeight`).
@@ -129,12 +142,12 @@ export function EventFacts({
         const subtext = hideSubtext ? undefined : line
         // Alignment is per-fact. Only a stacked fact, one with two lines,
         // hangs its icon from the first line.
-        const styles = facts({ surface, stacked: Boolean(subtext) || Boolean(stacked) })
+        const styles = facts({ surface, detailed, stacked: Boolean(subtext) || Boolean(stacked) })
 
         return (
           <div key={index} className={styles.item()}>
             <span className={styles.icon()}>
-              <Icon size={size} />
+              <Icon size={size} strokeWidth={detailed ? 1.5 : 2} />
             </span>
             <div className={styles.text()}>
               <div>{text}</div>

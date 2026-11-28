@@ -126,12 +126,16 @@ export const drawer = tv({
        * Nothing scrolls inside it, so the page grows to fit. The column lifts the bands' width
        * cap itself, through `--sy-content-max`.
        */
+      // The first band drops its top padding, so whatever a view leads with starts level with
+      // the map beside it: the column and the map's toolbar share the grid's rows
+      // (`InlineColumns`).
       inline: {
-        body: 'flex-none overflow-visible after:hidden',
+        body: 'flex-none overflow-visible after:hidden first:pt-0',
         // A title naming the place the inline embed's page heading already names gives way to
         // that heading. `display: none` takes it out of the accessibility tree too, so this is
         // the same tree as not rendering it (`DrawerTitle`, `views/shared.tsx`).
-        header: '[&_[data-sy-place]]:hidden',
+        header: 'first:pt-0 [&_[data-sy-place]]:hidden',
+        toolbar: 'first:pt-0',
       },
     },
     // A full-width surface, such as CalendarView, instead of the 384px left panel, so a month

@@ -168,13 +168,17 @@ export function useInterfaceBoot({ clientLoaded, homePath, primaryDomain = '' }:
 export function MapLayer({
   cooperative = false,
   controls = true,
+  action,
 }: {
   cooperative?: boolean
   controls?: boolean
+  /** The map's one action, bottom left, placed by Mapbox (`MapAction`). */
+  action?: ReactNode
 }) {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
       <Mapbox
+        action={action}
         controls={
           controls && (
             <MapControls filterMenus={<FilterMenuBar variant="floating" />} variant="floating" />

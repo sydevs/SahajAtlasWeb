@@ -2,6 +2,7 @@ import type { EventDisplayStrings } from '@/hooks/use-event-display'
 
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import clsx from 'clsx'
 
 import { EventRegisterBar } from './EventRegister'
 import { sanitizeDescription } from './sanitize'
@@ -76,6 +77,9 @@ export function EventDetails({
   // Inline beside a map, Register and the actions sit under the map, in reach while the visitor
   // reads the rest of the page.
   const aside = useInlineAside() !== null
+  // There, with a page's width to read across, the facts and the description take the larger,
+  // detailed treatment.
+  const detailed = aside
   const actions = (
     <>
       <EventActions event={event} strings={strings} />
@@ -84,13 +88,17 @@ export function EventDetails({
   )
 
   return (
-    <div className="flex flex-col gap-4 px-gutter pt-2 pb-10">
+    <div className={clsx('flex flex-col px-gutter pb-10', detailed ? 'gap-6' : 'gap-4 pt-2')}>
       {/* The triage chips open the body. They do not sit under the title in the
           pinned header. */}
       <EventChips languages={event.languages} strings={strings} />
 
-      {/* The facts keep extra room above the actions. */}
-      <EventFacts className="mb-2" strings={strings} />
+      {/* The facts keep extra room above the actions; detailed, a rule closes them off. */}
+      <EventFacts
+        className={detailed ? 'border-b border-divider pb-8' : 'mb-2'}
+        detailed={detailed}
+        strings={strings}
+      />
 
       {children}
 
@@ -120,11 +128,16 @@ export function EventDetails({
       {/* About — host-authored prose always sits below the facts and actions. */}
       {descriptionHtml && (
         <div className="flex flex-col gap-2">
-          <h2 className="text-base font-semibold">{t('event.display.about')}</h2>
+          <h2 className={detailed ? 'text-xl font-semibold' : 'text-base font-semibold'}>
+            {t('event.display.about')}
+          </h2>
           <div
             dangerouslySetInnerHTML={{ __html: sanitizeDescription(descriptionHtml) }}
             // `colored-links` carries the host-prose treatment, wrapping included.
-            className="flex flex-col gap-2 text-sm leading-snug colored-links normal-nums"
+            className={clsx(
+              'flex flex-col colored-links normal-nums',
+              detailed ? 'gap-3 text-lg leading-normal' : 'gap-2 text-sm leading-snug',
+            )}
           />
         </div>
       )}

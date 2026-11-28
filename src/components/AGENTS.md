@@ -265,6 +265,14 @@ once. The expanded map is `MapInterface`, the same interface without that boot.
   map's request off `useFindMe`. A map-less embed has no toolbar, so its settings sit beside the
   page heading. With the buttons there, the root view's header would hold nothing, so it draws
   none (`useRootHeader`).
+- **Whatever a view leads with starts level with the map.** The grid's row gap is the toolbar's
+  gap above the map, and the inline Drawer bands drop their top padding when first
+  (`drawer-style.ts`), so the first band's top is the map's top however the heading or the
+  toolbar wraps. No gap between the columns: the content's own gutter spaces it from the map.
+- **A class's page is headed by the class**: `PlaceHeading` names it on a class and its sign-up,
+  and `EventView` moves its way back above that heading (`InlineAbove`,
+  `hooks/use-inline-aside.tsx`) and draws no header of its own. Beside the map, its facts and
+  description take `EventFacts`' `detailed` treatment.
 - **Beside the inline map, a class's Register and actions sit under it**, in `InlineColumns`'
   aside: `EventDetails` portals them there through `InlineAside` (`hooks/use-inline-aside.tsx`),
   and the map's square shrinks by the aside's height, so both stay in view while they stick.
