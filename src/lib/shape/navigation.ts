@@ -6,7 +6,14 @@
  */
 import { filtersFromParams, filtersToParams, hasActiveFilters } from './filters'
 import { ancestorIds, indexRegions } from './hierarchy'
-import { type PlacePathOf, type StackEntry, parentOf, placedPathname, resolveStack } from './path'
+import {
+  type PlacePathOf,
+  type StackEntry,
+  parentOf,
+  placedPathname,
+  resolveStack,
+  withQuery,
+} from './path'
 
 /**
  * The `state` shape we stamp on in-widget pushes (via the Link atom + useAtlasNavigate). A
@@ -130,12 +137,6 @@ export const sameRoute = (a: string, b: string): boolean => {
   }
 
   return canonical(a) === canonical(b)
-}
-
-const withQuery = (pathname: string, params: URLSearchParams | string) => {
-  const query = params.toString().replace(/^\?/, '')
-
-  return query ? `${pathname}?${query}` : pathname
 }
 
 /**

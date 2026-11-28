@@ -426,6 +426,11 @@ nothing the geocoder answers reaches a row SahajCloud stores; `reverseGeocode` (
 is temporary for the same reason. Storing an id means giving `MapSearch` a `permanent` option again,
 on the mount that submits it (sydevs/SahajCloud#893 is the contract that would require it).
 
+**A pick is compared with the regions' stored ids, never stored itself.** SahajCloud keeps
+`Region.mapboxId` from permanent lookups, and a temporary one answers the same id: measured for a
+country, region, place and locality, for a neighbourhood's and a postcode's `context.place`, and
+for a place asked in three languages (2026-11-27).
+
 ⚠ **An option that may be absent is spread conditionally.** `GeocodingCore` drops a `null` or
 `undefined` option but serializes a `false`, so `country` is spread rather than passed as itself —
 and a spread's keys escape TypeScript's excess-property check, which a plainly written key does

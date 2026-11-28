@@ -30,6 +30,7 @@ vi.mock('@/hooks/use-mapbox', () => ({ useMapbox: () => ({ mapbox: undefined }) 
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-query')>()),
   useQuery: () => ({ data: undefined }),
+  useQueryClient: () => ({ getQueryData: () => undefined }),
 }))
 vi.mock('@/config/api', () => ({
   default: {},

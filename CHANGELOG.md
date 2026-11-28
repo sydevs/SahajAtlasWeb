@@ -49,6 +49,12 @@ cover everything a host would notice since the widget was first deployed.
 
 ### Changed
 
+- **Searching a place the atlas already has a page for opens that page.** ([#555]) Picking a
+  country, region or town from the search field opens its own page, with the filters and sort
+  carried across. A neighbourhood or postcode opens the town it sits in. A place with no page, or
+  none holding a class that passes the filters, still lists the nearest classes as before. The map
+  moves to the place that opens; a place holding only online classes, which has no area of its own
+  to show, moves to the nearest surrounding area rather than leaving the map where it was.
 - **The calendar is the widget's own, with a Week list, and names each class.** ([#538])
   - **Switch:** Month | Week | List at every width. List leads back to the place's own page, and a
     place page's **Calendar** button opens the calendar scoped to that place, named at its top.
@@ -1482,6 +1488,7 @@ must-revalidate`, pinned rather than left to the CDN default. The production dom
   (`//evil.com`) and non-allowlisted-scheme hrefs. Defense in depth — no live hole was
   found. ([#111], [#136])
 
+[#555]: https://github.com/sydevs/SahajAtlasWeb/pull/555
 [#509]: https://github.com/sydevs/SahajAtlasWeb/pull/509
 [#538]: https://github.com/sydevs/SahajAtlasWeb/pull/538
 [#492]: https://github.com/sydevs/SahajAtlasWeb/pull/492
