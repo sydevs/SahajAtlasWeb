@@ -6,7 +6,7 @@ import type { Event, Region } from '@/types'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useQueries, useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useQueries, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { CalendarDays, ChevronRight, Funnel, MapPin } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -15,7 +15,13 @@ import { Alert } from '@/components/atoms/Alert'
 import { Spinner } from '@/components/atoms/Spinner'
 import { FallbackPanel } from '@/components/molecules'
 import { MapSearch } from '@/components/organisms'
-import api, { eventQuery, geojsonQuery, regionQuery, regionsQuery } from '@/config/api'
+import {
+  eventQuery,
+  geojsonQuery,
+  regionQuery,
+  regionsQuery,
+  searchedRegionRoute,
+} from '@/config/api'
 import { useApproxLocation, useCameraHistory, useSearchFocus } from '@/config/store'
 import { useWidgetMode } from '@/config/mode'
 import { useAtlasNavigate } from '@/hooks/use-atlas-navigate'
@@ -42,10 +48,12 @@ import {
   calendarPath,
   cameFrom,
   filtersFromParams,
+  isCanonicalPath,
   placeSearchPath,
   preserveSearchState,
   resolvePath,
   topViewKey,
+  withQuery,
 } from '@/lib/shape'
 
 // The collapse/expand and dismiss control for the sheet, provided by DrawerStack.
@@ -296,21 +304,24 @@ export function SearchField({
     }
   }, [])
   const navigate = useAtlasNavigate()
+  const queryClient = useQueryClient()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
 
   const handleSelect = useCallback(
     (value: GeocodingFeature) => {
-      // A place SahajCloud holds as a region opens that region's page, with the filters and sort
-      // the search would have carried. Picked from that page's own field, it stays put rather than
-      // stacking the page on itself.
       const kept = preserveSearchState(searchParams)
-      const region = api.findSearchedRegion(geocodeRegionIds(value), filtersFromParams(kept))
+      const region = searchedRegionRoute(
+        queryClient.getQueryData(regionsQuery().queryKey),
+        queryClient.getQueryData(geojsonQuery().queryKey),
+        geocodeRegionIds(value),
+        filtersFromParams(kept),
+      )
 
       if (region) {
-        const query = kept.toString()
-
-        if (region !== pathname) navigate(query ? `${region}?${query}` : region)
+        // Picked from the region's own page, the pick stays put rather than stacking the page on
+        // itself.
+        if (!isCanonicalPath(pathname, region)) navigate(withQuery(region, kept))
 
         return
       }
@@ -332,7 +343,7 @@ export function SearchField({
         }),
       )
     },
-    [navigate, pathname, searchParams],
+    [navigate, pathname, queryClient, searchParams],
   )
 
   // After a refused location the line is gone, and the cursor goes to the field, unless the

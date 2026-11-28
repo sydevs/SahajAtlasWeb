@@ -240,6 +240,13 @@ export const placeSearchPath = (params: URLSearchParams, place: PlaceSearch): st
   return `/search?${next.toString()}`
 }
 
+/** A route with a query appended, and no `?` when the query is empty. */
+export const withQuery = (pathname: string, params: URLSearchParams | string): string => {
+  const query = params.toString().replace(/^\?/, '')
+
+  return query ? `${pathname}?${query}` : pathname
+}
+
 /** The same place search, with the filter drawer still open over it. */
 export const placeFiltersPath = (params: URLSearchParams, place: PlaceSearch): string =>
   placeSearchPath(params, place).replace('/search?', '/search/filters?')

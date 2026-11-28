@@ -93,25 +93,23 @@ export const reverseGeocode = async (
   }
 }
 
-// The feature types smaller than a town, which the search offers. A pick of one may open the town
-// it sits in.
-const WITHIN_TOWN = new Set(['locality', 'neighborhood', 'postcode'])
+// A pick of one of these may open the town it sits in, and never anything coarser.
+const WITHIN_TOWN: ReadonlySet<string> = new Set<FeatureTypes>([
+  'locality',
+  'neighborhood',
+  'postcode',
+])
 
 /**
- * The Mapbox ids a picked place could be stored under as a region's `mapboxId`, most specific
- * first: the feature's own, then, for a pick smaller than a town, the town (`place`) around it.
- * Never coarser than the town, so a postcode opens its city and never its state or country.
- *
- * SahajCloud stores these ids from Geocoding v6 lookups asked for as permanent. The search field's
- * lookups are temporary, and the id is the same either way, so this only compares them and nothing
- * keeps one (`docs/rules/mapbox.md`).
+ * The ids a picked place could be stored under as a region's `mapboxId`: its own, then the town's.
+ * A temporary lookup answers the same id a permanent one stores, so these are compared, never kept
+ * (`docs/rules/mapbox.md`).
  */
 export const geocodeRegionIds = (feature: GeocodingFeature): string[] => {
   const properties = feature.properties
-  const own = properties?.mapbox_id
   const town = WITHIN_TOWN.has(properties?.feature_type)
     ? properties?.context?.place?.mapbox_id
     : undefined
 
-  return [own, town].filter((id): id is string => typeof id === 'string' && id !== '')
+  return [properties?.mapbox_id, town].filter((id): id is string => !!id)
 }

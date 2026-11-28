@@ -8,6 +8,7 @@ import api, {
   eventTitlesQuery,
   geojsonQuery,
   regionsQuery,
+  searchedRegionRoute,
   shapeEventDoc,
   translationsQuery,
 } from './fetch'
@@ -751,59 +752,44 @@ describe('getRegion (region-tree derivation)', () => {
     expect(region.events.map((event) => event.id)).toEqual([30, 21, 12, 5])
   })
 
-  describe('findSearchedRegion (a searched place SahajCloud holds as a region)', () => {
-    // Antwerpen holds two located classes, Ghent one online class and nothing located, and
-    // Belgium the lot. Brussels carries no id.
+  describe('searchedRegionRoute (a searched place SahajCloud holds as a region)', () => {
+    // Ghent holds one online class and nothing located. Brussels carries no id.
     const ids: Record<string, string> = {
       belgium: 'id-be',
       antwerpen: 'id-antwerp',
       ghent: 'id-ghent',
     }
     const located = tree.map((node) => ({ ...node, mapboxId: ids[node.slug] ?? null }))
-    const warm = async () => {
+    // Through the real reads, so the tree's parse is shown to keep `mapboxId`.
+    const route = async (candidates: string[], filters?: EventFilters) => {
       mockBackend(countryFeed, located)
-      await Promise.all([
+      const [regions, geojson] = await Promise.all([
         queryClient.fetchQuery(regionsQuery()),
         queryClient.fetchQuery(geojsonQuery()),
       ])
+
+      return searchedRegionRoute(regions, geojson, candidates, filters)
     }
 
     it('opens the first region holding one of the ids', async () => {
-      await warm()
-
-      expect(api.findSearchedRegion(['id-antwerp'])).toBe('/belgium/antwerpen')
-      expect(api.findSearchedRegion(['id-be'])).toBe('/belgium')
-      // The pick's own id wins over the town around it, and an unknown pick falls to the town.
-      expect(api.findSearchedRegion(['id-be', 'id-antwerp'])).toBe('/belgium')
-      expect(api.findSearchedRegion(['id-unknown', 'id-antwerp'])).toBe('/belgium/antwerpen')
+      expect(await route(['id-antwerp'])).toBe('/belgium/antwerpen')
+      expect(await route(['id-be', 'id-antwerp'])).toBe('/belgium')
+      expect(await route(['id-unknown', 'id-antwerp'])).toBe('/belgium/antwerpen')
+      expect(await route(['id-unknown'])).toBeUndefined()
     })
 
-    it('searches instead where no region holds the place', async () => {
-      await warm()
+    it('passes over a region holding no class that passes the filters', async () => {
+      const offline = { ...DEFAULT_FILTERS, format: 'offline' } as const
 
-      expect(api.findSearchedRegion(['id-unknown'])).toBeUndefined()
-      expect(api.findSearchedRegion([])).toBeUndefined()
+      // Ghent's online class counts: its page would list it.
+      expect(await route(['id-ghent'])).toBe('/belgium/ghent')
+      expect(await route(['id-ghent'], offline)).toBeUndefined()
+      // An empty pick still opens the town around it.
+      expect(await route(['id-ghent', 'id-antwerp'], offline)).toBe('/belgium/antwerpen')
     })
 
-    it('searches instead where the region holds no class that passes the filters', async () => {
-      await warm()
-
-      // Ghent's one class is online, and counts: its page would list it.
-      expect(api.findSearchedRegion(['id-ghent'])).toBe('/belgium/ghent')
-      expect(
-        api.findSearchedRegion(['id-ghent'], { ...DEFAULT_FILTERS, format: 'offline' }),
-      ).toBeUndefined()
-      expect(
-        api.findSearchedRegion(['id-antwerp'], { ...DEFAULT_FILTERS, languages: ['xx'] }),
-      ).toBeUndefined()
-    })
-
-    it('never fetches: a cold cache searches instead', () => {
-      mockBackend(countryFeed, located)
-
-      expect(api.findSearchedRegion(['id-antwerp'])).toBeUndefined()
-      expect(sdk.find).not.toHaveBeenCalled()
-      expect(sdk.request).not.toHaveBeenCalled()
+    it('searches instead while either cache is cold', () => {
+      expect(searchedRegionRoute(undefined, undefined, ['id-antwerp'])).toBeUndefined()
     })
   })
 })

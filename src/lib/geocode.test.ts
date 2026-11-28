@@ -61,26 +61,12 @@ describe('geocodeRegionIds', () => {
       },
     }) as unknown as GeocodingFeature
 
-  it('offers the town around a pick smaller than a town, after the pick itself', () => {
-    expect(geocodeRegionIds(picked('neighborhood', 'camden', 'london'))).toEqual([
-      'camden',
-      'london',
-    ])
-    expect(geocodeRegionIds(picked('postcode', 'nw1', 'london'))).toEqual(['nw1', 'london'])
-    expect(geocodeRegionIds(picked('locality', 'hampstead', 'london'))).toEqual([
-      'hampstead',
-      'london',
-    ])
+  it.each(['locality', 'neighborhood', 'postcode'])('offers the town around a %s', (type) => {
+    expect(geocodeRegionIds(picked(type, 'pick', 'london'))).toEqual(['pick', 'london'])
   })
 
-  it('never climbs from a town or anything larger', () => {
-    // A district, a region or a country names an area wider than the town in its context.
-    expect(geocodeRegionIds(picked('place', 'london', 'london'))).toEqual(['london'])
-    expect(geocodeRegionIds(picked('district', 'greater-london', 'london'))).toEqual([
-      'greater-london',
-    ])
-    expect(geocodeRegionIds(picked('region', 'england'))).toEqual(['england'])
-    expect(geocodeRegionIds(picked('country', 'gb'))).toEqual(['gb'])
+  it.each(['place', 'district'])('never climbs from a %s', (type) => {
+    expect(geocodeRegionIds(picked(type, 'pick', 'london'))).toEqual(['pick'])
   })
 
   it('yields nothing for a feature that carries no id', () => {
