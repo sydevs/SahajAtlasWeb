@@ -190,11 +190,8 @@ export function DrawerChrome({
           <ExpandSheetButton />
         </DrawerHeader>
         <DrawerToolbar>
-          <ListToolbar>
+          <ListToolbar end={<SortMenu />}>
             <FilterButton />
-            <div className="ms-auto">
-              <SortMenu />
-            </div>
           </ListToolbar>
         </DrawerToolbar>
       </>
