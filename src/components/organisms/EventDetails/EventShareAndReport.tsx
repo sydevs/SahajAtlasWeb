@@ -38,17 +38,11 @@ function ReportDetailsLink() {
   if (!enabled) return null
 
   return (
-    <div className="border-t border-divider pt-1">
-      <Button
-        className="-ms-1 gap-2 px-1 text-primary-11"
-        size="sm"
-        variant="ghost"
-        onClick={() => openReport()}
-      >
+    // A link sits on the line like text, so the rule keeps its own room above it.
+    <div className="border-t border-divider pt-3">
+      <Button color="primary" variant="link" onClick={() => openReport()}>
         <Flag aria-hidden size={16} />
-        <span className="underline decoration-primary-7 underline-offset-4">
-          {t('event.display.report_details')}
-        </span>
+        {t('event.display.report_details')}
       </Button>
     </div>
   )
