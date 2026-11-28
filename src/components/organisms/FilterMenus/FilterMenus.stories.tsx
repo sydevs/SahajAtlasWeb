@@ -9,7 +9,7 @@ import { FilterMenus, type FilterMenusProps } from './FilterMenus'
 
 import { DEFAULT_FILTERS, type EventFilters } from '@/lib/shape'
 import { refuseGeolocation } from '@/mocks/story-geolocation'
-import { WhereFilter } from '@/views/FilterView/WhereFilter'
+import { WhereFilter } from '@/views/Filters/WhereFilter'
 
 export default { title: 'Organisms' } satisfies StoryDefault
 

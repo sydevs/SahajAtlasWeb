@@ -47,7 +47,7 @@ import {
   scheduleXLocale,
 } from '@/lib/shape'
 import { formatDate, formatMonth, zoneCity } from '@/lib/time'
-import { FilterMenuBar } from '@/views/FilterView/FilterMenuBar'
+import { FilterMenuBar } from '@/views/Filters/FilterMenuBar'
 import { BackButton } from '@/views/nav'
 import { ExpandSheetButton, FilterButton } from '@/views/shared'
 import { DrawerErrorBody, DrawerLoadingBody } from '@/views/fallbacks'

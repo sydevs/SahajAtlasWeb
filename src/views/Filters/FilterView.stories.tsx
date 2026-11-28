@@ -5,7 +5,7 @@ import { DateTime } from 'luxon'
 
 import { SeedSearchParams } from '@/components/ladle'
 import { ViewHarness } from '@/views/story-harness'
-import { FilterView } from '@/views/FilterView/FilterView'
+import { FilterView } from '@/views/Filters/FilterView'
 import { geojsonQuery } from '@/config/api'
 import { mockEventSlim } from '@/mocks/events'
 import { mockGeojson } from '@/mocks/regions'
