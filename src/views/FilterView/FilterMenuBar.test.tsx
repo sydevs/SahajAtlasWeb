@@ -22,8 +22,8 @@ vi.mock('@/components/organisms/FilterMenus', () => ({
     return null
   },
 }))
-vi.mock('./use-panel-filters', () => ({
-  usePanelFilters: () => ({ filters: state.filters, write() {}, clear() {}, pickPlace() {} }),
+vi.mock('@/hooks/use-filter-editor', () => ({
+  useFilterEditor: () => ({ filters: state.filters, write() {}, clear() {}, pickPlace() {} }),
 }))
 vi.mock('react-router', async (original) => ({
   ...(await original<object>()),

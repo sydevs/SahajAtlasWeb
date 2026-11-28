@@ -246,7 +246,7 @@ export const pageRegion = (pathname: string): string | null => {
 /**
  * Whether clearing every filter on the results goes back to the place page they were opened from,
  * rather than leaving that place's unfiltered list. The first answer given on a place page opens
- * the results (`usePanelFilters`), so with that place still in scope and no place searched since
+ * the results (`useFilterEditor`), so with that place still in scope and no place searched since
  * (`center`), clearing undoes that step.
  */
 export const clearsBackToPlace = (

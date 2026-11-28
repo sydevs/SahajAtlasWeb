@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useLocation, useSearchParams } from 'react-router'
 
-import { usePanelFilters } from './use-panel-filters'
 import { WhereFilter } from './WhereFilter'
 
 import { FilterMenus, type FilterMenusProps } from '@/components/organisms/FilterMenus'
 import { regionsQuery } from '@/config/api'
 import { useSearchFocus } from '@/config/store'
+import { useFilterEditor } from '@/hooks/use-filter-editor'
 import { useLocale } from '@/hooks/use-locale'
 import { useNearVisitor } from '@/hooks/use-near-me'
 import { parseCenter, searchedPlaceName } from '@/lib/shape'
@@ -21,12 +21,12 @@ const focusSearch = () => {
 }
 
 /**
- * The filter buttons wired to the URL (`usePanelFilters`), with the Where menu's place half, which
+ * The filter buttons wired to the URL (`useFilterEditor`), with the Where menu's place half, which
  * needs the router and the geocoder.
  */
 export function FilterMenuBar({ variant }: Pick<FilterMenusProps, 'variant'>) {
   const { t } = useLocale()
-  const { filters, write, clear, pickPlace, clearWhere } = usePanelFilters()
+  const { filters, write, clear, pickPlace, clearWhere } = useFilterEditor('buttons')
   const [searchParams] = useSearchParams()
   const center = parseCenter(searchParams.get('center'))
   const nearMe = useNearVisitor(center)

@@ -1,5 +1,4 @@
-import { useMemo } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -11,24 +10,11 @@ import { RecoveryButton, SearchFilters } from '@/components/organisms'
 import { regionQuery } from '@/config/api'
 import { useIsWideWidget } from '@/config/responsive'
 import { useSearchFocus } from '@/config/store'
-import { useEventFilters } from '@/hooks/use-filters'
+import { useFilterEditor } from '@/hooks/use-filter-editor'
 import { useFilterFacets } from '@/hooks/use-filter-facets'
 import { useLocale } from '@/hooks/use-locale'
 import { useMapController } from '@/hooks/use-map-controller'
-import {
-  DEFAULT_FILTERS,
-  type EventFilters,
-  type PlaceSearch,
-  filtersToParams,
-  hasActiveFilters,
-  listsFilteredClasses,
-  noPlaceSearch,
-  pageRegion,
-  parentOf,
-  parseBounds,
-  parseCenter,
-  placeFiltersPath,
-} from '@/lib/shape'
+import { hasActiveFilters, pageRegion, parentOf, parseBounds, parseCenter } from '@/lib/shape'
 import { NavHeader } from '@/views/nav'
 import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 
@@ -39,58 +25,15 @@ import { useDrawerControl, useFrameOnTop } from '@/views/shared'
 // shows the matching classes (`backStep`).
 export function FilterView() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const { locale } = useLocale()
   const control = useDrawerControl()
-  const applied = useEventFilters()
+  const { filters, write, pickPlace, clearWhere, clear } = useFilterEditor('drawer')
   const originRegion = pageRegion(location.pathname)
-
-  // Opened over a region, the filters are scoped to it without saying so in the URL, so an
-  // untouched `/gb/filters` still reads as nothing chosen and closes back onto `/gb`.
-  const filters = useMemo(
-    () => ({ ...applied, region: applied.region ?? originRegion }),
-    [applied, originRegion],
-  )
   const facets = useFilterFacets(filters)
   const count = facets?.counts.total
-
-  // The view beneath. Only the calendar and the search list show filtered classes, so over any
-  // other view a place search moves the filters onto a search.
   const origin = parentOf(location.pathname)
-  const filtersOrigin = origin && listsFilteredClasses(origin) ? origin : '/search'
-
-  const moveTo = (to: { pathname: string; search: string } | string) =>
-    navigate(to, { replace: true, state: location.state })
-
-  const write = (next: EventFilters) => {
-    const region = next.region === originRegion ? null : next.region
-
-    moveTo({
-      pathname: location.pathname,
-      search: filtersToParams({ ...next, region }, new URLSearchParams(location.search)).toString(),
-    })
-  }
-
-  // A place replaces any region, and the drawer moves over that search.
-  const pickPlace = (place: PlaceSearch) =>
-    moveTo(
-      placeFiltersPath(
-        filtersToParams({ ...filters, region: null }, new URLSearchParams(location.search)),
-        place,
-      ),
-    )
-
-  // Drops the place and the region, and keeps every other answer. Over a region's own page the
-  // drawer moves onto the unscoped search, so the list behind it no longer names that region.
-  const clearWhere = () =>
-    moveTo({
-      pathname: `${filtersOrigin}/filters`,
-      search: noPlaceSearch(
-        filtersToParams({ ...filters, region: null }, new URLSearchParams(location.search)),
-      ),
-    })
 
   // A fresh link to the filters has no view beneath that framed the map, so the filters frame
   // their own place, once.
@@ -119,9 +62,7 @@ export function FilterView() {
     control.dismiss()
   }
 
-  // Clear resets the answers, not the Where: the visitor is still looking in the same place.
   const answered = hasActiveFilters({ ...filters, region: null })
-  const clear = () => write({ ...DEFAULT_FILTERS, region: filters.region })
   const recovery = count === 0 ? facets?.recovery : undefined
   // Nothing matches, and removing any one answer still finds nothing: Clear is the way out.
   const clearLeads = count === 0 && !recovery
